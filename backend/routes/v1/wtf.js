@@ -2,6 +2,16 @@ const express = require("express");
 const { authorize, authenticate } = require("../../middleware/auth");
 const { WtfPermissions } = require("../../constants/users");
 const {
+  wtfRateLimiters,
+  wtfContentValidation,
+  wtfSubmissionValidation,
+  wtfInteractionValidation,
+  handleValidationErrors,
+  checkContentSizeLimits,
+  wtfSecurityHeaders,
+  wtfFileUploadSecurity,
+} = require("../../middleware/wtfSecurity");
+const {
   // Pin Management Controllers
   createPin,
   getActivePins,
@@ -44,20 +54,42 @@ router.post(
   "/pins",
   authenticate,
   authorize(WtfPermissions.WTF_PIN_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.pinCreation,
+  wtfContentValidation,
+  checkContentSizeLimits("pin"),
+  handleValidationErrors,
   createPin
 );
 
 // Get active pins for students (Public - requires authentication)
-router.get("/pins", authenticate, getActivePins);
+router.get(
+  "/pins",
+  authenticate,
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  getActivePins
+);
 
 // Get pin by ID (Public - requires authentication)
-router.get("/pins/:pinId", authenticate, getPinById);
+router.get(
+  "/pins/:pinId",
+  authenticate,
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  getPinById
+);
 
 // Update pin (Admin only)
 router.put(
   "/pins/:pinId",
   authenticate,
   authorize(WtfPermissions.WTF_PIN_UPDATE, "Update"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.admin,
+  wtfContentValidation,
+  checkContentSizeLimits("pin"),
+  handleValidationErrors,
   updatePin
 );
 
@@ -84,6 +116,10 @@ router.post(
   "/pins/:pinId/like",
   authenticate,
   authorize(WtfPermissions.WTF_INTERACTION_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.pinInteractions,
+  wtfInteractionValidation,
+  handleValidationErrors,
   likePin
 );
 
@@ -92,6 +128,10 @@ router.post(
   "/pins/:pinId/seen",
   authenticate,
   authorize(WtfPermissions.WTF_INTERACTION_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.pinInteractions,
+  wtfInteractionValidation,
+  handleValidationErrors,
   markPinAsSeen
 );
 
@@ -105,6 +145,12 @@ router.post(
   "/submissions/voice",
   authenticate,
   authorize(WtfPermissions.WTF_SUBMISSION_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.submissions,
+  wtfSubmissionValidation,
+  checkContentSizeLimits("submission"),
+  wtfFileUploadSecurity,
+  handleValidationErrors,
   submitVoiceNote
 );
 
@@ -113,6 +159,11 @@ router.post(
   "/submissions/article",
   authenticate,
   authorize(WtfPermissions.WTF_SUBMISSION_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.submissions,
+  wtfSubmissionValidation,
+  checkContentSizeLimits("submission"),
+  handleValidationErrors,
   submitArticle
 );
 
