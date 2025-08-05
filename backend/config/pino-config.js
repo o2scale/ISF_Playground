@@ -1,6 +1,6 @@
 const pino = require("pino");
-const os = require("os")
-const dotenv = require('dotenv');
+const os = require("os");
+const dotenv = require("dotenv");
 dotenv.config();
 
 // const getBetterStackSourceToken = (env = process.env.NODE_ENV) => {
@@ -20,7 +20,6 @@ dotenv.config();
 //     //   { stream: streamToElastic }
 // ];
 
-
 // streamToElastic.on("insert", (info, error) => {
 //   console.log('info ', info)
 //   console.log('error', error)
@@ -28,8 +27,7 @@ dotenv.config();
 
 // streamToElastic.on("error", (error) => { console.log('error', error) })
 
-
-// Generate logger based on the environment. 
+// Generate logger based on the environment.
 /*  PRODUCTION : Better stack 
     BETA : elastic 
     ALPHA : Better stack 
@@ -38,44 +36,40 @@ let logger;
 let errorLogger;
 
 let logStreams = [
-    { stream: process.stdout },
-    { stream: pino.destination({ dest: "./logs/pino-logger.log", sync: true, }) },
-    // { stream: transport },
-
+  { stream: process.stdout },
+  { stream: pino.destination({ dest: "./logs/pino-logger.log", sync: true }) },
+  // { stream: transport },
 ];
 logger = pino(
-    {
-        level: "info",
-        timestamp: pino.stdTimeFunctions.isoTime,
-        base: {
-            pid: process.pid,
-            hostname: os.hostname(),
-            env: process.env.NODE_ENV
-        },
-        redact: {
-            paths: ['req'],
-            censor: '**GDPR COMPLIANT**'
-
-        },
-
+  {
+    level: "info",
+    timestamp: pino.stdTimeFunctions.isoTime,
+    base: {
+      pid: process.pid,
+      hostname: os.hostname(),
+      env: process.env.NODE_ENV,
     },
-    // transport,
-    pino.multistream(logStreams)
+    redact: {
+      paths: ["req"],
+      censor: "**GDPR COMPLIANT**",
+    },
+  },
+  // transport,
+  pino.multistream(logStreams)
 );
 
 errorLogger = pino(
-    {
-        level: "error",
-        source: process.env.NODE_ENV,
-        timestamp: pino.stdTimeFunctions.isoTime,
-        redact: ['req'],
-    },
-    // transport,
-    pino.multistream(logStreams)
+  {
+    level: "error",
+    source: process.env.NODE_ENV,
+    timestamp: pino.stdTimeFunctions.isoTime,
+    redact: ["req"],
+  },
+  // transport,
+  pino.multistream(logStreams)
 );
 
-
 module.exports = {
-    logger,
-    errorLogger
-}
+  logger,
+  errorLogger,
+};
