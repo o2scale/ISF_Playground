@@ -17,6 +17,8 @@ const moodTracker = require("./routes/studentMoodTrackerRoutes");
 const wtfRoutes = require("./routes/v1/wtf");
 const coinRoutes = require("./routes/v1/coin");
 const schedulerRoutes = require("./routes/v1/scheduler");
+const websocketRoutes = require("./routes/v1/websocket");
+const wtfWebSocketService = require("./services/wtfWebSocket");
 const { swaggerUi, swaggerDocs } = require("./swagger");
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
@@ -50,6 +52,7 @@ app.use("/api/v1/mood-tracker", moodTracker);
 app.use("/api/v1/wtf", wtfRoutes);
 app.use("/api/v1/coin", coinRoutes);
 app.use("/api/v1/scheduler", schedulerRoutes);
+app.use("/api/v1/websocket", websocketRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const dbConnection =
@@ -119,9 +122,17 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// Initialize WTF WebSocket server
+try {
+  wtfWebSocketService.initialize(server);
+  console.log("✅ WTF WebSocket server initialized successfully");
+} catch (error) {
+  console.error("❌ Error initializing WTF WebSocket server:", error);
+}
 
 // Load face-api models
 async function loadModels() {

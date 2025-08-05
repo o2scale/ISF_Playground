@@ -1,6 +1,7 @@
 const { errorLogger } = require("../config/pino-config");
 const { default: mongoose } = require("mongoose");
 const CoinService = require("./coin");
+const wtfWebSocketService = require("./wtfWebSocket");
 
 // Import data access methods
 const {
@@ -153,6 +154,16 @@ class WtfService {
             "Error awarding coins for pin creation"
           );
           // Don't fail the pin creation if coin awarding fails
+        }
+
+        // Trigger real-time event
+        try {
+          wtfWebSocketService.handlePinCreated(result.data);
+        } catch (wsError) {
+          errorLogger.error(
+            { pinId: result.data._id, error: wsError.message },
+            "Error triggering WebSocket pin created event"
+          );
         }
 
         return {
@@ -362,6 +373,19 @@ class WtfService {
           // Don't fail the interaction if coin awarding fails
         }
 
+        // Trigger real-time event
+        try {
+          wtfWebSocketService.handlePinLiked(pinId, studentId, {
+            likeType,
+            interactionId: result.data._id,
+          });
+        } catch (wsError) {
+          errorLogger.error(
+            { pinId, studentId, error: wsError.message },
+            "Error triggering WebSocket pin liked event"
+          );
+        }
+
         return {
           success: true,
           data: { action: "liked", likeType, ...result.data },
@@ -431,6 +455,19 @@ class WtfService {
       if (result.success) {
         // Update engagement metrics
         await updateEngagementMetrics(pinId, { "engagementMetrics.seen": 1 });
+        // Trigger real-time event
+        try {
+          wtfWebSocketService.handlePinSeen(pinId, studentId, {
+            viewDuration,
+            interactionId: result.data._id,
+          });
+        } catch (wsError) {
+          errorLogger.error(
+            { pinId, studentId, error: wsError.message },
+            "Error triggering WebSocket pin seen event"
+          );
+        }
+
         return {
           success: true,
           data: { action: "seen", viewDuration },
@@ -499,6 +536,19 @@ class WtfService {
       };
 
       const result = await createWtfSubmission(submissionData);
+
+      // Trigger real-time event
+      if (result.success) {
+        try {
+          wtfWebSocketService.handleSubmissionCreated(result.data);
+        } catch (wsError) {
+          errorLogger.error(
+            { submissionId: result.data._id, error: wsError.message },
+            "Error triggering WebSocket submission created event"
+          );
+        }
+      }
+
       return result;
     } catch (error) {
       errorLogger.error(
@@ -534,6 +584,19 @@ class WtfService {
       };
 
       const result = await createWtfSubmission(submissionData);
+
+      // Trigger real-time event
+      if (result.success) {
+        try {
+          wtfWebSocketService.handleSubmissionCreated(result.data);
+        } catch (wsError) {
+          errorLogger.error(
+            { submissionId: result.data._id, error: wsError.message },
+            "Error triggering WebSocket submission created event"
+          );
+        }
+      }
+
       return result;
     } catch (error) {
       errorLogger.error(
@@ -604,6 +667,23 @@ class WtfService {
         }
       } else {
         result = await rejectSubmission(submissionId, reviewerId, notes);
+      }
+
+      // Trigger real-time event
+      if (result.success) {
+        try {
+          wtfWebSocketService.handleSubmissionReviewed(submissionId, {
+            action,
+            reviewerId,
+            notes,
+            result: result.data,
+          });
+        } catch (wsError) {
+          errorLogger.error(
+            { submissionId, error: wsError.message },
+            "Error triggering WebSocket submission reviewed event"
+          );
+        }
       }
 
       return result;

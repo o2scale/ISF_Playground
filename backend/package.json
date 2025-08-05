@@ -30,6 +30,7 @@
     "node-cron": "^4.2.1",
     "pino": "^9.6.0",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.1"
+    "swagger-ui-express": "^5.0.1",
+    "ws": "^8.18.3"
   }
 }
