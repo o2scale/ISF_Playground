@@ -16,6 +16,7 @@ const trainingSession = require("./routes/v1/trainingSession");
 const moodTracker = require("./routes/studentMoodTrackerRoutes");
 const wtfRoutes = require("./routes/v1/wtf");
 const coinRoutes = require("./routes/v1/coin");
+const schedulerRoutes = require("./routes/v1/scheduler");
 const { swaggerUi, swaggerDocs } = require("./swagger");
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
@@ -48,6 +49,7 @@ app.use("/api/v1/training-session", trainingSession);
 app.use("/api/v1/mood-tracker", moodTracker);
 app.use("/api/v1/wtf", wtfRoutes);
 app.use("/api/v1/coin", coinRoutes);
+app.use("/api/v1/scheduler", schedulerRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const dbConnection =

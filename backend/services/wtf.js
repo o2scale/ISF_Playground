@@ -661,6 +661,34 @@ class WtfService {
     }
   }
 
+  // Get expired pins (for scheduler)
+  static async getExpiredPins() {
+    try {
+      const result = await getExpiredPins();
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getExpiredPins service"
+      );
+      throw error;
+    }
+  }
+
+  // Get pins for FIFO management (for scheduler)
+  static async getPinsForFifoManagement() {
+    try {
+      const result = await getPinsForFifoManagement();
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getPinsForFifoManagement service"
+      );
+      throw error;
+    }
+  }
+
   // ==================== ANALYTICS ====================
 
   static async getWtfAnalytics() {
