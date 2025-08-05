@@ -17,18 +17,30 @@ process.env.JWT_SECRET = "test-jwt-secret";
 process.env.MONGO_URI = "mongodb://localhost:27017/test";
 process.env.AWS_S3_BUCKET_NAME = "test-bucket";
 
+// Register User model for testing (since it's referenced in WTF models)
+const userSchema = new mongoose.Schema({
+  name: String,
+  email: String,
+  role: String,
+}, { timestamps: true });
+
+// Only register if not already registered
+if (!mongoose.models.User) {
+  mongoose.model("User", userSchema);
+}
+
 // Global test utilities
 global.testUtils = {
   // Generate test ObjectId
   generateObjectId: () => new mongoose.Types.ObjectId(),
-
+  
   // Generate test date
   generateDate: (daysOffset = 0) => {
     const date = new Date();
     date.setDate(date.getDate() + daysOffset);
     return date;
   },
-
+  
   // Generate test user data
   generateTestUser: (overrides = {}) => ({
     id: new mongoose.Types.ObjectId().toString(),
@@ -37,7 +49,7 @@ global.testUtils = {
     role: "student",
     ...overrides,
   }),
-
+  
   // Generate test pin data
   generateTestPin: (overrides = {}) => ({
     title: "Test Pin",
@@ -48,16 +60,17 @@ global.testUtils = {
     tags: ["test"],
     ...overrides,
   }),
-
+  
   // Generate test interaction data
   generateTestInteraction: (overrides = {}) => ({
     studentId: new mongoose.Types.ObjectId(),
     pinId: new mongoose.Types.ObjectId(),
     type: "like",
     likeType: "thumbs_up",
+    viewDuration: 0, // Add default viewDuration
     ...overrides,
   }),
-
+  
   // Generate test submission data
   generateTestSubmission: (overrides = {}) => ({
     studentId: new mongoose.Types.ObjectId(),
@@ -68,7 +81,7 @@ global.testUtils = {
     tags: ["test"],
     ...overrides,
   }),
-
+  
   // Mock request object
   mockRequest: (overrides = {}) => ({
     body: {},
@@ -80,7 +93,7 @@ global.testUtils = {
     originalUrl: "/api/test",
     ...overrides,
   }),
-
+  
   // Mock response object
   mockResponse: () => {
     const res = {};
@@ -89,7 +102,7 @@ global.testUtils = {
     res.send = jest.fn().mockReturnValue(res);
     return res;
   },
-
+  
   // Mock next function
   mockNext: () => jest.fn(),
 };
@@ -110,7 +123,7 @@ expect.extend({
       };
     }
   },
-
+  
   toBeValidDate(received) {
     const pass = received instanceof Date && !isNaN(received);
     if (pass) {

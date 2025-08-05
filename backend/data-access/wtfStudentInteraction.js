@@ -77,8 +77,8 @@ exports.getStudentPinInteractions = async (studentId, pinId) => {
 exports.hasStudentInteracted = async (studentId, pinId, type) => {
   try {
     const exists = await WtfStudentInteraction.exists({
-      studentId: mongoose.Types.ObjectId(studentId),
-      pinId: mongoose.Types.ObjectId(pinId),
+      studentId: new mongoose.Types.ObjectId(studentId),
+      pinId: new mongoose.Types.ObjectId(pinId),
       type: type
     });
 

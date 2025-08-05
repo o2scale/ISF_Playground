@@ -101,7 +101,7 @@ wtfStudentInteractionSchema.methods.getSummary = function () {
 // Static method to get interaction counts for a pin
 wtfStudentInteractionSchema.statics.getPinInteractionCounts = function (pinId) {
   return this.aggregate([
-    { $match: { pinId: mongoose.Types.ObjectId(pinId) } },
+    { $match: { pinId: new mongoose.Types.ObjectId(pinId) } },
     {
       $group: {
         _id: "$type",
@@ -123,8 +123,8 @@ wtfStudentInteractionSchema.statics.getStudentPinInteractions = function (
   pinId
 ) {
   return this.find({
-    studentId: mongoose.Types.ObjectId(studentId),
-    pinId: mongoose.Types.ObjectId(pinId),
+    studentId: new mongoose.Types.ObjectId(studentId),
+    pinId: new mongoose.Types.ObjectId(pinId),
   }).select("type likeType viewDuration createdAt");
 };
 
@@ -135,8 +135,8 @@ wtfStudentInteractionSchema.statics.hasStudentInteracted = function (
   type
 ) {
   return this.exists({
-    studentId: mongoose.Types.ObjectId(studentId),
-    pinId: mongoose.Types.ObjectId(pinId),
+    studentId: new mongoose.Types.ObjectId(studentId),
+    pinId: new mongoose.Types.ObjectId(pinId),
     type: type,
   });
 };
@@ -147,7 +147,7 @@ wtfStudentInteractionSchema.statics.getStudentInteractionHistory = function (
   limit = 50
 ) {
   return this.find({
-    studentId: mongoose.Types.ObjectId(studentId),
+    studentId: new mongoose.Types.ObjectId(studentId),
   })
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -168,6 +168,25 @@ wtfStudentInteractionSchema.statics.getRecentInteractions = function (
     .sort({ createdAt: -1 })
     .populate("pinId", "title type author")
     .populate("studentId", "name role");
+};
+
+// Static method to find interactions by student
+wtfStudentInteractionSchema.statics.findByStudent = function (studentId) {
+  return this.find({
+    studentId: new mongoose.Types.ObjectId(studentId),
+  }).populate("pinId", "title type author");
+};
+
+// Static method to find interactions by pin
+wtfStudentInteractionSchema.statics.findByPin = function (pinId) {
+  return this.find({
+    pinId: new mongoose.Types.ObjectId(pinId),
+  }).populate("studentId", "name role");
+};
+
+// Static method to get interaction counts (alias for getPinInteractionCounts)
+wtfStudentInteractionSchema.statics.getInteractionCounts = function (pinId) {
+  return this.getPinInteractionCounts(pinId);
 };
 
 const WtfStudentInteraction = mongoose.model(

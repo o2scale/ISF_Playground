@@ -120,6 +120,11 @@ wtfPinSchema.virtual("daysUntilExpiration").get(function () {
   return diffDays;
 });
 
+// Virtual for isExpired
+wtfPinSchema.virtual("isExpired").get(function () {
+  return this.expiresAt && new Date() > this.expiresAt;
+});
+
 // Pre-save middleware to validate content based on type
 wtfPinSchema.pre("save", function (next) {
   // Validate content length based on type
@@ -135,14 +140,15 @@ wtfPinSchema.pre("save", function (next) {
   next();
 });
 
-// Instance method to check if pin is expired
-wtfPinSchema.methods.isExpired = function () {
-  return this.expiresAt && new Date() > this.expiresAt;
-};
-
 // Instance method to check if pin is active
 wtfPinSchema.methods.isActive = function () {
-  return this.status === "active" && !this.isExpired();
+  return this.status === "active" && !this.isExpired;
+};
+
+// Instance method to update engagement metrics
+wtfPinSchema.methods.updateEngagementMetrics = function (metrics) {
+  Object.assign(this.engagementMetrics, metrics);
+  return this.save();
 };
 
 // Static method to get active pins
@@ -163,6 +169,16 @@ wtfPinSchema.statics.getExpiredPins = function () {
     status: "active",
     expiresAt: { $lte: new Date() },
   });
+};
+
+// Static method to find active pins (alias for getActivePins)
+wtfPinSchema.statics.findActivePins = function () {
+  return this.getActivePins();
+};
+
+// Static method to find expired pins (alias for getExpiredPins)
+wtfPinSchema.statics.findExpiredPins = function () {
+  return this.getExpiredPins();
 };
 
 const WtfPin = mongoose.model("wtf_pin", wtfPinSchema);

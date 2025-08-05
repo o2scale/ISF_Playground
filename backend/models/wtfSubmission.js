@@ -177,6 +177,11 @@ wtfSubmissionSchema.methods.isReviewable = function () {
   return this.status === "pending" && !this.isDraft;
 };
 
+// Instance method to check if submission is pending
+wtfSubmissionSchema.methods.isPending = function () {
+  return this.status === "pending";
+};
+
 // Instance method to approve submission
 wtfSubmissionSchema.methods.approve = function (reviewerId, notes = "") {
   this.status = "approved";
@@ -217,7 +222,7 @@ wtfSubmissionSchema.statics.getStudentSubmissions = function (
   limit = 50
 ) {
   return this.find({
-    studentId: mongoose.Types.ObjectId(studentId),
+    studentId: new mongoose.Types.ObjectId(studentId),
   })
     .sort({ createdAt: -1 })
     .limit(limit)
@@ -265,6 +270,16 @@ wtfSubmissionSchema.statics.getRecentSubmissions = function (days = 7) {
     .sort({ createdAt: -1 })
     .populate("studentId", "name role")
     .populate("reviewedBy", "name role");
+};
+
+// Static method to find pending submissions (alias for getPendingSubmissions)
+wtfSubmissionSchema.statics.findPendingSubmissions = function () {
+  return this.getPendingSubmissions();
+};
+
+// Static method to find submissions by student (alias for getStudentSubmissions)
+wtfSubmissionSchema.statics.findByStudent = function (studentId) {
+  return this.getStudentSubmissions(studentId);
 };
 
 const WtfSubmission = mongoose.model("wtf_submission", wtfSubmissionSchema);

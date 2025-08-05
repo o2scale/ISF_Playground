@@ -519,7 +519,7 @@ class WtfService {
       }
 
       const submissionData = {
-        studentId: mongoose.Types.ObjectId(studentId),
+        studentId: new mongoose.Types.ObjectId(studentId),
         type: "voice",
         title: payload.title,
         audioUrl: payload.audioUrl,
@@ -570,7 +570,7 @@ class WtfService {
       }
 
       const submissionData = {
-        studentId: mongoose.Types.ObjectId(studentId),
+        studentId: new mongoose.Types.ObjectId(studentId),
         type: "article",
         title: payload.title,
         content: payload.content,

@@ -295,6 +295,7 @@ describe("WtfStudentInteraction Model Tests", () => {
         studentId,
         pinId,
         type: "seen",
+        viewDuration: 30,
       });
 
       await interaction1.save();
@@ -339,14 +340,23 @@ describe("WtfStudentInteraction Model Tests", () => {
         studentId,
         pinId,
         type: "seen",
+        viewDuration: 30,
       });
 
       await likeInteraction.save();
       await seenInteraction.save();
 
       const counts = await WtfStudentInteraction.getInteractionCounts(pinId);
-      expect(counts.likes).toBe(1);
-      expect(counts.seen).toBe(1);
+      expect(counts).toBeInstanceOf(Array);
+      expect(counts.length).toBeGreaterThan(0);
+
+      // Check that we have both like and seen interactions
+      const likeCount = counts.find((c) => c._id === "like");
+      const seenCount = counts.find((c) => c._id === "seen");
+      expect(likeCount).toBeDefined();
+      expect(seenCount).toBeDefined();
+      expect(likeCount.count).toBe(1);
+      expect(seenCount.count).toBe(1);
     });
   });
 });
