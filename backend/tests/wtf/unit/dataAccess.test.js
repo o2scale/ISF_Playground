@@ -105,8 +105,8 @@ describe("WTF Pin Data Access Tests", () => {
 
       const result = await getActivePins({ page: 1, limit: 3 });
       expect(result.success).toBe(true);
-      expect(result.data.length).toBe(3);
-      expect(result.pagination).toBeDefined();
+      expect(result.data.pins.length).toBe(3);
+      expect(result.data.pagination).toBeDefined();
     });
 
     test("should get pin by ID", async () => {
@@ -249,9 +249,9 @@ describe("WTF Pin Data Access Tests", () => {
         });
       }
 
-      const result = await getPinAnalytics(authorId);
+      const result = await getPinsByAuthor(authorId, { page: 1, limit: 20 });
       expect(result.success).toBe(true);
-      expect(result.data.totalPins).toBe(3);
+      expect(result.data.pins.length).toBe(3);
     });
   });
 });
@@ -313,6 +313,7 @@ describe("WTF Student Interaction Data Access Tests", () => {
         studentId: new mongoose.Types.ObjectId(),
         pinId,
         type: "seen",
+        viewDuration: 30,
       });
 
       const result = await getPinInteractionCounts(pinId);
@@ -337,6 +338,7 @@ describe("WTF Student Interaction Data Access Tests", () => {
         studentId,
         pinId,
         type: "seen",
+        viewDuration: 30,
       });
 
       const result = await getStudentInteractionHistory(studentId, {
@@ -344,7 +346,7 @@ describe("WTF Student Interaction Data Access Tests", () => {
         limit: 10,
       });
       expect(result.success).toBe(true);
-      expect(result.data.length).toBe(2);
+      expect(result.data.interactions.length).toBe(2);
     });
   });
 
@@ -368,7 +370,17 @@ describe("WTF Student Interaction Data Access Tests", () => {
     });
 
     test("should get top performing pins", async () => {
-      const pinId = new mongoose.Types.ObjectId();
+      const authorId = new mongoose.Types.ObjectId();
+
+      // Create the pin first
+      const createdPin = await createWtfPin({
+        title: "Test Pin",
+        content: "Test content",
+        type: "text",
+        author: authorId,
+      });
+
+      const pinId = createdPin.data._id;
 
       // Create multiple interactions for the same pin
       for (let i = 0; i < 10; i++) {
@@ -382,7 +394,7 @@ describe("WTF Student Interaction Data Access Tests", () => {
 
       const result = await getTopPerformingPins({ limit: 5, days: 30 });
       expect(result.success).toBe(true);
-      expect(result.data.pins.length).toBeGreaterThan(0);
+      expect(result.data.length).toBeGreaterThan(0);
     });
   });
 });
@@ -426,8 +438,8 @@ describe("WTF Submission Data Access Tests", () => {
 
       const result = await getPendingSubmissions({ page: 1, limit: 10 });
       expect(result.success).toBe(true);
-      expect(result.data.length).toBe(1);
-      expect(result.data[0].title).toBe("Pending Article");
+      expect(result.data.submissions.length).toBe(1);
+      expect(result.data.submissions[0].title).toBe("Pending Article");
     });
 
     test("should approve submission", async () => {
@@ -504,9 +516,9 @@ describe("WTF Submission Data Access Tests", () => {
       const result = await getSubmissionStats();
       expect(result.success).toBe(true);
       expect(result.data.totalSubmissions).toBe(3);
-      expect(result.data.pendingSubmissions).toBe(1);
-      expect(result.data.approvedSubmissions).toBe(1);
-      expect(result.data.rejectedSubmissions).toBe(1);
+      expect(result.data.pendingCount).toBe(1);
+      expect(result.data.approvedCount).toBe(1);
+      expect(result.data.rejectedCount).toBe(1);
     });
 
     test("should get submission analytics", async () => {

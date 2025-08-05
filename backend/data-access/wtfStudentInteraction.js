@@ -137,7 +137,7 @@ exports.getPinInteractionCounts = async (pinId) => {
 exports.getStudentInteractionHistory = async (studentId, { page = 1, limit = 50, type = null }) => {
   try {
     const skip = (page - 1) * limit;
-    const query = { studentId: mongoose.Types.ObjectId(studentId) };
+    const query = { studentId: new mongoose.Types.ObjectId(studentId) };
     
     if (type) query.type = type;
 

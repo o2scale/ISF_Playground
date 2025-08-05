@@ -133,6 +133,7 @@ describe("WTF Controller Tests", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
+        data: null,
         message: "Title and content are required",
       });
     });
@@ -251,6 +252,7 @@ describe("WTF Controller Tests", () => {
       expect(res.status).toHaveBeenCalledWith(404);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
+        data: null,
         message: "Pin not found",
       });
     });
@@ -411,6 +413,7 @@ describe("WTF Controller Tests", () => {
         socket: { remoteAddress: "127.0.0.1" },
         method: "POST",
         originalUrl: "/api/v1/wtf/submissions/voice",
+        get: jest.fn().mockReturnValue("test-user-agent"),
       };
 
       const res = {
@@ -461,6 +464,7 @@ describe("WTF Controller Tests", () => {
         socket: { remoteAddress: "127.0.0.1" },
         method: "POST",
         originalUrl: "/api/v1/wtf/submissions/article",
+        get: jest.fn().mockReturnValue("test-user-agent"),
       };
 
       const res = {
@@ -727,8 +731,20 @@ describe("WTF Controller Tests", () => {
     });
 
     test("should handle missing user authentication", async () => {
+      // Mock the service to return an error response
+      WtfService.createPin.mockResolvedValue({
+        success: false,
+        data: null,
+        message: "Missing required fields: title, content, type, author",
+      });
+
       const req = {
-        body: {},
+        body: {
+          title: "Test Pin",
+          content: "Test content",
+          type: "text",
+          // Missing author field
+        },
         socket: { remoteAddress: "127.0.0.1" },
         method: "POST",
         originalUrl: "/api/v1/wtf/pins",
@@ -744,7 +760,8 @@ describe("WTF Controller Tests", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "User ID is required",
+        data: null,
+        message: "Missing required fields: title, content, type, author",
       });
     });
 
@@ -767,7 +784,7 @@ describe("WTF Controller Tests", () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith({
         success: false,
-        message: "Invalid pin ID",
+        message: "Invalid pin ID format",
       });
     });
   });

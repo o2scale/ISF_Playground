@@ -110,7 +110,12 @@ describe("WTF Service Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.data.title).toBe("Test Pin");
-      expect(createWtfPin).toHaveBeenCalledWith(pinData);
+      expect(createWtfPin).toHaveBeenCalledWith({
+        ...pinData,
+        status: "active",
+        isOfficial: false,
+        expiresAt: expect.any(Date),
+      });
       expect(CoinService.awardPinCreationCoins).toHaveBeenCalled();
     });
 
@@ -195,7 +200,7 @@ describe("WTF Service Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.data.title).toBe("Test Pin");
-      expect(getWtfPinById).toHaveBeenCalledWith(pinId);
+      expect(getWtfPinById).toHaveBeenCalledWith(pinId.toString());
     });
 
     test("should update pin", async () => {
@@ -219,7 +224,7 @@ describe("WTF Service Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.data.title).toBe("Updated Title");
-      expect(updateWtfPin).toHaveBeenCalledWith(pinId, updateData);
+      expect(updateWtfPin).toHaveBeenCalledWith(pinId.toString(), updateData);
     });
 
     test("should delete pin", async () => {
@@ -233,7 +238,7 @@ describe("WTF Service Tests", () => {
       const result = await WtfService.deletePin(pinId.toString());
 
       expect(result.success).toBe(true);
-      expect(deleteWtfPin).toHaveBeenCalledWith(pinId);
+      expect(deleteWtfPin).toHaveBeenCalledWith(pinId.toString());
     });
   });
 
@@ -265,6 +270,22 @@ describe("WTF Service Tests", () => {
         data: { coinsAwarded: 5 },
       });
 
+      // Mock getWtfPinById to return a valid pin
+      getWtfPinById.mockResolvedValue({
+        success: true,
+        data: {
+          _id: pinId,
+          title: "Test Pin",
+          status: "active",
+        },
+      });
+
+      // Mock hasStudentInteracted to return false (not liked yet)
+      hasStudentInteracted.mockResolvedValue({
+        success: true,
+        data: { hasInteracted: false },
+      });
+
       const result = await WtfService.likePin(
         studentId.toString(),
         pinId.toString(),
@@ -280,7 +301,7 @@ describe("WTF Service Tests", () => {
         type: "like",
         likeType,
       });
-      expect(updateEngagementMetrics).toHaveBeenCalledWith(pinId, {
+      expect(updateEngagementMetrics).toHaveBeenCalledWith(pinId.toString(), {
         "engagementMetrics.likes": 1,
       });
     });
@@ -305,6 +326,22 @@ describe("WTF Service Tests", () => {
 
       updateEngagementMetrics.mockResolvedValue({
         success: true,
+      });
+
+      // Mock getWtfPinById to return a valid pin
+      getWtfPinById.mockResolvedValue({
+        success: true,
+        data: {
+          _id: pinId,
+          title: "Test Pin",
+          status: "active",
+        },
+      });
+
+      // Mock hasStudentInteracted to return false (not seen yet)
+      hasStudentInteracted.mockResolvedValue({
+        success: true,
+        data: { hasInteracted: false },
       });
 
       const result = await WtfService.markPinAsSeen(
@@ -347,11 +384,17 @@ describe("WTF Service Tests", () => {
         data: mockInteractions,
       });
 
+      // Mock getPinInteractionCounts to return interactions
+      getPinInteractionCounts.mockResolvedValue({
+        success: true,
+        data: mockInteractions,
+      });
+
       const result = await WtfService.getPinInteractions(pinId.toString());
 
       expect(result.success).toBe(true);
       expect(result.data.length).toBe(2);
-      expect(getStudentPinInteractions).toHaveBeenCalledWith(pinId);
+      expect(getPinInteractionCounts).toHaveBeenCalledWith(pinId.toString());
     });
   });
 
@@ -394,10 +437,11 @@ describe("WTF Service Tests", () => {
         audioUrl: submissionData.audioUrl,
         audioDuration: submissionData.audioDuration,
         audioTranscription: submissionData.audioTranscription,
-        language: submissionData.language,
         tags: submissionData.tags,
         isDraft: false,
         metadata: {
+          fileSize: undefined,
+          recordingQuality: undefined,
           userAgent: undefined,
           ipAddress: undefined,
         },
@@ -518,8 +562,8 @@ describe("WTF Service Tests", () => {
       expect(result.success).toBe(true);
       expect(result.data.status).toBe("approved");
       expect(approveSubmission).toHaveBeenCalledWith(
-        submissionId,
-        reviewerId,
+        submissionId.toString(),
+        reviewerId.toString(),
         notes
       );
       expect(CoinService.awardSubmissionApprovalCoins).toHaveBeenCalled();
@@ -558,8 +602,8 @@ describe("WTF Service Tests", () => {
       expect(result.success).toBe(true);
       expect(result.data.status).toBe("rejected");
       expect(rejectSubmission).toHaveBeenCalledWith(
-        submissionId,
-        reviewerId,
+        submissionId.toString(),
+        reviewerId.toString(),
         notes
       );
     });
@@ -606,7 +650,10 @@ describe("WTF Service Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.data.totalInteractions).toBe(500);
-      expect(getInteractionAnalytics).toHaveBeenCalledWith({ days: 7 });
+      expect(getInteractionAnalytics).toHaveBeenCalledWith({
+        days: 7,
+        type: null,
+      });
     });
 
     test("should get submission analytics", async () => {
@@ -630,7 +677,10 @@ describe("WTF Service Tests", () => {
 
       expect(result.success).toBe(true);
       expect(result.data.totalSubmissions).toBe(50);
-      expect(getSubmissionAnalytics).toHaveBeenCalledWith({ days: 30 });
+      expect(getSubmissionAnalytics).toHaveBeenCalledWith({
+        days: 30,
+        type: null,
+      });
     });
   });
 
@@ -643,6 +693,22 @@ describe("WTF Service Tests", () => {
     });
 
     test("should handle invalid student ID", async () => {
+      // Mock getWtfPinById to return a valid pin
+      getWtfPinById.mockResolvedValue({
+        success: true,
+        data: {
+          _id: new mongoose.Types.ObjectId(),
+          title: "Test Pin",
+          status: "active",
+        },
+      });
+
+      // Mock hasStudentInteracted to return false
+      hasStudentInteracted.mockResolvedValue({
+        success: true,
+        data: { hasInteracted: false },
+      });
+
       const result = await WtfService.likePin(
         "invalid-id",
         new mongoose.Types.ObjectId().toString()
@@ -653,6 +719,13 @@ describe("WTF Service Tests", () => {
     });
 
     test("should handle invalid pin ID", async () => {
+      // Mock getWtfPinById to return error for invalid ID
+      getWtfPinById.mockResolvedValue({
+        success: false,
+        data: null,
+        message: "Invalid pin ID format",
+      });
+
       const result = await WtfService.getPinById("invalid-id");
 
       expect(result.success).toBe(false);

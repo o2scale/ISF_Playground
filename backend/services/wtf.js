@@ -306,6 +306,23 @@ class WtfService {
         };
       }
 
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        return {
+          success: false,
+          data: null,
+          message: "Invalid student ID format",
+        };
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(pinId)) {
+        return {
+          success: false,
+          data: null,
+          message: "Invalid pin ID format",
+        };
+      }
+
       // Check if pin exists and is active
       const pinResult = await getWtfPinById(pinId);
       if (!pinResult.success) {
@@ -337,8 +354,8 @@ class WtfService {
 
       // Like: create new interaction
       const interactionData = {
-        studentId: mongoose.Types.ObjectId(studentId),
-        pinId: mongoose.Types.ObjectId(pinId),
+        studentId: new mongoose.Types.ObjectId(studentId),
+        pinId: new mongoose.Types.ObjectId(pinId),
         type: "like",
         likeType: likeType,
       };
@@ -445,8 +462,8 @@ class WtfService {
 
       // Mark as seen: create new interaction
       const interactionData = {
-        studentId: mongoose.Types.ObjectId(studentId),
-        pinId: mongoose.Types.ObjectId(pinId),
+        studentId: new mongoose.Types.ObjectId(studentId),
+        pinId: new mongoose.Types.ObjectId(pinId),
         type: "seen",
         viewDuration: viewDuration,
       };

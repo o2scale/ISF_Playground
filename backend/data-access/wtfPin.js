@@ -64,6 +64,15 @@ exports.getActivePins = async ({ page = 1, limit = 20, type = null, author = nul
 // Get pin by ID
 exports.getWtfPinById = async (pinId) => {
   try {
+    // Validate ObjectId format
+    if (!mongoose.Types.ObjectId.isValid(pinId)) {
+      return {
+        success: false,
+        data: null,
+        message: "Invalid pin ID format",
+      };
+    }
+
     const pin = await WtfPin.findById(pinId)
       .populate("author", "name role")
       .lean();
@@ -170,7 +179,7 @@ exports.updatePinStatus = async (pinId, status) => {
 exports.getPinsByAuthor = async (authorId, { page = 1, limit = 20, status = null }) => {
   try {
     const skip = (page - 1) * limit;
-    const query = { author: mongoose.Types.ObjectId(authorId) };
+    const query = { author: new mongoose.Types.ObjectId(authorId) };
     
     if (status) query.status = status;
 
@@ -257,7 +266,13 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
   try {
     const pin = await WtfPin.findByIdAndUpdate(
       pinId,
-      { $inc: metrics }, // Increment the metrics
+      { 
+        $inc: {
+          "engagementMetrics.likes": metrics.likes || 0,
+          "engagementMetrics.seen": metrics.seen || 0,
+          "engagementMetrics.shares": metrics.shares || 0
+        }
+      },
       { new: true, runValidators: true }
     );
 
