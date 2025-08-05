@@ -1,7 +1,15 @@
 const pino = require("pino");
 const os = require("os");
+const fs = require("fs");
+const path = require("path");
 const dotenv = require("dotenv");
 dotenv.config();
+
+// Ensure logs directory exists
+const logsDir = path.join(__dirname, "..", "logs");
+if (!fs.existsSync(logsDir)) {
+  fs.mkdirSync(logsDir, { recursive: true });
+}
 
 // const getBetterStackSourceToken = (env = process.env.NODE_ENV) => {
 //   if (env === 'PRODUCTION') {
@@ -37,7 +45,12 @@ let errorLogger;
 
 let logStreams = [
   { stream: process.stdout },
-  { stream: pino.destination({ dest: "./logs/pino-logger.log", sync: true }) },
+  {
+    stream: pino.destination({
+      dest: path.join(logsDir, "pino-logger.log"),
+      sync: true,
+    }),
+  },
   // { stream: transport },
 ];
 logger = pino(
