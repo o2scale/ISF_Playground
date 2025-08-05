@@ -14,6 +14,7 @@ const musicRoute = require("./routes/v1/music");
 const purchaseAndRepair = require("./routes/v1/purchaseAndRepair");
 const trainingSession = require("./routes/v1/trainingSession");
 const moodTracker = require("./routes/studentMoodTrackerRoutes");
+const wtfRoutes = require("./routes/v1/wtf");
 const { swaggerUi, swaggerDocs } = require("./swagger");
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
@@ -44,6 +45,7 @@ app.use("/api/v1/music", musicRoute);
 app.use("/api/v1/purchase-repair", purchaseAndRepair);
 app.use("/api/v1/training-session", trainingSession);
 app.use("/api/v1/mood-tracker", moodTracker);
+app.use("/api/v1/wtf", wtfRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 const dbConnection =

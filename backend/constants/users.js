@@ -10,6 +10,27 @@ exports.UserTypes = {
   AMMA: "amma",
 };
 
+// WTF Module Permissions
+exports.WtfPermissions = {
+  // Pin Management
+  WTF_PIN_CREATE: "WTF Management",
+  WTF_PIN_READ: "WTF Management",
+  WTF_PIN_UPDATE: "WTF Management",
+  WTF_PIN_DELETE: "WTF Management",
+
+  // Interaction Management
+  WTF_INTERACTION_CREATE: "WTF Interaction",
+  WTF_INTERACTION_READ: "WTF Interaction",
+
+  // Submission Management
+  WTF_SUBMISSION_CREATE: "WTF Submission",
+  WTF_SUBMISSION_READ: "WTF Submission",
+  WTF_SUBMISSION_UPDATE: "WTF Submission",
+
+  // Analytics
+  WTF_ANALYTICS_READ: "WTF Analytics",
+};
+
 // User type hierarchy
 exports.userTypeHierarchy = {
   admin: [
