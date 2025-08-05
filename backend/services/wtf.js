@@ -1,5 +1,6 @@
 const { errorLogger } = require("../config/pino-config");
 const { default: mongoose } = require("mongoose");
+const CoinService = require("./coin");
 
 // Import data access methods
 const {
@@ -124,6 +125,35 @@ class WtfService {
           "engagementMetrics.seen": 0,
           "engagementMetrics.shares": 0,
         });
+
+        // Award coins for pin creation
+        try {
+          const isFirstPin = await CoinService.isEligibleForFirstPinBonus(
+            payload.author
+          );
+          const coinResult = await CoinService.awardPinCreationCoins(
+            payload.author,
+            result.data._id,
+            isFirstPin,
+            {
+              userAgent: payload.userAgent,
+              ipAddress: payload.ipAddress,
+            }
+          );
+
+          // Add coin information to response
+          result.data.coinAward = coinResult.data;
+        } catch (coinError) {
+          errorLogger.error(
+            {
+              userId: payload.author,
+              pinId: result.data._id,
+              error: coinError.message,
+            },
+            "Error awarding coins for pin creation"
+          );
+          // Don't fail the pin creation if coin awarding fails
+        }
 
         return {
           success: true,
@@ -306,9 +336,35 @@ class WtfService {
       if (result.success) {
         // Update engagement metrics
         await updateEngagementMetrics(pinId, { "engagementMetrics.likes": 1 });
+
+        // Award coins for interaction (with daily limit)
+        try {
+          const coinResult = await CoinService.awardInteractionCoins(
+            studentId,
+            result.data._id,
+            {
+              pinId: pinId,
+              likeType: likeType,
+              userAgent: metadata?.userAgent,
+              ipAddress: metadata?.ipAddress,
+            }
+          );
+
+          // Add coin information to response if coins were awarded
+          if (coinResult.success) {
+            result.data.coinAward = coinResult.data;
+          }
+        } catch (coinError) {
+          errorLogger.error(
+            { studentId, pinId, error: coinError.message },
+            "Error awarding coins for interaction"
+          );
+          // Don't fail the interaction if coin awarding fails
+        }
+
         return {
           success: true,
-          data: { action: "liked", likeType },
+          data: { action: "liked", likeType, ...result.data },
           message: "Pin liked successfully",
         };
       }
@@ -523,6 +579,29 @@ class WtfService {
       let result;
       if (action === "approve") {
         result = await approveSubmission(submissionId, reviewerId, notes);
+
+        // Award coins for submission approval
+        if (result.success) {
+          try {
+            const coinResult = await CoinService.awardSubmissionApprovalCoins(
+              result.data.studentId,
+              submissionId,
+              {
+                reviewerId: reviewerId,
+                notes: notes,
+              }
+            );
+
+            // Add coin information to response
+            result.data.coinAward = coinResult.data;
+          } catch (coinError) {
+            errorLogger.error(
+              { submissionId, reviewerId, error: coinError.message },
+              "Error awarding coins for submission approval"
+            );
+            // Don't fail the approval if coin awarding fails
+          }
+        }
       } else {
         result = await rejectSubmission(submissionId, reviewerId, notes);
       }
