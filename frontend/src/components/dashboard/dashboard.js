@@ -1,17 +1,17 @@
 // src/pages/Dashboard.js - Enhanced with interactive elements
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import './dashboard.css';
-import { useAuth } from '../../contexts/AuthContext';
-import { usePermission } from '../hooks/usePermission';
-import AdminDashboard from './admin';
-import StudentDashboard from './student';
-import CoachDashboard from './coach';
-import BalagruhaDashboard from './balagruha';
-import MedicInchargeDashboard from './medicalIncharge';
-import PurchaseDashboard from './purchaseDashboard';
-import SportCoachDashboard from './Sportscoach';
-import MusicCoachDashboard from './MusicCoach';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import "./dashboard.css";
+import { useAuth } from "../../contexts/AuthContext";
+import { usePermission } from "../hooks/usePermission";
+import AdminDashboard from "./admin";
+import StudentDashboard from "./student";
+import CoachDashboard from "./coach";
+import BalagruhaDashboard from "./balagruha";
+import MedicInchargeDashboard from "./medicalIncharge";
+import PurchaseDashboard from "./purchaseDashboard";
+import SportCoachDashboard from "./Sportscoach";
+import MusicCoachDashboard from "./MusicCoach";
 // const Dashboard = () => {
 //     const { user } = useAuth();
 //     const { canRead } = usePermission();
@@ -86,15 +86,28 @@ import MusicCoachDashboard from './MusicCoach';
 // };
 
 const Dashboard = () => {
-    return (
-        <>
-
-            {/* ['admin', 'coach', 'balagruha in-charge', 'student', 'purchase-manager',
+  return (
+    <>
+      {/* ['admin', 'coach', 'balagruha in-charge', 'student', 'purchase-manager',
     'medical-incharge', 'sports-coach', 'music-coach', 'amma'] */}
-            {
-                localStorage.getItem('role') === 'admin' ? <AdminDashboard /> : localStorage.getItem('role') === 'student' ? <StudentDashboard /> : localStorage.getItem('role') === 'coach' ? <CoachDashboard /> : localStorage?.getItem('role') === 'balagruha-incharge' ? < BalagruhaDashboard /> : localStorage?.getItem('role') === 'medical-incharge' ? <MedicInchargeDashboard /> : localStorage.getItem('role') === 'purchase-manager' ? <PurchaseDashboard /> : localStorage.getItem('role') === 'sports-coach' ? <MusicCoachDashboard /> : <MusicCoachDashboard />
-            }
-        </>
-    )
-}
+      {localStorage.getItem("role") === "admin" ? (
+        <AdminDashboard />
+      ) : localStorage.getItem("role") === "student" ? (
+        <StudentDashboard />
+      ) : localStorage.getItem("role") === "coach" ? (
+        <CoachDashboard />
+      ) : localStorage?.getItem("role") === "balagruha-incharge" ? (
+        <BalagruhaDashboard />
+      ) : localStorage?.getItem("role") === "medical-incharge" ? (
+        <MedicInchargeDashboard />
+      ) : localStorage.getItem("role") === "purchase-manager" ? (
+        <PurchaseDashboard />
+      ) : localStorage.getItem("role") === "sports-coach" ? (
+        <MusicCoachDashboard />
+      ) : (
+        <MusicCoachDashboard />
+      )}
+    </>
+  );
+};
 export default Dashboard;
