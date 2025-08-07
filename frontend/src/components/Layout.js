@@ -46,6 +46,22 @@ const Layout = () => {
     },
     { id: 6, name: "Balagruhas", link: "/balagruha", roles: ["admin"] },
     { id: 7, name: "Access", link: "/rbac", roles: ["admin"] },
+    {
+      id: 8,
+      name: "WTF",
+      link: "/wtf",
+      roles: [
+        "admin",
+        "coach",
+        "balagruha-incharge",
+        "student",
+        "purchase-manager",
+        "medical-incharge",
+        "sports-coach",
+        "music-coach",
+        "amma",
+      ],
+    },
   ];
 
   const sportCoachMenu = [
