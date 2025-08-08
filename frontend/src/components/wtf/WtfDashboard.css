@@ -1,9 +1,13 @@
 /* WTF Dashboard Styles */
 .wtf-management {
   background-color: #f9fafb;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 /* Ensure the main content area has proper padding reset for full width components */
 .main-content:has(.wtf-management) {
   padding: 0 !important;
+  width: 100% !important;
 }
