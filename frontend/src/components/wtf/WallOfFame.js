@@ -418,13 +418,13 @@ const WallOfFame = ({ onToggleView }) => {
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 justify-items-center">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 justify-items-center">
                 {content.map((item, index) => (
                   <div
                     key={item.id}
                     className="w-[180px]"
                     style={{
-                      marginTop: `${(index % 2) * 20}px`,
+                      marginTop: `${(index % 3) * 10}px`,
                     }}
                   >
                     {renderCard(item)}
