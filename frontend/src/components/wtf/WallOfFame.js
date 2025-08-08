@@ -126,7 +126,7 @@ ISF Administration Team`,
   },
 ];
 
-const WallOfFame = () => {
+const WallOfFame = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [content] = useState(sampleContent);
 
@@ -304,13 +304,15 @@ const WallOfFame = () => {
                 Create New Pin
               </button>
 
-              <button
-                onClick={() => (window.location.href = "/wtf?view=management")}
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
-              >
-                <Settings className="w-5 h-5" />
-                Full Management
-              </button>
+              {onToggleView && (
+                <button
+                  onClick={onToggleView}
+                  className="w-full bg-gray-600 hover:bg-gray-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
+                >
+                  <Settings className="w-5 h-5" />
+                  Full Management
+                </button>
+              )}
 
               <div className="pt-3 border-t border-gray-200">
                 <div className="text-sm text-gray-600 space-y-2">
@@ -378,7 +380,9 @@ const WallOfFame = () => {
                 <h3 className="text-green-100 text-lg font-medium">
                   {monthlyTheme.title}
                 </h3>
-                <p className="text-green-200 text-sm">{monthlyTheme.subtitle}</p>
+                <p className="text-green-200 text-sm">
+                  {monthlyTheme.subtitle}
+                </p>
               </div>
 
               <h2 className="text-green-800 text-4xl font-bold mb-2 relative z-10">
