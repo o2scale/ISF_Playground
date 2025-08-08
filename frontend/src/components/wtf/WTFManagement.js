@@ -359,7 +359,7 @@ const WTFManagement = ({ onToggleView }) => {
   const newSubmissionsCount = studentSubmissions.filter(
     (s) => s.status === "NEW"
   ).length;
-  const pendingCoachSuggestionsCount = 3; // Mock data
+  const pendingCoachSuggestionsCount = pendingSuggestions.length; // Real data from API
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 w-full">

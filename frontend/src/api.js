@@ -592,7 +592,9 @@ export const deleteWtfPin = async (pinId) => {
 
 export const changeWtfPinStatus = async (pinId, status) => {
   try {
-    const response = await api.patch(`/api/v1/wtf/pins/${pinId}/status`, { status });
+    const response = await api.patch(`/api/v1/wtf/pins/${pinId}/status`, {
+      status,
+    });
     return response.data;
   } catch (error) {
     console.error("Error changing WTF pin status:", error);
@@ -634,7 +636,10 @@ export const getWtfPinInteractions = async (pinId) => {
 // Submission APIs
 export const submitVoiceNote = async (data) => {
   try {
-    const response = await apiWithoutContentType.post(`/api/v1/wtf/submissions/voice`, data);
+    const response = await apiWithoutContentType.post(
+      `/api/v1/wtf/submissions/voice`,
+      data
+    );
     return response.data;
   } catch (error) {
     console.error("Error submitting voice note:", error);
@@ -654,7 +659,9 @@ export const submitArticle = async (data) => {
 
 export const getSubmissionsForReview = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/submissions/review`, { params });
+    const response = await api.get(`/api/v1/wtf/submissions/review`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching submissions for review:", error);
@@ -664,7 +671,10 @@ export const getSubmissionsForReview = async (params = {}) => {
 
 export const reviewSubmission = async (submissionId, data) => {
   try {
-    const response = await api.post(`/api/v1/wtf/submissions/${submissionId}/review`, data);
+    const response = await api.post(
+      `/api/v1/wtf/submissions/${submissionId}/review`,
+      data
+    );
     return response.data;
   } catch (error) {
     console.error("Error reviewing submission:", error);
@@ -685,7 +695,9 @@ export const getWtfAnalytics = async () => {
 
 export const getWtfInteractionAnalytics = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/analytics/interactions`, { params });
+    const response = await api.get(`/api/v1/wtf/analytics/interactions`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching WTF interaction analytics:", error);
@@ -695,7 +707,9 @@ export const getWtfInteractionAnalytics = async (params = {}) => {
 
 export const getWtfSubmissionAnalytics = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/analytics/submissions`, { params });
+    const response = await api.get(`/api/v1/wtf/analytics/submissions`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching WTF submission analytics:", error);
@@ -706,7 +720,10 @@ export const getWtfSubmissionAnalytics = async (params = {}) => {
 // Student Management APIs
 export const getStudentSubmissions = async (studentId, params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/students/${studentId}/submissions`, { params });
+    const response = await api.get(
+      `/api/v1/wtf/students/${studentId}/submissions`,
+      { params }
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching student submissions:", error);
@@ -716,7 +733,10 @@ export const getStudentSubmissions = async (studentId, params = {}) => {
 
 export const getStudentInteractionHistory = async (studentId, params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/students/${studentId}/interactions`, { params });
+    const response = await api.get(
+      `/api/v1/wtf/students/${studentId}/interactions`,
+      { params }
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching student interaction history:", error);
@@ -727,7 +747,10 @@ export const getStudentInteractionHistory = async (studentId, params = {}) => {
 // Admin Management APIs
 export const getPinsByAuthor = async (authorId, params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/admin/pins/author/${authorId}`, { params });
+    const response = await api.get(
+      `/api/v1/wtf/admin/pins/author/${authorId}`,
+      { params }
+    );
     return response.data;
   } catch (error) {
     console.error("Error fetching pins by author:", error);
@@ -737,7 +760,9 @@ export const getPinsByAuthor = async (authorId, params = {}) => {
 
 export const getSubmissionStats = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/admin/submissions/stats`, { params });
+    const response = await api.get(`/api/v1/wtf/admin/submissions/stats`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching submission stats:", error);
@@ -759,10 +784,47 @@ export const getWebSocketStatus = async () => {
 // WTF Transaction History
 export const getWtfTransactionHistory = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/coins/wtf/transactions`, { params });
+    const response = await api.get(`/api/v1/coins/wtf/transactions`, {
+      params,
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching WTF transaction history:", error);
+    throw error;
+  }
+};
+
+// Admin Control Counts
+export const getWtfAdminCounts = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/counts`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF admin counts:", error);
+    throw error;
+  }
+};
+
+// Get submission statistics
+export const getWtfSubmissionStats = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/submissions/stats`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF submission stats:", error);
+    throw error;
+  }
+};
+
+// Get pending submissions count
+export const getPendingSubmissionsCount = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/submissions/review`, {
+      params: { page: 1, limit: 1 },
+    });
+    return response.data?.pagination?.total || 0;
+  } catch (error) {
+    console.error("Error fetching pending submissions count:", error);
     throw error;
   }
 };

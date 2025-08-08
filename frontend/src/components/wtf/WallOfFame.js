@@ -24,6 +24,8 @@ import {
   likeWtfPin,
   markWtfPinAsSeen,
   createWtfPin,
+  getWtfSubmissionStats,
+  getPendingSubmissionsCount,
 } from "../../api";
 
 const WallOfFame = ({ onToggleView }) => {
@@ -31,6 +33,11 @@ const WallOfFame = ({ onToggleView }) => {
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [modalType, setModalType] = useState(null);
+  const [adminCounts, setAdminCounts] = useState({
+    pendingSuggestions: 0,
+    newSubmissions: 0,
+    reviewQueue: 0,
+  });
 
   // Background customization state
   const [backgroundSettings] = useState({
@@ -59,10 +66,37 @@ const WallOfFame = ({ onToggleView }) => {
         console.error("Error fetching pins:", error);
       }
     };
+
+    const fetchAdminCounts = async () => {
+      if (isAdmin) {
+        try {
+          const [submissionStats, pendingCount] = await Promise.all([
+            getWtfSubmissionStats(),
+            getPendingSubmissionsCount(),
+          ]);
+
+          setAdminCounts({
+            pendingSuggestions: submissionStats?.data?.pendingCount || 0,
+            newSubmissions: pendingCount || 0,
+            reviewQueue:
+              (submissionStats?.data?.pendingCount || 0) + (pendingCount || 0),
+          });
+        } catch (error) {
+          console.error("Error fetching admin counts:", error);
+        }
+      }
+    };
+
     fetchPins();
-    const interval = setInterval(fetchPins, 30000); // Poll every 30 seconds
+    fetchAdminCounts();
+
+    const interval = setInterval(() => {
+      fetchPins();
+      fetchAdminCounts();
+    }, 30000); // Poll every 30 seconds
+
     return () => clearInterval(interval);
-  }, []);
+  }, [isAdmin]);
 
   const handlePinClick = (item) => {
     console.log("Pin clicked:", item.title, item.type);
@@ -288,13 +322,13 @@ const WallOfFame = ({ onToggleView }) => {
                   <div className="flex justify-between items-center">
                     <span>Pending Suggestions:</span>
                     <span className="bg-orange-100 text-orange-700 text-sm px-3 py-1 rounded font-medium">
-                      3
+                      {adminCounts.pendingSuggestions}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>New Submissions:</span>
                     <span className="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded font-medium">
-                      2
+                      {adminCounts.newSubmissions}
                     </span>
                   </div>
                 </div>
@@ -302,7 +336,7 @@ const WallOfFame = ({ onToggleView }) => {
                 <div className="mt-3">
                   <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded flex items-center gap-2">
                     <Eye className="w-4 h-4" />
-                    Review Queue (5)
+                    Review Queue ({adminCounts.reviewQueue})
                   </div>
                 </div>
               </div>
