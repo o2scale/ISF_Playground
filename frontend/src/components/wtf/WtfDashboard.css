@@ -1,21 +1,9 @@
-/* WTF Dashboard Styles - Force full viewport width */
+/* WTF Dashboard Styles */
 .wtf-management {
-  width: 100vw !important;
-  position: relative !important;
-  left: 50% !important;
-  right: 50% !important;
-  margin-left: -50vw !important;
-  margin-right: -50vw !important;
-  max-width: none !important;
-  box-sizing: border-box !important;
+  background-color: #f9fafb;
 }
 
-/* Reset any parent container constraints */
-.main-content {
-  overflow-x: hidden !important;
-}
-
-/* Ensure all content within wtf-management uses full width */
-.wtf-management > * {
-  max-width: none !important;
+/* Ensure the main content area has proper padding reset for full width components */
+.main-content:has(.wtf-management) {
+  padding: 0 !important;
 }
