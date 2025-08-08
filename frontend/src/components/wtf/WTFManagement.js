@@ -25,6 +25,8 @@ import {
 import { Button } from "../ui/button.jsx";
 import { Badge } from "../ui/badge.jsx";
 import CreateNewPinModal from "./CreateNewPinModal";
+import PinEditModal from "./PinEditModal";
+import ReviewModal from "./ReviewModal";
 
 const WTFManagement = ({ onToggleView }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -32,6 +34,8 @@ const WTFManagement = ({ onToggleView }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPin, setSelectedPin] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState(null);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
@@ -154,6 +158,51 @@ const WTFManagement = ({ onToggleView }) => {
   const handleCreatePin = (newPin) => {
     setActivePins((prev) => [newPin, ...prev]);
     setShowCreateModal(false);
+  };
+
+  const handleUpdatePin = (updatedPin) => {
+    setActivePins((prev) =>
+      prev.map((p) => (p.id === updatedPin.id ? updatedPin : p))
+    );
+    setShowEditModal(false);
+    setSelectedPin(null);
+  };
+
+  const handleReviewSubmission = (submission) => {
+    setSelectedSubmission(submission);
+    setShowReviewModal(true);
+  };
+
+  const handlePinToWTF = (submission) => {
+    console.log("Pin to WTF:", submission);
+    // This would create a new pin from the submission
+    const newPin = {
+      id: Date.now(),
+      title: submission.title,
+      caption: `Student submission by ${submission.studentName}`,
+      contentType: submission.type === "voice" ? "audio" : "text",
+      content: submission.content,
+      pinnedDate: new Date().toISOString().split("T")[0],
+      pinnedBy: "Admin User",
+      originalAuthor: submission.studentName,
+      isOfficial: false,
+      status: "ACTIVE",
+      likes: 0,
+      hearts: 0,
+      views: 0,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    };
+    setActivePins((prev) => [newPin, ...prev]);
+    setShowReviewModal(false);
+    setSelectedSubmission(null);
+  };
+
+  const handleArchiveSubmission = (submissionId) => {
+    console.log("Archive submission:", submissionId);
+    setShowReviewModal(false);
+    setSelectedSubmission(null);
   };
 
   const filteredPins = activePins.filter((pin) => {
@@ -804,6 +853,16 @@ const WTFManagement = ({ onToggleView }) => {
                               <Button
                                 size="sm"
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
+                                onClick={() =>
+                                  handleReviewSubmission({
+                                    id: 1,
+                                    title: "My Experience with Science",
+                                    studentName: "Kavya Patel",
+                                    balagruha: "Wisdom House",
+                                    type: "voice",
+                                    content: "voice-recording-url",
+                                  })
+                                }
                               >
                                 <Eye className="w-4 h-4 mr-1" />
                                 Review
@@ -869,6 +928,17 @@ const WTFManagement = ({ onToggleView }) => {
                               <Button
                                 size="sm"
                                 className="bg-blue-600 hover:bg-blue-700 text-white"
+                                onClick={() =>
+                                  handleReviewSubmission({
+                                    id: 2,
+                                    title: "The Importance of Reading",
+                                    studentName: "Rohit Kumar",
+                                    balagruha: "Knowledge House",
+                                    type: "article",
+                                    content:
+                                      "This is a sample article content about the importance of reading...",
+                                  })
+                                }
                               >
                                 <Eye className="w-4 h-4 mr-1" />
                                 Review
@@ -942,6 +1012,29 @@ const WTFManagement = ({ onToggleView }) => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreatePin={handleCreatePin}
+      />
+
+      {/* Edit Pin Modal */}
+      <PinEditModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setSelectedPin(null);
+        }}
+        pin={selectedPin}
+        onUpdatePin={handleUpdatePin}
+      />
+
+      {/* Review Submission Modal */}
+      <ReviewModal
+        isOpen={showReviewModal}
+        onClose={() => {
+          setShowReviewModal(false);
+          setSelectedSubmission(null);
+        }}
+        submission={selectedSubmission}
+        onPinToWTF={handlePinToWTF}
+        onArchive={handleArchiveSubmission}
       />
     </div>
   );
