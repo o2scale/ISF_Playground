@@ -828,3 +828,51 @@ export const getPendingSubmissionsCount = async () => {
     throw error;
   }
 };
+
+// WTF Dashboard Metrics
+export const getWtfDashboardMetrics = async () => {
+  try {
+    // Use existing analytics endpoint
+    const response = await api.get(`/api/v1/wtf/analytics`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF dashboard metrics:", error);
+    throw error;
+  }
+};
+
+// Get active pins count
+export const getActivePinsCount = async () => {
+  try {
+    // Use existing active pins endpoint with pagination
+    const response = await api.get(`/api/v1/wtf/pins`, {
+      params: { page: 1, limit: 1 },
+    });
+    return response.data?.pagination?.total || 0;
+  } catch (error) {
+    console.error("Error fetching active pins count:", error);
+    throw error;
+  }
+};
+
+// Get total engagement (views) - use existing analytics
+export const getWtfTotalEngagement = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF total engagement:", error);
+    throw error;
+  }
+};
+
+// Get coach suggestions count - use submission stats
+export const getCoachSuggestionsCount = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/submissions/stats`);
+    return response.data?.data?.pendingCount || 0;
+  } catch (error) {
+    console.error("Error fetching coach suggestions count:", error);
+    throw error;
+  }
+};

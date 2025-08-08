@@ -38,6 +38,10 @@ import {
   reviewSubmission,
   getWtfAnalytics,
   getWtfTransactionHistory,
+  getWtfDashboardMetrics,
+  getActivePinsCount,
+  getWtfTotalEngagement,
+  getCoachSuggestionsCount,
 } from "../../api";
 
 const WTFManagement = ({ onToggleView }) => {
@@ -59,6 +63,12 @@ const WTFManagement = ({ onToggleView }) => {
   const [pendingSuggestions, setPendingSuggestions] = useState([]);
   const [studentSubmissions, setStudentSubmissions] = useState([]);
   const [analytics, setAnalytics] = useState({});
+  const [dashboardMetrics, setDashboardMetrics] = useState({
+    activePins: 0,
+    coachSuggestions: 0,
+    studentSubmissions: 0,
+    totalEngagement: 0,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -95,6 +105,45 @@ const WTFManagement = ({ onToggleView }) => {
       const analyticsResponse = await getWtfAnalytics();
       if (analyticsResponse.success) {
         setAnalytics(analyticsResponse.data || {});
+      }
+
+      // Fetch dashboard metrics
+      try {
+        const [
+          activePinsCount,
+          coachSuggestionsCount,
+          totalEngagementResponse,
+        ] = await Promise.all([
+          getActivePinsCount(),
+          getCoachSuggestionsCount(),
+          getWtfTotalEngagement(),
+        ]);
+
+        setDashboardMetrics({
+          activePins: activePinsCount,
+          coachSuggestions: coachSuggestionsCount,
+          studentSubmissions: studentSubmissions.filter(
+            (s) => s.status === "NEW"
+          ).length,
+          totalEngagement:
+            totalEngagementResponse?.data?.totalViews ||
+            totalEngagementResponse?.data?.totalSeen ||
+            0,
+        });
+      } catch (metricsError) {
+        console.error("Error fetching dashboard metrics:", metricsError);
+        // Fallback to local calculations
+        setDashboardMetrics({
+          activePins: activePins.filter((p) => p.status === "ACTIVE").length,
+          coachSuggestions: pendingSuggestions.length,
+          studentSubmissions: studentSubmissions.filter(
+            (s) => s.status === "NEW"
+          ).length,
+          totalEngagement: activePins.reduce(
+            (acc, pin) => acc + (pin.views || 0),
+            0
+          ),
+        });
       }
     } catch (error) {
       console.error("Error fetching WTF data:", error);
@@ -403,7 +452,7 @@ const WTFManagement = ({ onToggleView }) => {
               <div>
                 <p className="text-sm font-medium text-gray-600">Active Pins</p>
                 <div className="text-2xl font-bold text-green-600">
-                  {activePins.filter((p) => p.status === "ACTIVE").length}
+                  {dashboardMetrics.activePins}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">of 20 maximum</p>
               </div>
@@ -420,8 +469,8 @@ const WTFManagement = ({ onToggleView }) => {
                   Coach Suggestions
                 </p>
                 <div className="text-2xl font-bold text-orange-600 flex items-center gap-2">
-                  {pendingCoachSuggestionsCount}
-                  {pendingCoachSuggestionsCount > 0 && (
+                  {dashboardMetrics.coachSuggestions}
+                  {dashboardMetrics.coachSuggestions > 0 && (
                     <Bell className="w-4 h-4" />
                   )}
                 </div>
@@ -440,8 +489,10 @@ const WTFManagement = ({ onToggleView }) => {
                   Student Submissions
                 </p>
                 <div className="text-2xl font-bold text-blue-600 flex items-center gap-2">
-                  {newSubmissionsCount}
-                  {newSubmissionsCount > 0 && <Bell className="w-4 h-4" />}
+                  {dashboardMetrics.studentSubmissions}
+                  {dashboardMetrics.studentSubmissions > 0 && (
+                    <Bell className="w-4 h-4" />
+                  )}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">awaiting review</p>
               </div>
@@ -458,7 +509,7 @@ const WTFManagement = ({ onToggleView }) => {
                   Total Engagement
                 </p>
                 <div className="text-2xl font-bold text-purple-600">
-                  {activePins.reduce((acc, pin) => acc + pin.views, 0)}
+                  {dashboardMetrics.totalEngagement}
                 </div>
                 <p className="text-xs text-gray-500 mt-1">total views</p>
               </div>
