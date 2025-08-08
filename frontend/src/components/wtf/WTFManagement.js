@@ -19,6 +19,8 @@ import {
   Video,
   Volume2,
   ExternalLink,
+  Calendar,
+  CheckCircle,
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -493,41 +495,355 @@ const WTFManagement = ({ onToggleView }) => {
           )}
 
           {activeTab === "coach-suggestions" && (
-            <div className="text-center py-12">
-              <Bell className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Coach Suggestions
-              </h3>
-              <p className="text-gray-500">
-                Coach suggestions will appear here for review
-              </p>
+            <div className="space-y-6">
+              {/* Coach Suggestions Queue */}
+              <div className="bg-white rounded-lg border p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  <h3 className="text-lg font-semibold">
+                    Coach Suggestions for WTF (2 Pending)
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  Review student work suggested by coaches for the Wall of Fame
+                </p>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Student Work
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Work Type
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Student & Balagruha
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Suggested By
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Date
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-3">
+                            <img
+                              src="https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200"
+                              alt=""
+                              className="w-10 h-10 rounded object-cover"
+                            />
+                            <div>
+                              <div className="font-medium">
+                                Beautiful Nature Painting
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                https://example.com/painting
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <span>Artwork</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="font-medium">Arjun Sharma</div>
+                            <div className="text-sm text-gray-500">
+                              Wisdom House
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="text-sm">Ms. Priya Coach</div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4" />
+                            5/1/2025
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Review & Pin
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Archive className="w-4 h-4 mr-1" />
+                              Archive
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="font-medium">
+                              My Favorite Book Review
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              video-content-url
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-blue-600" />
+                            <span>Spoken English</span>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="font-medium">Kavya Patel</div>
+                            <div className="text-sm text-gray-500">
+                              Knowledge House
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="text-sm">Mr. Rohit Coach</div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4" />
+                            4/1/2025
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-green-600 hover:bg-green-700 text-white"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Review & Pin
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Archive className="w-4 h-4 mr-1" />
+                              Archive
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-lg border p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <CheckCircle className="w-5 h-5 text-green-500" />
+                  <h3 className="text-lg font-semibold">
+                    Recent Coach Suggestion Activity
+                  </h3>
+                </div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">
+                        • The Adventure of the Lost Coin by Rohit Kumar
+                        suggested by Ms. Anjali
+                      </span>
+                    </div>
+                    <Badge className="bg-blue-100 text-blue-800">Pinned</Badge>
+                  </div>
+                </div>
+              </div>
+
+              {/* How it works */}
+              <div className="bg-white rounded-lg border p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Star className="w-5 h-5 text-yellow-500" />
+                  <h3 className="text-lg font-semibold">
+                    How Coach Suggestions Work
+                  </h3>
+                </div>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div>
+                    • Coaches can suggest student work by clicking the "Suggest
+                    for WTF" button while reviewing assignments
+                  </div>
+                  <div>
+                    • Suggested content appears here for admin review and
+                    approval
+                  </div>
+                  <div>
+                    • Clicking "Review & Pin" will feature the content on the
+                    Wall of Fame
+                  </div>
+                  <div>
+                    • Both the student and suggesting coach receive
+                    notifications when content is pinned
+                  </div>
+                  <div>
+                    • Students earn ISF coins when their work is featured
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {activeTab === "submissions" && (
-            <div className="text-center py-12">
-              <User className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                Student Submissions
-              </h3>
-              <p className="text-gray-500">
-                Student submissions will appear here for review
-              </p>
+            <div className="space-y-6">
+              {/* Student Submissions Queue */}
+              <div className="bg-white rounded-lg border p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="w-5 h-5 text-blue-500" />
+                  <h3 className="text-lg font-semibold">
+                    Student Submissions Queue
+                  </h3>
+                </div>
+                <p className="text-gray-600 mb-6">
+                  Review student-submitted voice notes and articles for
+                  potential WTF featuring
+                </p>
+
+                {/* Sub-tabs */}
+                <div className="flex space-x-1 mb-6">
+                  <button className="px-3 py-2 text-sm font-medium rounded-md bg-blue-100 text-blue-700">
+                    ▷ Voice Notes
+                    <Badge className="ml-2 bg-red-500 text-white text-xs">
+                      1
+                    </Badge>
+                  </button>
+                  <button className="px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700">
+                    Articles
+                    <Badge className="ml-2 bg-red-500 text-white text-xs">
+                      1
+                    </Badge>
+                  </button>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Voice Note
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Balagruha
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Submitted
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Status
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr className="border-b border-gray-100 hover:bg-gray-50">
+                        <td className="py-4 px-4">
+                          <div>
+                            <div className="font-medium">
+                              My Experience with Science
+                            </div>
+                            <div className="text-sm text-gray-500">
+                              Kavya Patel
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="text-sm">Wisdom House</div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-1 text-sm text-gray-600">
+                            <Calendar className="w-4 h-4" />
+                            4/1/2025
+                          </div>
+                        </td>
+                        <td className="py-4 px-4">
+                          <Badge className="bg-green-100 text-green-800">
+                            NEW
+                          </Badge>
+                        </td>
+                        <td className="py-4 px-4">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              <Eye className="w-4 h-4 mr-1" />
+                              Review
+                            </Button>
+                            <Button size="sm" variant="outline">
+                              <Archive className="w-4 h-4 mr-1" />
+                              Archive
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Review Process */}
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <FileText className="w-5 h-5 text-green-600" />
+                  <h3 className="text-lg font-semibold text-green-800">
+                    Student Submission Review Process
+                  </h3>
+                </div>
+                <div className="space-y-2 text-sm text-green-700">
+                  <div>
+                    • Students can submit voice notes and articles through their
+                    learning interfaces
+                  </div>
+                  <div>
+                    • All submissions appear here for admin review and approval
+                  </div>
+                  <div>
+                    • Use the embedded players/readers to experience the content
+                    as students intended
+                  </div>
+                  <div>
+                    • Pin exceptional content to the WTF or archive submissions
+                    that don't meet criteria
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
           {activeTab === "analytics" && (
-            <div className="text-center py-12">
-              <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                WTF Analytics & Insights
-              </h3>
-              <p className="text-gray-500">
-                Analytics dashboard coming soon...
-              </p>
-              <p className="text-sm text-gray-400 mt-2">
-                Track engagement, popular content types, and user interactions
-              </p>
+            <div className="bg-white rounded-lg border p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="w-5 h-5 text-yellow-500" />
+                <h3 className="text-lg font-semibold">
+                  WTF Analytics & Insights
+                </h3>
+              </div>
+              <div className="text-center py-12">
+                <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-500">
+                  Analytics dashboard coming soon...
+                </p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Track engagement, popular content types, and user interactions
+                </p>
+              </div>
             </div>
           )}
         </div>
