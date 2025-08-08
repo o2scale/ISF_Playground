@@ -76,29 +76,31 @@ const WTFManagement = () => {
   };
 
   return (
-    <div className="wtf-management h-full bg-gray-50">
+    <div className="wtf-management min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4 w-full">
-        <div className="flex items-center justify-between w-full">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-              <Star className="w-6 h-6 text-yellow-500" />
-              WTF Management Dashboard
-            </h1>
-            <p className="text-gray-600 mt-1">
-              Curate and manage Wall of Fame content
-            </p>
+      <div className="bg-white border-b">
+        <div className="max-w-7xl mx-auto px-6 py-4">
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                <Star className="w-6 h-6 text-yellow-500" />
+                WTF Management Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Curate and manage Wall of Fame content
+              </p>
+            </div>
+            <Button className="bg-purple-600 hover:bg-purple-700 text-white">
+              <Plus className="w-4 h-4 mr-2" />
+              Create New Pin
+            </Button>
           </div>
-          <Button className="bg-purple-600 hover:bg-purple-700">
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Pin
-          </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="px-6 py-6 w-full">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 w-full">
+      <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center justify-between">
               <div>
@@ -153,7 +155,7 @@ const WTFManagement = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg border w-full">
+        <div className="bg-white rounded-lg border">
           <div className="border-b">
             <div className="flex space-x-1 p-1">
               {[
@@ -200,13 +202,13 @@ const WTFManagement = () => {
                       <input
                         type="text"
                         placeholder="Search pins..."
-                        className="pl-10 pr-4 py-2 border rounded-md w-64"
+                        className="pl-10 pr-4 py-2 border rounded-md w-80 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                       />
                     </div>
                     <select
-                      className="border rounded-md px-3 py-2"
+                      className="border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white min-w-32"
                       value={filterType}
                       onChange={(e) => setFilterType(e.target.value)}
                     >
