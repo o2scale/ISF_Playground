@@ -1058,9 +1058,16 @@ const WTFManagement = ({ onToggleView }) => {
                       onClick={() => setSubmissionTab("voice")}
                     >
                       ▷ Voice Notes
-                      <Badge className="ml-2 bg-red-500 text-white text-xs">
-                        1
-                      </Badge>
+                      {(() => {
+                        const voiceCount = studentSubmissions.filter(
+                          (s) => s.status === "NEW" && s.type === "voice"
+                        ).length;
+                        return voiceCount > 0 ? (
+                          <Badge className="ml-2 bg-red-500 text-white text-xs">
+                            {voiceCount}
+                          </Badge>
+                        ) : null;
+                      })()}
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-md ${
@@ -1071,9 +1078,16 @@ const WTFManagement = ({ onToggleView }) => {
                       onClick={() => setSubmissionTab("articles")}
                     >
                       Articles
-                      <Badge className="ml-2 bg-red-500 text-white text-xs">
-                        1
-                      </Badge>
+                      {(() => {
+                        const articleCount = studentSubmissions.filter(
+                          (s) => s.status === "NEW" && s.type === "article"
+                        ).length;
+                        return articleCount > 0 ? (
+                          <Badge className="ml-2 bg-red-500 text-white text-xs">
+                            {articleCount}
+                          </Badge>
+                        ) : null;
+                      })()}
                     </button>
                   </div>
 
