@@ -27,6 +27,7 @@ import { Badge } from "../ui/badge";
 
 const WTFManagement = ({ onToggleView }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [submissionTab, setSubmissionTab] = useState("voice");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPin, setSelectedPin] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -716,13 +717,27 @@ const WTFManagement = ({ onToggleView }) => {
 
                 {/* Sub-tabs */}
                 <div className="flex space-x-1 mb-6">
-                  <button className="px-3 py-2 text-sm font-medium rounded-md bg-blue-100 text-blue-700">
+                  <button
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      submissionTab === "voice"
+                        ? "bg-blue-100 text-blue-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setSubmissionTab("voice")}
+                  >
                     ▷ Voice Notes
                     <Badge className="ml-2 bg-red-500 text-white text-xs">
                       1
                     </Badge>
                   </button>
-                  <button className="px-3 py-2 text-sm font-medium rounded-md text-gray-500 hover:text-gray-700">
+                  <button
+                    className={`px-3 py-2 text-sm font-medium rounded-md ${
+                      submissionTab === "articles"
+                        ? "bg-blue-100 text-blue-700"
+                        : "text-gray-500 hover:text-gray-700"
+                    }`}
+                    onClick={() => setSubmissionTab("articles")}
+                  >
                     Articles
                     <Badge className="ml-2 bg-red-500 text-white text-xs">
                       1
@@ -731,70 +746,137 @@ const WTFManagement = ({ onToggleView }) => {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-gray-200">
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Voice Note
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Balagruha
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Submitted
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Status
-                        </th>
-                        <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div>
-                            <div className="font-medium">
-                              My Experience with Science
+                  {submissionTab === "voice" ? (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Voice Note
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Balagruha
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Submitted
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Status
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-4 px-4">
+                            <div>
+                              <div className="font-medium">
+                                My Experience with Science
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Kavya Patel
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500">
-                              Kavya Patel
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="text-sm">Wisdom House</div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <Calendar className="w-4 h-4" />
+                              4/1/2025
                             </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="text-sm">Wisdom House</div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            4/1/2025
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <Badge className="bg-green-100 text-green-800">
-                            NEW
-                          </Badge>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-blue-600 hover:bg-blue-700 text-white"
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              Review
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Archive className="w-4 h-4 mr-1" />
-                              Archive
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          </td>
+                          <td className="py-4 px-4">
+                            <Badge className="bg-green-100 text-green-800">
+                              NEW
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Review
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                <Archive className="w-4 h-4 mr-1" />
+                                Archive
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  ) : (
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Article
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Balagruha
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Submitted
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Status
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr className="border-b border-gray-100 hover:bg-gray-50">
+                          <td className="py-4 px-4">
+                            <div>
+                              <div className="font-medium">
+                                The Importance of Reading
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                Rohit Kumar
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="text-sm">Knowledge House</div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1 text-sm text-gray-600">
+                              <Calendar className="w-4 h-4" />
+                              3/1/2025
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <Badge className="bg-green-100 text-green-800">
+                              NEW
+                            </Badge>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                size="sm"
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                              >
+                                <Eye className="w-4 h-4 mr-1" />
+                                Review
+                              </Button>
+                              <Button size="sm" variant="outline">
+                                <Archive className="w-4 h-4 mr-1" />
+                                Archive
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  )}
                 </div>
               </div>
 
