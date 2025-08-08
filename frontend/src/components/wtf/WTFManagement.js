@@ -744,6 +744,43 @@ const WTFManagement = ({ onToggleView }) => {
                       ))}
                     </tbody>
                   </table>
+
+                  {/* No Data State */}
+                  {filteredPins.length === 0 && (
+                    <div className="text-center py-12">
+                      <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+                        <div className="text-6xl mb-4">📌</div>
+                        <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                          No Active Pins Yet
+                        </h3>
+                        <p className="text-gray-600 mb-6">
+                          The Wall of Fame is waiting for amazing content!
+                          Create the first pin to get started, or review pending
+                          submissions to add them to the Wall of Fame.
+                        </p>
+                        <div className="flex gap-3 justify-center">
+                          <Button
+                            onClick={() => setShowCreateModal(true)}
+                            className="bg-purple-600 hover:bg-purple-700 text-white"
+                          >
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create First Pin
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => setActiveTab("coach-suggestions")}
+                          >
+                            <Eye className="w-4 h-4 mr-2" />
+                            Review Submissions
+                          </Button>
+                        </div>
+                        <div className="text-sm text-gray-500 mt-4">
+                          💡 Tip: You can also review student submissions and
+                          coach suggestions to add content to the Wall of Fame
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -887,6 +924,46 @@ const WTFManagement = ({ onToggleView }) => {
                           ))}
                       </tbody>
                     </table>
+
+                    {/* No Coach Suggestions State */}
+                    {coachSuggestions.filter((s) => s.status === "PENDING")
+                      .length === 0 && (
+                      <div className="text-center py-12">
+                        <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+                          <div className="text-6xl mb-4">🎯</div>
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                            No Coach Suggestions Yet
+                          </h3>
+                          <p className="text-gray-600 mb-6">
+                            Coaches haven't suggested any student work for the
+                            Wall of Fame yet. When they do, you'll see them here
+                            for review.
+                          </p>
+                          <div className="flex gap-3 justify-center">
+                            <Button
+                              onClick={() => setShowCreateModal(true)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Create Pin Manually
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() =>
+                                setActiveTab("student-submissions")
+                              }
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Check Student Submissions
+                            </Button>
+                          </div>
+                          <div className="text-sm text-gray-500 mt-4">
+                            💡 Tip: Coaches can suggest exceptional student work
+                            to be featured on the Wall of Fame
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1174,6 +1251,45 @@ const WTFManagement = ({ onToggleView }) => {
                           </tr>
                         </tbody>
                       </table>
+                    )}
+
+                    {/* No Student Submissions State */}
+                    {studentSubmissions.filter((s) => s.status === "NEW")
+                      .length === 0 && (
+                      <div className="text-center py-12">
+                        <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
+                          <div className="text-6xl mb-4">📝</div>
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                            No Student Submissions Yet
+                          </h3>
+                          <p className="text-gray-600 mb-6">
+                            Students haven't submitted any voice notes or
+                            articles for review yet. When they do, you'll see
+                            them here to potentially feature on the Wall of
+                            Fame.
+                          </p>
+                          <div className="flex gap-3 justify-center">
+                            <Button
+                              onClick={() => setShowCreateModal(true)}
+                              className="bg-purple-600 hover:bg-purple-700 text-white"
+                            >
+                              <Plus className="w-4 h-4 mr-2" />
+                              Create Pin Manually
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => setActiveTab("coach-suggestions")}
+                            >
+                              <Eye className="w-4 h-4 mr-2" />
+                              Check Coach Suggestions
+                            </Button>
+                          </div>
+                          <div className="text-sm text-gray-500 mt-4">
+                            💡 Tip: Students can submit voice notes and articles
+                            through their learning interfaces
+                          </div>
+                        </div>
+                      </div>
                     )}
                   </div>
                 </div>
