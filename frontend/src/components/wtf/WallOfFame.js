@@ -375,19 +375,69 @@ const WallOfFame = ({ onToggleView }) => {
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
-                {content.map((item, index) => (
-                  <div
-                    key={item.id}
-                    className="w-[180px]"
-                    style={{
-                      marginTop: `${(index % 4) * 10}px`,
-                    }}
-                  >
-                    {renderCard(item)}
+              {content.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
+                  {content.map((item, index) => (
+                    <div
+                      key={item.id}
+                      className="w-[180px]"
+                      style={{
+                        marginTop: `${(index % 4) * 10}px`,
+                      }}
+                    >
+                      {renderCard(item)}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
+                    <div className="text-6xl mb-4">📌</div>
+                    <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                      No Pins Yet
+                    </h3>
+                    <p className="text-gray-600 mb-6">
+                      The Wall of Fame is waiting for amazing content!
+                      {isAdmin ? (
+                        <span>
+                          Create the first pin to get started, or review pending
+                          submissions.
+                        </span>
+                      ) : isCoach ? (
+                        <span>
+                          Suggest student work to be featured on the Wall of
+                          Fame.
+                        </span>
+                      ) : (
+                        <span>
+                          Submit your work to be featured on the Wall of Fame.
+                        </span>
+                      )}
+                    </p>
+                    {isAdmin && (
+                      <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+                      >
+                        <Plus className="w-5 h-5 inline mr-2" />
+                        Create First Pin
+                      </button>
+                    )}
+                    {isCoach && (
+                      <div className="text-sm text-gray-500">
+                        💡 Tip: Review student work and suggest exceptional
+                        pieces for the Wall of Fame
+                      </div>
+                    )}
+                    {!isAdmin && !isCoach && (
+                      <div className="text-sm text-gray-500">
+                        💡 Tip: Submit your voice notes or articles to be
+                        featured here
+                      </div>
+                    )}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
