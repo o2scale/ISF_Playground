@@ -27,6 +27,7 @@ import { Badge } from "../ui/badge.jsx";
 import CreateNewPinModal from "./CreateNewPinModal";
 import PinEditModal from "./PinEditModal";
 import ReviewModal from "./ReviewModal";
+import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
 
 const WTFManagement = ({ onToggleView }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -36,6 +37,9 @@ const WTFManagement = ({ onToggleView }) => {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedCoachSuggestion, setSelectedCoachSuggestion] = useState(null);
+  const [showCoachSuggestionModal, setShowCoachSuggestionModal] =
+    useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
@@ -203,6 +207,99 @@ const WTFManagement = ({ onToggleView }) => {
     console.log("Archive submission:", submissionId);
     setShowReviewModal(false);
     setSelectedSubmission(null);
+  };
+
+  // Coach Suggestions Data
+  const [coachSuggestions, setCoachSuggestions] = useState([
+    {
+      id: 1,
+      studentName: "Arjun Sharma",
+      coachName: "Ms. Priya",
+      workType: "Artwork",
+      title: "Beautiful Nature Painting",
+      content:
+        "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=500",
+      thumbnail:
+        "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200",
+      suggestedDate: "2025-01-05",
+      status: "PENDING",
+      balagruha: "Wisdom House",
+    },
+    {
+      id: 2,
+      studentName: "Kavya Patel",
+      coachName: "Mr. Rohit",
+      workType: "Spoken English",
+      title: "My Favorite Book Review",
+      content: "video-content-url",
+      suggestedDate: "2025-01-04",
+      status: "PENDING",
+      balagruha: "Knowledge House",
+    },
+    {
+      id: 3,
+      studentName: "Rohit Kumar",
+      coachName: "Ms. Anjali",
+      workType: "Creative Writing",
+      title: "The Adventure of the Lost Coin",
+      content: "Once upon a time in a small village...",
+      suggestedDate: "2025-01-03",
+      status: "PINNED",
+      balagruha: "Creativity House",
+    },
+  ]);
+
+  const handleReviewCoachSuggestion = (suggestion) => {
+    setSelectedCoachSuggestion(suggestion);
+    setShowCoachSuggestionModal(true);
+  };
+
+  const handlePinCoachSuggestion = (suggestion) => {
+    console.log("Pin coach suggestion:", suggestion);
+    // Update suggestion status
+    setCoachSuggestions((prev) =>
+      prev.map((s) => (s.id === suggestion.id ? { ...s, status: "PINNED" } : s))
+    );
+
+    // Create a new pin from the suggestion
+    const newPin = {
+      id: Date.now(),
+      title: suggestion.title,
+      caption: `Student work by ${suggestion.studentName} - suggested by ${suggestion.coachName}`,
+      contentType: suggestion.workType.toLowerCase().includes("video")
+        ? "video"
+        : suggestion.workType.toLowerCase().includes("audio")
+        ? "audio"
+        : suggestion.workType.toLowerCase().includes("artwork")
+        ? "image"
+        : "text",
+      content: suggestion.content,
+      pinnedDate: new Date().toISOString().split("T")[0],
+      pinnedBy: "Admin User",
+      originalAuthor: suggestion.studentName,
+      isOfficial: false,
+      status: "ACTIVE",
+      likes: 0,
+      hearts: 0,
+      views: 0,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split("T")[0],
+    };
+    setActivePins((prev) => [newPin, ...prev]);
+    setShowCoachSuggestionModal(false);
+    setSelectedCoachSuggestion(null);
+  };
+
+  const handleArchiveCoachSuggestion = (suggestionId) => {
+    console.log("Archive coach suggestion:", suggestionId);
+    setCoachSuggestions((prev) =>
+      prev.map((s) =>
+        s.id === suggestionId ? { ...s, status: "REVIEWED" } : s
+      )
+    );
+    setShowCoachSuggestionModal(false);
+    setSelectedCoachSuggestion(null);
   };
 
   const filteredPins = activePins.filter((pin) => {
@@ -557,7 +654,12 @@ const WTFManagement = ({ onToggleView }) => {
                 <div className="flex items-center gap-2 mb-4">
                   <Star className="w-5 h-5 text-yellow-500" />
                   <h3 className="text-lg font-semibold">
-                    Coach Suggestions for WTF (2 Pending)
+                    Coach Suggestions for WTF (
+                    {
+                      coachSuggestions.filter((s) => s.status === "PENDING")
+                        .length
+                    }{" "}
+                    Pending)
                   </h3>
                 </div>
                 <p className="text-gray-600 mb-6">
@@ -589,138 +691,154 @@ const WTFManagement = ({ onToggleView }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            <img
-                              src="https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200"
-                              alt=""
-                              className="w-10 h-10 rounded object-cover"
-                            />
-                            <div>
-                              <div className="font-medium">
-                                Beautiful Nature Painting
+                      {coachSuggestions
+                        .filter((s) => s.status === "PENDING")
+                        .map((suggestion) => (
+                          <tr
+                            key={suggestion.id}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-start gap-3">
+                                {suggestion.thumbnail && (
+                                  <img
+                                    src={suggestion.thumbnail}
+                                    alt=""
+                                    className="w-12 h-12 rounded object-cover"
+                                  />
+                                )}
+                                <div>
+                                  <div className="font-medium">
+                                    {suggestion.title}
+                                  </div>
+                                  <div className="text-sm text-gray-500 line-clamp-2">
+                                    {suggestion.content.length > 100
+                                      ? `${suggestion.content.substring(
+                                          0,
+                                          100
+                                        )}...`
+                                      : suggestion.content}
+                                  </div>
+                                </div>
                               </div>
-                              <div className="text-sm text-gray-500">
-                                https://example.com/painting
+                            </td>
+                            <td className="py-4 px-4">
+                              <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
+                                <FileText className="w-3 h-3" />
+                                {suggestion.workType}
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="text-sm">
+                                <div className="font-medium flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {suggestion.studentName}
+                                </div>
+                                <div className="text-gray-500">
+                                  {suggestion.balagruha}
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                            <span>Artwork</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div>
-                            <div className="font-medium">Arjun Sharma</div>
-                            <div className="text-sm text-gray-500">
-                              Wisdom House
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="text-sm">Ms. Priya Coach</div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            5/1/2025
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              Review & Pin
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Archive className="w-4 h-4 mr-1" />
-                              Archive
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                      <tr className="border-b border-gray-100 hover:bg-gray-50">
-                        <td className="py-4 px-4">
-                          <div>
-                            <div className="font-medium">
-                              My Favorite Book Review
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              video-content-url
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-4 h-4 text-blue-600" />
-                            <span>Spoken English</span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div>
-                            <div className="font-medium">Kavya Patel</div>
-                            <div className="text-sm text-gray-500">
-                              Knowledge House
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="text-sm">Mr. Rohit Coach</div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-1 text-sm text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            4/1/2025
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              size="sm"
-                              className="bg-green-600 hover:bg-green-700 text-white"
-                            >
-                              <Eye className="w-4 h-4 mr-1" />
-                              Review & Pin
-                            </Button>
-                            <Button size="sm" variant="outline">
-                              <Archive className="w-4 h-4 mr-1" />
-                              Archive
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="text-sm">
+                                <div className="font-medium">
+                                  {suggestion.coachName}
+                                </div>
+                                <div className="text-gray-500">Coach</div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(
+                                  suggestion.suggestedDate
+                                ).toLocaleDateString()}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() =>
+                                    handleReviewCoachSuggestion(suggestion)
+                                  }
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  Review & Pin
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleArchiveCoachSuggestion(suggestion.id)
+                                  }
+                                >
+                                  <Archive className="w-4 h-4 mr-1" />
+                                  Archive
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                     </tbody>
                   </table>
                 </div>
               </div>
 
               {/* Recent Activity */}
-              <div className="bg-white rounded-lg border p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <CheckCircle className="w-5 h-5 text-green-500" />
-                  <h3 className="text-lg font-semibold">
-                    Recent Coach Suggestion Activity
-                  </h3>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm">
-                        • The Adventure of the Lost Coin by Rohit Kumar
-                        suggested by Ms. Anjali
-                      </span>
-                    </div>
-                    <Badge className="bg-blue-100 text-blue-800">Pinned</Badge>
+              {coachSuggestions.filter((s) => s.status !== "PENDING").length >
+                0 && (
+                <div className="bg-white rounded-lg border p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <CheckCircle className="w-5 h-5 text-green-500" />
+                    <h3 className="text-lg font-semibold">
+                      Recent Coach Suggestion Activity
+                    </h3>
+                  </div>
+                  <div className="space-y-3">
+                    {coachSuggestions
+                      .filter((s) => s.status !== "PENDING")
+                      .slice(0, 5)
+                      .map((suggestion) => (
+                        <div
+                          key={suggestion.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              className={`w-2 h-2 rounded-full ${
+                                suggestion.status === "PINNED"
+                                  ? "bg-green-500"
+                                  : "bg-gray-400"
+                              }`}
+                            />
+                            <div>
+                              <span className="font-medium">
+                                {suggestion.title}
+                              </span>
+                              <span className="text-gray-500 text-sm ml-2">
+                                by {suggestion.studentName} • suggested by{" "}
+                                {suggestion.coachName}
+                              </span>
+                            </div>
+                          </div>
+                          <Badge
+                            className={
+                              suggestion.status === "PINNED"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-gray-100 text-gray-800"
+                            }
+                          >
+                            {suggestion.status === "PINNED"
+                              ? "Pinned"
+                              : "Archived"}
+                          </Badge>
+                        </div>
+                      ))}
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* How it works */}
               <div className="bg-white rounded-lg border p-6">
@@ -1035,6 +1153,18 @@ const WTFManagement = ({ onToggleView }) => {
         submission={selectedSubmission}
         onPinToWTF={handlePinToWTF}
         onArchive={handleArchiveSubmission}
+      />
+
+      {/* Coach Suggestion Review Modal */}
+      <CoachSuggestionReviewModal
+        isOpen={showCoachSuggestionModal}
+        onClose={() => {
+          setShowCoachSuggestionModal(false);
+          setSelectedCoachSuggestion(null);
+        }}
+        suggestion={selectedCoachSuggestion}
+        onPinToWTF={handlePinCoachSuggestion}
+        onArchive={handleArchiveCoachSuggestion}
       />
     </div>
   );
