@@ -14,6 +14,7 @@ import { useUserRole } from "../../hooks/useUserRole";
 import CategoryButtons from "./CategoryButtons";
 import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
+import CreateNewPinModal from "./CreateNewPinModal";
 
 const sampleContent = [
   {
@@ -129,6 +130,7 @@ ISF Administration Team`,
 const WallOfFame = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [content] = useState(sampleContent);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Background customization state
   const [backgroundSettings] = useState({
@@ -155,6 +157,15 @@ const WallOfFame = ({ onToggleView }) => {
 
   const closeModal = () => {
     setSelectedContent(null);
+  };
+
+  const handleCreatePin = (newPin) => {
+    console.log("Creating new pin:", newPin);
+    // Add the new pin to the content array
+    const updatedContent = [newPin, ...content];
+    // Note: In a real app, you'd update the state properly
+    // For now, we'll just log the action
+    setShowCreateModal(false);
   };
 
   const renderTypeIcon = (type) => {
@@ -299,7 +310,10 @@ const WallOfFame = ({ onToggleView }) => {
             </div>
 
             <div className="space-y-3">
-              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium">
+              <button
+                onClick={() => setShowCreateModal(true)}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
+              >
                 <Plus className="w-5 h-5" />
                 Create New Pin
               </button>
@@ -451,6 +465,13 @@ const WallOfFame = ({ onToggleView }) => {
           </div>
         </div>
       )}
+
+      {/* Create New Pin Modal */}
+      <CreateNewPinModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreatePin={handleCreatePin}
+      />
     </div>
   );
 };
