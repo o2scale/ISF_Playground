@@ -15,6 +15,10 @@ import CategoryButtons from "./CategoryButtons";
 import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
 import CreateNewPinModal from "./CreateNewPinModal";
+import ImageViewer from "./modals/ImageViewer";
+import VideoPlayer from "./modals/VideoPlayer";
+import AudioPlayer from "./modals/AudioPlayer";
+import TextReader from "./modals/TextReader";
 
 const sampleContent = [
   {
@@ -131,6 +135,7 @@ const WallOfFame = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [content] = useState(sampleContent);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [modalType, setModalType] = useState(null);
 
   // Background customization state
   const [backgroundSettings] = useState({
@@ -153,10 +158,12 @@ const WallOfFame = ({ onToggleView }) => {
   const handlePinClick = (item) => {
     console.log("Pin clicked:", item.title, item.type);
     setSelectedContent(item);
+    setModalType(item.type);
   };
 
   const closeModal = () => {
     setSelectedContent(null);
+    setModalType(null);
   };
 
   const handleCreatePin = (newPin) => {
@@ -436,34 +443,57 @@ const WallOfFame = ({ onToggleView }) => {
         </div>
       </div>
 
-      {/* Modal placeholder */}
-      {selectedContent && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
-          onClick={closeModal}
-        >
-          <div
-            className="bg-white p-6 rounded-lg max-w-md mx-4"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold mb-2">{selectedContent.title}</h3>
-            <p className="text-gray-600 mb-4">By: {selectedContent.author}</p>
-            <p className="text-sm text-gray-500 mb-4">
-              Type: {selectedContent.type}
-            </p>
-            <div className="flex items-center gap-4 mb-4 text-sm">
-              <span>👁️ {selectedContent.views}</span>
-              <span>❤️ {selectedContent.hearts}</span>
-              <span>👍 {selectedContent.likes}</span>
-            </div>
-            <button
-              onClick={closeModal}
-              className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded"
-            >
-              Close
-            </button>
-          </div>
-        </div>
+      {/* Sophisticated Modals */}
+      {selectedContent && modalType === "photo" && (
+        <ImageViewer
+          isOpen={true}
+          onClose={closeModal}
+          imageSrc={selectedContent.content}
+          title={selectedContent.title}
+          author={selectedContent.author}
+          likes={selectedContent.likes}
+          hearts={selectedContent.hearts}
+          views={selectedContent.views}
+        />
+      )}
+
+      {selectedContent && modalType === "video" && (
+        <VideoPlayer
+          isOpen={true}
+          onClose={closeModal}
+          videoSrc={selectedContent.content}
+          title={selectedContent.title}
+          author={selectedContent.author}
+          likes={selectedContent.likes}
+          hearts={selectedContent.hearts}
+          views={selectedContent.views}
+        />
+      )}
+
+      {selectedContent && modalType === "audio" && (
+        <AudioPlayer
+          isOpen={true}
+          onClose={closeModal}
+          audioSrc={selectedContent.content}
+          title={selectedContent.title}
+          author={selectedContent.author}
+          likes={selectedContent.likes}
+          hearts={selectedContent.hearts}
+          views={selectedContent.views}
+        />
+      )}
+
+      {selectedContent && modalType === "text" && (
+        <TextReader
+          isOpen={true}
+          onClose={closeModal}
+          title={selectedContent.title}
+          content={selectedContent.content}
+          author={selectedContent.author}
+          likes={selectedContent.likes}
+          hearts={selectedContent.hearts}
+          views={selectedContent.views}
+        />
       )}
 
       {/* Create New Pin Modal */}
