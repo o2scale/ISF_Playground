@@ -684,6 +684,125 @@ describe("WTF Service Tests", () => {
     });
   });
 
+  describe("Dashboard Metrics", () => {
+    test("should get WTF dashboard metrics", async () => {
+      // Mock the individual service calls
+      getActivePins.mockResolvedValue({
+        pagination: { total: 25 },
+        data: [],
+      });
+
+      getSubmissionStats.mockResolvedValue({
+        success: true,
+        data: {
+          pendingCount: 8,
+          newCount: 12,
+          approvedCount: 30,
+          rejectedCount: 5,
+        },
+      });
+
+      getWtfAnalytics.mockResolvedValue({
+        success: true,
+        data: {
+          totalViews: 1500,
+          totalSeen: 1200,
+          totalLikes: 300,
+        },
+      });
+
+      const result = await WtfService.getWtfDashboardMetrics();
+
+      expect(result.success).toBe(true);
+      expect(result.data.activePins).toBe(25);
+      expect(result.data.coachSuggestions).toBe(8);
+      expect(result.data.studentSubmissions).toBe(12);
+      expect(result.data.totalEngagement).toBe(1500);
+      expect(result.data.pendingSuggestions).toBe(8);
+      expect(result.data.newSubmissions).toBe(12);
+      expect(result.data.reviewQueueCount).toBe(8);
+    });
+
+    test("should get active pins count", async () => {
+      getActivePins.mockResolvedValue({
+        pagination: { total: 15 },
+        data: [],
+      });
+
+      const result = await WtfService.getActivePinsCount();
+
+      expect(result.success).toBe(true);
+      expect(result.data).toBe(15);
+      expect(getActivePins).toHaveBeenCalledWith({ page: 1, limit: 1 });
+    });
+
+    test("should get total engagement", async () => {
+      getWtfAnalytics.mockResolvedValue({
+        success: true,
+        data: {
+          totalViews: 2000,
+          totalSeen: 1800,
+          totalLikes: 450,
+        },
+      });
+
+      const result = await WtfService.getWtfTotalEngagement();
+
+      expect(result.success).toBe(true);
+      expect(result.data.totalViews).toBe(2000);
+    });
+
+    test("should get coach suggestions count", async () => {
+      getSubmissionStats.mockResolvedValue({
+        success: true,
+        data: {
+          pendingCount: 10,
+          newCount: 15,
+          approvedCount: 40,
+          rejectedCount: 8,
+        },
+      });
+
+      const result = await WtfService.getCoachSuggestionsCount();
+
+      expect(result.success).toBe(true);
+      expect(result.data.pendingCount).toBe(10);
+    });
+
+    test("should handle errors in dashboard metrics", async () => {
+      getActivePins.mockRejectedValue(new Error("Database error"));
+
+      await expect(WtfService.getWtfDashboardMetrics()).rejects.toThrow(
+        "Database error"
+      );
+    });
+
+    test("should handle missing data in dashboard metrics", async () => {
+      getActivePins.mockResolvedValue({
+        pagination: { total: 0 },
+        data: [],
+      });
+
+      getSubmissionStats.mockResolvedValue({
+        success: true,
+        data: null,
+      });
+
+      getWtfAnalytics.mockResolvedValue({
+        success: true,
+        data: null,
+      });
+
+      const result = await WtfService.getWtfDashboardMetrics();
+
+      expect(result.success).toBe(true);
+      expect(result.data.activePins).toBe(0);
+      expect(result.data.coachSuggestions).toBe(0);
+      expect(result.data.studentSubmissions).toBe(0);
+      expect(result.data.totalEngagement).toBe(0);
+    });
+  });
+
   describe("Error Handling", () => {
     test("should handle missing required fields", async () => {
       const result = await WtfService.createPin({});

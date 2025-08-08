@@ -832,8 +832,7 @@ export const getPendingSubmissionsCount = async () => {
 // WTF Dashboard Metrics
 export const getWtfDashboardMetrics = async () => {
   try {
-    // Use existing analytics endpoint
-    const response = await api.get(`/api/v1/wtf/analytics`);
+    const response = await api.get(`/api/v1/wtf/dashboard/metrics`);
     return response.data;
   } catch (error) {
     console.error("Error fetching WTF dashboard metrics:", error);
@@ -844,21 +843,18 @@ export const getWtfDashboardMetrics = async () => {
 // Get active pins count
 export const getActivePinsCount = async () => {
   try {
-    // Use existing active pins endpoint with pagination
-    const response = await api.get(`/api/v1/wtf/pins`, {
-      params: { page: 1, limit: 1 },
-    });
-    return response.data?.pagination?.total || 0;
+    const response = await api.get(`/api/v1/wtf/pins/active/count`);
+    return response.data?.data || 0;
   } catch (error) {
     console.error("Error fetching active pins count:", error);
     throw error;
   }
 };
 
-// Get total engagement (views) - use existing analytics
+// Get total engagement (views)
 export const getWtfTotalEngagement = async () => {
   try {
-    const response = await api.get(`/api/v1/wtf/analytics`);
+    const response = await api.get(`/api/v1/wtf/analytics/engagement`);
     return response.data;
   } catch (error) {
     console.error("Error fetching WTF total engagement:", error);
@@ -866,10 +862,10 @@ export const getWtfTotalEngagement = async () => {
   }
 };
 
-// Get coach suggestions count - use submission stats
+// Get coach suggestions count
 export const getCoachSuggestionsCount = async () => {
   try {
-    const response = await api.get(`/api/v1/wtf/submissions/stats`);
+    const response = await api.get(`/api/v1/wtf/coach-suggestions`);
     return response.data?.data?.pendingCount || 0;
   } catch (error) {
     console.error("Error fetching coach suggestions count:", error);

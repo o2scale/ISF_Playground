@@ -937,6 +937,98 @@ class WtfService {
       throw error;
     }
   }
+
+  // ==================== DASHBOARD METRICS ====================
+
+  static async getWtfDashboardMetrics() {
+    try {
+      // Get all the metrics needed for dashboard
+      const [activePinsCount, submissionStats, analytics] = await Promise.all([
+        this.getActivePinsCount(),
+        this.getSubmissionStats(),
+        this.getWtfAnalytics(),
+      ]);
+
+      const dashboardMetrics = {
+        activePins: activePinsCount?.data || 0,
+        coachSuggestions: submissionStats?.data?.pendingCount || 0,
+        studentSubmissions: submissionStats?.data?.newCount || 0,
+        totalEngagement:
+          analytics?.data?.totalViews || analytics?.data?.totalSeen || 0,
+        pendingSuggestions: submissionStats?.data?.pendingCount || 0,
+        newSubmissions: submissionStats?.data?.newCount || 0,
+        reviewQueueCount: submissionStats?.data?.pendingCount || 0,
+      };
+
+      return {
+        success: true,
+        data: dashboardMetrics,
+        message: "Dashboard metrics fetched successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getWtfDashboardMetrics service"
+      );
+      throw error;
+    }
+  }
+
+  static async getActivePinsCount() {
+    try {
+      const result = await getActivePins({ page: 1, limit: 1 });
+      return {
+        success: true,
+        data: result?.pagination?.total || 0,
+        message: "Active pins count fetched successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getActivePinsCount service"
+      );
+      throw error;
+    }
+  }
+
+  static async getWtfTotalEngagement() {
+    try {
+      const result = await this.getWtfAnalytics();
+      const totalEngagement =
+        result?.data?.totalViews || result?.data?.totalSeen || 0;
+
+      return {
+        success: true,
+        data: { totalViews: totalEngagement },
+        message: "Total engagement fetched successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getWtfTotalEngagement service"
+      );
+      throw error;
+    }
+  }
+
+  static async getCoachSuggestionsCount() {
+    try {
+      const result = await this.getSubmissionStats();
+      const pendingCount = result?.data?.pendingCount || 0;
+
+      return {
+        success: true,
+        data: { pendingCount },
+        message: "Coach suggestions count fetched successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getCoachSuggestionsCount service"
+      );
+      throw error;
+    }
+  }
 }
 
 module.exports = WtfService;

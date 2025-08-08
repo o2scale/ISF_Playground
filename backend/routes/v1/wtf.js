@@ -36,6 +36,12 @@ const {
   getInteractionAnalytics,
   getSubmissionAnalytics,
 
+  // Dashboard Metrics Controllers
+  getWtfDashboardMetrics,
+  getActivePinsCount,
+  getWtfTotalEngagement,
+  getCoachSuggestionsCount,
+
   // Student Management Controllers
   getStudentSubmissions,
   getStudentInteractionHistory,
@@ -207,6 +213,40 @@ router.get(
   authenticate,
   authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
   getSubmissionAnalytics
+);
+
+// ==================== DASHBOARD METRICS ROUTES ====================
+
+// Get WTF dashboard metrics (Admin only)
+router.get(
+  "/dashboard/metrics",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getWtfDashboardMetrics
+);
+
+// Get active pins count (Admin only)
+router.get(
+  "/pins/active/count",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getActivePinsCount
+);
+
+// Get total engagement (Admin only)
+router.get(
+  "/analytics/engagement",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getWtfTotalEngagement
+);
+
+// Get coach suggestions count (Admin only)
+router.get(
+  "/coach-suggestions",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getCoachSuggestionsCount
 );
 
 // ==================== STUDENT MANAGEMENT ROUTES ====================

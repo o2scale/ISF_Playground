@@ -30,6 +30,10 @@ const {
   getStudentInteractionHistory,
   getPinsByAuthor,
   getSubmissionStats,
+  getWtfDashboardMetrics,
+  getActivePinsCount,
+  getWtfTotalEngagement,
+  getCoachSuggestionsCount,
 } = require("../../../controllers/wtfController");
 
 let mongoServer;
@@ -691,6 +695,189 @@ describe("WTF Controller Tests", () => {
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         data: mockSubmissionAnalytics,
+      });
+    });
+  });
+
+  describe("Dashboard Metrics Controllers", () => {
+    test("should get WTF dashboard metrics", async () => {
+      const mockDashboardMetrics = {
+        activePins: 25,
+        coachSuggestions: 8,
+        studentSubmissions: 12,
+        totalEngagement: 1500,
+        pendingSuggestions: 8,
+        newSubmissions: 12,
+        reviewQueueCount: 8,
+      };
+
+      WtfService.getWtfDashboardMetrics.mockResolvedValue({
+        success: true,
+        data: mockDashboardMetrics,
+        message: "Dashboard metrics fetched successfully",
+      });
+
+      const req = {
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/dashboard/metrics",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getWtfDashboardMetrics(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: mockDashboardMetrics,
+        message: "Dashboard metrics fetched successfully",
+      });
+    });
+
+    test("should get active pins count", async () => {
+      WtfService.getActivePinsCount.mockResolvedValue({
+        success: true,
+        data: 15,
+        message: "Active pins count fetched successfully",
+      });
+
+      const req = {
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/pins/active/count",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getActivePinsCount(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: 15,
+        message: "Active pins count fetched successfully",
+      });
+    });
+
+    test("should get total engagement", async () => {
+      WtfService.getWtfTotalEngagement.mockResolvedValue({
+        success: true,
+        data: { totalViews: 2000 },
+        message: "Total engagement fetched successfully",
+      });
+
+      const req = {
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/analytics/engagement",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getWtfTotalEngagement(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: { totalViews: 2000 },
+        message: "Total engagement fetched successfully",
+      });
+    });
+
+    test("should get coach suggestions count", async () => {
+      WtfService.getCoachSuggestionsCount.mockResolvedValue({
+        success: true,
+        data: { pendingCount: 10 },
+        message: "Coach suggestions count fetched successfully",
+      });
+
+      const req = {
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/coach-suggestions",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getCoachSuggestionsCount(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: { pendingCount: 10 },
+        message: "Coach suggestions count fetched successfully",
+      });
+    });
+
+    test("should handle dashboard metrics service errors", async () => {
+      WtfService.getWtfDashboardMetrics.mockRejectedValue(
+        new Error("Service error")
+      );
+
+      const req = {
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/dashboard/metrics",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getWtfDashboardMetrics(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Service error",
+      });
+    });
+
+    test("should handle dashboard metrics service failures", async () => {
+      WtfService.getWtfDashboardMetrics.mockResolvedValue({
+        success: false,
+        data: null,
+        message: "Failed to fetch metrics",
+      });
+
+      const req = {
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/dashboard/metrics",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getWtfDashboardMetrics(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        data: null,
+        message: "Failed to fetch metrics",
       });
     });
   });
