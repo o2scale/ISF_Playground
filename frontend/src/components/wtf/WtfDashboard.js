@@ -2,50 +2,63 @@ import React, { useState, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import WallOfFame from "./WallOfFame";
 import WTFManagement from "./WTFManagement";
+import StudentSubmission from "./StudentSubmission";
 import { useUserRole } from "../../hooks/useUserRole";
 import "./WtfDashboard.css";
 
 const WtfDashboard = () => {
-  const { isAdmin } = useUserRole();
+  const { isAdmin, isStudent } = useUserRole();
   const location = useLocation();
   const navigate = useNavigate();
-  const [showManagement, setShowManagement] = useState(false);
+  const [activeView, setActiveView] = useState("wall"); // wall, submit, management
 
-  // Check URL params to see if we should show management view
+  // Check URL params to see which view to show
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);
     const viewParam = urlParams.get("view");
 
     if (viewParam === "management" && isAdmin) {
-      setShowManagement(true);
+      setActiveView("management");
+    } else if (viewParam === "submit" && isStudent) {
+      setActiveView("submit");
     } else {
-      setShowManagement(false);
+      setActiveView("wall");
     }
-  }, [location.search, isAdmin]);
+  }, [location.search, isAdmin, isStudent]);
 
-  const toggleView = () => {
-    if (isAdmin) {
-      if (showManagement) {
-        // Switch to Wall of Fame view
-        navigate("/wtf");
-      } else {
-        // Switch to Management view
-        navigate("/wtf?view=management");
-      }
+  const handleViewChange = (view) => {
+    setActiveView(view);
+    if (view === "management" && isAdmin) {
+      navigate("/wtf?view=management");
+    } else if (view === "submit" && isStudent) {
+      navigate("/wtf?view=submit");
+    } else {
+      navigate("/wtf");
     }
   };
 
-  if (showManagement && isAdmin) {
+  // Render the appropriate component based on active view
+  if (activeView === "management" && isAdmin) {
     return (
       <div className="wtf-management">
-        <WTFManagement onToggleView={toggleView} />
+        <WTFManagement onToggleView={() => handleViewChange("wall")} />
+      </div>
+    );
+  }
+
+  if (activeView === "submit" && isStudent) {
+    return (
+      <div className="wtf-submit">
+        <StudentSubmission />
       </div>
     );
   }
 
   return (
     <div className="wtf-dashboard h-full w-full">
-      <WallOfFame onToggleView={isAdmin ? toggleView : null} />
+      <WallOfFame
+        onToggleView={isAdmin ? () => handleViewChange("management") : null}
+      />
     </div>
   );
 };

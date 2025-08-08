@@ -536,3 +536,233 @@ export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
     throw error;
   }
 };
+
+// ==================== WTF API FUNCTIONS ====================
+
+// Pin Management APIs
+export const createWtfPin = async (data) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating WTF pin:", error);
+    throw error;
+  }
+};
+
+export const getActiveWtfPins = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/active`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching active WTF pins:", error);
+    throw error;
+  }
+};
+
+export const getWtfPinById = async (pinId) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/${pinId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF pin by ID:", error);
+    throw error;
+  }
+};
+
+export const updateWtfPin = async (pinId, data) => {
+  try {
+    const response = await api.put(`/api/v1/wtf/pins/${pinId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating WTF pin:", error);
+    throw error;
+  }
+};
+
+export const deleteWtfPin = async (pinId) => {
+  try {
+    const response = await api.delete(`/api/v1/wtf/pins/${pinId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting WTF pin:", error);
+    throw error;
+  }
+};
+
+export const changeWtfPinStatus = async (pinId, status) => {
+  try {
+    const response = await api.patch(`/api/v1/wtf/pins/${pinId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    console.error("Error changing WTF pin status:", error);
+    throw error;
+  }
+};
+
+// Interaction APIs
+export const likeWtfPin = async (pinId) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/like`);
+    return response.data;
+  } catch (error) {
+    console.error("Error liking WTF pin:", error);
+    throw error;
+  }
+};
+
+export const markWtfPinAsSeen = async (pinId) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/seen`);
+    return response.data;
+  } catch (error) {
+    console.error("Error marking WTF pin as seen:", error);
+    throw error;
+  }
+};
+
+export const getWtfPinInteractions = async (pinId) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/${pinId}/interactions`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF pin interactions:", error);
+    throw error;
+  }
+};
+
+// Submission APIs
+export const submitVoiceNote = async (data) => {
+  try {
+    const response = await apiWithoutContentType.post(`/api/v1/wtf/submissions/voice`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting voice note:", error);
+    throw error;
+  }
+};
+
+export const submitArticle = async (data) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/submissions/article`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting article:", error);
+    throw error;
+  }
+};
+
+export const getSubmissionsForReview = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/submissions/review`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching submissions for review:", error);
+    throw error;
+  }
+};
+
+export const reviewSubmission = async (submissionId, data) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/submissions/${submissionId}/review`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error reviewing submission:", error);
+    throw error;
+  }
+};
+
+// Analytics APIs
+export const getWtfAnalytics = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF analytics:", error);
+    throw error;
+  }
+};
+
+export const getWtfInteractionAnalytics = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics/interactions`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF interaction analytics:", error);
+    throw error;
+  }
+};
+
+export const getWtfSubmissionAnalytics = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics/submissions`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF submission analytics:", error);
+    throw error;
+  }
+};
+
+// Student Management APIs
+export const getStudentSubmissions = async (studentId, params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/students/${studentId}/submissions`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student submissions:", error);
+    throw error;
+  }
+};
+
+export const getStudentInteractionHistory = async (studentId, params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/students/${studentId}/interactions`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student interaction history:", error);
+    throw error;
+  }
+};
+
+// Admin Management APIs
+export const getPinsByAuthor = async (authorId, params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/pins/author/${authorId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pins by author:", error);
+    throw error;
+  }
+};
+
+export const getSubmissionStats = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/submissions/stats`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching submission stats:", error);
+    throw error;
+  }
+};
+
+// WebSocket APIs
+export const getWebSocketStatus = async () => {
+  try {
+    const response = await api.get(`/api/v1/websocket/status`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WebSocket status:", error);
+    throw error;
+  }
+};
+
+// WTF Transaction History
+export const getWtfTransactionHistory = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/coins/wtf/transactions`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF transaction history:", error);
+    throw error;
+  }
+};

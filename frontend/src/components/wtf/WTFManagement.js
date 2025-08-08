@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Star,
   Plus,
@@ -28,6 +28,17 @@ import CreateNewPinModal from "./CreateNewPinModal";
 import PinEditModal from "./PinEditModal";
 import ReviewModal from "./ReviewModal";
 import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
+import {
+  createWtfPin,
+  getActiveWtfPins,
+  updateWtfPin,
+  deleteWtfPin,
+  changeWtfPinStatus,
+  getSubmissionsForReview,
+  reviewSubmission,
+  getWtfAnalytics,
+  getWtfTransactionHistory,
+} from "../../api";
 
 const WTFManagement = ({ onToggleView }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -43,79 +54,55 @@ const WTFManagement = ({ onToggleView }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  // Sample data
-  const [activePins, setActivePins] = useState([
-    {
-      id: 1,
-      title: "Amazing Art Creation",
-      caption: "Beautiful artwork by our talented student",
-      contentType: "image",
-      content:
-        "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=500",
-      thumbnail:
-        "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200",
-      pinnedDate: "2025-01-01",
-      pinnedBy: "Admin User",
-      originalAuthor: "Sarah Johnson",
-      isOfficial: false,
-      status: "ACTIVE",
-      likes: 25,
-      hearts: 18,
-      views: 156,
-      expiresAt: "2025-01-08",
-    },
-    {
-      id: 2,
-      title: "Weekly Announcement",
-      caption: "Important updates for all students",
-      contentType: "text",
-      content: "Dear Students, we have exciting updates...",
-      pinnedDate: "2025-01-02",
-      pinnedBy: "Admin User",
-      isOfficial: true,
-      status: "ACTIVE",
-      likes: 12,
-      hearts: 8,
-      views: 89,
-      expiresAt: "2025-01-09",
-    },
-  ]);
+  // Real data from API
+  const [activePins, setActivePins] = useState([]);
+  const [pendingSuggestions, setPendingSuggestions] = useState([]);
+  const [studentSubmissions, setStudentSubmissions] = useState([]);
+  const [analytics, setAnalytics] = useState({});
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [pendingSuggestions] = useState([
-    {
-      id: 1,
-      studentName: "Arjun Sharma",
-      coachName: "Ms. Priya",
-      contentType: "Art",
-      title: "Nature Painting",
-      content: "Beautiful landscape painting",
-      suggestedDate: "2025-01-03",
-      status: "PENDING",
-    },
-  ]);
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchWtfData();
+  }, []);
 
-  const [studentSubmissions] = useState([
-    {
-      id: 1,
-      studentName: "Kavya Patel",
-      balagruha: "Wisdom House",
-      type: "voice",
-      title: "My Experience with Science",
-      content: "voice-recording-url",
-      submissionDate: "2025-01-04",
-      status: "NEW",
-    },
-    {
-      id: 2,
-      studentName: "Rohit Kumar",
-      balagruha: "Knowledge House",
-      type: "article",
-      title: "The Importance of Reading",
-      content: "Reading is fundamental to learning...",
-      submissionDate: "2025-01-03",
-      status: "NEW",
-    },
-  ]);
+  const fetchWtfData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Fetch active pins
+      const pinsResponse = await getActiveWtfPins({
+        page: 1,
+        limit: 20,
+        type: filterType === "all" ? null : filterType,
+      });
+      if (pinsResponse.success) {
+        setActivePins(pinsResponse.data || []);
+      }
+
+      // Fetch submissions for review
+      const submissionsResponse = await getSubmissionsForReview({
+        page: 1,
+        limit: 20,
+        type: submissionTab,
+      });
+      if (submissionsResponse.success) {
+        setStudentSubmissions(submissionsResponse.data || []);
+      }
+
+      // Fetch analytics
+      const analyticsResponse = await getWtfAnalytics();
+      if (analyticsResponse.success) {
+        setAnalytics(analyticsResponse.data || {});
+      }
+    } catch (error) {
+      console.error("Error fetching WTF data:", error);
+      setError("Failed to load WTF data. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getContentTypeIcon = (type) => {
     switch (type) {
@@ -134,23 +121,39 @@ const WTFManagement = ({ onToggleView }) => {
     }
   };
 
-  const handleUnpin = (pinId) => {
+  const handleUnpin = async (pinId) => {
     if (window.confirm("Are you sure you want to unpin this content?")) {
-      setActivePins((prev) =>
-        prev.map((pin) =>
-          pin.id === pinId ? { ...pin, status: "UNPINNED" } : pin
-        )
-      );
+      try {
+        const response = await changeWtfPinStatus(pinId, "UNPINNED");
+        if (response.success) {
+          setActivePins((prev) =>
+            prev.map((pin) =>
+              pin._id === pinId ? { ...pin, status: "UNPINNED" } : pin
+            )
+          );
+        }
+      } catch (error) {
+        console.error("Error unpinning pin:", error);
+        setError("Failed to unpin content. Please try again.");
+      }
     }
   };
 
-  const handleDelete = (pinId) => {
+  const handleDelete = async (pinId) => {
     if (
       window.confirm(
         "Are you sure you want to permanently delete this pin? This action cannot be undone."
       )
     ) {
-      setActivePins((prev) => prev.filter((pin) => pin.id !== pinId));
+      try {
+        const response = await deleteWtfPin(pinId);
+        if (response.success) {
+          setActivePins((prev) => prev.filter((pin) => pin._id !== pinId));
+        }
+      } catch (error) {
+        console.error("Error deleting pin:", error);
+        setError("Failed to delete pin. Please try again.");
+      }
     }
   };
 
@@ -159,17 +162,33 @@ const WTFManagement = ({ onToggleView }) => {
     setShowEditModal(true);
   };
 
-  const handleCreatePin = (newPin) => {
-    setActivePins((prev) => [newPin, ...prev]);
-    setShowCreateModal(false);
+  const handleCreatePin = async (newPin) => {
+    try {
+      const response = await createWtfPin(newPin);
+      if (response.success) {
+        setActivePins((prev) => [response.data, ...prev]);
+        setShowCreateModal(false);
+      }
+    } catch (error) {
+      console.error("Error creating pin:", error);
+      setError("Failed to create pin. Please try again.");
+    }
   };
 
-  const handleUpdatePin = (updatedPin) => {
-    setActivePins((prev) =>
-      prev.map((p) => (p.id === updatedPin.id ? updatedPin : p))
-    );
-    setShowEditModal(false);
-    setSelectedPin(null);
+  const handleUpdatePin = async (updatedPin) => {
+    try {
+      const response = await updateWtfPin(updatedPin._id, updatedPin);
+      if (response.success) {
+        setActivePins((prev) =>
+          prev.map((p) => (p._id === updatedPin._id ? response.data : p))
+        );
+        setShowEditModal(false);
+        setSelectedPin(null);
+      }
+    } catch (error) {
+      console.error("Error updating pin:", error);
+      setError("Failed to update pin. Please try again.");
+    }
   };
 
   const handleReviewSubmission = (submission) => {
@@ -177,36 +196,62 @@ const WTFManagement = ({ onToggleView }) => {
     setShowReviewModal(true);
   };
 
-  const handlePinToWTF = (submission) => {
-    console.log("Pin to WTF:", submission);
-    // This would create a new pin from the submission
-    const newPin = {
-      id: Date.now(),
-      title: submission.title,
-      caption: `Student submission by ${submission.studentName}`,
-      contentType: submission.type === "voice" ? "audio" : "text",
-      content: submission.content,
-      pinnedDate: new Date().toISOString().split("T")[0],
-      pinnedBy: "Admin User",
-      originalAuthor: submission.studentName,
-      isOfficial: false,
-      status: "ACTIVE",
-      likes: 0,
-      hearts: 0,
-      views: 0,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-    };
-    setActivePins((prev) => [newPin, ...prev]);
-    setShowReviewModal(false);
-    setSelectedSubmission(null);
+  const handlePinToWTF = async (submission) => {
+    try {
+      // First approve the submission
+      const reviewResponse = await reviewSubmission(submission._id, {
+        action: "approve",
+        notes: "Approved and pinned to WTF",
+      });
+
+      if (reviewResponse.success) {
+        // Create a new pin from the approved submission
+        const newPin = {
+          title: submission.title,
+          caption: `Student submission by ${submission.studentName}`,
+          contentType: submission.type === "voice" ? "audio" : "text",
+          content: submission.content,
+          originalAuthor: submission.studentName,
+          isOfficial: false,
+          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+        };
+
+        const pinResponse = await createWtfPin(newPin);
+        if (pinResponse.success) {
+          setActivePins((prev) => [pinResponse.data, ...prev]);
+          setStudentSubmissions((prev) =>
+            prev.filter((s) => s._id !== submission._id)
+          );
+          setShowReviewModal(false);
+          setSelectedSubmission(null);
+        }
+      }
+    } catch (error) {
+      console.error("Error pinning submission to WTF:", error);
+      setError("Failed to pin submission to WTF. Please try again.");
+    }
   };
 
-  const handleArchiveSubmission = (submissionId) => {
-    console.log("Archive submission:", submissionId);
-    setShowReviewModal(false);
-    setSelectedSubmission(null);
+  const handleArchiveSubmission = async (submissionId) => {
+    try {
+      const response = await reviewSubmission(submissionId, {
+        action: "reject",
+        notes: "Archived by admin",
+      });
+
+      if (response.success) {
+        setStudentSubmissions((prev) =>
+          prev.filter((s) => s._id !== submissionId)
+        );
+        setShowReviewModal(false);
+        setSelectedSubmission(null);
+      }
+    } catch (error) {
+      console.error("Error archiving submission:", error);
+      setError("Failed to archive submission. Please try again.");
+    }
   };
 
   // Coach Suggestions Data

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Eye,
   Heart,
@@ -19,121 +19,16 @@ import ImageViewer from "./modals/ImageViewer";
 import VideoPlayer from "./modals/VideoPlayer";
 import AudioPlayer from "./modals/AudioPlayer";
 import TextReader from "./modals/TextReader";
-
-const sampleContent = [
-  {
-    id: 1,
-    type: "photo",
-    title: "My Art Creation",
-    author: "Sarah Johnson",
-    content:
-      "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=500",
-    thumbnail:
-      "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200",
-    likes: 15,
-    hearts: 8,
-    views: 45,
-  },
-  {
-    id: 2,
-    type: "video",
-    title: "English Speaking Practice",
-    author: "Alex Chen",
-    content:
-      "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4",
-    thumbnail:
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?w=200",
-    likes: 23,
-    hearts: 12,
-    views: 67,
-  },
-  {
-    id: 3,
-    type: "audio",
-    title: "This Week's Mann ki Baat",
-    author: "ISF Admin",
-    content: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
-    likes: 31,
-    hearts: 18,
-    views: 89,
-  },
-  {
-    id: 4,
-    type: "text",
-    title: "Weekly Announcement",
-    author: "ISF Admin",
-    content: `Dear Students,
-
-We are excited to announce our upcoming Science Fair! This is a wonderful opportunity to showcase your creativity and scientific knowledge.
-
-Key Details:
-• Date: Next Friday, 2 PM
-• Location: Main Auditorium
-• Prizes for top 3 projects
-• All students welcome to participate
-
-Please prepare your projects and get ready for an amazing day of learning and discovery!
-
-Best regards,
-ISF Administration Team`,
-    likes: 19,
-    hearts: 7,
-    views: 52,
-  },
-  {
-    id: 5,
-    type: "photo",
-    title: "Nature Photography",
-    author: "Maya Patel",
-    content:
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=500",
-    thumbnail:
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=200",
-    likes: 14,
-    hearts: 27,
-    views: 73,
-  },
-  {
-    id: 6,
-    type: "video",
-    title: "Science Experiment",
-    author: "Rohan Kumar",
-    content:
-      "https://sample-videos.com/zip/10/mp4/SampleVideo_1280x720_1mb.mp4",
-    thumbnail:
-      "https://images.unsplash.com/photo-1532094349884-543bc11b234d?w=200",
-    likes: 21,
-    hearts: 42,
-    views: 156,
-  },
-  {
-    id: 7,
-    type: "photo",
-    title: "Mountain Adventure",
-    author: "Priya Singh",
-    content:
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=500",
-    thumbnail:
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=200",
-    likes: 38,
-    hearts: 19,
-    views: 98,
-  },
-  {
-    id: 8,
-    type: "audio",
-    title: "Morning Music",
-    author: "Arjun Sharma",
-    content: "https://www.soundjay.com/misc/sounds/bell-ringing-05.wav",
-    likes: 25,
-    hearts: 12,
-    views: 67,
-  },
-];
+import {
+  getActiveWtfPins,
+  likeWtfPin,
+  markWtfPinAsSeen,
+  createWtfPin,
+} from "../../api";
 
 const WallOfFame = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
-  const [content] = useState(sampleContent);
+  const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [modalType, setModalType] = useState(null);
 
@@ -155,6 +50,20 @@ const WallOfFame = ({ onToggleView }) => {
 
   const { isAdmin, isCoach } = useUserRole();
 
+  useEffect(() => {
+    const fetchPins = async () => {
+      try {
+        const pins = await getActiveWtfPins();
+        setContent(pins);
+      } catch (error) {
+        console.error("Error fetching pins:", error);
+      }
+    };
+    fetchPins();
+    const interval = setInterval(fetchPins, 30000); // Poll every 30 seconds
+    return () => clearInterval(interval);
+  }, []);
+
   const handlePinClick = (item) => {
     console.log("Pin clicked:", item.title, item.type);
     setSelectedContent(item);
@@ -166,13 +75,52 @@ const WallOfFame = ({ onToggleView }) => {
     setModalType(null);
   };
 
-  const handleCreatePin = (newPin) => {
+  const handleCreatePin = async (newPin) => {
     console.log("Creating new pin:", newPin);
-    // Add the new pin to the content array
-    const updatedContent = [newPin, ...content];
-    // Note: In a real app, you'd update the state properly
-    // For now, we'll just log the action
-    setShowCreateModal(false);
+    try {
+      const createdPin = await createWtfPin(newPin);
+      setContent((prev) => [createdPin, ...prev]);
+      setShowCreateModal(false);
+    } catch (error) {
+      console.error("Error creating pin:", error);
+    }
+  };
+
+  const handleLikePin = async (pinId) => {
+    try {
+      await likeWtfPin(pinId);
+      setContent((prev) =>
+        prev.map((pin) =>
+          pin.id === pinId ? { ...pin, likes: pin.likes + 1 } : pin
+        )
+      );
+    } catch (error) {
+      console.error("Error liking pin:", error);
+    }
+  };
+
+  const handleHeartPin = async (pinId) => {
+    try {
+      await likeWtfPin(pinId); // Assuming likeWtfPin handles hearts too
+      setContent((prev) =>
+        prev.map((pin) =>
+          pin.id === pinId ? { ...pin, hearts: pin.hearts + 1 } : pin
+        )
+      );
+    } catch (error) {
+      console.error("Error hearting pin:", error);
+    }
+  };
+
+  const handleMarkAsSeen = async (pinId) => {
+    try {
+      await markWtfPinAsSeen(pinId);
+      setContent((prev) =>
+        prev.map((pin) => (pin.id === pinId ? { ...pin, isSeen: true } : pin))
+      );
+    } catch (error) {
+      console.error("Error marking pin as seen:", error);
+    }
   };
 
   const renderTypeIcon = (type) => {
