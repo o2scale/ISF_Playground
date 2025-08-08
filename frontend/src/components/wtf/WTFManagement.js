@@ -1035,7 +1035,7 @@ const WTFManagement = ({ onToggleView }) => {
             {activeTab === "submissions" && (
               <div className="space-y-6">
                 {/* Student Submissions Queue */}
-                <div className="bg-white rounded-lg border p-6">
+                <div className="bg-white">
                   <div className="flex items-center gap-2 mb-4">
                     <FileText className="w-5 h-5 text-blue-500" />
                     <h3 className="text-lg font-semibold">
@@ -1100,57 +1100,69 @@ const WTFManagement = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-4 px-4">
-                              <div>
-                                <div className="font-medium">
-                                  My Experience with Science
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  Kavya Patel
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="text-sm">Wisdom House</div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-1 text-sm text-gray-600">
-                                <Calendar className="w-4 h-4" />
-                                4/1/2025
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <Badge className="bg-green-100 text-green-800">
-                                NEW
-                              </Badge>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  onClick={() =>
-                                    handleReviewSubmission({
-                                      id: 1,
-                                      title: "My Experience with Science",
-                                      studentName: "Kavya Patel",
-                                      balagruha: "Wisdom House",
-                                      type: "voice",
-                                      content: "voice-recording-url",
-                                    })
-                                  }
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  Review
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <Archive className="w-4 h-4 mr-1" />
-                                  Archive
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
+                          {studentSubmissions
+                            .filter(
+                              (s) => s.status === "NEW" && s.type === "voice"
+                            )
+                            .map((submission) => (
+                              <tr
+                                key={submission.id}
+                                className="border-b border-gray-100 hover:bg-gray-50"
+                              >
+                                <td className="py-4 px-4">
+                                  <div>
+                                    <div className="font-medium">
+                                      {submission.title}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {submission.studentName}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="text-sm">
+                                    {submission.balagruha}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                                    <Calendar className="w-4 h-4" />
+                                    {new Date(
+                                      submission.createdAt
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {submission.status}
+                                  </Badge>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                      onClick={() =>
+                                        handleReviewSubmission(submission)
+                                      }
+                                    >
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      Review
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleArchiveSubmission(submission.id)
+                                      }
+                                    >
+                                      <Archive className="w-4 h-4 mr-1" />
+                                      Archive
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                     ) : (
@@ -1175,58 +1187,69 @@ const WTFManagement = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          <tr className="border-b border-gray-100 hover:bg-gray-50">
-                            <td className="py-4 px-4">
-                              <div>
-                                <div className="font-medium">
-                                  The Importance of Reading
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  Rohit Kumar
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="text-sm">Knowledge House</div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-1 text-sm text-gray-600">
-                                <Calendar className="w-4 h-4" />
-                                3/1/2025
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <Badge className="bg-green-100 text-green-800">
-                                NEW
-                              </Badge>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="flex items-center gap-2">
-                                <Button
-                                  size="sm"
-                                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                                  onClick={() =>
-                                    handleReviewSubmission({
-                                      id: 2,
-                                      title: "The Importance of Reading",
-                                      studentName: "Rohit Kumar",
-                                      balagruha: "Knowledge House",
-                                      type: "article",
-                                      content:
-                                        "This is a sample article content about the importance of reading...",
-                                    })
-                                  }
-                                >
-                                  <Eye className="w-4 h-4 mr-1" />
-                                  Review
-                                </Button>
-                                <Button size="sm" variant="outline">
-                                  <Archive className="w-4 h-4 mr-1" />
-                                  Archive
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
+                          {studentSubmissions
+                            .filter(
+                              (s) => s.status === "NEW" && s.type === "article"
+                            )
+                            .map((submission) => (
+                              <tr
+                                key={submission.id}
+                                className="border-b border-gray-100 hover:bg-gray-50"
+                              >
+                                <td className="py-4 px-4">
+                                  <div>
+                                    <div className="font-medium">
+                                      {submission.title}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {submission.studentName}
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="text-sm">
+                                    {submission.balagruha}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                                    <Calendar className="w-4 h-4" />
+                                    {new Date(
+                                      submission.createdAt
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {submission.status}
+                                  </Badge>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                      onClick={() =>
+                                        handleReviewSubmission(submission)
+                                      }
+                                    >
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      Review
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleArchiveSubmission(submission.id)
+                                      }
+                                    >
+                                      <Archive className="w-4 h-4 mr-1" />
+                                      Archive
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                     )}
