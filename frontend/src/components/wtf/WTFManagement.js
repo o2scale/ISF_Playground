@@ -529,12 +529,12 @@ const WTFManagement = ({ onToggleView }) => {
                 {
                   id: "coach-suggestions",
                   label: "Coach Suggestions",
-                  count: pendingCoachSuggestionsCount,
+                  count: pendingCoachSuggestionsCount > 0 ? pendingCoachSuggestionsCount : null,
                 },
                 {
                   id: "submissions",
                   label: "Student Submissions",
-                  count: newSubmissionsCount,
+                  count: newSubmissionsCount > 0 ? newSubmissionsCount : null,
                 },
                 { id: "analytics", label: "Analytics", count: null },
               ].map((tab) => (
