@@ -1645,3 +1645,67 @@ exports.getCoachSuggestionsCount = async (req, res) => {
       .json({ success: false, message: error.message });
   }
 };
+
+// Get coach suggestions
+exports.getCoachSuggestions = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?.id,
+        query: req.query,
+      },
+      `Request received to fetch coach suggestions`
+    );
+
+    const result = await WtfService.getCoachSuggestions({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      status: status || null,
+    });
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?.id,
+          suggestionsCount: result.data.length,
+        },
+        `Successfully fetched coach suggestions`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to fetch coach suggestions`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while fetching coach suggestions`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};

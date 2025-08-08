@@ -34,6 +34,7 @@ const {
   getActivePinsCount,
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
+  getCoachSuggestions,
 } = require("../../../controllers/wtfController");
 
 let mongoServer;
@@ -878,6 +879,110 @@ describe("WTF Controller Tests", () => {
         success: false,
         data: null,
         message: "Failed to fetch metrics",
+      });
+    });
+
+    test("should get coach suggestions", async () => {
+      const mockCoachSuggestions = [
+        {
+          id: new mongoose.Types.ObjectId().toString(),
+          studentName: "Arjun Sharma",
+          coachName: "Ms. Priya",
+          workType: "Voice Note",
+          title: "Beautiful Nature Painting",
+          content:
+            "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=500",
+          suggestedDate: new Date(),
+          status: "PENDING",
+          balagruha: "Wisdom House",
+        },
+      ];
+
+      WtfService.getCoachSuggestions.mockResolvedValue({
+        success: true,
+        data: mockCoachSuggestions,
+        pagination: { total: 1, page: 1, limit: 20 },
+        message: "Coach suggestions fetched successfully",
+      });
+
+      const req = {
+        query: { page: "1", limit: "20" },
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/coach-suggestions",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getCoachSuggestions(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        success: true,
+        data: mockCoachSuggestions,
+        pagination: { total: 1, page: 1, limit: 20 },
+        message: "Coach suggestions fetched successfully",
+      });
+    });
+
+    test("should handle coach suggestions service errors", async () => {
+      WtfService.getCoachSuggestions.mockRejectedValue(
+        new Error("Service error")
+      );
+
+      const req = {
+        query: { page: "1", limit: "20" },
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/coach-suggestions",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getCoachSuggestions(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Service error",
+      });
+    });
+
+    test("should handle coach suggestions service failures", async () => {
+      WtfService.getCoachSuggestions.mockResolvedValue({
+        success: false,
+        data: null,
+        message: "Failed to fetch coach suggestions",
+      });
+
+      const req = {
+        query: { page: "1", limit: "20" },
+        user: { id: new mongoose.Types.ObjectId().toString() },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "GET",
+        originalUrl: "/api/v1/wtf/coach-suggestions",
+      };
+
+      const res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      };
+
+      await getCoachSuggestions(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        data: null,
+        message: "Failed to fetch coach suggestions",
       });
     });
   });

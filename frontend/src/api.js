@@ -865,10 +865,23 @@ export const getWtfTotalEngagement = async () => {
 // Get coach suggestions count
 export const getCoachSuggestionsCount = async () => {
   try {
-    const response = await api.get(`/api/v1/wtf/coach-suggestions`);
+    const response = await api.get(`/api/v1/wtf/coach-suggestions/count`);
     return response.data?.data?.pendingCount || 0;
   } catch (error) {
     console.error("Error fetching coach suggestions count:", error);
+    throw error;
+  }
+};
+
+// Get coach suggestions
+export const getCoachSuggestions = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/coach-suggestions`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coach suggestions:", error);
     throw error;
   }
 };

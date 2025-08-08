@@ -20,6 +20,8 @@ const {
   bulkUpdatePinStatus,
 } = require("../data-access/wtfPin");
 
+const { getSubmissionsForReview } = require("../data-access/wtfSubmission");
+
 const {
   createInteraction,
   getInteractionById,
@@ -1025,6 +1027,48 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in getCoachSuggestionsCount service"
+      );
+      throw error;
+    }
+  }
+
+  static async getCoachSuggestions({ page = 1, limit = 20, status = null }) {
+    try {
+      // For now, we'll use the submissions data as coach suggestions
+      // In a real implementation, you might have a separate coach suggestions table
+      const result = await getSubmissionsForReview({ page, limit, type: null });
+
+      if (!result.success) {
+        return {
+          success: false,
+          data: null,
+          message: "Failed to fetch coach suggestions",
+        };
+      }
+
+      // Transform submissions to coach suggestions format
+      const coachSuggestions = result.data.map((submission) => ({
+        id: submission._id,
+        studentName: submission.studentName || "Unknown Student",
+        coachName: submission.suggestedBy || "Coach",
+        workType: submission.type === "voice" ? "Voice Note" : "Article",
+        title: submission.title,
+        content: submission.content || submission.audioUrl,
+        suggestedDate: submission.createdAt,
+        status: submission.status === "NEW" ? "PENDING" : submission.status,
+        balagruha: submission.balagruha || "Unknown House",
+      }));
+
+      return {
+        success: true,
+        data: coachSuggestions,
+        pagination: result.pagination,
+        message: "Coach suggestions fetched successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getCoachSuggestions service"
       );
       throw error;
     }

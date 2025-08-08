@@ -42,6 +42,7 @@ import {
   getActivePinsCount,
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
+  getCoachSuggestions,
 } from "../../api";
 
 const WTFManagement = ({ onToggleView }) => {
@@ -99,6 +100,15 @@ const WTFManagement = ({ onToggleView }) => {
       });
       if (submissionsResponse.success) {
         setStudentSubmissions(submissionsResponse.data || []);
+      }
+
+      // Fetch coach suggestions
+      const coachSuggestionsResponse = await getCoachSuggestions({
+        page: 1,
+        limit: 20,
+      });
+      if (coachSuggestionsResponse.success) {
+        setCoachSuggestions(coachSuggestionsResponse.data || []);
       }
 
       // Fetch analytics
@@ -304,44 +314,7 @@ const WTFManagement = ({ onToggleView }) => {
   };
 
   // Coach Suggestions Data
-  const [coachSuggestions, setCoachSuggestions] = useState([
-    {
-      id: 1,
-      studentName: "Arjun Sharma",
-      coachName: "Ms. Priya",
-      workType: "Artwork",
-      title: "Beautiful Nature Painting",
-      content:
-        "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=500",
-      thumbnail:
-        "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=200",
-      suggestedDate: "2025-01-05",
-      status: "PENDING",
-      balagruha: "Wisdom House",
-    },
-    {
-      id: 2,
-      studentName: "Kavya Patel",
-      coachName: "Mr. Rohit",
-      workType: "Spoken English",
-      title: "My Favorite Book Review",
-      content: "video-content-url",
-      suggestedDate: "2025-01-04",
-      status: "PENDING",
-      balagruha: "Knowledge House",
-    },
-    {
-      id: 3,
-      studentName: "Rohit Kumar",
-      coachName: "Ms. Anjali",
-      workType: "Creative Writing",
-      title: "The Adventure of the Lost Coin",
-      content: "Once upon a time in a small village...",
-      suggestedDate: "2025-01-03",
-      status: "PINNED",
-      balagruha: "Creativity House",
-    },
-  ]);
+  const [coachSuggestions, setCoachSuggestions] = useState([]);
 
   const handleReviewCoachSuggestion = (suggestion) => {
     setSelectedCoachSuggestion(suggestion);
@@ -408,7 +381,9 @@ const WTFManagement = ({ onToggleView }) => {
   const newSubmissionsCount = studentSubmissions.filter(
     (s) => s.status === "NEW"
   ).length;
-  const pendingCoachSuggestionsCount = pendingSuggestions.length; // Real data from API
+  const pendingCoachSuggestionsCount = coachSuggestions.filter(
+    (s) => s.status === "PENDING"
+  ).length; // Real data from API
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 w-full">
@@ -529,7 +504,10 @@ const WTFManagement = ({ onToggleView }) => {
                 {
                   id: "coach-suggestions",
                   label: "Coach Suggestions",
-                  count: pendingCoachSuggestionsCount > 0 ? pendingCoachSuggestionsCount : null,
+                  count:
+                    pendingCoachSuggestionsCount > 0
+                      ? pendingCoachSuggestionsCount
+                      : null,
                 },
                 {
                   id: "submissions",

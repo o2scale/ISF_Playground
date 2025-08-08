@@ -26,6 +26,16 @@ const {
 } = require("../../../data-access/wtfPin");
 
 const {
+  getSubmissionsForReview,
+} = require("../../../data-access/wtfSubmission");
+
+// Mock the data access functions
+jest.mock("../../../data-access/wtfSubmission", () => ({
+  getSubmissionsForReview: jest.fn(),
+  getSubmissionStats: jest.fn(),
+}));
+
+const {
   createInteraction,
   getInteractionById,
   getStudentPinInteractions,
@@ -800,6 +810,121 @@ describe("WTF Service Tests", () => {
       expect(result.data.coachSuggestions).toBe(0);
       expect(result.data.studentSubmissions).toBe(0);
       expect(result.data.totalEngagement).toBe(0);
+    });
+
+    test("should get coach suggestions", async () => {
+      const mockSubmissions = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          title: "Beautiful Nature Painting",
+          content:
+            "https://images.unsplash.com/photo-1618160702438-9b02ab6515c9?w=500",
+          type: "voice",
+          status: "NEW",
+          studentName: "Arjun Sharma",
+          suggestedBy: "Ms. Priya",
+          balagruha: "Wisdom House",
+          createdAt: new Date(),
+        },
+        {
+          _id: new mongoose.Types.ObjectId(),
+          title: "My Favorite Book Review",
+          content: "video-content-url",
+          type: "article",
+          status: "APPROVED",
+          studentName: "Kavya Patel",
+          suggestedBy: "Mr. Rohit",
+          balagruha: "Knowledge House",
+          createdAt: new Date(),
+        },
+      ];
+
+      getSubmissionsForReview.mockResolvedValue({
+        success: true,
+        data: mockSubmissions,
+        pagination: { total: 2, page: 1, limit: 20 },
+      });
+
+      const result = await WtfService.getCoachSuggestions({
+        page: 1,
+        limit: 20,
+        status: null,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
+      expect(result.data[0].studentName).toBe("Arjun Sharma");
+      expect(result.data[0].workType).toBe("Voice Note");
+      expect(result.data[0].status).toBe("PENDING");
+      expect(result.data[1].workType).toBe("Article");
+      expect(result.data[1].status).toBe("APPROVED");
+      expect(getSubmissionsForReview).toHaveBeenCalledWith({
+        page: 1,
+        limit: 20,
+        type: null,
+      });
+    });
+
+    test("should handle coach suggestions service failure", async () => {
+      getSubmissionsForReview.mockResolvedValue({
+        success: false,
+        data: null,
+        message: "Failed to fetch submissions",
+      });
+
+      const result = await WtfService.getCoachSuggestions({
+        page: 1,
+        limit: 20,
+      });
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("Failed to fetch coach suggestions");
+    });
+
+    test("should handle coach suggestions service error", async () => {
+      getSubmissionsForReview.mockRejectedValue(new Error("Database error"));
+
+      await expect(
+        WtfService.getCoachSuggestions({ page: 1, limit: 20 })
+      ).rejects.toThrow("Database error");
+    });
+
+    test("should transform coach suggestions correctly", async () => {
+      const mockSubmissions = [
+        {
+          _id: new mongoose.Types.ObjectId(),
+          title: "Test Submission",
+          content: "Test content",
+          type: "voice",
+          status: "NEW",
+          studentName: "Test Student",
+          suggestedBy: "Test Coach",
+          balagruha: "Test House",
+          createdAt: new Date(),
+        },
+      ];
+
+      getSubmissionsForReview.mockResolvedValue({
+        success: true,
+        data: mockSubmissions,
+        pagination: { total: 1, page: 1, limit: 20 },
+      });
+
+      const result = await WtfService.getCoachSuggestions({
+        page: 1,
+        limit: 20,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data[0]).toMatchObject({
+        studentName: "Test Student",
+        coachName: "Test Coach",
+        workType: "Voice Note",
+        title: "Test Submission",
+        content: "Test content",
+        status: "PENDING",
+        balagruha: "Test House",
+      });
     });
   });
 

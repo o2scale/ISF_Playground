@@ -41,6 +41,7 @@ const {
   getActivePinsCount,
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
+  getCoachSuggestions,
 
   // Student Management Controllers
   getStudentSubmissions,
@@ -243,10 +244,18 @@ router.get(
 
 // Get coach suggestions count (Admin only)
 router.get(
-  "/coach-suggestions",
+  "/coach-suggestions/count",
   authenticate,
   authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
   getCoachSuggestionsCount
+);
+
+// Get coach suggestions (Admin only)
+router.get(
+  "/coach-suggestions",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getCoachSuggestions
 );
 
 // ==================== STUDENT MANAGEMENT ROUTES ====================
