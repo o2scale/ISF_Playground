@@ -362,8 +362,9 @@ const WallOfFame = ({ onToggleView }) => {
           </div>
         )}
 
-        <div className="flex flex-col min-h-screen w-full">
-          <div className="p-6 space-y-6 bg-white">
+        <div className="flex flex-col h-screen w-full">
+          {/* Fixed Header */}
+          <div className="p-6 space-y-6 bg-white flex-shrink-0">
             <div className="flex items-center gap-6">
               <div className="flex-1 overflow-hidden">
                 <CategoryButtons />
@@ -374,8 +375,9 @@ const WallOfFame = ({ onToggleView }) => {
             </div>
           </div>
 
+          {/* Scrollable Content Area */}
           <div
-            className="flex-1 p-6 relative min-h-[calc(100vh-280px)]"
+            className="flex-1 p-6 relative overflow-y-auto"
             style={backgroundStyle}
           >
             {/* Decorative icons scattered around */}
@@ -424,7 +426,7 @@ const WallOfFame = ({ onToggleView }) => {
               </p>
             </div>
 
-            <div className="w-full mx-auto px-4 mb-8 max-h-[70vh] overflow-y-auto">
+            <div className="w-full mx-auto px-4 mb-8">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
                 {content.map((item, index) => (
                   <div
