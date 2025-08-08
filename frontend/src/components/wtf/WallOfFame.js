@@ -248,7 +248,7 @@ const WallOfFame = ({ onToggleView }) => {
       };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex w-full">
+    <div className="min-h-screen bg-gray-50 flex w-full h-screen">
       {/* Left Sidebar */}
       <div className="w-64 bg-white border-r flex-shrink-0">
         <CoursesSection />

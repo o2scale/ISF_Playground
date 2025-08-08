@@ -362,373 +362,216 @@ const WTFManagement = ({ onToggleView }) => {
   const pendingCoachSuggestionsCount = 3; // Mock data
 
   return (
-    <div className="p-6 w-full max-w-screen-xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold flex items-center gap-3">
-            <Star className="w-8 h-8 text-yellow-500" />
-            WTF Management Dashboard
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Curate and manage Wall of Fame content
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {onToggleView && (
-            <Button
-              onClick={onToggleView}
-              variant="outline"
-              className="text-gray-600 hover:text-gray-900"
-            >
-              <Eye className="w-4 h-4 mr-2" />
-              View Wall of Fame
-            </Button>
-          )}
-          <Button
-            onClick={() => setShowCreateModal(true)}
-            className="bg-purple-600 hover:bg-purple-700 text-white"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Create New Pin
-          </Button>
-        </div>
-      </div>
-
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Active Pins</p>
-              <div className="text-2xl font-bold text-green-600">
-                {activePins.filter((p) => p.status === "ACTIVE").length}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">of 20 maximum</p>
-            </div>
-            <div className="bg-green-100 p-3 rounded-full">
-              <Eye className="w-6 h-6 text-green-600" />
-            </div>
+    <div className="min-h-screen bg-gray-50 p-6 w-full">
+      <div className="max-w-screen-xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold flex items-center gap-3">
+              <Star className="w-8 h-8 text-yellow-500" />
+              WTF Management Dashboard
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Curate and manage Wall of Fame content
+            </p>
           </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Coach Suggestions
-              </p>
-              <div className="text-2xl font-bold text-orange-600 flex items-center gap-2">
-                {pendingCoachSuggestionsCount}
-                {pendingCoachSuggestionsCount > 0 && (
-                  <Bell className="w-4 h-4" />
-                )}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">from coaches</p>
-            </div>
-            <div className="bg-orange-100 p-3 rounded-full">
-              <Bell className="w-6 h-6 text-orange-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Student Submissions
-              </p>
-              <div className="text-2xl font-bold text-blue-600 flex items-center gap-2">
-                {newSubmissionsCount}
-                {newSubmissionsCount > 0 && <Bell className="w-4 h-4" />}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">awaiting review</p>
-            </div>
-            <div className="bg-blue-100 p-3 rounded-full">
-              <User className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg shadow border p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Engagement
-              </p>
-              <div className="text-2xl font-bold text-purple-600">
-                {activePins.reduce((acc, pin) => acc + pin.views, 0)}
-              </div>
-              <p className="text-xs text-gray-500 mt-1">total views</p>
-            </div>
-            <div className="bg-purple-100 p-3 rounded-full">
-              <ThumbsUp className="w-6 h-6 text-purple-600" />
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="bg-white rounded-lg shadow border">
-        <div className="border-b">
-          <div className="flex space-x-8 p-6">
-            {[
-              { id: "dashboard", label: "Pin Management", count: null },
-              {
-                id: "coach-suggestions",
-                label: "Coach Suggestions",
-                count: pendingCoachSuggestionsCount,
-              },
-              {
-                id: "submissions",
-                label: "Student Submissions",
-                count: newSubmissionsCount,
-              },
-              { id: "analytics", label: "Analytics", count: null },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
-                  activeTab === tab.id
-                    ? "border-purple-500 text-purple-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+          <div className="flex items-center gap-3">
+            {onToggleView && (
+              <Button
+                onClick={onToggleView}
+                variant="outline"
+                className="text-gray-600 hover:text-gray-900"
               >
-                {tab.label}
-                {tab.count && tab.count > 0 && (
-                  <Badge
-                    className={`text-xs ${
-                      tab.id === "coach-suggestions"
-                        ? "bg-orange-500 text-white"
-                        : "bg-blue-500 text-white"
-                    }`}
-                  >
-                    {tab.count}
-                  </Badge>
-                )}
-              </button>
-            ))}
+                <Eye className="w-4 h-4 mr-2" />
+                View Wall of Fame
+              </Button>
+            )}
+            <Button
+              onClick={() => setShowCreateModal(true)}
+              className="bg-purple-600 hover:bg-purple-700 text-white"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Create New Pin
+            </Button>
           </div>
         </div>
 
-        {/* Tab Content */}
-        <div className="p-6">
-          {activeTab === "dashboard" && (
-            <div>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold">Active WTF Pins</h3>
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <input
-                      type="text"
-                      placeholder="Search pins..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-14 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                      style={{
-                        width: "300px",
-                        minWidth: "300px",
-                        textIndent: "28px",
-                      }}
-                    />
-                  </div>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent min-w-32"
-                  >
-                    <option value="all">All Types</option>
-                    <option value="text">Text</option>
-                    <option value="image">Image</option>
-                    <option value="video">Video</option>
-                    <option value="audio">Audio</option>
-                    <option value="link">Link</option>
-                  </select>
+        {/* Quick Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow border p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Active Pins</p>
+                <div className="text-2xl font-bold text-green-600">
+                  {activePins.filter((p) => p.status === "ACTIVE").length}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">of 20 maximum</p>
               </div>
-
-              {/* Table */}
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-200">
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Content
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Type
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Author
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Pinned Date
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Expires
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Engagement
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-900">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPins.map((pin) => (
-                      <tr
-                        key={pin.id}
-                        className="border-b border-gray-100 hover:bg-gray-50"
-                      >
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-3">
-                            {pin.thumbnail && (
-                              <img
-                                src={pin.thumbnail}
-                                alt=""
-                                className="w-10 h-10 rounded object-cover"
-                              />
-                            )}
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {pin.title}
-                              </div>
-                              {pin.caption && (
-                                <div className="text-sm text-gray-500">
-                                  {pin.caption}
-                                </div>
-                              )}
-                              {pin.isOfficial && (
-                                <Badge className="mt-1 bg-purple-100 text-purple-800">
-                                  ISF Official
-                                </Badge>
-                              )}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            {getContentTypeIcon(pin.contentType)}
-                            <span className="capitalize text-gray-700">
-                              {pin.contentType}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div>
-                            <div className="font-medium text-gray-900">
-                              {pin.originalAuthor || "Admin"}
-                            </div>
-                            <div className="text-sm text-gray-500">
-                              by {pin.pinnedBy}
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4 text-gray-700">
-                          {new Date(pin.pinnedDate).toLocaleDateString()}
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-1 text-orange-600">
-                            <Clock className="w-4 h-4" />
-                            <span className="text-sm">
-                              {new Date(pin.expiresAt).toLocaleDateString()}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-4 text-sm">
-                            <div className="flex items-center gap-1">
-                              <Eye className="w-4 h-4 text-gray-500" />
-                              <span className="text-gray-700">{pin.views}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <Heart className="w-4 h-4 text-red-500" />
-                              <span className="text-gray-700">
-                                {pin.hearts}
-                              </span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                              <ThumbsUp className="w-4 h-4 text-blue-500" />
-                              <span className="text-gray-700">{pin.likes}</span>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-4 px-4">
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEdit(pin)}
-                              className="text-gray-600 hover:text-gray-900"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleUnpin(pin.id)}
-                              className="text-gray-600 hover:text-gray-900"
-                            >
-                              <Archive className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleDelete(pin.id)}
-                              className="text-red-600 hover:text-red-700"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <div className="bg-green-100 p-3 rounded-full">
+                <Eye className="w-6 h-6 text-green-600" />
               </div>
             </div>
-          )}
+          </div>
 
-          {activeTab === "coach-suggestions" && (
-            <div className="space-y-6">
-              {/* Coach Suggestions Queue */}
-              <div className="bg-white rounded-lg border p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <Star className="w-5 h-5 text-yellow-500" />
-                  <h3 className="text-lg font-semibold">
-                    Coach Suggestions for WTF (
-                    {
-                      coachSuggestions.filter((s) => s.status === "PENDING")
-                        .length
-                    }{" "}
-                    Pending)
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-6">
-                  Review student work suggested by coaches for the Wall of Fame
+          <div className="bg-white rounded-lg shadow border p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Coach Suggestions
                 </p>
+                <div className="text-2xl font-bold text-orange-600 flex items-center gap-2">
+                  {pendingCoachSuggestionsCount}
+                  {pendingCoachSuggestionsCount > 0 && (
+                    <Bell className="w-4 h-4" />
+                  )}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">from coaches</p>
+              </div>
+              <div className="bg-orange-100 p-3 rounded-full">
+                <Bell className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </div>
 
+          <div className="bg-white rounded-lg shadow border p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Student Submissions
+                </p>
+                <div className="text-2xl font-bold text-blue-600 flex items-center gap-2">
+                  {newSubmissionsCount}
+                  {newSubmissionsCount > 0 && <Bell className="w-4 h-4" />}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">awaiting review</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <User className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow border p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">
+                  Total Engagement
+                </p>
+                <div className="text-2xl font-bold text-purple-600">
+                  {activePins.reduce((acc, pin) => acc + pin.views, 0)}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">total views</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <ThumbsUp className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-lg shadow border">
+          <div className="border-b">
+            <div className="flex space-x-8 p-6">
+              {[
+                { id: "dashboard", label: "Pin Management", count: null },
+                {
+                  id: "coach-suggestions",
+                  label: "Coach Suggestions",
+                  count: pendingCoachSuggestionsCount,
+                },
+                {
+                  id: "submissions",
+                  label: "Student Submissions",
+                  count: newSubmissionsCount,
+                },
+                { id: "analytics", label: "Analytics", count: null },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+                    activeTab === tab.id
+                      ? "border-purple-500 text-purple-600"
+                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
+                >
+                  {tab.label}
+                  {tab.count && tab.count > 0 && (
+                    <Badge
+                      className={`text-xs ${
+                        tab.id === "coach-suggestions"
+                          ? "bg-orange-500 text-white"
+                          : "bg-blue-500 text-white"
+                      }`}
+                    >
+                      {tab.count}
+                    </Badge>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === "dashboard" && (
+              <div>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-semibold">Active WTF Pins</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="relative">
+                      <Search className="w-4 h-4 absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search pins..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-14 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        style={{
+                          width: "300px",
+                          minWidth: "300px",
+                          textIndent: "28px",
+                        }}
+                      />
+                    </div>
+                    <select
+                      value={filterType}
+                      onChange={(e) => setFilterType(e.target.value)}
+                      className="px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent min-w-32"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="text">Text</option>
+                      <option value="image">Image</option>
+                      <option value="video">Video</option>
+                      <option value="audio">Audio</option>
+                      <option value="link">Link</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full">
                     <thead>
                       <tr className="border-b border-gray-200">
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Student Work
+                          Content
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Work Type
+                          Type
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Student & Balagruha
+                          Author
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Suggested By
+                          Pinned Date
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Date
+                          Expires
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Engagement
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
                           Actions
@@ -736,437 +579,605 @@ const WTFManagement = ({ onToggleView }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {coachSuggestions
-                        .filter((s) => s.status === "PENDING")
-                        .map((suggestion) => (
-                          <tr
-                            key={suggestion.id}
-                            className="border-b border-gray-100 hover:bg-gray-50"
-                          >
-                            <td className="py-4 px-4">
-                              <div className="flex items-start gap-3">
-                                {suggestion.thumbnail && (
-                                  <img
-                                    src={suggestion.thumbnail}
-                                    alt=""
-                                    className="w-12 h-12 rounded object-cover"
-                                  />
+                      {filteredPins.map((pin) => (
+                        <tr
+                          key={pin.id}
+                          className="border-b border-gray-100 hover:bg-gray-50"
+                        >
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-3">
+                              {pin.thumbnail && (
+                                <img
+                                  src={pin.thumbnail}
+                                  alt=""
+                                  className="w-10 h-10 rounded object-cover"
+                                />
+                              )}
+                              <div>
+                                <div className="font-medium text-gray-900">
+                                  {pin.title}
+                                </div>
+                                {pin.caption && (
+                                  <div className="text-sm text-gray-500">
+                                    {pin.caption}
+                                  </div>
                                 )}
-                                <div>
+                                {pin.isOfficial && (
+                                  <Badge className="mt-1 bg-purple-100 text-purple-800">
+                                    ISF Official
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              {getContentTypeIcon(pin.contentType)}
+                              <span className="capitalize text-gray-700">
+                                {pin.contentType}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div>
+                              <div className="font-medium text-gray-900">
+                                {pin.originalAuthor || "Admin"}
+                              </div>
+                              <div className="text-sm text-gray-500">
+                                by {pin.pinnedBy}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4 text-gray-700">
+                            {new Date(pin.pinnedDate).toLocaleDateString()}
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-1 text-orange-600">
+                              <Clock className="w-4 h-4" />
+                              <span className="text-sm">
+                                {new Date(pin.expiresAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-4 text-sm">
+                              <div className="flex items-center gap-1">
+                                <Eye className="w-4 h-4 text-gray-500" />
+                                <span className="text-gray-700">
+                                  {pin.views}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Heart className="w-4 h-4 text-red-500" />
+                                <span className="text-gray-700">
+                                  {pin.hearts}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <ThumbsUp className="w-4 h-4 text-blue-500" />
+                                <span className="text-gray-700">
+                                  {pin.likes}
+                                </span>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="py-4 px-4">
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEdit(pin)}
+                                className="text-gray-600 hover:text-gray-900"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleUnpin(pin.id)}
+                                className="text-gray-600 hover:text-gray-900"
+                              >
+                                <Archive className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDelete(pin.id)}
+                                className="text-red-600 hover:text-red-700"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "coach-suggestions" && (
+              <div className="space-y-6">
+                {/* Coach Suggestions Queue */}
+                <div className="bg-white rounded-lg border p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    <h3 className="text-lg font-semibold">
+                      Coach Suggestions for WTF (
+                      {
+                        coachSuggestions.filter((s) => s.status === "PENDING")
+                          .length
+                      }{" "}
+                      Pending)
+                    </h3>
+                  </div>
+                  <p className="text-gray-600 mb-6">
+                    Review student work suggested by coaches for the Wall of
+                    Fame
+                  </p>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-gray-200">
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Student Work
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Work Type
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Student & Balagruha
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Suggested By
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Date
+                          </th>
+                          <th className="text-left py-3 px-4 font-medium text-gray-900">
+                            Actions
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {coachSuggestions
+                          .filter((s) => s.status === "PENDING")
+                          .map((suggestion) => (
+                            <tr
+                              key={suggestion.id}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-4 px-4">
+                                <div className="flex items-start gap-3">
+                                  {suggestion.thumbnail && (
+                                    <img
+                                      src={suggestion.thumbnail}
+                                      alt=""
+                                      className="w-12 h-12 rounded object-cover"
+                                    />
+                                  )}
+                                  <div>
+                                    <div className="font-medium">
+                                      {suggestion.title}
+                                    </div>
+                                    <div className="text-sm text-gray-500 line-clamp-2">
+                                      {suggestion.content.length > 100
+                                        ? `${suggestion.content.substring(
+                                            0,
+                                            100
+                                          )}...`
+                                        : suggestion.content}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
+                                  <FileText className="w-3 h-3" />
+                                  {suggestion.workType}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  <div className="font-medium flex items-center gap-1">
+                                    <User className="w-3 h-3" />
+                                    {suggestion.studentName}
+                                  </div>
+                                  <div className="text-gray-500">
+                                    {suggestion.balagruha}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
                                   <div className="font-medium">
-                                    {suggestion.title}
+                                    {suggestion.coachName}
                                   </div>
-                                  <div className="text-sm text-gray-500 line-clamp-2">
-                                    {suggestion.content.length > 100
-                                      ? `${suggestion.content.substring(
-                                          0,
-                                          100
-                                        )}...`
-                                      : suggestion.content}
-                                  </div>
+                                  <div className="text-gray-500">Coach</div>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
-                                <FileText className="w-3 h-3" />
-                                {suggestion.workType}
-                              </Badge>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="text-sm">
-                                <div className="font-medium flex items-center gap-1">
-                                  <User className="w-3 h-3" />
-                                  {suggestion.studentName}
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <Calendar className="w-3 h-3" />
+                                  {new Date(
+                                    suggestion.suggestedDate
+                                  ).toLocaleDateString()}
                                 </div>
-                                <div className="text-gray-500">
-                                  {suggestion.balagruha}
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700 text-white"
+                                    onClick={() =>
+                                      handleReviewCoachSuggestion(suggestion)
+                                    }
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Review & Pin
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleArchiveCoachSuggestion(
+                                        suggestion.id
+                                      )
+                                    }
+                                  >
+                                    <Archive className="w-4 h-4 mr-1" />
+                                    Archive
+                                  </Button>
                                 </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <div className="text-sm">
-                                <div className="font-medium">
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                {/* Recent Activity */}
+                {coachSuggestions.filter((s) => s.status !== "PENDING").length >
+                  0 && (
+                  <div className="bg-white rounded-lg border p-6">
+                    <div className="flex items-center gap-2 mb-4">
+                      <CheckCircle className="w-5 h-5 text-green-500" />
+                      <h3 className="text-lg font-semibold">
+                        Recent Coach Suggestion Activity
+                      </h3>
+                    </div>
+                    <div className="space-y-3">
+                      {coachSuggestions
+                        .filter((s) => s.status !== "PENDING")
+                        .slice(0, 5)
+                        .map((suggestion) => (
+                          <div
+                            key={suggestion.id}
+                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-3">
+                              <div
+                                className={`w-2 h-2 rounded-full ${
+                                  suggestion.status === "PINNED"
+                                    ? "bg-green-500"
+                                    : "bg-gray-400"
+                                }`}
+                              />
+                              <div>
+                                <span className="font-medium">
+                                  {suggestion.title}
+                                </span>
+                                <span className="text-gray-500 text-sm ml-2">
+                                  by {suggestion.studentName} • suggested by{" "}
                                   {suggestion.coachName}
-                                </div>
-                                <div className="text-gray-500">Coach</div>
+                                </span>
                               </div>
+                            </div>
+                            <Badge
+                              className={
+                                suggestion.status === "PINNED"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : "bg-gray-100 text-gray-800"
+                              }
+                            >
+                              {suggestion.status === "PINNED"
+                                ? "Pinned"
+                                : "Archived"}
+                            </Badge>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* How it works */}
+                <div className="bg-white rounded-lg border p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Star className="w-5 h-5 text-yellow-500" />
+                    <h3 className="text-lg font-semibold">
+                      How Coach Suggestions Work
+                    </h3>
+                  </div>
+                  <div className="space-y-2 text-sm text-gray-600">
+                    <div>
+                      • Coaches can suggest student work by clicking the
+                      "Suggest for WTF" button while reviewing assignments
+                    </div>
+                    <div>
+                      • Suggested content appears here for admin review and
+                      approval
+                    </div>
+                    <div>
+                      • Clicking "Review & Pin" will feature the content on the
+                      Wall of Fame
+                    </div>
+                    <div>
+                      • Both the student and suggesting coach receive
+                      notifications when content is pinned
+                    </div>
+                    <div>
+                      • Students earn ISF coins when their work is featured
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "submissions" && (
+              <div className="space-y-6">
+                {/* Student Submissions Queue */}
+                <div className="bg-white rounded-lg border p-6">
+                  <div className="flex items-center gap-2 mb-4">
+                    <FileText className="w-5 h-5 text-blue-500" />
+                    <h3 className="text-lg font-semibold">
+                      Student Submissions Queue
+                    </h3>
+                  </div>
+                  <p className="text-gray-600 mb-6">
+                    Review student-submitted voice notes and articles for
+                    potential WTF featuring
+                  </p>
+
+                  {/* Sub-tabs */}
+                  <div className="flex space-x-1 mb-6">
+                    <button
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        submissionTab === "voice"
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => setSubmissionTab("voice")}
+                    >
+                      ▷ Voice Notes
+                      <Badge className="ml-2 bg-red-500 text-white text-xs">
+                        1
+                      </Badge>
+                    </button>
+                    <button
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        submissionTab === "articles"
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-gray-500 hover:text-gray-700"
+                      }`}
+                      onClick={() => setSubmissionTab("articles")}
+                    >
+                      Articles
+                      <Badge className="ml-2 bg-red-500 text-white text-xs">
+                        1
+                      </Badge>
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    {submissionTab === "voice" ? (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Voice Note
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Balagruha
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Submitted
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Status
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-4 px-4">
+                              <div>
+                                <div className="font-medium">
+                                  My Experience with Science
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Kavya Patel
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="text-sm">Wisdom House</div>
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-1 text-sm text-gray-600">
-                                <Calendar className="w-3 h-3" />
-                                {new Date(
-                                  suggestion.suggestedDate
-                                ).toLocaleDateString()}
+                                <Calendar className="w-4 h-4" />
+                                4/1/2025
                               </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <Badge className="bg-green-100 text-green-800">
+                                NEW
+                              </Badge>
                             </td>
                             <td className="py-4 px-4">
                               <div className="flex items-center gap-2">
                                 <Button
                                   size="sm"
-                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
                                   onClick={() =>
-                                    handleReviewCoachSuggestion(suggestion)
+                                    handleReviewSubmission({
+                                      id: 1,
+                                      title: "My Experience with Science",
+                                      studentName: "Kavya Patel",
+                                      balagruha: "Wisdom House",
+                                      type: "voice",
+                                      content: "voice-recording-url",
+                                    })
                                   }
                                 >
                                   <Eye className="w-4 h-4 mr-1" />
-                                  Review & Pin
+                                  Review
                                 </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() =>
-                                    handleArchiveCoachSuggestion(suggestion.id)
-                                  }
-                                >
+                                <Button size="sm" variant="outline">
                                   <Archive className="w-4 h-4 mr-1" />
                                   Archive
                                 </Button>
                               </div>
                             </td>
                           </tr>
-                        ))}
-                    </tbody>
-                  </table>
+                        </tbody>
+                      </table>
+                    ) : (
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Article
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Balagruha
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Submitted
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Status
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-100 hover:bg-gray-50">
+                            <td className="py-4 px-4">
+                              <div>
+                                <div className="font-medium">
+                                  The Importance of Reading
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  Rohit Kumar
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="text-sm">Knowledge House</div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                                <Calendar className="w-4 h-4" />
+                                3/1/2025
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <Badge className="bg-green-100 text-green-800">
+                                NEW
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                                  onClick={() =>
+                                    handleReviewSubmission({
+                                      id: 2,
+                                      title: "The Importance of Reading",
+                                      studentName: "Rohit Kumar",
+                                      balagruha: "Knowledge House",
+                                      type: "article",
+                                      content:
+                                        "This is a sample article content about the importance of reading...",
+                                    })
+                                  }
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  Review
+                                </Button>
+                                <Button size="sm" variant="outline">
+                                  <Archive className="w-4 h-4 mr-1" />
+                                  Archive
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {/* Recent Activity */}
-              {coachSuggestions.filter((s) => s.status !== "PENDING").length >
-                0 && (
-                <div className="bg-white rounded-lg border p-6">
+                {/* Review Process */}
+                <div className="bg-green-50 border border-green-200 rounded-lg p-6">
                   <div className="flex items-center gap-2 mb-4">
-                    <CheckCircle className="w-5 h-5 text-green-500" />
-                    <h3 className="text-lg font-semibold">
-                      Recent Coach Suggestion Activity
+                    <FileText className="w-5 h-5 text-green-600" />
+                    <h3 className="text-lg font-semibold text-green-800">
+                      Student Submission Review Process
                     </h3>
                   </div>
-                  <div className="space-y-3">
-                    {coachSuggestions
-                      .filter((s) => s.status !== "PENDING")
-                      .slice(0, 5)
-                      .map((suggestion) => (
-                        <div
-                          key={suggestion.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <div
-                              className={`w-2 h-2 rounded-full ${
-                                suggestion.status === "PINNED"
-                                  ? "bg-green-500"
-                                  : "bg-gray-400"
-                              }`}
-                            />
-                            <div>
-                              <span className="font-medium">
-                                {suggestion.title}
-                              </span>
-                              <span className="text-gray-500 text-sm ml-2">
-                                by {suggestion.studentName} • suggested by{" "}
-                                {suggestion.coachName}
-                              </span>
-                            </div>
-                          </div>
-                          <Badge
-                            className={
-                              suggestion.status === "PINNED"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
-                            }
-                          >
-                            {suggestion.status === "PINNED"
-                              ? "Pinned"
-                              : "Archived"}
-                          </Badge>
-                        </div>
-                      ))}
+                  <div className="space-y-2 text-sm text-green-700">
+                    <div>
+                      • Students can submit voice notes and articles through
+                      their learning interfaces
+                    </div>
+                    <div>
+                      • All submissions appear here for admin review and
+                      approval
+                    </div>
+                    <div>
+                      • Use the embedded players/readers to experience the
+                      content as students intended
+                    </div>
+                    <div>
+                      • Pin exceptional content to the WTF or archive
+                      submissions that don't meet criteria
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* How it works */}
+            {activeTab === "analytics" && (
               <div className="bg-white rounded-lg border p-6">
                 <div className="flex items-center gap-2 mb-4">
                   <Star className="w-5 h-5 text-yellow-500" />
                   <h3 className="text-lg font-semibold">
-                    How Coach Suggestions Work
+                    WTF Analytics & Insights
                   </h3>
                 </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div>
-                    • Coaches can suggest student work by clicking the "Suggest
-                    for WTF" button while reviewing assignments
-                  </div>
-                  <div>
-                    • Suggested content appears here for admin review and
-                    approval
-                  </div>
-                  <div>
-                    • Clicking "Review & Pin" will feature the content on the
-                    Wall of Fame
-                  </div>
-                  <div>
-                    • Both the student and suggesting coach receive
-                    notifications when content is pinned
-                  </div>
-                  <div>
-                    • Students earn ISF coins when their work is featured
-                  </div>
+                <div className="text-center py-12">
+                  <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-500">
+                    Analytics dashboard coming soon...
+                  </p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    Track engagement, popular content types, and user
+                    interactions
+                  </p>
                 </div>
               </div>
-            </div>
-          )}
-
-          {activeTab === "submissions" && (
-            <div className="space-y-6">
-              {/* Student Submissions Queue */}
-              <div className="bg-white rounded-lg border p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-5 h-5 text-blue-500" />
-                  <h3 className="text-lg font-semibold">
-                    Student Submissions Queue
-                  </h3>
-                </div>
-                <p className="text-gray-600 mb-6">
-                  Review student-submitted voice notes and articles for
-                  potential WTF featuring
-                </p>
-
-                {/* Sub-tabs */}
-                <div className="flex space-x-1 mb-6">
-                  <button
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      submissionTab === "voice"
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => setSubmissionTab("voice")}
-                  >
-                    ▷ Voice Notes
-                    <Badge className="ml-2 bg-red-500 text-white text-xs">
-                      1
-                    </Badge>
-                  </button>
-                  <button
-                    className={`px-3 py-2 text-sm font-medium rounded-md ${
-                      submissionTab === "articles"
-                        ? "bg-blue-100 text-blue-700"
-                        : "text-gray-500 hover:text-gray-700"
-                    }`}
-                    onClick={() => setSubmissionTab("articles")}
-                  >
-                    Articles
-                    <Badge className="ml-2 bg-red-500 text-white text-xs">
-                      1
-                    </Badge>
-                  </button>
-                </div>
-
-                <div className="overflow-x-auto">
-                  {submissionTab === "voice" ? (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Voice Note
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Balagruha
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Submitted
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Status
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-4 px-4">
-                            <div>
-                              <div className="font-medium">
-                                My Experience with Science
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                Kavya Patel
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="text-sm">Wisdom House</div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Calendar className="w-4 h-4" />
-                              4/1/2025
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <Badge className="bg-green-100 text-green-800">
-                              NEW
-                            </Badge>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                                onClick={() =>
-                                  handleReviewSubmission({
-                                    id: 1,
-                                    title: "My Experience with Science",
-                                    studentName: "Kavya Patel",
-                                    balagruha: "Wisdom House",
-                                    type: "voice",
-                                    content: "voice-recording-url",
-                                  })
-                                }
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Review
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Archive className="w-4 h-4 mr-1" />
-                                Archive
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  ) : (
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b border-gray-200">
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Article
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Balagruha
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Submitted
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Status
-                          </th>
-                          <th className="text-left py-3 px-4 font-medium text-gray-900">
-                            Actions
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-4 px-4">
-                            <div>
-                              <div className="font-medium">
-                                The Importance of Reading
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                Rohit Kumar
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="text-sm">Knowledge House</div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-1 text-sm text-gray-600">
-                              <Calendar className="w-4 h-4" />
-                              3/1/2025
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <Badge className="bg-green-100 text-green-800">
-                              NEW
-                            </Badge>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                className="bg-blue-600 hover:bg-blue-700 text-white"
-                                onClick={() =>
-                                  handleReviewSubmission({
-                                    id: 2,
-                                    title: "The Importance of Reading",
-                                    studentName: "Rohit Kumar",
-                                    balagruha: "Knowledge House",
-                                    type: "article",
-                                    content:
-                                      "This is a sample article content about the importance of reading...",
-                                  })
-                                }
-                              >
-                                <Eye className="w-4 h-4 mr-1" />
-                                Review
-                              </Button>
-                              <Button size="sm" variant="outline">
-                                <Archive className="w-4 h-4 mr-1" />
-                                Archive
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-              </div>
-
-              {/* Review Process */}
-              <div className="bg-green-50 border border-green-200 rounded-lg p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <FileText className="w-5 h-5 text-green-600" />
-                  <h3 className="text-lg font-semibold text-green-800">
-                    Student Submission Review Process
-                  </h3>
-                </div>
-                <div className="space-y-2 text-sm text-green-700">
-                  <div>
-                    • Students can submit voice notes and articles through their
-                    learning interfaces
-                  </div>
-                  <div>
-                    • All submissions appear here for admin review and approval
-                  </div>
-                  <div>
-                    • Use the embedded players/readers to experience the content
-                    as students intended
-                  </div>
-                  <div>
-                    • Pin exceptional content to the WTF or archive submissions
-                    that don't meet criteria
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === "analytics" && (
-            <div className="bg-white rounded-lg border p-6">
-              <div className="flex items-center gap-2 mb-4">
-                <Star className="w-5 h-5 text-yellow-500" />
-                <h3 className="text-lg font-semibold">
-                  WTF Analytics & Insights
-                </h3>
-              </div>
-              <div className="text-center py-12">
-                <Star className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">
-                  Analytics dashboard coming soon...
-                </p>
-                <p className="text-sm text-gray-400 mt-2">
-                  Track engagement, popular content types, and user interactions
-                </p>
-              </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 

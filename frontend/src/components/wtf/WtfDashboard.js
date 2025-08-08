@@ -40,7 +40,7 @@ const WtfDashboard = () => {
   // Render the appropriate component based on active view
   if (activeView === "management" && isAdmin) {
     return (
-      <div className="wtf-management">
+      <div className="wtf-management min-h-screen">
         <WTFManagement onToggleView={() => handleViewChange("wall")} />
       </div>
     );
@@ -48,14 +48,14 @@ const WtfDashboard = () => {
 
   if (activeView === "submit" && isStudent) {
     return (
-      <div className="wtf-submit">
+      <div className="wtf-submit min-h-screen">
         <StudentSubmission />
       </div>
     );
   }
 
   return (
-    <div className="wtf-dashboard h-full w-full">
+    <div className="wtf-dashboard min-h-screen w-full">
       <WallOfFame
         onToggleView={isAdmin ? () => handleViewChange("management") : null}
       />
