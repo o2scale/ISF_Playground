@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
+import "./WtfDashboard.css";
 
 const WTFManagement = () => {
   const [activeTab, setActiveTab] = useState("pins");
@@ -76,10 +77,10 @@ const WTFManagement = () => {
   };
 
   return (
-    <div className="wtf-management min-h-screen bg-gray-50">
+    <div className="wtf-management min-h-screen bg-gray-50 w-full">
       {/* Header */}
-      <div className="bg-white border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="bg-white border-b w-full">
+        <div className="w-full px-6 py-4">
           <div className="flex items-center justify-between w-full">
             <div>
               <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -99,8 +100,8 @@ const WTFManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="w-full px-6 py-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 w-full">
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center justify-between">
               <div>
@@ -155,7 +156,7 @@ const WTFManagement = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg border">
+        <div className="bg-white rounded-lg border w-full">
           <div className="border-b">
             <div className="flex space-x-1 p-1">
               {[

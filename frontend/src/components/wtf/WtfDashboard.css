@@ -1,0 +1,21 @@
+/* WTF Dashboard Styles - Force full viewport width */
+.wtf-management {
+  width: 100vw !important;
+  position: relative !important;
+  left: 50% !important;
+  right: 50% !important;
+  margin-left: -50vw !important;
+  margin-right: -50vw !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Reset any parent container constraints */
+.main-content {
+  overflow-x: hidden !important;
+}
+
+/* Ensure all content within wtf-management uses full width */
+.wtf-management > * {
+  max-width: none !important;
+}
