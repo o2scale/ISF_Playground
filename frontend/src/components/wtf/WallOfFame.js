@@ -8,10 +8,12 @@ import {
   FileText,
   Camera,
   Settings,
-  Palette,
   Plus,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
+import CategoryButtons from "./CategoryButtons";
+import LevelIndicators from "./LevelIndicators";
+import CoursesSection from "./CoursesSection";
 
 const sampleContent = [
   {
@@ -280,127 +282,139 @@ const WallOfFame = () => {
       };
 
   return (
-    <div
-      className="wtf-wall-of-fame p-6 relative overflow-auto"
-      style={backgroundStyle}
-    >
-      {/* Admin Controls - Only show for admins */}
-      {isAdmin && (
-        <>
-          <div className="fixed top-24 right-6 z-30 bg-white rounded-lg shadow-xl border-2 border-purple-200 p-4 min-w-[200px]">
-            <div className="text-sm font-semibold text-purple-800 mb-3 flex items-center gap-2">
-              <Settings className="w-4 h-4" />
+    <div className="min-h-screen bg-gray-50 flex w-full">
+      {/* Left Sidebar */}
+      <div className="w-64 bg-white border-r flex-shrink-0">
+        <CoursesSection />
+      </div>
+
+      {/* Main content area */}
+      <div className="flex-1 relative">
+        {/* Admin Controls - Only show for admins */}
+        {isAdmin && (
+          <div className="fixed top-24 right-6 z-40 bg-white rounded-lg shadow-xl border-2 border-purple-200 p-6 w-80">
+            <div className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+              <Settings className="w-5 h-5" />
               Admin Controls
             </div>
 
-            <div className="space-y-2">
-              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm px-3 py-2 rounded-md flex items-center gap-2">
-                <Plus className="w-4 h-4" />
+            <div className="space-y-3">
+              <button className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium">
+                <Plus className="w-5 h-5" />
                 Create New Pin
               </button>
 
               <button
                 onClick={() => (window.location.href = "/wtf?view=management")}
-                className="w-full bg-gray-600 hover:bg-gray-700 text-white text-sm px-3 py-2 rounded-md flex items-center gap-2"
+                className="w-full bg-gray-600 hover:bg-gray-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
               >
-                <Settings className="w-4 h-4" />
+                <Settings className="w-5 h-5" />
                 Full Management
               </button>
 
-              <div className="pt-2 border-t border-gray-200">
-                <div className="text-xs text-gray-600 space-y-1">
+              <div className="pt-3 border-t border-gray-200">
+                <div className="text-sm text-gray-600 space-y-2">
                   <div className="flex justify-between items-center">
                     <span>Pending Suggestions:</span>
-                    <span className="bg-orange-100 text-orange-700 text-xs px-2 py-1 rounded">
+                    <span className="bg-orange-100 text-orange-700 text-sm px-3 py-1 rounded font-medium">
                       3
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
                     <span>New Submissions:</span>
-                    <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded">
+                    <span className="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded font-medium">
                       2
                     </span>
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded flex items-center gap-2">
+                    <Eye className="w-4 h-4" />
+                    Review Queue (5)
                   </div>
                 </div>
               </div>
             </div>
           </div>
+        )}
 
-          {/* Additional Admin Background Controls */}
-          <div className="absolute top-4 right-4 z-20 flex gap-2">
-            <button
-              className="bg-white hover:bg-gray-100 rounded-full p-3 transition-colors shadow-lg border-2 border-gray-300"
-              title="Customize Background"
-            >
-              <Palette className="w-5 h-5 text-purple-600" />
-            </button>
-            <button
-              className="bg-white hover:bg-gray-100 rounded-full p-3 transition-colors shadow-lg border-2 border-gray-300"
-              title="Monthly Theme Settings"
-            >
-              <Settings className="w-5 h-5 text-purple-600" />
-            </button>
-          </div>
-        </>
-      )}
-
-      {/* Decorative icons scattered around */}
-      <div className="absolute top-8 left-8 opacity-30">
-        <div className="w-8 h-8 border-4 border-green-700 rounded-full"></div>
-      </div>
-      <div className="absolute top-12 right-12 opacity-30">
-        <div className="w-6 h-6 border-3 border-green-700 rounded"></div>
-      </div>
-      <div className="absolute bottom-8 left-12 opacity-30">
-        <Camera className="w-8 h-8 text-green-700" />
-      </div>
-      <div className="absolute bottom-12 right-8 opacity-30">
-        <FileText className="w-6 h-6 text-green-700" />
-      </div>
-
-      <div className="text-center mb-8">
-        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-yellow-200 bg-opacity-70 rotate-3 rounded-sm shadow-md"></div>
-
-        {/* Monthly Theme Display */}
-        <div className="mb-4">
-          <div className="text-6xl mb-2">{monthlyTheme.emoji}</div>
-          <h3 className="text-green-100 text-lg font-medium">
-            {monthlyTheme.title}
-          </h3>
-          <p className="text-green-200 text-sm">{monthlyTheme.subtitle}</p>
-        </div>
-
-        <h2 className="text-green-800 text-4xl font-bold mb-2 relative z-10">
-          {isAdmin ? "Admin " : isCoach ? "Coach " : ""}Wall of{" "}
-          <span
-            className="text-pink-600 bg-pink-200 px-2 py-1 rounded transform -rotate-1 inline-block border-4 border-purple-600 shadow-lg"
-            style={{ fontFamily: "Comic Sans MS, cursive" }}
-          >
-            FAME
-          </span>
-        </h2>
-        <p className="text-green-100 text-lg">
-          {isAdmin
-            ? "Manage and curate amazing content from our community"
-            : isCoach
-            ? "Discover and suggest amazing content from our community"
-            : "Discover amazing content from our community"}
-        </p>
-      </div>
-
-      <div className="w-full mx-auto px-4">
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 justify-items-center">
-          {content.map((item, index) => (
-            <div
-              key={item.id}
-              className="w-[180px]"
-              style={{
-                marginTop: `${(index % 2) * 20}px`,
-              }}
-            >
-              {renderCard(item)}
+        <div className="flex flex-col min-h-screen w-full">
+          <div className="p-6 space-y-6 bg-white">
+            <div className="flex items-center gap-6">
+              <div className="flex-1 overflow-hidden">
+                <CategoryButtons />
+              </div>
             </div>
-          ))}
+            <div className="overflow-hidden">
+              <LevelIndicators />
+            </div>
+          </div>
+
+          <div
+            className="flex-1 p-6 relative min-h-[calc(100vh-280px)]"
+            style={backgroundStyle}
+          >
+            {/* Decorative icons scattered around */}
+            <div className="absolute top-8 left-8 opacity-30">
+              <div className="w-8 h-8 border-4 border-green-700 rounded-full"></div>
+            </div>
+            <div className="absolute top-12 right-12 opacity-30">
+              <div className="w-6 h-6 border-3 border-green-700 rounded"></div>
+            </div>
+            <div className="absolute bottom-8 left-12 opacity-30">
+              <Camera className="w-8 h-8 text-green-700" />
+            </div>
+            <div className="absolute bottom-12 right-8 opacity-30">
+              <FileText className="w-6 h-6 text-green-700" />
+            </div>
+
+            <div className="text-center mb-8">
+              <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-yellow-200 bg-opacity-70 rotate-3 rounded-sm shadow-md"></div>
+
+              {/* Monthly Theme Display */}
+              <div className="mb-4">
+                <div className="text-6xl mb-2">{monthlyTheme.emoji}</div>
+                <h3 className="text-green-100 text-lg font-medium">
+                  {monthlyTheme.title}
+                </h3>
+                <p className="text-green-200 text-sm">{monthlyTheme.subtitle}</p>
+              </div>
+
+              <h2 className="text-green-800 text-4xl font-bold mb-2 relative z-10">
+                {isAdmin ? "Admin " : isCoach ? "Coach " : ""}Wall of{" "}
+                <span
+                  className="text-pink-600 bg-pink-200 px-2 py-1 rounded transform -rotate-1 inline-block border-4 border-purple-600 shadow-lg"
+                  style={{ fontFamily: "Comic Sans MS, cursive" }}
+                >
+                  FAME
+                </span>
+              </h2>
+              <p className="text-green-100 text-lg">
+                {isAdmin
+                  ? "Manage and curate amazing content from our community"
+                  : isCoach
+                  ? "Discover and suggest amazing content from our community"
+                  : "Discover amazing content from our community"}
+              </p>
+            </div>
+
+            <div className="w-full mx-auto px-4 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 justify-items-center">
+                {content.map((item, index) => (
+                  <div
+                    key={item.id}
+                    className="w-[180px]"
+                    style={{
+                      marginTop: `${(index % 2) * 20}px`,
+                    }}
+                  >
+                    {renderCard(item)}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
