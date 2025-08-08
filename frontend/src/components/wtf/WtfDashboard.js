@@ -21,7 +21,7 @@ const WtfDashboard = () => {
   }
 
   return (
-    <div className="wtf-dashboard h-screen bg-gray-100">
+    <div className="wtf-dashboard">
       <WallOfFame />
     </div>
   );

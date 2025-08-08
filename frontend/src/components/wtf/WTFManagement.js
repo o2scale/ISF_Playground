@@ -76,10 +76,10 @@ const WTFManagement = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="wtf-management bg-gray-50">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center justify-between">
+      <div className="bg-white border-b px-6 py-4 w-full">
+        <div className="flex items-center justify-between w-full">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
               <Star className="w-6 h-6 text-yellow-500" />
@@ -97,8 +97,8 @@ const WTFManagement = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="px-6 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+      <div className="px-6 py-6 w-full">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6 w-full">
           <div className="bg-white rounded-lg p-4 border">
             <div className="flex items-center justify-between">
               <div>
@@ -153,7 +153,7 @@ const WTFManagement = () => {
         </div>
 
         {/* Tabs */}
-        <div className="bg-white rounded-lg border">
+        <div className="bg-white rounded-lg border w-full">
           <div className="border-b">
             <div className="flex space-x-1 p-1">
               {[

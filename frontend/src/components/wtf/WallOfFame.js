@@ -281,7 +281,7 @@ const WallOfFame = () => {
 
   return (
     <div
-      className="rounded-2xl p-6 relative h-full overflow-auto"
+      className="wtf-wall-of-fame p-6 relative overflow-auto"
       style={backgroundStyle}
     >
       {/* Admin Controls - Only show for admins */}
@@ -388,8 +388,8 @@ const WallOfFame = () => {
         </p>
       </div>
 
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 justify-items-center">
+      <div className="w-full mx-auto px-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-6 justify-items-center">
           {content.map((item, index) => (
             <div
               key={item.id}
