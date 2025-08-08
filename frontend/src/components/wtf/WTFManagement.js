@@ -22,8 +22,9 @@ import {
   Calendar,
   CheckCircle,
 } from "lucide-react";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+import { Button } from "../ui/button.jsx";
+import { Badge } from "../ui/badge.jsx";
+import CreateNewPinModal from "./CreateNewPinModal";
 
 const WTFManagement = ({ onToggleView }) => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -148,6 +149,11 @@ const WTFManagement = ({ onToggleView }) => {
   const handleEdit = (pin) => {
     setSelectedPin(pin);
     setShowEditModal(true);
+  };
+
+  const handleCreatePin = (newPin) => {
+    setActivePins((prev) => [newPin, ...prev]);
+    setShowCreateModal(false);
   };
 
   const filteredPins = activePins.filter((pin) => {
@@ -930,6 +936,13 @@ const WTFManagement = ({ onToggleView }) => {
           )}
         </div>
       </div>
+
+      {/* Create New Pin Modal */}
+      <CreateNewPinModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onCreatePin={handleCreatePin}
+      />
     </div>
   );
 };
