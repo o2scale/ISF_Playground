@@ -93,6 +93,7 @@ const CreateNewPinModal = ({ isOpen, onClose, onCreatePin }) => {
   };
 
   const renderContentInput = () => {
+    console.log("Current content type:", formData.contentType);
     switch (formData.contentType) {
       case "text":
         return (
@@ -135,20 +136,39 @@ const CreateNewPinModal = ({ isOpen, onClose, onCreatePin }) => {
               <label className="block text-sm font-medium mb-2">
                 Upload File
               </label>
-              <input
-                type="file"
-                onChange={handleFileUpload}
-                accept={
-                  formData.contentType === "image"
-                    ? "image/*"
-                    : formData.contentType === "video"
-                    ? "video/*"
-                    : formData.contentType === "audio"
-                    ? "audio/*"
-                    : ""
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  accept={
+                    formData.contentType === "image"
+                      ? "image/*"
+                      : formData.contentType === "video"
+                      ? "video/*"
+                      : formData.contentType === "audio"
+                      ? "audio/*"
+                      : ""
+                  }
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-600">
+                    Click to upload or drag and drop
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    {formData.contentType === "image"
+                      ? "PNG, JPG, GIF up to 10MB"
+                      : formData.contentType === "video"
+                      ? "MP4, MOV, AVI up to 100MB"
+                      : "MP3, WAV, M4A up to 50MB"}
+                  </span>
+                </label>
+              </div>
             </div>
             <div className="text-center text-gray-500">or</div>
             <div>
@@ -210,12 +230,13 @@ const CreateNewPinModal = ({ isOpen, onClose, onCreatePin }) => {
                   <button
                     key={type.value}
                     type="button"
-                    onClick={() =>
+                    onClick={() => {
+                      console.log("Setting content type to:", type.value);
                       setFormData((prev) => ({
                         ...prev,
                         contentType: type.value,
-                      }))
-                    }
+                      }));
+                    }}
                     className={`p-4 border-2 rounded-lg text-left transition-colors flex items-center gap-3 ${
                       formData.contentType === type.value
                         ? "border-blue-500 bg-blue-50"
@@ -229,7 +250,7 @@ const CreateNewPinModal = ({ isOpen, onClose, onCreatePin }) => {
               </div>
             </div>
 
-            {formData.contentType && renderContentInput()}
+            {formData.contentType && <div>{renderContentInput()}</div>}
 
             <div>
               <label className="block text-sm font-medium mb-2">
