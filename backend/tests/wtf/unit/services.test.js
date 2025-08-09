@@ -35,6 +35,19 @@ jest.mock("../../../data-access/wtfSubmission", () => ({
   createWtfSubmission: jest.fn(),
   getSubmissionsForReview: jest.fn(),
   getSubmissionStats: jest.fn(),
+  getPendingSubmissions: jest.fn(),
+  approveSubmission: jest.fn(),
+  rejectSubmission: jest.fn(),
+  getSubmissionAnalytics: jest.fn(),
+  getWtfSubmissionById: jest.fn(),
+  getStudentSubmissions: jest.fn(),
+  updateWtfSubmission: jest.fn(),
+  deleteWtfSubmission: jest.fn(),
+  archiveSubmission: jest.fn(),
+  getSubmissionsByType: jest.fn(),
+  getRecentSubmissions: jest.fn(),
+  bulkUpdateSubmissionStatus: jest.fn(),
+  getSubmissionsNeedingReview: jest.fn(),
 }));
 
 const {
@@ -1213,7 +1226,7 @@ describe("WtfService - Coach Suggestions", () => {
   });
 
   // ==================== ISF COINS TESTS ====================
-  
+
   describe("ISF Coins Auto-Assignment", () => {
     describe("awardCoinsForPinnedContent", () => {
       test("should award coins for student IMAGE content", async () => {
@@ -1223,35 +1236,46 @@ describe("WtfService - Coach Suggestions", () => {
           contentType: "IMAGE",
           originalAuthor: {
             userId: new mongoose.Types.ObjectId(),
-            type: "STUDENT"
+            type: "STUDENT",
           },
           pinnedBy: {
-            adminId: new mongoose.Types.ObjectId()
-          }
+            adminId: new mongoose.Types.ObjectId(),
+          },
         };
 
         // Mock CoinService.addCoins to simulate successful coin award
         const mockCoinService = jest.fn().mockResolvedValue({
           success: true,
-          coinsAwarded: 50
+          coinsAwarded: 50,
         });
 
         // Temporarily replace the CoinService import within the test
         const originalWtfService = WtfService.awardCoinsForPinnedContent;
-        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
-          if (!data.originalAuthor?.userId || data.originalAuthor?.type !== "STUDENT") {
-            return { success: true, message: "Not student content - no coins awarded" };
-          }
-          const coinReward = WtfService.calculateCoinReward(data.contentType);
-          if (coinReward <= 0) {
-            return { success: true, message: "No coins configured for this content type" };
-          }
-          return {
-            success: true,
-            coinsAwarded: coinReward,
-            message: `${coinReward} ISF Coins awarded to student for pinned content`,
-          };
-        });
+        WtfService.awardCoinsForPinnedContent = jest
+          .fn()
+          .mockImplementation(async (data) => {
+            if (
+              !data.originalAuthor?.userId ||
+              data.originalAuthor?.type !== "STUDENT"
+            ) {
+              return {
+                success: true,
+                message: "Not student content - no coins awarded",
+              };
+            }
+            const coinReward = WtfService.calculateCoinReward(data.contentType);
+            if (coinReward <= 0) {
+              return {
+                success: true,
+                message: "No coins configured for this content type",
+              };
+            }
+            return {
+              success: true,
+              coinsAwarded: coinReward,
+              message: `${coinReward} ISF Coins awarded to student for pinned content`,
+            };
+          });
 
         const result = await WtfService.awardCoinsForPinnedContent(pinData);
 
@@ -1272,14 +1296,16 @@ describe("WtfService - Coach Suggestions", () => {
         ];
 
         const originalFunction = WtfService.awardCoinsForPinnedContent;
-        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
-          const coinReward = WtfService.calculateCoinReward(data.contentType);
-          return {
-            success: true,
-            coinsAwarded: coinReward,
-            message: `${coinReward} ISF Coins awarded to student for pinned content`,
-          };
-        });
+        WtfService.awardCoinsForPinnedContent = jest
+          .fn()
+          .mockImplementation(async (data) => {
+            const coinReward = WtfService.calculateCoinReward(data.contentType);
+            return {
+              success: true,
+              coinsAwarded: coinReward,
+              message: `${coinReward} ISF Coins awarded to student for pinned content`,
+            };
+          });
 
         for (const testCase of testCases) {
           const pinData = {
@@ -1288,11 +1314,11 @@ describe("WtfService - Coach Suggestions", () => {
             contentType: testCase.contentType,
             originalAuthor: {
               userId: new mongoose.Types.ObjectId(),
-              type: "STUDENT"
+              type: "STUDENT",
             },
             pinnedBy: {
-              adminId: new mongoose.Types.ObjectId()
-            }
+              adminId: new mongoose.Types.ObjectId(),
+            },
           };
 
           const result = await WtfService.awardCoinsForPinnedContent(pinData);
@@ -1311,20 +1337,28 @@ describe("WtfService - Coach Suggestions", () => {
           contentType: "TEXT",
           originalAuthor: {
             userId: new mongoose.Types.ObjectId(),
-            type: "ADMIN"
+            type: "ADMIN",
           },
           pinnedBy: {
-            adminId: new mongoose.Types.ObjectId()
-          }
+            adminId: new mongoose.Types.ObjectId(),
+          },
         };
 
         const originalFunction = WtfService.awardCoinsForPinnedContent;
-        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
-          if (!data.originalAuthor?.userId || data.originalAuthor?.type !== "STUDENT") {
-            return { success: true, message: "Not student content - no coins awarded" };
-          }
-          return { success: true, coinsAwarded: 25 };
-        });
+        WtfService.awardCoinsForPinnedContent = jest
+          .fn()
+          .mockImplementation(async (data) => {
+            if (
+              !data.originalAuthor?.userId ||
+              data.originalAuthor?.type !== "STUDENT"
+            ) {
+              return {
+                success: true,
+                message: "Not student content - no coins awarded",
+              };
+            }
+            return { success: true, coinsAwarded: 25 };
+          });
 
         const result = await WtfService.awardCoinsForPinnedContent(pinData);
 
@@ -1341,21 +1375,26 @@ describe("WtfService - Coach Suggestions", () => {
           contentType: "UNKNOWN",
           originalAuthor: {
             userId: new mongoose.Types.ObjectId(),
-            type: "STUDENT"
+            type: "STUDENT",
           },
           pinnedBy: {
-            adminId: new mongoose.Types.ObjectId()
-          }
+            adminId: new mongoose.Types.ObjectId(),
+          },
         };
 
         const originalFunction = WtfService.awardCoinsForPinnedContent;
-        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
-          const coinReward = WtfService.calculateCoinReward(data.contentType);
-          if (coinReward <= 0) {
-            return { success: true, message: "No coins configured for this content type" };
-          }
-          return { success: true, coinsAwarded: coinReward };
-        });
+        WtfService.awardCoinsForPinnedContent = jest
+          .fn()
+          .mockImplementation(async (data) => {
+            const coinReward = WtfService.calculateCoinReward(data.contentType);
+            if (coinReward <= 0) {
+              return {
+                success: true,
+                message: "No coins configured for this content type",
+              };
+            }
+            return { success: true, coinsAwarded: coinReward };
+          });
 
         const result = await WtfService.awardCoinsForPinnedContent(pinData);
 
@@ -1380,7 +1419,7 @@ describe("WtfService - Coach Suggestions", () => {
   });
 
   // ==================== PIN LIFECYCLE TESTS ====================
-  
+
   describe("Pin Lifecycle Management", () => {
     describe("expireOldPins", () => {
       test("should expire pins older than one week", async () => {
@@ -1391,13 +1430,13 @@ describe("WtfService - Coach Suggestions", () => {
           {
             pinId: "pin_1",
             title: "Old Pin 1",
-            pinnedTimestamp: oneWeekAgo
+            pinnedTimestamp: oneWeekAgo,
           },
           {
-            pinId: "pin_2", 
+            pinId: "pin_2",
             title: "Old Pin 2",
-            pinnedTimestamp: oneWeekAgo
-          }
+            pinnedTimestamp: oneWeekAgo,
+          },
         ];
 
         const originalFunction = WtfService.expireOldPins;
@@ -1406,7 +1445,7 @@ describe("WtfService - Coach Suggestions", () => {
           expiredCount: 2,
           totalProcessed: 2,
           expiredPins: mockExpiredPins,
-          message: "2 pins expired automatically"
+          message: "2 pins expired automatically",
         });
 
         const result = await WtfService.expireOldPins();
@@ -1423,7 +1462,7 @@ describe("WtfService - Coach Suggestions", () => {
         WtfService.expireOldPins = jest.fn().mockResolvedValue({
           success: true,
           expiredCount: 0,
-          message: "No pins to expire"
+          message: "No pins to expire",
         });
 
         const result = await WtfService.expireOldPins();
@@ -1442,7 +1481,7 @@ describe("WtfService - Coach Suggestions", () => {
         WtfService.cleanupExpiredPins = jest.fn().mockResolvedValue({
           success: true,
           cleanedCount: 10,
-          message: "10 old pins cleaned up"
+          message: "10 old pins cleaned up",
         });
 
         const result = await WtfService.cleanupExpiredPins();
@@ -1458,7 +1497,7 @@ describe("WtfService - Coach Suggestions", () => {
         WtfService.cleanupExpiredPins = jest.fn().mockResolvedValue({
           success: true,
           cleanedCount: 0,
-          message: "No cleanup needed"
+          message: "No cleanup needed",
         });
 
         const result = await WtfService.cleanupExpiredPins();
