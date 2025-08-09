@@ -621,6 +621,60 @@ export const deleteWtfPin = async (pinId) => {
   }
 };
 
+// WTF Settings API
+export const getWtfSettings = async () => {
+  try {
+    const response = await api.get("/api/v1/wtf/settings/current");
+    return response.data;
+  } catch (error) {
+    console.error("Error getting WTF settings:", error);
+    throw error;
+  }
+};
+
+export const updateWtfSettings = async (settings) => {
+  try {
+    const response = await api.put("/api/v1/wtf/settings/update", settings);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating WTF settings:", error);
+    throw error;
+  }
+};
+
+export const uploadWtfBackgroundImage = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("backgroundImage", file);
+
+    const response = await api.post(
+      "/api/v1/wtf/settings/background-image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error uploading WTF background image:", error);
+    throw error;
+  }
+};
+
+export const getWtfSettingsHistory = async (page = 1, limit = 10) => {
+  try {
+    const response = await api.get(
+      `/api/v1/wtf/settings/history?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error getting WTF settings history:", error);
+    throw error;
+  }
+};
+
 export const changeWtfPinStatus = async (pinId, status) => {
   try {
     const response = await api.patch(`/api/v1/wtf/pins/${pinId}/status`, {

@@ -12,6 +12,8 @@ const WtfDashboard = () => {
   const navigate = useNavigate();
   const [activeView, setActiveView] = useState("wall"); // wall, submit, management
 
+  // Debug removed - role detection working
+
   // Check URL params to see which view to show
   useEffect(() => {
     const urlParams = new URLSearchParams(location.search);

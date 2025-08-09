@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Eye,
   Heart,
@@ -9,9 +9,18 @@ import {
   Camera,
   Settings,
   Plus,
+  Palette,
+  Upload,
+  Check,
+  Loader,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useSidebar } from "../Layout";
+import {
+  useWtfBackground,
+  WtfBackgroundProvider,
+} from "../../contexts/WtfBackgroundContext";
+
 import CategoryButtons from "./CategoryButtons";
 import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
@@ -30,10 +39,14 @@ import {
   getPendingSubmissionsCount,
   submitVoiceNote,
   submitArticle,
+  updateWtfSettings,
+  uploadWtfBackgroundImage,
 } from "../../api";
 
-const WallOfFame = ({ onToggleView }) => {
+const WallOfFameContent = ({ onToggleView }) => {
   const { isSidebarCollapsed } = useSidebar();
+  const { backgroundSettings: contextBgSettings, updateBackgroundSettings } =
+    useWtfBackground();
   const [selectedContent, setSelectedContent] = useState(null);
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -62,6 +75,40 @@ const WallOfFame = ({ onToggleView }) => {
   });
 
   const { isAdmin, isCoach, isStudent } = useUserRole();
+
+  // Remove this when role detection is working properly
+  const forceShowAdminControls = false; // Set to false to use real role detection
+
+  // Use context background settings for compact card (not used directly but kept for future)
+
+  // Preview settings (applied immediately) vs saved settings (saved to backend)
+  const [previewBgSettings, setPreviewBgSettings] = useState({
+    backgroundType: "color",
+    backgroundColor: "#f8fafc",
+    backgroundImage: null,
+  });
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [bgSuccess, setBgSuccess] = useState("");
+  const [bgError, setBgError] = useState("");
+
+  // Dragging state
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragPosition, setDragPosition] = useState({ x: null, y: null });
+  const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
+
+  // Sync preview settings with context settings
+  useEffect(() => {
+    if (contextBgSettings && !contextBgSettings.isLoading) {
+      setPreviewBgSettings({
+        backgroundType: contextBgSettings.backgroundType || "color",
+        backgroundColor: contextBgSettings.backgroundColor || "#f8fafc",
+        backgroundImage: contextBgSettings.backgroundImage || null,
+      });
+    }
+  }, [contextBgSettings]);
 
   useEffect(() => {
     const fetchPins = async () => {
@@ -115,6 +162,188 @@ const WallOfFame = ({ onToggleView }) => {
     setModalType(null);
   };
 
+  // Background settings functions
+  const predefinedColors = [
+    "#f8fafc",
+    "#f1f5f9",
+    "#e0f2fe",
+    "#dcfce7",
+    "#fef3c7",
+    "#fed7d7",
+    "#e0e7ff",
+    "#f3e8ff",
+    "#ffedd5",
+    "#fce7f3",
+    "#ffffff",
+    "#1e293b",
+  ];
+
+  const handleColorChange = (color) => {
+    // Only apply preview, don't save to backend yet
+    const settings = {
+      backgroundType: "color",
+      backgroundColor: color,
+      backgroundImage: null,
+    };
+    setPreviewBgSettings(settings);
+    setHasUnsavedChanges(true);
+    setBgError(""); // Clear any previous errors
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setIsSaving(true);
+      setBgError("");
+      console.log("Saving background settings:", previewBgSettings);
+
+      const response = await updateWtfSettings(previewBgSettings);
+      console.log("Save response:", response);
+
+      // Update the context with saved settings
+      updateBackgroundSettings(previewBgSettings);
+      setHasUnsavedChanges(false);
+      setBgSuccess("Background saved successfully!");
+      setTimeout(() => setBgSuccess(""), 3000);
+    } catch (error) {
+      console.error("Error saving background:", error);
+      console.error("Error details:", error.response?.data || error.message);
+      setBgError(
+        `Failed to save background: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+      setTimeout(() => setBgError(""), 5000);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Dragging functions
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+
+    // If this is the first drag, use the current computed position
+    const currentX =
+      dragPosition.x !== null ? dragPosition.x : window.innerWidth - 320 - 24;
+    const currentY = dragPosition.y !== null ? dragPosition.y : 385;
+
+    setInitialPosition({
+      x: e.clientX - currentX,
+      y: e.clientY - currentY,
+    });
+  };
+
+  const handleMouseMove = useCallback(
+    (e) => {
+      if (isDragging) {
+        setDragPosition({
+          x: e.clientX - initialPosition.x,
+          y: e.clientY - initialPosition.y,
+        });
+      }
+    },
+    [isDragging, initialPosition.x, initialPosition.y]
+  );
+
+  const handleMouseUp = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      return () => {
+        document.removeEventListener("mousemove", handleMouseMove);
+        document.removeEventListener("mouseup", handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Custom background style that uses preview settings
+  const getPreviewBackgroundStyle = () => {
+    if (
+      previewBgSettings.backgroundType === "image" &&
+      previewBgSettings.backgroundImage
+    ) {
+      return {
+        backgroundImage: `url(${previewBgSettings.backgroundImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        backgroundRepeat: "no-repeat",
+        backgroundAttachment: "fixed",
+      };
+    } else {
+      return {
+        backgroundColor: previewBgSettings.backgroundColor,
+      };
+    }
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    console.log("Selected file:", file.name, file.size, file.type);
+
+    // Validate file
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      setBgError(
+        "Invalid file type. Only JPEG, PNG, and WebP images are allowed"
+      );
+      setTimeout(() => setBgError(""), 3000);
+      return;
+    }
+
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      setBgError("File size too large. Maximum size is 5MB");
+      setTimeout(() => setBgError(""), 3000);
+      return;
+    }
+
+    try {
+      setIsUploadingBg(true);
+      setBgError("");
+
+      console.log("Starting image upload...");
+      const uploadResponse = await uploadWtfBackgroundImage(file);
+      console.log("Upload response:", uploadResponse);
+
+      const imageUrl = uploadResponse.data?.imageUrl || uploadResponse.imageUrl;
+      console.log("Image URL:", imageUrl);
+
+      if (!imageUrl) {
+        throw new Error("No image URL returned from upload");
+      }
+
+      const settings = {
+        backgroundType: "image",
+        backgroundColor: "#f8fafc",
+        backgroundImage: imageUrl,
+      };
+
+      // Only set as preview, don't save yet
+      setPreviewBgSettings(settings);
+      setHasUnsavedChanges(true);
+      setBgSuccess("Image uploaded! Click Save to apply.");
+      setTimeout(() => setBgSuccess(""), 3000);
+    } catch (error) {
+      console.error("Image upload error:", error);
+      console.error("Error details:", error.response?.data || error.message);
+      setBgError(
+        `Failed to upload image: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+      setTimeout(() => setBgError(""), 5000);
+    } finally {
+      setIsUploadingBg(false);
+    }
+  };
+
   const handleCreatePin = async (newPin) => {
     console.log("Creating new pin:", newPin);
     try {
@@ -142,14 +371,16 @@ const WallOfFame = ({ onToggleView }) => {
           language: "english",
           tags: newPin.tags || [],
         };
-        
+
         // Call appropriate submission API based on content type
         if (newPin.contentType === "audio") {
           await submitVoiceNote(submissionData);
         } else {
           await submitArticle(submissionData);
         }
-        alert("Submission created successfully! It will be reviewed for the Wall of Fame.");
+        alert(
+          "Submission created successfully! It will be reviewed for the Wall of Fame."
+        );
       } else {
         // This is an admin pin creation
         const createdPin = await createWtfPin(newPin);
@@ -323,7 +554,10 @@ const WallOfFame = ({ onToggleView }) => {
       };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex w-full h-screen">
+    <div
+      className="min-h-screen flex w-full h-screen transition-all duration-300"
+      style={getPreviewBackgroundStyle()}
+    >
       {/* Left Sidebar */}
       <div
         className={`${
@@ -336,7 +570,7 @@ const WallOfFame = ({ onToggleView }) => {
       {/* Main content area */}
       <div className="flex-1 relative">
         {/* Admin Controls - Only show for admins */}
-        {isAdmin && (
+        {(isAdmin || forceShowAdminControls) && (
           <div className="fixed top-24 right-6 z-40 bg-white rounded-lg shadow-xl border-2 border-purple-200 p-6 w-80">
             <div className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5" />
@@ -383,6 +617,192 @@ const WallOfFame = ({ onToggleView }) => {
                     <Eye className="w-4 h-4" />
                     Review Queue ({adminCounts.reviewQueue})
                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Compact Background Settings Card - Only show for admins */}
+        {(isAdmin || forceShowAdminControls) && (
+          <div
+            className={`fixed z-40 bg-white rounded-lg shadow-xl border-2 border-blue-200 p-4 w-80 ${
+              isDragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            style={{
+              top: dragPosition.y !== null ? dragPosition.y : 385, // default to top-96 equivalent (384px)
+              left:
+                dragPosition.x !== null
+                  ? dragPosition.x
+                  : window.innerWidth - 320 - 24, // default to right-6
+              transition: isDragging ? "none" : "all 0.2s ease",
+            }}
+          >
+            <div
+              className="text-md font-semibold text-blue-800 mb-3 flex items-center gap-2 cursor-grab active:cursor-grabbing"
+              onMouseDown={handleMouseDown}
+            >
+              <Palette className="w-4 h-4" />
+              Quick Background Settings
+              <div className="ml-auto text-xs text-gray-500">Drag me!</div>
+            </div>
+
+            {/* Success/Error Messages */}
+            {bgSuccess && (
+              <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-xs">
+                {bgSuccess}
+              </div>
+            )}
+            {bgError && (
+              <div className="mb-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-xs">
+                {bgError}
+              </div>
+            )}
+
+            <div className="space-y-3">
+              {/* Color Picker */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">
+                  Background Colors
+                </label>
+                <div className="grid grid-cols-6 gap-1">
+                  {predefinedColors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => handleColorChange(color)}
+                      className={`w-8 h-8 rounded border-2 transition-all hover:scale-110 ${
+                        previewBgSettings.backgroundColor === color
+                          ? "border-blue-500 shadow-md"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {previewBgSettings.backgroundColor === color && (
+                        <Check className="w-3 h-3 text-white mx-auto" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Image Upload */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">
+                  Background Image
+                </label>
+                <div className="border border-dashed border-gray-300 rounded p-3 text-center">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/jpg,image/webp"
+                    onChange={handleImageUpload}
+                    className="hidden"
+                    id="bg-image-upload-compact"
+                    disabled={isUploadingBg}
+                  />
+                  <label
+                    htmlFor="bg-image-upload-compact"
+                    className={`cursor-pointer flex flex-col items-center ${
+                      isUploadingBg ? "pointer-events-none opacity-50" : ""
+                    }`}
+                  >
+                    {isUploadingBg ? (
+                      <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                    )}
+                    <span className="text-xs text-gray-600">
+                      {isUploadingBg ? "Uploading..." : "Upload Image"}
+                    </span>
+                  </label>
+                </div>
+
+                {/* Image Controls */}
+                <div className="mt-2 space-y-1">
+                  <button
+                    onClick={() => {
+                      const testImageUrl =
+                        "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=800&fit=crop";
+                      const settings = {
+                        backgroundType: "image",
+                        backgroundColor: "#f8fafc",
+                        backgroundImage: testImageUrl,
+                      };
+                      setPreviewBgSettings(settings);
+                      setHasUnsavedChanges(true);
+                      setBgSuccess("Test image applied! Click Save to apply.");
+                      setTimeout(() => setBgSuccess(""), 3000);
+                    }}
+                    className="w-full text-xs py-1 px-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-600 transition-colors"
+                  >
+                    Test with Sample Image
+                  </button>
+
+                  {/* Remove Image Button - only show if image is applied */}
+                  {previewBgSettings.backgroundType === "image" &&
+                    previewBgSettings.backgroundImage && (
+                      <button
+                        onClick={() => {
+                          const settings = {
+                            backgroundType: "color",
+                            backgroundColor: "#f8fafc", // Default color
+                            backgroundImage: null,
+                          };
+                          setPreviewBgSettings(settings);
+                          setHasUnsavedChanges(true);
+                          setBgSuccess("Background image removed!");
+                          setTimeout(() => setBgSuccess(""), 2000);
+                        }}
+                        className="w-full text-xs py-1 px-2 bg-red-50 hover:bg-red-100 rounded text-red-600 transition-colors flex items-center justify-center gap-1"
+                      >
+                        <svg
+                          className="w-3 h-3"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                          />
+                        </svg>
+                        Remove Image
+                      </button>
+                    )}
+                </div>
+              </div>
+
+              {/* Save Button and Status */}
+              <div className="mt-4 pt-3 border-t border-gray-200">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    {hasUnsavedChanges && (
+                      <div className="flex items-center gap-1 text-xs text-amber-600">
+                        <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                        Unsaved changes
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={handleSaveSettings}
+                    disabled={!hasUnsavedChanges || isSaving}
+                    className={`px-4 py-2 rounded text-sm font-medium transition-all ${
+                      hasUnsavedChanges && !isSaving
+                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                    }`}
+                  >
+                    {isSaving ? (
+                      <div className="flex items-center gap-2">
+                        <Loader className="w-4 h-4 animate-spin" />
+                        Saving...
+                      </div>
+                    ) : (
+                      "Save Background"
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
@@ -505,7 +925,7 @@ const WallOfFame = ({ onToggleView }) => {
                     </h3>
                     <p className="text-gray-600 mb-6">
                       The Wall of Fame is waiting for amazing content!
-                      {isAdmin ? (
+                      {isAdmin || forceShowAdminControls ? (
                         <span>
                           Create the first pin to get started, or review pending
                           submissions.
@@ -521,7 +941,7 @@ const WallOfFame = ({ onToggleView }) => {
                         </span>
                       )}
                     </p>
-                    {isAdmin && (
+                    {(isAdmin || forceShowAdminControls) && (
                       <button
                         onClick={() => setShowCreateModal(true)}
                         className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
@@ -636,6 +1056,15 @@ const WallOfFame = ({ onToggleView }) => {
         userRole={isAdmin ? "admin" : isCoach ? "coach" : "student"}
       />
     </div>
+  );
+};
+
+// Wrapper component with background provider
+const WallOfFame = (props) => {
+  return (
+    <WtfBackgroundProvider>
+      <WallOfFameContent {...props} />
+    </WtfBackgroundProvider>
   );
 };
 

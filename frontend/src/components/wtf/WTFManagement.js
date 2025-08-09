@@ -28,6 +28,11 @@ import CreateNewPinModal from "./CreateNewPinModal";
 import PinEditModal from "./PinEditModal";
 import ReviewModal from "./ReviewModal";
 import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
+import BackgroundSettings from "./BackgroundSettings";
+import {
+  useWtfBackground,
+  WtfBackgroundProvider,
+} from "../../contexts/WtfBackgroundContext";
 import {
   createWtfPin,
   getActiveWtfPins,
@@ -45,7 +50,8 @@ import {
   getCoachSuggestions,
 } from "../../api";
 
-const WTFManagement = ({ onToggleView }) => {
+const WTFManagementContent = ({ onToggleView }) => {
+  const { getBackgroundStyle, refreshBackgroundSettings } = useWtfBackground();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [submissionTab, setSubmissionTab] = useState("voice");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -386,7 +392,10 @@ const WTFManagement = ({ onToggleView }) => {
   ).length; // Real data from API
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 w-full pb-8">
+    <div
+      className="min-h-screen p-6 w-full pb-8 transition-all duration-300"
+      style={getBackgroundStyle()}
+    >
       <div className="max-w-screen-xl mx-auto pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
@@ -513,6 +522,11 @@ const WTFManagement = ({ onToggleView }) => {
                   id: "submissions",
                   label: "Student Submissions",
                   count: newSubmissionsCount > 0 ? newSubmissionsCount : null,
+                },
+                {
+                  id: "background-settings",
+                  label: "Background Settings",
+                  count: null,
                 },
                 { id: "analytics", label: "Analytics", count: null },
               ].map((tab) => (
@@ -927,9 +941,7 @@ const WTFManagement = ({ onToggleView }) => {
                             </Button>
                             <Button
                               variant="outline"
-                              onClick={() =>
-                                setActiveTab("submissions")
-                              }
+                              onClick={() => setActiveTab("submissions")}
                             >
                               <Eye className="w-4 h-4 mr-2" />
                               Check Student Submissions
@@ -1339,6 +1351,17 @@ const WTFManagement = ({ onToggleView }) => {
               </div>
             )}
 
+            {activeTab === "background-settings" && (
+              <div className="p-6">
+                <BackgroundSettings
+                  onSettingsChange={(newSettings) => {
+                    // Refresh background settings when they change
+                    refreshBackgroundSettings();
+                  }}
+                />
+              </div>
+            )}
+
             {activeTab === "analytics" && (
               <div className="bg-white">
                 <div className="flex items-center gap-2 mb-4">
@@ -1405,6 +1428,15 @@ const WTFManagement = ({ onToggleView }) => {
         onArchive={handleArchiveCoachSuggestion}
       />
     </div>
+  );
+};
+
+// Wrapper component with background provider
+const WTFManagement = (props) => {
+  return (
+    <WtfBackgroundProvider>
+      <WTFManagementContent {...props} />
+    </WtfBackgroundProvider>
   );
 };
 

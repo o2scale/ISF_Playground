@@ -109,25 +109,38 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
 
-    const region = await s3Client.config.region();
-    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${fileName}`;
-
-    return {
-      success: true,
-      message: "WTF media uploaded successfully",
-      url: url,
-      key: fileName,
-      contentType: contentType,
-      mediaType: mediaType,
-      pinId: pinId,
-    };
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    console.log(`WTF media uploaded successfully: ${url}`);
+    return url;
   } catch (error) {
     console.error("Error uploading WTF media:", error);
-    return {
-      success: false,
-      message: "WTF media upload failed",
-      error: error.message,
+    throw error;
+  }
+};
+
+// Upload WTF media from buffer (for direct uploads like background images)
+exports.uploadWtfMediaBuffer = async (buffer, fileName, contentType) => {
+  try {
+    const params = {
+      Bucket: process.env.AWS_S3_WTF_BUCKET_NAME,
+      Key: fileName,
+      Body: buffer,
+      ContentType: contentType,
+      Metadata: {
+        "upload-timestamp": new Date().toISOString(),
+        "upload-type": "wtf-background",
+      },
     };
+
+    const command = new PutObjectCommand(params);
+    await s3Client.send(command);
+
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    console.log(`WTF background image uploaded successfully: ${url}`);
+    return url;
+  } catch (error) {
+    console.error("Error uploading WTF background image:", error);
+    throw error;
   }
 };
 
