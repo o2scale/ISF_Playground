@@ -59,6 +59,7 @@ const CreateNewPinModal = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [recordingTimer, setRecordingTimer] = useState(null);
+  const [playbackProgress, setPlaybackProgress] = useState(0);
 
   // Fetch data for coach mode
   useEffect(() => {
@@ -245,6 +246,7 @@ const CreateNewPinModal = ({
       setCurrentAudio(null);
     }
     setIsPlaying(false);
+    setPlaybackProgress(0);
 
     // Stop any active recording
     if (mediaRecorder && isRecording) {
@@ -420,17 +422,28 @@ const CreateNewPinModal = ({
         const audio = new Audio(audioUrl);
         setCurrentAudio(audio);
         setIsPlaying(true);
+        setPlaybackProgress(0);
+
+        // Track playback progress
+        audio.addEventListener("timeupdate", () => {
+          if (audio.duration) {
+            const progress = (audio.currentTime / audio.duration) * 100;
+            setPlaybackProgress(progress);
+          }
+        });
 
         // Clean up when audio ends
         audio.addEventListener("ended", () => {
           setCurrentAudio(null);
           setIsPlaying(false);
+          setPlaybackProgress(0);
         });
 
         audio.play().catch((error) => {
           console.error("Error playing audio:", error);
           setCurrentAudio(null);
           setIsPlaying(false);
+          setPlaybackProgress(0);
         });
       }
     }
@@ -447,6 +460,7 @@ const CreateNewPinModal = ({
     setAudioDuration(0);
     setIsPlaying(false);
     setIsMouseDown(false);
+    setPlaybackProgress(0);
     setFormData((prev) => ({
       ...prev,
       file: null,
@@ -511,6 +525,7 @@ const CreateNewPinModal = ({
     setIsRecording(false);
     setIsPlaying(false);
     setIsMouseDown(false);
+    setPlaybackProgress(0);
   };
 
   const renderContentInput = () => {
@@ -601,32 +616,63 @@ const CreateNewPinModal = ({
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="text-green-600">
-                      <Volume2 className="w-12 h-12 mx-auto mb-2" />
-                      <p className="text-sm">
-                        {audioDuration > 0
-                          ? `Voice note recorded (${audioDuration} seconds)`
-                          : "Processing audio..."}
-                      </p>
-                    </div>
-                    <div className="flex gap-2 justify-center">
-                      <button
-                        type="button"
-                        onClick={playRecording}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"
-                      >
-                        {isPlaying ? (
-                          <>
+                    {/* WhatsApp-style audio player */}
+                    <div className="bg-green-100 rounded-2xl p-4 max-w-xs mx-auto">
+                      <div className="flex items-center gap-3">
+                        {/* Play/Pause Button */}
+                        <button
+                          type="button"
+                          onClick={playRecording}
+                          className="bg-green-600 hover:bg-green-700 text-white w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+                        >
+                          {isPlaying ? (
                             <Pause className="w-4 h-4" />
-                            Pause
-                          </>
-                        ) : (
-                          <>
-                            <Play className="w-4 h-4" />
-                            Listen to My Suggestion
-                          </>
-                        )}
-                      </button>
+                          ) : (
+                            <Play className="w-4 h-4 ml-0.5" />
+                          )}
+                        </button>
+
+                        {/* Waveform visualization */}
+                        <div className="flex-1 flex items-center gap-0.5">
+                          {Array.from({ length: 25 }, (_, i) => {
+                            const heights = [
+                              12, 8, 15, 6, 18, 10, 14, 7, 16, 9, 20, 5, 17, 11,
+                              13, 8, 19, 6, 15, 10, 12, 7, 14, 9, 16,
+                            ];
+                            const progressThreshold =
+                              (playbackProgress / 100) * 25;
+                            const isPlayed = i < progressThreshold;
+
+                            return (
+                              <div
+                                key={i}
+                                className={`rounded-full transition-all duration-150 ${
+                                  isPlayed ? "bg-green-700" : "bg-green-300"
+                                }`}
+                                style={{
+                                  width: "2px",
+                                  height: `${heights[i]}px`,
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+
+                        {/* Duration */}
+                        <div className="text-xs text-gray-600 flex-shrink-0 min-w-[2rem]">
+                          {audioDuration > 0
+                            ? `${Math.floor(audioDuration / 60)}:${(
+                                audioDuration % 60
+                              )
+                                .toString()
+                                .padStart(2, "0")}`
+                            : "0:00"}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Record Again Button */}
+                    <div className="flex justify-center">
                       <button
                         type="button"
                         onClick={startRecording}
