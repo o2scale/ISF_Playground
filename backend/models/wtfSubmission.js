@@ -92,6 +92,17 @@ const wtfSubmissionSchema = new mongoose.Schema(
       recordingQuality: String, // For voice notes
       userAgent: String,
       ipAddress: String,
+      // Coach suggestion specific fields
+      isCoachSuggestion: Boolean,
+      originalType: String, // The original suggestion type (image, video, etc.)
+      studentName: String,
+      balagruha: String,
+      suggestedBy: String,
+      coachId: mongoose.Schema.Types.ObjectId,
+      suggestedDate: Date,
+      reason: String,
+      level: String,
+      category: String,
     },
   },
   {

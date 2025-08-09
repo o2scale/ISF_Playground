@@ -333,3 +333,180 @@ describe("WTF Dashboard Metrics Integration Tests", () => {
     expect(response.body.message).toBe("Failed to fetch metrics");
   });
 });
+
+// ==================== COACH SUGGESTION INTEGRATION TESTS ====================
+
+describe("POST /api/v1/wtf/coach-suggestions", () => {
+  beforeAll(async () => {
+    // Add coach suggestion route to the test app
+    app.post(
+      "/api/v1/wtf/coach-suggestions",
+      mockAuth,
+      mockAuthorize(),
+      (req, res) => {
+        WtfService.createCoachSuggestion(req.body)
+          .then((result) => {
+            if (result.success) {
+              res.status(201).json(result);
+            } else {
+              res.status(400).json(result);
+            }
+          })
+          .catch((error) => {
+            res.status(500).json({ success: false, message: error.message });
+          });
+      }
+    );
+  });
+
+  test("should create coach suggestion successfully", async () => {
+    const mockSuggestionData = {
+      title: "Amazing Student Art",
+      content: "Student created beautiful artwork",
+      type: "image",
+      studentName: "John Doe",
+      balagruha: "Red House",
+      suggestedBy: "Coach Smith",
+      coachId: "60d5ecb74eb1b82b8c8b4567",
+      reason: "Outstanding creativity",
+    };
+
+    const mockResult = {
+      success: true,
+      data: {
+        id: "60d5ecb74eb1b82b8c8b4568",
+        title: mockSuggestionData.title,
+        studentName: mockSuggestionData.studentName,
+        suggestedBy: mockSuggestionData.suggestedBy,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+      },
+      message: "Coach suggestion created successfully",
+    };
+
+    WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+    const response = await request(app)
+      .post("/api/v1/wtf/coach-suggestions")
+      .send(mockSuggestionData)
+      .expect(201);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.title).toBe(mockSuggestionData.title);
+    expect(response.body.data.studentName).toBe(mockSuggestionData.studentName);
+    expect(response.body.data.status).toBe("PENDING");
+    expect(response.body.message).toBe("Coach suggestion created successfully");
+  });
+
+  test("should return 400 for missing required fields", async () => {
+    const invalidData = {
+      title: "Test Suggestion",
+      // Missing required fields
+    };
+
+    const mockResult = {
+      success: false,
+      message: "Missing required fields: title, content, type, suggestedBy, studentName",
+    };
+
+    WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+    const response = await request(app)
+      .post("/api/v1/wtf/coach-suggestions")
+      .send(invalidData)
+      .expect(400);
+
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain("Missing required fields");
+  });
+
+  test("should return 400 for invalid suggestion type", async () => {
+    const invalidTypeData = {
+      title: "Test Suggestion",
+      content: "Test content",
+      type: "invalid_type",
+      studentName: "John Doe",
+      suggestedBy: "Coach Smith",
+    };
+
+    const mockResult = {
+      success: false,
+      message: "Invalid suggestion type. Must be one of: image, video, audio, text, link",
+    };
+
+    WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+    const response = await request(app)
+      .post("/api/v1/wtf/coach-suggestions")
+      .send(invalidTypeData)
+      .expect(400);
+
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toContain("Invalid suggestion type");
+  });
+
+  test("should handle service errors", async () => {
+    const validData = {
+      title: "Test Suggestion",
+      content: "Test content",
+      type: "text",
+      studentName: "John Doe",
+      suggestedBy: "Coach Smith",
+    };
+
+    WtfService.createCoachSuggestion.mockRejectedValue(
+      new Error("Database connection failed")
+    );
+
+    const response = await request(app)
+      .post("/api/v1/wtf/coach-suggestions")
+      .send(validData)
+      .expect(500);
+
+    expect(response.body.success).toBe(false);
+    expect(response.body.message).toBe("Database connection failed");
+  });
+
+  test("should create suggestion with default values", async () => {
+    const minimalData = {
+      title: "Test Suggestion",
+      content: "Test content",
+      type: "text",
+      studentName: "John Doe",
+      suggestedBy: "Coach Smith",
+      coachId: "60d5ecb74eb1b82b8c8b4567",
+    };
+
+    const mockResult = {
+      success: true,
+      data: {
+        id: "60d5ecb74eb1b82b8c8b4568",
+        title: minimalData.title,
+        studentName: minimalData.studentName,
+        suggestedBy: minimalData.suggestedBy,
+        status: "PENDING",
+        createdAt: new Date().toISOString(),
+      },
+      message: "Coach suggestion created successfully",
+    };
+
+    WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+    const response = await request(app)
+      .post("/api/v1/wtf/coach-suggestions")
+      .send(minimalData)
+      .expect(201);
+
+    expect(response.body.success).toBe(true);
+    expect(response.body.data.status).toBe("PENDING");
+    expect(WtfService.createCoachSuggestion).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: minimalData.title,
+        content: minimalData.content,
+        type: minimalData.type,
+        studentName: minimalData.studentName,
+        suggestedBy: minimalData.suggestedBy,
+      })
+    );
+  });
+});

@@ -1709,3 +1709,74 @@ exports.getCoachSuggestions = async (req, res) => {
       .json({ success: false, message: error.message });
   }
 };
+
+// ==================== COACH SUGGESTIONS CONTROLLERS ====================
+
+// Create coach suggestion
+exports.createCoachSuggestion = async (req, res) => {
+  try {
+    const logData = { ...req.body };
+
+    // Add coach information from authenticated user
+    const payload = {
+      ...req.body,
+      coachId: req.user?.id,
+      suggestedBy: req.user?.name || req.user?.email || "Coach",
+    };
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        data: logData,
+        userId: req.user?.id,
+        coachId: req.user?.id,
+      },
+      `Request received for coach suggestion creation`
+    );
+
+    const result = await WtfService.createCoachSuggestion(payload);
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          suggestionId: result.data.id,
+          userId: req.user?.id,
+          studentName: payload.studentName,
+        },
+        `Coach suggestion created successfully`
+      );
+      res.status(HTTP_STATUS_CODE.CREATED).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to create coach suggestion`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while creating coach suggestion`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};

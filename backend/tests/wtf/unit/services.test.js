@@ -26,11 +26,13 @@ const {
 } = require("../../../data-access/wtfPin");
 
 const {
+  createWtfSubmission,
   getSubmissionsForReview,
 } = require("../../../data-access/wtfSubmission");
 
 // Mock the data access functions
 jest.mock("../../../data-access/wtfSubmission", () => ({
+  createWtfSubmission: jest.fn(),
   getSubmissionsForReview: jest.fn(),
   getSubmissionStats: jest.fn(),
 }));
@@ -51,7 +53,6 @@ const {
 } = require("../../../data-access/wtfStudentInteraction");
 
 const {
-  createWtfSubmission,
   getWtfSubmissionById,
   getPendingSubmissions,
   getStudentSubmissions,
@@ -988,6 +989,217 @@ describe("WTF Service Tests", () => {
 
       await expect(WtfService.createPin(pinData)).rejects.toThrow(
         "Database connection failed"
+      );
+    });
+  });
+});
+
+// ==================== COACH SUGGESTION TESTS ====================
+
+describe("WtfService - Coach Suggestions", () => {
+  describe("createCoachSuggestion", () => {
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    test("should create coach suggestion with valid data", async () => {
+      const mockSuggestionData = {
+        title: "Amazing Student Art",
+        content: "Student created beautiful artwork",
+        type: "image",
+        studentName: "John Doe",
+        balagruha: "Red House",
+        suggestedBy: "Coach Smith",
+        coachId: new mongoose.Types.ObjectId(),
+        reason: "Outstanding creativity",
+        tags: ["art", "creative"],
+        language: "english",
+      };
+
+      const mockResult = {
+        success: true,
+        data: {
+          _id: new mongoose.Types.ObjectId(),
+          title: mockSuggestionData.title,
+          studentName: mockSuggestionData.studentName,
+          suggestedBy: mockSuggestionData.suggestedBy,
+          status: "PENDING",
+          createdAt: new Date(),
+        },
+      };
+
+      // Mock the createWtfSubmission function
+      createWtfSubmission.mockResolvedValue(mockResult);
+
+      const result = await WtfService.createCoachSuggestion(mockSuggestionData);
+
+      expect(result.success).toBe(true);
+      expect(result.data.title).toBe(mockSuggestionData.title);
+      expect(result.data.studentName).toBe(mockSuggestionData.studentName);
+      expect(result.data.status).toBe("PENDING");
+      expect(result.message).toBe("Coach suggestion created successfully");
+
+      // Verify the submission was created with correct metadata
+      expect(createWtfSubmission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: mockSuggestionData.title,
+          content: mockSuggestionData.content,
+          type: "article", // image maps to article
+          status: "pending",
+          metadata: expect.objectContaining({
+            isCoachSuggestion: true,
+            originalType: mockSuggestionData.type,
+            studentName: mockSuggestionData.studentName,
+            suggestedBy: mockSuggestionData.suggestedBy,
+            coachId: mockSuggestionData.coachId,
+            reason: mockSuggestionData.reason,
+          }),
+        })
+      );
+    });
+
+    test("should fail with missing required fields", async () => {
+      const invalidData = {
+        title: "Test",
+        // Missing: content, type, suggestedBy, studentName
+      };
+
+      const result = await WtfService.createCoachSuggestion(invalidData);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Missing required fields");
+    });
+
+    test("should fail with invalid suggestion type", async () => {
+      const invalidTypeData = {
+        title: "Test Suggestion",
+        content: "Test content",
+        type: "invalid_type",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+      };
+
+      const result = await WtfService.createCoachSuggestion(invalidTypeData);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("Invalid suggestion type");
+    });
+
+    test("should set default values correctly", async () => {
+      const minimalData = {
+        title: "Test Suggestion",
+        content: "Test content",
+        type: "text",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+        coachId: new mongoose.Types.ObjectId(),
+      };
+
+      const mockResult = {
+        success: true,
+        data: {
+          _id: new mongoose.Types.ObjectId(),
+          title: minimalData.title,
+          studentName: minimalData.studentName,
+          suggestedBy: minimalData.suggestedBy,
+          status: "PENDING",
+          createdAt: new Date(),
+        },
+      };
+
+      createWtfSubmission.mockResolvedValue(mockResult);
+
+      await WtfService.createCoachSuggestion(minimalData);
+
+      expect(createWtfSubmission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "article", // text maps to article
+          language: "english",
+          tags: [],
+          metadata: expect.objectContaining({
+            originalType: "text",
+            balagruha: "Unknown House",
+            reason: "Coach recommendation for Wall of Fame",
+          }),
+        })
+      );
+    });
+
+    test("should handle database errors", async () => {
+      const validData = {
+        title: "Test Suggestion",
+        content: "Test content",
+        type: "text",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+        coachId: new mongoose.Types.ObjectId(),
+      };
+
+      createWtfSubmission.mockRejectedValue(new Error("Database error"));
+
+      await expect(WtfService.createCoachSuggestion(validData)).rejects.toThrow("Database error");
+    });
+
+    test("should return failed result when submission creation fails", async () => {
+      const validData = {
+        title: "Test Suggestion",
+        content: "Test content",
+        type: "text",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+        coachId: new mongoose.Types.ObjectId(),
+      };
+
+      const mockFailedResult = {
+        success: false,
+        message: "Submission creation failed",
+      };
+
+      createWtfSubmission.mockResolvedValue(mockFailedResult);
+
+      const result = await WtfService.createCoachSuggestion(validData);
+
+      expect(result.success).toBe(false);
+      expect(result.message).toBe("Submission creation failed");
+    });
+
+    test("should map audio type to voice submission", async () => {
+      const audioSuggestionData = {
+        title: "Student Voice Recording",
+        content: "Audio content URL",
+        type: "audio",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+        coachId: new mongoose.Types.ObjectId(),
+        audioUrl: "https://example.com/audio.mp3",
+        audioDuration: 120,
+      };
+
+      const mockResult = {
+        success: true,
+        data: {
+          _id: new mongoose.Types.ObjectId(),
+          title: audioSuggestionData.title,
+          studentName: audioSuggestionData.studentName,
+          suggestedBy: audioSuggestionData.suggestedBy,
+          status: "pending",
+          createdAt: new Date(),
+        },
+      };
+
+      createWtfSubmission.mockResolvedValue(mockResult);
+
+      await WtfService.createCoachSuggestion(audioSuggestionData);
+
+      expect(createWtfSubmission).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "voice", // audio maps to voice
+          audioUrl: audioSuggestionData.audioUrl,
+          audioDuration: audioSuggestionData.audioDuration,
+          metadata: expect.objectContaining({
+            originalType: "audio",
+          }),
+        })
       );
     });
   });

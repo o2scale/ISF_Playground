@@ -42,6 +42,7 @@ const {
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
   getCoachSuggestions,
+  createCoachSuggestion,
 
   // Student Management Controllers
   getStudentSubmissions,
@@ -256,6 +257,19 @@ router.get(
   authenticate,
   authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
   getCoachSuggestions
+);
+
+// Create coach suggestion (Coaches only)
+router.post(
+  "/coach-suggestions",
+  authenticate,
+  authorize(WtfPermissions.WTF_COACH_SUGGESTION_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.submissions,
+  wtfContentValidation,
+  checkContentSizeLimits("suggestion"),
+  handleValidationErrors,
+  createCoachSuggestion
 );
 
 // ==================== STUDENT MANAGEMENT ROUTES ====================

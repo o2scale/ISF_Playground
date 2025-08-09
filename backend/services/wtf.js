@@ -1,4 +1,4 @@
-const { errorLogger } = require("../config/pino-config");
+const { errorLogger, logger } = require("../config/pino-config");
 const { default: mongoose } = require("mongoose");
 const CoinService = require("./coin");
 const wtfWebSocketService = require("./wtfWebSocket");
@@ -1069,6 +1069,107 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in getCoachSuggestions service"
+      );
+      throw error;
+    }
+  }
+
+  // ==================== COACH SUGGESTIONS ====================
+
+  static async createCoachSuggestion(payload) {
+    try {
+      // Validate required fields for coach suggestion
+      if (
+        !payload.title ||
+        !payload.content ||
+        !payload.type ||
+        !payload.suggestedBy ||
+        !payload.studentName
+      ) {
+        return {
+          success: false,
+          data: null,
+          message:
+            "Missing required fields: title, content, type, suggestedBy, studentName",
+        };
+      }
+
+      // Validate suggestion type and map to submission types
+      const validTypes = ["image", "video", "audio", "text", "link"];
+      if (!validTypes.includes(payload.type)) {
+        return {
+          success: false,
+          data: null,
+          message:
+            "Invalid suggestion type. Must be one of: image, video, audio, text, link",
+        };
+      }
+
+      // Map coach suggestion types to submission types
+      // audio/voice -> voice submission, others -> article submission
+      const submissionType = payload.type === "audio" ? "voice" : "article";
+
+      // Create submission data for coach suggestion
+      const suggestionData = {
+        title: payload.title,
+        type: submissionType,
+        status: "pending", // Coach suggestions start as pending
+        metadata: {
+          isCoachSuggestion: true,
+          originalType: payload.type, // Store the original suggestion type
+          studentName: payload.studentName,
+          balagruha: payload.balagruha || "Unknown House",
+          suggestedBy: payload.suggestedBy, // Coach ID/name
+          coachId: payload.coachId,
+          suggestedDate: new Date(),
+          reason: payload.reason || "Coach recommendation for Wall of Fame",
+          ...payload.metadata,
+        },
+        language: payload.language || "english",
+        tags: payload.tags || [],
+      };
+
+      // Add type-specific fields
+      if (submissionType === "voice") {
+        suggestionData.audioUrl = payload.audioUrl || payload.content;
+        suggestionData.audioDuration = payload.audioDuration || 0;
+        suggestionData.audioTranscription = payload.audioTranscription;
+      } else {
+        suggestionData.content = payload.content;
+      }
+
+      // Create the suggestion using the submission system
+      const result = await createWtfSubmission(suggestionData);
+
+      if (result.success) {
+        logger.info(
+          {
+            suggestionId: result.data._id,
+            coachId: payload.coachId,
+            studentName: payload.studentName,
+          },
+          "Coach suggestion created successfully"
+        );
+
+        return {
+          success: true,
+          data: {
+            id: result.data._id,
+            title: result.data.title,
+            studentName: result.data.studentName,
+            suggestedBy: result.data.suggestedBy,
+            status: result.data.status,
+            createdAt: result.data.createdAt,
+          },
+          message: "Coach suggestion created successfully",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message, payload },
+        "Error in createCoachSuggestion service"
       );
       throw error;
     }

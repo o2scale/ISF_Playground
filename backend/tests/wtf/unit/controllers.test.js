@@ -35,6 +35,7 @@ const {
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
   getCoachSuggestions,
+  createCoachSuggestion,
 } = require("../../../controllers/wtfController");
 
 let mongoServer;
@@ -1077,6 +1078,178 @@ describe("WTF Controller Tests", () => {
       expect(res.json).toHaveBeenCalledWith({
         success: false,
         message: "Invalid pin ID format",
+      });
+    });
+  });
+});
+
+// ==================== COACH SUGGESTION CONTROLLER TESTS ====================
+
+describe("Coach Suggestion Controllers", () => {
+  describe("createCoachSuggestion", () => {
+    let req, res;
+
+    beforeEach(() => {
+      req = {
+        body: {
+          title: "Amazing Student Art",
+          content: "Student created beautiful artwork",
+          type: "image",
+          studentName: "John Doe",
+          balagruha: "Red House",
+          reason: "Outstanding creativity",
+        },
+        user: {
+          id: new mongoose.Types.ObjectId(),
+          name: "Coach Smith",
+          email: "coach@example.com",
+        },
+        socket: { remoteAddress: "127.0.0.1" },
+        method: "POST",
+        originalUrl: "/api/v1/wtf/coach-suggestions",
+      };
+
+      res = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn().mockReturnThis(),
+      };
+
+      jest.clearAllMocks();
+    });
+
+    test("should create coach suggestion successfully", async () => {
+      const mockResult = {
+        success: true,
+        data: {
+          id: new mongoose.Types.ObjectId(),
+          title: "Amazing Student Art",
+          studentName: "John Doe",
+          suggestedBy: "Coach Smith",
+          status: "PENDING",
+          createdAt: new Date(),
+        },
+        message: "Coach suggestion created successfully",
+      };
+
+      WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+      await createCoachSuggestion(req, res);
+
+      expect(WtfService.createCoachSuggestion).toHaveBeenCalledWith({
+        ...req.body,
+        coachId: req.user.id,
+        suggestedBy: req.user.name,
+      });
+      expect(res.status).toHaveBeenCalledWith(201);
+      expect(res.json).toHaveBeenCalledWith(mockResult);
+    });
+
+    test("should handle service failure", async () => {
+      const mockResult = {
+        success: false,
+        message: "Missing required fields",
+      };
+
+      WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+      await createCoachSuggestion(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(mockResult);
+    });
+
+    test("should handle service exceptions", async () => {
+      const error = new Error("Database error");
+      WtfService.createCoachSuggestion.mockRejectedValue(error);
+
+      await createCoachSuggestion(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+      expect(res.json).toHaveBeenCalledWith({
+        success: false,
+        message: "Database error",
+      });
+    });
+
+    test("should use email as fallback for suggestedBy", async () => {
+      req.user.name = undefined;
+
+      const mockResult = {
+        success: true,
+        data: {
+          id: new mongoose.Types.ObjectId(),
+          title: "Amazing Student Art",
+          studentName: "John Doe",
+          suggestedBy: "coach@example.com",
+          status: "PENDING",
+          createdAt: new Date(),
+        },
+        message: "Coach suggestion created successfully",
+      };
+
+      WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+      await createCoachSuggestion(req, res);
+
+      expect(WtfService.createCoachSuggestion).toHaveBeenCalledWith({
+        ...req.body,
+        coachId: req.user.id,
+        suggestedBy: req.user.email,
+      });
+    });
+
+    test("should use default Coach if no name or email", async () => {
+      req.user.name = undefined;
+      req.user.email = undefined;
+
+      const mockResult = {
+        success: true,
+        data: {
+          id: new mongoose.Types.ObjectId(),
+          title: "Amazing Student Art",
+          studentName: "John Doe",
+          suggestedBy: "Coach",
+          status: "PENDING",
+          createdAt: new Date(),
+        },
+        message: "Coach suggestion created successfully",
+      };
+
+      WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+      await createCoachSuggestion(req, res);
+
+      expect(WtfService.createCoachSuggestion).toHaveBeenCalledWith({
+        ...req.body,
+        coachId: req.user.id,
+        suggestedBy: "Coach",
+      });
+    });
+
+    test("should handle missing user information", async () => {
+      req.user = undefined;
+
+      const mockResult = {
+        success: true,
+        data: {
+          id: new mongoose.Types.ObjectId(),
+          title: "Amazing Student Art",
+          studentName: "John Doe",
+          suggestedBy: "Coach",
+          status: "PENDING",
+          createdAt: new Date(),
+        },
+        message: "Coach suggestion created successfully",
+      };
+
+      WtfService.createCoachSuggestion.mockResolvedValue(mockResult);
+
+      await createCoachSuggestion(req, res);
+
+      expect(WtfService.createCoachSuggestion).toHaveBeenCalledWith({
+        ...req.body,
+        coachId: undefined,
+        suggestedBy: "Coach",
       });
     });
   });

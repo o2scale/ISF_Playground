@@ -27,6 +27,10 @@ exports.WtfPermissions = {
   WTF_SUBMISSION_READ: "WTF Submission",
   WTF_SUBMISSION_UPDATE: "WTF Submission",
 
+  // Coach Suggestions
+  WTF_COACH_SUGGESTION_CREATE: "WTF Coach Suggestion",
+  WTF_COACH_SUGGESTION_READ: "WTF Coach Suggestion",
+
   // Analytics
   WTF_ANALYTICS_READ: "WTF Analytics",
 };

@@ -525,3 +525,171 @@ describe("WtfSubmission Model Tests", () => {
     });
   });
 });
+
+// ==================== COACH SUGGESTION MODEL TESTS ====================
+
+describe("Coach Suggestion Model Tests", () => {
+  describe("Submission Model for Coach Suggestions", () => {
+    test("should create a valid coach suggestion submission", async () => {
+      const coachSuggestion = new WtfSubmission({
+        studentId: new mongoose.Types.ObjectId(),
+        type: "article",
+        title: "Amazing Student Art",
+        content: "Student created beautiful artwork",
+        status: "pending",
+        metadata: {
+          isCoachSuggestion: true,
+          studentName: "John Doe",
+          balagruha: "Red House",
+          suggestedBy: "Coach Smith",
+          coachId: new mongoose.Types.ObjectId(),
+          suggestedDate: new Date(),
+          reason: "Outstanding creativity",
+        },
+        language: "english",
+        tags: ["art", "creative"],
+      });
+
+      const savedSuggestion = await coachSuggestion.save();
+      expect(savedSuggestion._id).toBeDefined();
+      expect(savedSuggestion.type).toBe("article");
+      expect(savedSuggestion.title).toBe("Amazing Student Art");
+      expect(savedSuggestion.metadata.studentName).toBe("John Doe");
+      expect(savedSuggestion.metadata.suggestedBy).toBe("Coach Smith");
+      expect(savedSuggestion.status).toBe("pending");
+      expect(savedSuggestion.metadata.isCoachSuggestion).toBe(true);
+      expect(savedSuggestion.metadata.reason).toBe("Outstanding creativity");
+    });
+
+    test("should validate coach suggestion with required fields", async () => {
+      const invalidSuggestion = new WtfSubmission({
+        // Missing required fields
+        type: "article",
+        studentName: "John Doe",
+      });
+
+      await expect(invalidSuggestion.save()).rejects.toThrow();
+    });
+
+    test("should validate coach suggestion type", async () => {
+      const invalidTypeSuggestion = new WtfSubmission({
+        studentId: new mongoose.Types.ObjectId(),
+        type: "invalid_type",
+        title: "Test Suggestion",
+        content: "Test content",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+      });
+
+      await expect(invalidTypeSuggestion.save()).rejects.toThrow();
+    });
+
+    test("should validate coach suggestion status", async () => {
+      const invalidStatusSuggestion = new WtfSubmission({
+        studentId: new mongoose.Types.ObjectId(),
+        type: "text",
+        title: "Test Suggestion",
+        content: "Test content",
+        studentName: "John Doe",
+        suggestedBy: "Coach Smith",
+        status: "invalid_status",
+      });
+
+      await expect(invalidStatusSuggestion.save()).rejects.toThrow();
+    });
+
+    test("should allow coach suggestion metadata", async () => {
+      const suggestionWithMetadata = new WtfSubmission({
+        studentId: new mongoose.Types.ObjectId(),
+        type: "article",
+        title: "Student Performance",
+        content: "Student demonstrated excellent skills",
+        metadata: {
+          isCoachSuggestion: true,
+          studentName: "Jane Smith",
+          suggestedBy: "Coach Johnson",
+          coachId: new mongoose.Types.ObjectId(),
+          suggestedDate: new Date(),
+          reason: "Exceptional performance in class",
+          level: "advanced",
+          category: "performance",
+        },
+        tags: ["performance", "skills"],
+      });
+
+      const savedSuggestion = await suggestionWithMetadata.save();
+      expect(savedSuggestion.metadata.isCoachSuggestion).toBe(true);
+      expect(savedSuggestion.metadata.reason).toBe("Exceptional performance in class");
+      expect(savedSuggestion.metadata.level).toBe("advanced");
+      expect(savedSuggestion.metadata.category).toBe("performance");
+    });
+
+    test("should create coach suggestion with default status", async () => {
+      const suggestion = new WtfSubmission({
+        studentId: new mongoose.Types.ObjectId(),
+        type: "voice",
+        title: "Student Song",
+        audioUrl: "https://example.com/audio.mp3",
+        audioDuration: 30,
+        metadata: {
+          isCoachSuggestion: true,
+          studentName: "Alex Brown",
+          suggestedBy: "Music Coach",
+          coachId: new mongoose.Types.ObjectId(),
+        },
+      });
+
+      const savedSuggestion = await suggestion.save();
+      expect(savedSuggestion.status).toBe("pending"); // Default status
+    });
+
+    test("should query coach suggestions by metadata", async () => {
+      const coachId = new mongoose.Types.ObjectId();
+      
+      // Create multiple submissions
+      await WtfSubmission.create([
+        {
+          studentId: new mongoose.Types.ObjectId(),
+          type: "article",
+          title: "Regular Submission",
+          content: "Regular student submission",
+        },
+        {
+          studentId: new mongoose.Types.ObjectId(),
+          type: "article",
+          title: "Coach Suggestion 1",
+          content: "First coach suggestion",
+          metadata: {
+            isCoachSuggestion: true,
+            studentName: "Student B",
+            suggestedBy: "Coach",
+            coachId: coachId,
+          },
+        },
+        {
+          studentId: new mongoose.Types.ObjectId(),
+          type: "voice",
+          title: "Coach Suggestion 2",
+          audioUrl: "https://example.com/audio2.mp3",
+          audioDuration: 30,
+          metadata: {
+            isCoachSuggestion: true,
+            studentName: "Student C",
+            suggestedBy: "Coach",
+            coachId: coachId,
+          },
+        },
+      ]);
+
+      // Query for coach suggestions
+      const coachSuggestions = await WtfSubmission.find({
+        "metadata.isCoachSuggestion": true,
+        "metadata.coachId": coachId,
+      });
+
+      expect(coachSuggestions.length).toBe(2);
+      expect(coachSuggestions[0].metadata.isCoachSuggestion).toBe(true);
+      expect(coachSuggestions[1].metadata.isCoachSuggestion).toBe(true);
+    });
+  });
+});
