@@ -560,6 +560,37 @@ export const getActiveWtfPins = async (params = {}) => {
   }
 };
 
+export const createCoachSuggestion = async (suggestionData) => {
+  try {
+    const formData = new FormData();
+
+    // Add all the suggestion data
+    formData.append("title", suggestionData.title);
+    formData.append("content", suggestionData.content || "");
+    formData.append("type", suggestionData.type);
+    formData.append("studentName", suggestionData.studentName);
+    formData.append("studentId", suggestionData.studentId);
+    formData.append("balagruha", suggestionData.balagruha || "");
+    formData.append("reason", suggestionData.reason);
+
+    // Add file if present
+    if (suggestionData.file) {
+      formData.append("file", suggestionData.file);
+    }
+
+    const response = await api.post("/api/v1/wtf/coach-suggestions", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error creating coach suggestion:", error);
+    throw error;
+  }
+};
+
 export const getWtfPinById = async (pinId) => {
   try {
     const response = await api.get(`/api/v1/wtf/pins/${pinId}`);

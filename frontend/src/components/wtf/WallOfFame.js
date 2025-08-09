@@ -25,6 +25,7 @@ import {
   likeWtfPin,
   markWtfPinAsSeen,
   createWtfPin,
+  createCoachSuggestion,
   getWtfSubmissionStats,
   getPendingSubmissionsCount,
 } from "../../api";
@@ -34,6 +35,7 @@ const WallOfFame = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+
   const [modalType, setModalType] = useState(null);
   const [adminCounts, setAdminCounts] = useState({
     pendingSuggestions: 0,
@@ -114,11 +116,28 @@ const WallOfFame = ({ onToggleView }) => {
   const handleCreatePin = async (newPin) => {
     console.log("Creating new pin:", newPin);
     try {
-      const createdPin = await createWtfPin(newPin);
-      setContent((prev) => [createdPin, ...prev]);
+      if (isCoach && newPin.studentId) {
+        // This is a coach suggestion
+        const suggestionData = {
+          title: newPin.title,
+          content: newPin.content,
+          type: newPin.contentType,
+          studentName: newPin.studentName,
+          studentId: newPin.studentId,
+          balagruha: newPin.balagruha,
+          reason: newPin.reason,
+          file: newPin.file,
+        };
+        await createCoachSuggestion(suggestionData);
+        alert("Suggestion submitted successfully! Admin will review it soon.");
+      } else {
+        // This is an admin pin creation
+        const createdPin = await createWtfPin(newPin);
+        setContent((prev) => [createdPin, ...prev]);
+      }
       setShowCreateModal(false);
     } catch (error) {
-      console.error("Error creating pin:", error);
+      console.error("Error creating pin/suggestion:", error);
     }
   };
 
@@ -286,7 +305,11 @@ const WallOfFame = ({ onToggleView }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex w-full h-screen">
       {/* Left Sidebar */}
-      <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white border-r flex-shrink-0 transition-all duration-300`}>
+      <div
+        className={`${
+          isSidebarCollapsed ? "w-16" : "w-64"
+        } bg-white border-r flex-shrink-0 transition-all duration-300`}
+      >
         <CoursesSection isCollapsed={isSidebarCollapsed} />
       </div>
 
@@ -412,19 +435,34 @@ const WallOfFame = ({ onToggleView }) => {
 
             <div className="w-full mx-auto px-4 mb-8">
               {content.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
-                  {content.map((item, index) => (
-                    <div
-                      key={item.id}
-                      className="w-[180px]"
-                      style={{
-                        marginTop: `${(index % 4) * 10}px`,
-                      }}
-                    >
-                      {renderCard(item)}
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
+                    {content.map((item, index) => (
+                      <div
+                        key={item.id}
+                        className="w-[180px]"
+                        style={{
+                          marginTop: `${(index % 4) * 10}px`,
+                        }}
+                      >
+                        {renderCard(item)}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Floating Action Button for Coaches */}
+                  {isCoach && (
+                    <div className="fixed bottom-8 right-8 z-50">
+                      <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                        title="Suggest student work for the Wall of Fame"
+                      >
+                        <Plus className="w-6 h-6" />
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-12">
                   <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
@@ -460,10 +498,19 @@ const WallOfFame = ({ onToggleView }) => {
                       </button>
                     )}
                     {isCoach && (
-                      <div className="text-sm text-gray-500">
-                        💡 Tip: Review student work and suggest exceptional
-                        pieces for the Wall of Fame
-                      </div>
+                      <>
+                        <button
+                          onClick={() => setShowCreateModal(true)}
+                          className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium transition-colors mb-3"
+                        >
+                          <Plus className="w-5 h-5 inline mr-2" />
+                          Suggest Pin
+                        </button>
+                        <div className="text-sm text-gray-500">
+                          💡 Tip: Review student work and suggest exceptional
+                          pieces for the Wall of Fame
+                        </div>
+                      </>
                     )}
                     {!isAdmin && !isCoach && (
                       <div className="text-sm text-gray-500">
@@ -537,6 +584,8 @@ const WallOfFame = ({ onToggleView }) => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreatePin={handleCreatePin}
+        isCoachMode={isCoach}
+        userRole={isAdmin ? "admin" : isCoach ? "coach" : "student"}
       />
     </div>
   );
