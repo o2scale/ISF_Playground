@@ -51,6 +51,7 @@ const CreateNewPinModal = ({
   const [recordedAudio, setRecordedAudio] = useState(null);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [recordingTime, setRecordingTime] = useState(0);
+  const [audioDuration, setAudioDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState("");
 
   // Fetch data for coach mode
@@ -245,8 +246,16 @@ const CreateNewPinModal = ({
         const audioFile = new File([audioBlob], "voice-note.wav", {
           type: "audio/wav",
         });
+        const url = URL.createObjectURL(audioBlob);
+
+        // Create audio element to get actual duration
+        const audio = new Audio(url);
+        audio.addEventListener("loadedmetadata", () => {
+          setAudioDuration(Math.round(audio.duration));
+        });
+
         setRecordedAudio(audioFile);
-        setAudioUrl(URL.createObjectURL(audioBlob));
+        setAudioUrl(url);
         setFormData((prev) => ({
           ...prev,
           file: audioFile,
@@ -264,7 +273,7 @@ const CreateNewPinModal = ({
           if (prev >= 59) {
             // Stop recording after 60 seconds
             recorder.stop();
-            stream.getTracks().forEach(track => track.stop());
+            stream.getTracks().forEach((track) => track.stop());
             setIsRecording(false);
             clearInterval(timer);
             return 60;
@@ -281,7 +290,7 @@ const CreateNewPinModal = ({
   const stopRecording = () => {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
     }
   };
@@ -297,6 +306,7 @@ const CreateNewPinModal = ({
     setRecordedAudio(null);
     setAudioUrl("");
     setRecordingTime(0);
+    setAudioDuration(0);
     setFormData((prev) => ({
       ...prev,
       file: null,
@@ -351,11 +361,12 @@ const CreateNewPinModal = ({
       balagruha: "",
       reason: "",
     });
-    
+
     // Clear audio recording state
     setRecordedAudio(null);
     setAudioUrl("");
     setRecordingTime(0);
+    setAudioDuration(0);
     setIsRecording(false);
   };
 
@@ -442,7 +453,9 @@ const CreateNewPinModal = ({
                     <div className="text-green-600">
                       <Volume2 className="w-12 h-12 mx-auto mb-2" />
                       <p className="text-sm">
-                        Voice note recorded ({recordingTime} seconds)
+                        {audioDuration > 0
+                          ? `Voice note recorded (${audioDuration} seconds)`
+                          : "Processing audio..."}
                       </p>
                     </div>
                     <div className="flex gap-2 justify-center">
