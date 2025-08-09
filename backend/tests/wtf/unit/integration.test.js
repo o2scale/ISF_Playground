@@ -509,4 +509,207 @@ describe("POST /api/v1/wtf/coach-suggestions", () => {
       })
     );
   });
+
+  // ==================== COIN REWARD INTEGRATION TESTS ====================
+
+  describe("POST /api/v1/wtf/pins/:pinId/award-coins", () => {
+    beforeAll(async () => {
+      app.post(
+        "/api/v1/wtf/pins/:pinId/award-coins",
+        mockAuth,
+        mockAuthorize(),
+        (req, res) => {
+          // Mock getPinById
+          WtfService.getPinById(req.params.pinId)
+            .then((pinResult) => {
+              if (pinResult.success) {
+                return WtfService.awardCoinsForPinnedContent(pinResult.data);
+              } else {
+                res.status(404).json({ success: false, message: "Pin not found" });
+                return;
+              }
+            })
+            .then((result) => {
+              if (result && result.success) {
+                res.status(200).json(result);
+              } else if (result) {
+                res.status(400).json(result);
+              }
+            })
+            .catch((error) => {
+              res.status(500).json({ success: false, message: error.message });
+            });
+        }
+      );
+    });
+
+    test("should award coins successfully", async () => {
+      const mockPinResult = {
+        success: true,
+        data: {
+          pinId: "pin123",
+          title: "Test Pin",
+          contentType: "IMAGE",
+          originalAuthor: { userId: "student123", type: "STUDENT" }
+        }
+      };
+
+      const mockCoinResult = {
+        success: true,
+        coinsAwarded: 50,
+        message: "50 ISF Coins awarded to student for pinned content"
+      };
+
+      WtfService.getPinById.mockResolvedValue(mockPinResult);
+      WtfService.awardCoinsForPinnedContent.mockResolvedValue(mockCoinResult);
+
+      const response = await request(app)
+        .post("/api/v1/wtf/pins/pin123/award-coins")
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.coinsAwarded).toBe(50);
+    });
+
+    test("should handle pin not found", async () => {
+      WtfService.getPinById.mockResolvedValue({
+        success: false,
+        message: "Pin not found"
+      });
+
+      const response = await request(app)
+        .post("/api/v1/wtf/pins/nonexistent/award-coins")
+        .expect(404);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Pin not found");
+    });
+
+    test("should handle service errors", async () => {
+      WtfService.getPinById.mockRejectedValue(new Error("Database error"));
+
+      const response = await request(app)
+        .post("/api/v1/wtf/pins/pin123/award-coins")
+        .expect(500);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("Database error");
+    });
+  });
+
+  describe("POST /api/v1/wtf/pins/:pinId/milestone-coins", () => {
+    beforeAll(async () => {
+      app.post(
+        "/api/v1/wtf/pins/:pinId/milestone-coins",
+        mockAuth,
+        mockAuthorize(),
+        (req, res) => {
+          WtfService.awardMilestoneCoins(req.params.pinId, req.body.likeCount, req.body.likeType)
+            .then((result) => {
+              if (result.success) {
+                res.status(200).json(result);
+              } else {
+                res.status(400).json(result);
+              }
+            })
+            .catch((error) => {
+              res.status(500).json({ success: false, message: error.message });
+            });
+        }
+      );
+    });
+
+    test("should award milestone coins successfully", async () => {
+      const mockResult = {
+        success: true,
+        coinsAwarded: 75,
+        message: "75 milestone coins awarded"
+      };
+
+      WtfService.awardMilestoneCoins.mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post("/api/v1/wtf/pins/pin123/milestone-coins")
+        .send({ likeCount: 25, likeType: "total" })
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.coinsAwarded).toBe(75);
+    });
+
+    test("should handle no milestones reached", async () => {
+      const mockResult = {
+        success: false,
+        message: "No milestones reached"
+      };
+
+      WtfService.awardMilestoneCoins.mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post("/api/v1/wtf/pins/pin123/milestone-coins")
+        .send({ likeCount: 5, likeType: "total" })
+        .expect(400);
+
+      expect(response.body.success).toBe(false);
+      expect(response.body.message).toBe("No milestones reached");
+    });
+  });
+
+  describe("POST /api/v1/wtf/admin/expire-pins", () => {
+    beforeAll(async () => {
+      app.post(
+        "/api/v1/wtf/admin/expire-pins",
+        mockAuth,
+        mockAuthorize(),
+        (req, res) => {
+          WtfService.expireOldPins()
+            .then((result) => {
+              if (result.success) {
+                res.status(200).json(result);
+              } else {
+                res.status(400).json(result);
+              }
+            })
+            .catch((error) => {
+              res.status(500).json({ success: false, message: error.message });
+            });
+        }
+      );
+    });
+
+    test("should expire old pins successfully", async () => {
+      const mockResult = {
+        success: true,
+        expiredCount: 3,
+        totalProcessed: 3,
+        message: "3 pins expired automatically"
+      };
+
+      WtfService.expireOldPins.mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post("/api/v1/wtf/admin/expire-pins")
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.expiredCount).toBe(3);
+    });
+
+    test("should handle no pins to expire", async () => {
+      const mockResult = {
+        success: true,
+        expiredCount: 0,
+        message: "No pins to expire"
+      };
+
+      WtfService.expireOldPins.mockResolvedValue(mockResult);
+
+      const response = await request(app)
+        .post("/api/v1/wtf/admin/expire-pins")
+        .expect(200);
+
+      expect(response.body.success).toBe(true);
+      expect(response.body.expiredCount).toBe(0);
+    });
+  });
 });

@@ -36,6 +36,9 @@ const {
   getCoachSuggestionsCount,
   getCoachSuggestions,
   createCoachSuggestion,
+  awardCoinsForPin,
+  awardMilestoneCoins,
+  expireOldPins,
 } = require("../../../controllers/wtfController");
 
 let mongoServer;

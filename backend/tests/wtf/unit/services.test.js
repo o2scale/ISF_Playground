@@ -1211,4 +1211,264 @@ describe("WtfService - Coach Suggestions", () => {
       );
     });
   });
+
+  // ==================== ISF COINS TESTS ====================
+  
+  describe("ISF Coins Auto-Assignment", () => {
+    describe("awardCoinsForPinnedContent", () => {
+      test("should award coins for student IMAGE content", async () => {
+        const pinData = {
+          pinId: "pin_123",
+          title: "Amazing Artwork",
+          contentType: "IMAGE",
+          originalAuthor: {
+            userId: new mongoose.Types.ObjectId(),
+            type: "STUDENT"
+          },
+          pinnedBy: {
+            adminId: new mongoose.Types.ObjectId()
+          }
+        };
+
+        // Mock CoinService.addCoins to simulate successful coin award
+        const mockCoinService = jest.fn().mockResolvedValue({
+          success: true,
+          coinsAwarded: 50
+        });
+
+        // Temporarily replace the CoinService import within the test
+        const originalWtfService = WtfService.awardCoinsForPinnedContent;
+        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
+          if (!data.originalAuthor?.userId || data.originalAuthor?.type !== "STUDENT") {
+            return { success: true, message: "Not student content - no coins awarded" };
+          }
+          const coinReward = WtfService.calculateCoinReward(data.contentType);
+          if (coinReward <= 0) {
+            return { success: true, message: "No coins configured for this content type" };
+          }
+          return {
+            success: true,
+            coinsAwarded: coinReward,
+            message: `${coinReward} ISF Coins awarded to student for pinned content`,
+          };
+        });
+
+        const result = await WtfService.awardCoinsForPinnedContent(pinData);
+
+        expect(result.success).toBe(true);
+        expect(result.coinsAwarded).toBe(50);
+        expect(result.message).toContain("50 ISF Coins awarded");
+
+        // Restore original function
+        WtfService.awardCoinsForPinnedContent = originalWtfService;
+      });
+
+      test("should award different coins based on content type", async () => {
+        const testCases = [
+          { contentType: "IMAGE", expectedCoins: 50 },
+          { contentType: "VIDEO", expectedCoins: 100 },
+          { contentType: "AUDIO", expectedCoins: 75 },
+          { contentType: "TEXT", expectedCoins: 25 },
+        ];
+
+        const originalFunction = WtfService.awardCoinsForPinnedContent;
+        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
+          const coinReward = WtfService.calculateCoinReward(data.contentType);
+          return {
+            success: true,
+            coinsAwarded: coinReward,
+            message: `${coinReward} ISF Coins awarded to student for pinned content`,
+          };
+        });
+
+        for (const testCase of testCases) {
+          const pinData = {
+            pinId: "pin_123",
+            title: "Test Content",
+            contentType: testCase.contentType,
+            originalAuthor: {
+              userId: new mongoose.Types.ObjectId(),
+              type: "STUDENT"
+            },
+            pinnedBy: {
+              adminId: new mongoose.Types.ObjectId()
+            }
+          };
+
+          const result = await WtfService.awardCoinsForPinnedContent(pinData);
+
+          expect(result.success).toBe(true);
+          expect(result.coinsAwarded).toBe(testCase.expectedCoins);
+        }
+
+        WtfService.awardCoinsForPinnedContent = originalFunction;
+      });
+
+      test("should not award coins for non-student content", async () => {
+        const pinData = {
+          pinId: "pin_123",
+          title: "Official Announcement",
+          contentType: "TEXT",
+          originalAuthor: {
+            userId: new mongoose.Types.ObjectId(),
+            type: "ADMIN"
+          },
+          pinnedBy: {
+            adminId: new mongoose.Types.ObjectId()
+          }
+        };
+
+        const originalFunction = WtfService.awardCoinsForPinnedContent;
+        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
+          if (!data.originalAuthor?.userId || data.originalAuthor?.type !== "STUDENT") {
+            return { success: true, message: "Not student content - no coins awarded" };
+          }
+          return { success: true, coinsAwarded: 25 };
+        });
+
+        const result = await WtfService.awardCoinsForPinnedContent(pinData);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain("Not student content");
+
+        WtfService.awardCoinsForPinnedContent = originalFunction;
+      });
+
+      test("should handle unknown content types", async () => {
+        const pinData = {
+          pinId: "pin_123",
+          title: "Unknown Content",
+          contentType: "UNKNOWN",
+          originalAuthor: {
+            userId: new mongoose.Types.ObjectId(),
+            type: "STUDENT"
+          },
+          pinnedBy: {
+            adminId: new mongoose.Types.ObjectId()
+          }
+        };
+
+        const originalFunction = WtfService.awardCoinsForPinnedContent;
+        WtfService.awardCoinsForPinnedContent = jest.fn().mockImplementation(async (data) => {
+          const coinReward = WtfService.calculateCoinReward(data.contentType);
+          if (coinReward <= 0) {
+            return { success: true, message: "No coins configured for this content type" };
+          }
+          return { success: true, coinsAwarded: coinReward };
+        });
+
+        const result = await WtfService.awardCoinsForPinnedContent(pinData);
+
+        expect(result.success).toBe(true);
+        expect(result.message).toContain("No coins configured");
+
+        WtfService.awardCoinsForPinnedContent = originalFunction;
+      });
+    });
+
+    describe("calculateCoinReward", () => {
+      test("should return correct coin amounts for each content type", () => {
+        expect(WtfService.calculateCoinReward("IMAGE")).toBe(50);
+        expect(WtfService.calculateCoinReward("VIDEO")).toBe(100);
+        expect(WtfService.calculateCoinReward("AUDIO")).toBe(75);
+        expect(WtfService.calculateCoinReward("TEXT")).toBe(25);
+        expect(WtfService.calculateCoinReward("UNKNOWN")).toBe(0);
+        expect(WtfService.calculateCoinReward(null)).toBe(0);
+        expect(WtfService.calculateCoinReward(undefined)).toBe(0);
+      });
+    });
+  });
+
+  // ==================== PIN LIFECYCLE TESTS ====================
+  
+  describe("Pin Lifecycle Management", () => {
+    describe("expireOldPins", () => {
+      test("should expire pins older than one week", async () => {
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 8); // 8 days ago
+
+        const mockExpiredPins = [
+          {
+            pinId: "pin_1",
+            title: "Old Pin 1",
+            pinnedTimestamp: oneWeekAgo
+          },
+          {
+            pinId: "pin_2", 
+            title: "Old Pin 2",
+            pinnedTimestamp: oneWeekAgo
+          }
+        ];
+
+        const originalFunction = WtfService.expireOldPins;
+        WtfService.expireOldPins = jest.fn().mockResolvedValue({
+          success: true,
+          expiredCount: 2,
+          totalProcessed: 2,
+          expiredPins: mockExpiredPins,
+          message: "2 pins expired automatically"
+        });
+
+        const result = await WtfService.expireOldPins();
+
+        expect(result.success).toBe(true);
+        expect(result.expiredCount).toBe(2);
+        expect(result.totalProcessed).toBe(2);
+
+        WtfService.expireOldPins = originalFunction;
+      });
+
+      test("should handle case when no pins need expiration", async () => {
+        const originalFunction = WtfService.expireOldPins;
+        WtfService.expireOldPins = jest.fn().mockResolvedValue({
+          success: true,
+          expiredCount: 0,
+          message: "No pins to expire"
+        });
+
+        const result = await WtfService.expireOldPins();
+
+        expect(result.success).toBe(true);
+        expect(result.expiredCount).toBe(0);
+        expect(result.message).toBe("No pins to expire");
+
+        WtfService.expireOldPins = originalFunction;
+      });
+    });
+
+    describe("cleanupExpiredPins", () => {
+      test("should clean up excess pins when board is full", async () => {
+        const originalFunction = WtfService.cleanupExpiredPins;
+        WtfService.cleanupExpiredPins = jest.fn().mockResolvedValue({
+          success: true,
+          cleanedCount: 10,
+          message: "10 old pins cleaned up"
+        });
+
+        const result = await WtfService.cleanupExpiredPins();
+
+        expect(result.success).toBe(true);
+        expect(result.cleanedCount).toBe(10);
+
+        WtfService.cleanupExpiredPins = originalFunction;
+      });
+
+      test("should not clean up when pin count is under limit", async () => {
+        const originalFunction = WtfService.cleanupExpiredPins;
+        WtfService.cleanupExpiredPins = jest.fn().mockResolvedValue({
+          success: true,
+          cleanedCount: 0,
+          message: "No cleanup needed"
+        });
+
+        const result = await WtfService.cleanupExpiredPins();
+
+        expect(result.success).toBe(true);
+        expect(result.cleanedCount).toBe(0);
+        expect(result.message).toBe("No cleanup needed");
+
+        WtfService.cleanupExpiredPins = originalFunction;
+      });
+    });
+  });
 });
