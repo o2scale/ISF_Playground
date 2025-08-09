@@ -9,6 +9,9 @@ import {
   ExternalLink,
   User,
   Lightbulb,
+  Mic,
+  Square,
+  Play,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog.jsx";
 import { Input } from "../ui/input.jsx";
@@ -20,6 +23,7 @@ const CreateNewPinModal = ({
   onClose,
   onCreatePin,
   isCoachMode = false,
+  isStudentMode = false,
   userRole = "admin",
 }) => {
   const [formData, setFormData] = useState({
@@ -41,6 +45,13 @@ const CreateNewPinModal = ({
   const [balagruhas, setBalagruhas] = useState([]);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Audio recording state
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordedAudio, setRecordedAudio] = useState(null);
+  const [mediaRecorder, setMediaRecorder] = useState(null);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const [audioUrl, setAudioUrl] = useState("");
 
   // Fetch data for coach mode
   useEffect(() => {
@@ -104,7 +115,40 @@ const CreateNewPinModal = ({
     }
   }, [formData.balagruha, formData.studentId, students]);
 
-  const contentTypes = isCoachMode
+  const contentTypes = isStudentMode
+    ? [
+        {
+          value: "audio",
+          label: "Voice Note",
+          icon: <Mic className="w-5 h-5" />,
+          description: "Record a 1-minute voice note to share your thoughts",
+        },
+        {
+          value: "text",
+          label: "Article/Story",
+          icon: <FileText className="w-5 h-5" />,
+          description: "Write an article, story, or share your ideas",
+        },
+        {
+          value: "image",
+          label: "Artwork/Photo",
+          icon: <ImageIcon className="w-5 h-5" />,
+          description: "Share your artwork, drawings, or photos",
+        },
+        {
+          value: "video",
+          label: "Video",
+          icon: <Video className="w-5 h-5" />,
+          description: "Upload a video of your performance or project",
+        },
+        {
+          value: "link",
+          label: "Project Link",
+          icon: <ExternalLink className="w-5 h-5" />,
+          description: "Share a link to your online project or work",
+        },
+      ]
+    : isCoachMode
     ? [
         {
           value: "image",
@@ -185,6 +229,80 @@ const CreateNewPinModal = ({
     }));
   };
 
+  // Audio recording functions
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const audioChunks = [];
+
+      recorder.addEventListener("dataavailable", (event) => {
+        audioChunks.push(event.data);
+      });
+
+      recorder.addEventListener("stop", () => {
+        const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+        const audioFile = new File([audioBlob], "voice-note.wav", {
+          type: "audio/wav",
+        });
+        setRecordedAudio(audioFile);
+        setAudioUrl(URL.createObjectURL(audioBlob));
+        setFormData((prev) => ({
+          ...prev,
+          file: audioFile,
+        }));
+      });
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setIsRecording(true);
+      setRecordingTime(0);
+
+      // Start timer
+      const timer = setInterval(() => {
+        setRecordingTime((prev) => {
+          if (prev >= 59) {
+            // Stop recording after 60 seconds
+            recorder.stop();
+            stream.getTracks().forEach(track => track.stop());
+            setIsRecording(false);
+            clearInterval(timer);
+            return 60;
+          }
+          return prev + 1;
+        });
+      }, 1000);
+    } catch (error) {
+      console.error("Error starting recording:", error);
+      alert("Could not access microphone. Please check permissions.");
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      mediaRecorder.stream.getTracks().forEach(track => track.stop());
+      setIsRecording(false);
+    }
+  };
+
+  const playRecording = () => {
+    if (audioUrl) {
+      const audio = new Audio(audioUrl);
+      audio.play();
+    }
+  };
+
+  const deleteRecording = () => {
+    setRecordedAudio(null);
+    setAudioUrl("");
+    setRecordingTime(0);
+    setFormData((prev) => ({
+      ...prev,
+      file: null,
+    }));
+  };
+
   const handleSubmit = (e, isDraft = false) => {
     e.preventDefault();
     if (!formData.title || !formData.contentType) return;
@@ -233,6 +351,12 @@ const CreateNewPinModal = ({
       balagruha: "",
       reason: "",
     });
+    
+    // Clear audio recording state
+    setRecordedAudio(null);
+    setAudioUrl("");
+    setRecordingTime(0);
+    setIsRecording(false);
   };
 
   const renderContentInput = () => {
@@ -270,9 +394,124 @@ const CreateNewPinModal = ({
           </div>
         );
 
+      case "audio":
+        return isStudentMode ? (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Record Voice Note (1 minute max)
+              </label>
+              <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50">
+                {!recordedAudio ? (
+                  <div className="space-y-4">
+                    <div className="text-blue-600">
+                      <Mic className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-sm">
+                        {isRecording ? (
+                          <>
+                            Recording... {Math.floor(recordingTime / 60)}:
+                            {(recordingTime % 60).toString().padStart(2, "0")}
+                          </>
+                        ) : (
+                          "Click to start recording your voice note"
+                        )}
+                      </p>
+                    </div>
+                    {!isRecording ? (
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        <Mic className="w-4 h-4 inline mr-2" />
+                        Start Recording
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                      >
+                        <Square className="w-4 h-4 inline mr-2" />
+                        Stop Recording
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="text-green-600">
+                      <Volume2 className="w-12 h-12 mx-auto mb-2" />
+                      <p className="text-sm">
+                        Voice note recorded ({recordingTime} seconds)
+                      </p>
+                    </div>
+                    <div className="flex gap-2 justify-center">
+                      <button
+                        type="button"
+                        onClick={playRecording}
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                      >
+                        <Play className="w-4 h-4 inline mr-1" />
+                        Play
+                      </button>
+                      <button
+                        type="button"
+                        onClick={deleteRecording}
+                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm"
+                      >
+                        Re-record
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Upload File
+              </label>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  accept="audio/*"
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="cursor-pointer flex flex-col items-center"
+                >
+                  <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-600">
+                    Click to upload or drag and drop
+                  </span>
+                  <span className="text-xs text-gray-500 mt-1">
+                    MP3, WAV, M4A up to 50MB
+                  </span>
+                </label>
+              </div>
+            </div>
+            <div className="text-center text-gray-500">or</div>
+            <div>
+              <label className="block text-sm font-medium mb-2">URL</label>
+              <Input
+                type="url"
+                value={formData.content}
+                onChange={(e) =>
+                  setFormData((prev) => ({ ...prev, content: e.target.value }))
+                }
+                placeholder="https://example.com/media-url"
+              />
+            </div>
+          </div>
+        );
+
       case "image":
       case "video":
-      case "audio":
         return (
           <div className="space-y-4">
             <div>
@@ -370,6 +609,18 @@ const CreateNewPinModal = ({
               </h2>
               <p className="text-gray-600 mt-2">
                 Recommend outstanding student work for the Wall of Fame
+              </p>
+            </div>
+          ) : isStudentMode ? (
+            <div className="text-center mb-6">
+              <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                <User className="w-8 h-8 text-blue-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-gray-800">
+                Share Your Work
+              </h2>
+              <p className="text-gray-600 mt-2">
+                Create content to be featured on the Wall of Fame
               </p>
             </div>
           ) : (
@@ -576,6 +827,18 @@ const CreateNewPinModal = ({
                     className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
                   >
                     Submit Suggestion
+                  </Button>
+                  <Button type="button" onClick={onClose} variant="outline">
+                    Cancel
+                  </Button>
+                </>
+              ) : isStudentMode ? (
+                <>
+                  <Button
+                    type="submit"
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Submit for Review
                   </Button>
                   <Button type="button" onClick={onClose} variant="outline">
                     Cancel

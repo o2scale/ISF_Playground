@@ -28,6 +28,8 @@ import {
   createCoachSuggestion,
   getWtfSubmissionStats,
   getPendingSubmissionsCount,
+  submitVoiceNote,
+  submitArticle,
 } from "../../api";
 
 const WallOfFame = ({ onToggleView }) => {
@@ -59,7 +61,7 @@ const WallOfFame = ({ onToggleView }) => {
     subtitle: "New Year, New Knowledge!",
   });
 
-  const { isAdmin, isCoach } = useUserRole();
+  const { isAdmin, isCoach, isStudent } = useUserRole();
 
   useEffect(() => {
     const fetchPins = async () => {
@@ -130,6 +132,24 @@ const WallOfFame = ({ onToggleView }) => {
         };
         await createCoachSuggestion(suggestionData);
         alert("Suggestion submitted successfully! Admin will review it soon.");
+      } else if (isStudent) {
+        // This is a student submission
+        const submissionData = {
+          title: newPin.title,
+          content: newPin.content || newPin.title,
+          type: newPin.contentType,
+          file: newPin.file,
+          language: "english",
+          tags: newPin.tags || [],
+        };
+        
+        // Call appropriate submission API based on content type
+        if (newPin.contentType === "audio") {
+          await submitVoiceNote(submissionData);
+        } else {
+          await submitArticle(submissionData);
+        }
+        alert("Submission created successfully! It will be reviewed for the Wall of Fame.");
       } else {
         // This is an admin pin creation
         const createdPin = await createWtfPin(newPin);
@@ -462,6 +482,19 @@ const WallOfFame = ({ onToggleView }) => {
                       </button>
                     </div>
                   )}
+
+                  {/* Floating Action Button for Students */}
+                  {isStudent && (
+                    <div className="fixed bottom-8 right-8 z-50">
+                      <button
+                        onClick={() => setShowCreateModal(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                        title="Create your own pin for the Wall of Fame"
+                      >
+                        <Plus className="w-6 h-6" />
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div className="text-center py-12">
@@ -512,7 +545,21 @@ const WallOfFame = ({ onToggleView }) => {
                         </div>
                       </>
                     )}
-                    {!isAdmin && !isCoach && (
+                    {isStudent && (
+                      <>
+                        <button
+                          onClick={() => setShowCreateModal(true)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors mb-3"
+                        >
+                          <Plus className="w-5 h-5 inline mr-2" />
+                          Create Pin
+                        </button>
+                        <div className="text-sm text-gray-500">
+                          💡 Share your amazing work, voice notes, or articles!
+                        </div>
+                      </>
+                    )}
+                    {!isAdmin && !isCoach && !isStudent && (
                       <div className="text-sm text-gray-500">
                         💡 Tip: Submit your voice notes or articles to be
                         featured here
@@ -585,6 +632,7 @@ const WallOfFame = ({ onToggleView }) => {
         onClose={() => setShowCreateModal(false)}
         onCreatePin={handleCreatePin}
         isCoachMode={isCoach}
+        isStudentMode={isStudent}
         userRole={isAdmin ? "admin" : isCoach ? "coach" : "student"}
       />
     </div>
