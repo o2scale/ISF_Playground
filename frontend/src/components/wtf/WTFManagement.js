@@ -928,7 +928,7 @@ const WTFManagement = ({ onToggleView }) => {
                             <Button
                               variant="outline"
                               onClick={() =>
-                                setActiveTab("student-submissions")
+                                setActiveTab("submissions")
                               }
                             >
                               <Eye className="w-4 h-4 mr-2" />
