@@ -12,6 +12,8 @@ import {
   Mic,
   Square,
   Play,
+  Trash2,
+  Pause,
 } from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog.jsx";
 import { Input } from "../ui/input.jsx";
@@ -53,6 +55,8 @@ const CreateNewPinModal = ({
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(0);
   const [audioUrl, setAudioUrl] = useState("");
+  const [currentAudio, setCurrentAudio] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   // Fetch data for coach mode
   useEffect(() => {
@@ -230,9 +234,50 @@ const CreateNewPinModal = ({
     }));
   };
 
+  // Cleanup function to stop audio and free resources
+  const cleanupAudio = () => {
+    // Stop any currently playing audio
+    if (currentAudio) {
+      currentAudio.pause();
+      currentAudio.currentTime = 0;
+      setCurrentAudio(null);
+    }
+    setIsPlaying(false);
+
+    // Stop any active recording
+    if (mediaRecorder && isRecording) {
+      mediaRecorder.stop();
+      if (mediaRecorder.stream) {
+        mediaRecorder.stream.getTracks().forEach((track) => track.stop());
+      }
+    }
+
+    // Clean up audio URL to free memory
+    if (audioUrl) {
+      URL.revokeObjectURL(audioUrl);
+    }
+  };
+
+  // Cleanup when modal closes or content type changes
+  useEffect(() => {
+    if (!isOpen || formData.contentType !== "audio") {
+      cleanupAudio();
+    }
+  }, [isOpen, formData.contentType]);
+
+  // Cleanup on component unmount
+  useEffect(() => {
+    return () => {
+      cleanupAudio();
+    };
+  }, []);
+
   // Audio recording functions
   const startRecording = async () => {
     try {
+      // Clean up any existing audio first
+      cleanupAudio();
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const recorder = new MediaRecorder(stream);
       const audioChunks = [];
@@ -297,16 +342,47 @@ const CreateNewPinModal = ({
 
   const playRecording = () => {
     if (audioUrl) {
-      const audio = new Audio(audioUrl);
-      audio.play();
+      if (isPlaying && currentAudio) {
+        // Pause current audio
+        currentAudio.pause();
+        setIsPlaying(false);
+      } else {
+        // Stop any currently playing audio
+        if (currentAudio) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+
+        // Create and play new audio
+        const audio = new Audio(audioUrl);
+        setCurrentAudio(audio);
+        setIsPlaying(true);
+
+        // Clean up when audio ends
+        audio.addEventListener("ended", () => {
+          setCurrentAudio(null);
+          setIsPlaying(false);
+        });
+
+        audio.play().catch((error) => {
+          console.error("Error playing audio:", error);
+          setCurrentAudio(null);
+          setIsPlaying(false);
+        });
+      }
     }
   };
 
   const deleteRecording = () => {
+    // Clean up audio resources
+    cleanupAudio();
+
+    // Reset audio state
     setRecordedAudio(null);
     setAudioUrl("");
     setRecordingTime(0);
     setAudioDuration(0);
+    setIsPlaying(false);
     setFormData((prev) => ({
       ...prev,
       file: null,
@@ -363,11 +439,13 @@ const CreateNewPinModal = ({
     });
 
     // Clear audio recording state
+    cleanupAudio();
     setRecordedAudio(null);
     setAudioUrl("");
     setRecordingTime(0);
     setAudioDuration(0);
     setIsRecording(false);
+    setIsPlaying(false);
   };
 
   const renderContentInput = () => {
@@ -462,17 +540,28 @@ const CreateNewPinModal = ({
                       <button
                         type="button"
                         onClick={playRecording}
-                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm"
+                        className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"
                       >
-                        <Play className="w-4 h-4 inline mr-1" />
-                        Play
+                        {isPlaying ? (
+                          <>
+                            <Pause className="w-4 h-4" />
+                            Pause
+                          </>
+                        ) : (
+                          <>
+                            <Play className="w-4 h-4" />
+                            Play
+                          </>
+                        )}
                       </button>
                       <button
                         type="button"
                         onClick={deleteRecording}
-                        className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg text-sm"
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"
+                        title="Delete recording and record again"
                       >
-                        Re-record
+                        <Trash2 className="w-4 h-4" />
+                        Delete
                       </button>
                     </div>
                   </div>
