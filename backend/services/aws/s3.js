@@ -95,7 +95,7 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
     const fileName = `wtf/${mediaType}/${pinId}_${Date.now()}${fileExtension}`;
 
     const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: process.env.AWS_S3_WTF_BUCKET_NAME,
       Key: fileName,
       Body: fileContent,
       ContentType: contentType,
@@ -110,7 +110,7 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
     await s3Client.send(command);
 
     const region = await s3Client.config.region();
-    const url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${region}.amazonaws.com/${fileName}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${fileName}`;
 
     return {
       success: true,
@@ -140,7 +140,7 @@ exports.uploadWtfVoiceNote = async (filePath, submissionId) => {
     const fileName = `wtf/voice-notes/${submissionId}_${Date.now()}${fileExtension}`;
 
     const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: process.env.AWS_S3_WTF_BUCKET_NAME,
       Key: fileName,
       Body: fileContent,
       ContentType: contentType,
@@ -155,7 +155,7 @@ exports.uploadWtfVoiceNote = async (filePath, submissionId) => {
     await s3Client.send(command);
 
     const region = await s3Client.config.region();
-    const url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${region}.amazonaws.com/${fileName}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${fileName}`;
 
     return {
       success: true,
@@ -183,7 +183,7 @@ exports.generateWtfThumbnail = async (originalKey, thumbnailKey) => {
     // In production, you might use AWS Lambda or a separate image processing service
 
     const region = await s3Client.config.region();
-    const thumbnailUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
+    const thumbnailUrl = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
 
     return {
       success: true,
@@ -205,7 +205,7 @@ exports.generateWtfThumbnail = async (originalKey, thumbnailKey) => {
 exports.deleteWtfMedia = async (key) => {
   try {
     const params = {
-      Bucket: process.env.AWS_S3_BUCKET_NAME,
+      Bucket: process.env.AWS_S3_WTF_BUCKET_NAME,
       Key: key,
     };
 
@@ -231,7 +231,7 @@ exports.deleteWtfMedia = async (key) => {
 exports.getWtfMediaUrl = async (key) => {
   try {
     const region = await s3Client.config.region();
-    const url = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
 
     return {
       success: true,

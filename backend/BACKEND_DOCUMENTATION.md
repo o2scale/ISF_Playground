@@ -274,10 +274,11 @@ MONGO_URI_LOCAL=mongodb://localhost:27017/isfplayground
 JWT_SECRET=your-super-secret-jwt-key
 NODE_ENV=development
 PORT=5001
-AWS_ACCESS_KEY_ID=your-aws-access-key
-AWS_SECRET_ACCESS_KEY=your-aws-secret-key
-AWS_REGION=us-east-1
+AWS_S3_ACCESS_KEY_ID=your-aws-access-key
+AWS_S3_SECRET_KEY=your-aws-secret-key
+AWS_S3_REGION=ap-south-1
 AWS_S3_BUCKET=your-s3-bucket-name
+AWS_S3_WTF_BUCKET_NAME=wtfpins
 ```
 
 ### Installation
