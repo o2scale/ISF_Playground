@@ -57,6 +57,8 @@ const CreateNewPinModal = ({
   const [audioUrl, setAudioUrl] = useState("");
   const [currentAudio, setCurrentAudio] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isMouseDown, setIsMouseDown] = useState(false);
+  const [recordingTimer, setRecordingTimer] = useState(null);
 
   // Fetch data for coach mode
   useEffect(() => {
@@ -252,6 +254,12 @@ const CreateNewPinModal = ({
       }
     }
 
+    // Clear recording timer
+    if (recordingTimer) {
+      clearInterval(recordingTimer);
+      setRecordingTimer(null);
+    }
+
     // Clean up audio URL to free memory
     if (audioUrl) {
       URL.revokeObjectURL(audioUrl);
@@ -260,7 +268,23 @@ const CreateNewPinModal = ({
 
   // Cleanup when modal closes or content type changes
   useEffect(() => {
-    if (!isOpen || formData.contentType !== "audio") {
+    if (!isOpen) {
+      // Clear all audio state when modal closes
+      cleanupAudio();
+      setRecordedAudio(null);
+      setAudioUrl("");
+      setRecordingTime(0);
+      setAudioDuration(0);
+      setIsRecording(false);
+      setIsPlaying(false);
+      setIsMouseDown(false);
+      // Clear form data audio file
+      setFormData((prev) => ({
+        ...prev,
+        file: null,
+      }));
+    } else if (formData.contentType !== "audio") {
+      // Only cleanup active audio when switching content types (keep recorded state)
       cleanupAudio();
     }
   }, [isOpen, formData.contentType]);
@@ -275,7 +299,16 @@ const CreateNewPinModal = ({
   // Audio recording functions
   const startRecording = async () => {
     try {
-      // Clean up any existing audio first
+      // Clean up any existing audio first (overwrite previous recording)
+      if (recordedAudio) {
+        setRecordedAudio(null);
+        setAudioUrl("");
+        setAudioDuration(0);
+        if (audioUrl) {
+          URL.revokeObjectURL(audioUrl);
+        }
+      }
+
       cleanupAudio();
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -305,6 +338,9 @@ const CreateNewPinModal = ({
           ...prev,
           file: audioFile,
         }));
+
+        // Clean up stream
+        stream.getTracks().forEach((track) => track.stop());
       });
 
       recorder.start();
@@ -316,16 +352,18 @@ const CreateNewPinModal = ({
       const timer = setInterval(() => {
         setRecordingTime((prev) => {
           if (prev >= 59) {
-            // Stop recording after 60 seconds
+            // Auto-stop at 60 seconds
             recorder.stop();
-            stream.getTracks().forEach((track) => track.stop());
             setIsRecording(false);
             clearInterval(timer);
+            setRecordingTimer(null);
             return 60;
           }
           return prev + 1;
         });
       }, 1000);
+
+      setRecordingTimer(timer);
     } catch (error) {
       console.error("Error starting recording:", error);
       alert("Could not access microphone. Please check permissions.");
@@ -335,8 +373,33 @@ const CreateNewPinModal = ({
   const stopRecording = () => {
     if (mediaRecorder && isRecording) {
       mediaRecorder.stop();
-      mediaRecorder.stream.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
+
+      // Clear timer
+      if (recordingTimer) {
+        clearInterval(recordingTimer);
+        setRecordingTimer(null);
+      }
+    }
+  };
+
+  // WhatsApp-style mouse handlers
+  const handleMouseDown = () => {
+    setIsMouseDown(true);
+    startRecording();
+  };
+
+  const handleMouseUp = () => {
+    if (isMouseDown) {
+      setIsMouseDown(false);
+      stopRecording();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (isMouseDown) {
+      setIsMouseDown(false);
+      stopRecording();
     }
   };
 
@@ -383,6 +446,7 @@ const CreateNewPinModal = ({
     setRecordingTime(0);
     setAudioDuration(0);
     setIsPlaying(false);
+    setIsMouseDown(false);
     setFormData((prev) => ({
       ...prev,
       file: null,
@@ -446,6 +510,7 @@ const CreateNewPinModal = ({
     setAudioDuration(0);
     setIsRecording(false);
     setIsPlaying(false);
+    setIsMouseDown(false);
   };
 
   const renderContentInput = () => {
@@ -502,28 +567,36 @@ const CreateNewPinModal = ({
                             {(recordingTime % 60).toString().padStart(2, "0")}
                           </>
                         ) : (
-                          "Click to start recording your voice note"
+                          "🎤 Hold down to record, release to stop (WhatsApp style)"
                         )}
                       </p>
                     </div>
                     {!isRecording ? (
                       <button
                         type="button"
-                        onClick={startRecording}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        onMouseDown={handleMouseDown}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseLeave}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors select-none"
+                        style={{ userSelect: "none" }}
                       >
                         <Mic className="w-4 h-4 inline mr-2" />
-                        Start Recording
+                        Hold to Record
                       </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={stopRecording}
-                        className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
-                      >
-                        <Square className="w-4 h-4 inline mr-2" />
-                        Stop Recording
-                      </button>
+                      <div className="space-y-2">
+                        <div className="text-sm text-gray-600">
+                          Release mouse to stop recording
+                        </div>
+                        <button
+                          type="button"
+                          onClick={stopRecording}
+                          className="bg-red-600 hover:bg-red-700 text-white px-6 py-2 rounded-lg font-medium transition-colors"
+                        >
+                          <Square className="w-4 h-4 inline mr-2" />
+                          Stop Recording
+                        </button>
+                      </div>
                     )}
                   </div>
                 ) : (
@@ -550,18 +623,18 @@ const CreateNewPinModal = ({
                         ) : (
                           <>
                             <Play className="w-4 h-4" />
-                            Play
+                            Listen to My Suggestion
                           </>
                         )}
                       </button>
                       <button
                         type="button"
-                        onClick={deleteRecording}
-                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"
-                        title="Delete recording and record again"
+                        onClick={startRecording}
+                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm flex items-center gap-1"
+                        title="Record new audio (previous will be overwritten)"
                       >
-                        <Trash2 className="w-4 h-4" />
-                        Delete
+                        <Mic className="w-4 h-4" />
+                        Record Again
                       </button>
                     </div>
                   </div>
