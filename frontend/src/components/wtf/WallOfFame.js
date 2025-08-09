@@ -11,6 +11,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
+import { useSidebar } from "../Layout";
 import CategoryButtons from "./CategoryButtons";
 import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
@@ -29,6 +30,7 @@ import {
 } from "../../api";
 
 const WallOfFame = ({ onToggleView }) => {
+  const { isSidebarCollapsed } = useSidebar();
   const [selectedContent, setSelectedContent] = useState(null);
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -284,8 +286,8 @@ const WallOfFame = ({ onToggleView }) => {
   return (
     <div className="min-h-screen bg-gray-50 flex w-full h-screen">
       {/* Left Sidebar */}
-      <div className="w-64 bg-white border-r flex-shrink-0">
-        <CoursesSection />
+      <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-white border-r flex-shrink-0 transition-all duration-300`}>
+        <CoursesSection isCollapsed={isSidebarCollapsed} />
       </div>
 
       {/* Main content area */}

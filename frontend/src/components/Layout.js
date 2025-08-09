@@ -1,10 +1,21 @@
 // src/components/Layout.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, createContext, useContext } from "react";
 import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import "./Layout.css";
 import { useAuth } from "../contexts/AuthContext";
 import { useRBAC } from "../contexts/RBACContext";
 import { usePermission } from "./hooks/usePermission";
+
+// Create Sidebar Context
+const SidebarContext = createContext();
+
+export const useSidebar = () => {
+  const context = useContext(SidebarContext);
+  if (!context) {
+    return { isSidebarCollapsed: false, toggleSidebar: () => {} };
+  }
+  return context;
+};
 
 const Layout = () => {
   const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -17,6 +28,10 @@ const Layout = () => {
   const [notifications, setNotifications] = useState(1);
   const [showChatWindow, setShowChatWindow] = useState(null); // null, "coach", or "admin"
   const [showNotifications, setShowNotifications] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+
+  // Check if current route is WTF
+  const isWTFRoute = location.pathname === "/wtf";
 
   const topMenus = [
     {
@@ -183,6 +198,28 @@ const Layout = () => {
         localStorage.getItem("role") === "coach" ||
         localStorage.getItem("role") === "student") && (
         <div className="header">
+          {/* Hamburger Menu Icon - Only show on WTF route */}
+          {isWTFRoute && (
+            <div
+              className="hamburger-row"
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                marginBottom: "5px",
+              }}
+            >
+              <button
+                className="hamburger-menu"
+                onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+                title={
+                  isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"
+                }
+              >
+                ☰
+              </button>
+            </div>
+          )}
+
           <div className="user-info" style={{ flexDirection: "row" }}>
             <h2>Hi {localStorage?.getItem("name")}</h2>
             {/* <div className="avatar">
@@ -236,7 +273,14 @@ const Layout = () => {
 
       <div className="app-container">
         <main className="main-content">
-          <Outlet />
+          <SidebarContext.Provider
+            value={{
+              isSidebarCollapsed,
+              toggleSidebar: () => setIsSidebarCollapsed(!isSidebarCollapsed),
+            }}
+          >
+            <Outlet />
+          </SidebarContext.Provider>
         </main>
       </div>
     </div>
