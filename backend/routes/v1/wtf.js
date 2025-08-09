@@ -51,6 +51,11 @@ const {
   // Admin Management Controllers
   getPinsByAuthor,
   getSubmissionStats,
+
+  // Coin Reward Controllers
+  awardCoinsForPin,
+  awardMilestoneCoins,
+  expireOldPins,
 } = require("../../controllers/wtfController");
 
 const router = express.Router();
@@ -306,6 +311,38 @@ router.get(
   authenticate,
   authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
   getSubmissionStats
+);
+
+// ==================== COIN REWARD ROUTES ====================
+
+// Award coins for pinned content (Admin only)
+router.post(
+  "/pins/:pinId/award-coins",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  awardCoinsForPin
+);
+
+// Award milestone coins for popular content (System/Admin)
+router.post(
+  "/pins/:pinId/milestone-coins",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  awardMilestoneCoins
+);
+
+// Manual trigger for pin expiration (Admin only)
+router.post(
+  "/admin/expire-pins",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  expireOldPins
 );
 
 module.exports = router;

@@ -1008,6 +1008,7 @@ describe("WtfService - Coach Suggestions", () => {
         content: "Student created beautiful artwork",
         type: "image",
         studentName: "John Doe",
+        studentId: new mongoose.Types.ObjectId(),
         balagruha: "Red House",
         suggestedBy: "Coach Smith",
         coachId: new mongoose.Types.ObjectId(),
@@ -1076,6 +1077,7 @@ describe("WtfService - Coach Suggestions", () => {
         content: "Test content",
         type: "invalid_type",
         studentName: "John Doe",
+        studentId: new mongoose.Types.ObjectId(),
         suggestedBy: "Coach Smith",
       };
 
@@ -1091,6 +1093,7 @@ describe("WtfService - Coach Suggestions", () => {
         content: "Test content",
         type: "text",
         studentName: "John Doe",
+        studentId: new mongoose.Types.ObjectId(),
         suggestedBy: "Coach Smith",
         coachId: new mongoose.Types.ObjectId(),
       };
@@ -1131,13 +1134,16 @@ describe("WtfService - Coach Suggestions", () => {
         content: "Test content",
         type: "text",
         studentName: "John Doe",
+        studentId: new mongoose.Types.ObjectId(),
         suggestedBy: "Coach Smith",
         coachId: new mongoose.Types.ObjectId(),
       };
 
       createWtfSubmission.mockRejectedValue(new Error("Database error"));
 
-      await expect(WtfService.createCoachSuggestion(validData)).rejects.toThrow("Database error");
+      await expect(WtfService.createCoachSuggestion(validData)).rejects.toThrow(
+        "Database error"
+      );
     });
 
     test("should return failed result when submission creation fails", async () => {
@@ -1146,6 +1152,7 @@ describe("WtfService - Coach Suggestions", () => {
         content: "Test content",
         type: "text",
         studentName: "John Doe",
+        studentId: new mongoose.Types.ObjectId(),
         suggestedBy: "Coach Smith",
         coachId: new mongoose.Types.ObjectId(),
       };
@@ -1169,6 +1176,7 @@ describe("WtfService - Coach Suggestions", () => {
         content: "Audio content URL",
         type: "audio",
         studentName: "John Doe",
+        studentId: new mongoose.Types.ObjectId(),
         suggestedBy: "Coach Smith",
         coachId: new mongoose.Types.ObjectId(),
         audioUrl: "https://example.com/audio.mp3",

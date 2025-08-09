@@ -1084,13 +1084,14 @@ class WtfService {
         !payload.content ||
         !payload.type ||
         !payload.suggestedBy ||
-        !payload.studentName
+        !payload.studentName ||
+        !payload.studentId
       ) {
         return {
           success: false,
           data: null,
           message:
-            "Missing required fields: title, content, type, suggestedBy, studentName",
+            "Missing required fields: title, content, type, suggestedBy, studentName, studentId",
         };
       }
 
@@ -1111,6 +1112,7 @@ class WtfService {
 
       // Create submission data for coach suggestion
       const suggestionData = {
+        studentId: payload.studentId, // Add proper student ID for submissions
         title: payload.title,
         type: submissionType,
         status: "pending", // Coach suggestions start as pending
@@ -1172,6 +1174,294 @@ class WtfService {
         "Error in createCoachSuggestion service"
       );
       throw error;
+    }
+  }
+
+  // ==================== PIN LIFECYCLE MANAGEMENT ====================
+
+  /**
+   * Automatically expire pins after one week
+   * Should be called by a scheduled job (cron/scheduler)
+   */
+  static async expireOldPins() {
+    try {
+      const oneWeekAgo = new Date();
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+      logger.info({ expirationDate: oneWeekAgo }, "Starting automatic pin expiration");
+
+      // Find pins that are older than one week and still active
+      const expiredPins = await getActivePins({
+        pinnedTimestamp: { $lt: oneWeekAgo },
+        status: "ACTIVE"
+      });
+
+      if (!expiredPins || expiredPins.length === 0) {
+        logger.info("No pins to expire");
+        return {
+          success: true,
+          expiredCount: 0,
+          message: "No pins to expire"
+        };
+      }
+
+      let expiredCount = 0;
+      const expiredPinDetails = [];
+
+      for (const pin of expiredPins) {
+        try {
+          // Update pin status to expired instead of deleting
+          const result = await updatePinStatus(pin.pinId, "EXPIRED");
+          
+          if (result.success) {
+            expiredCount++;
+            expiredPinDetails.push({
+              pinId: pin.pinId,
+              title: pin.title,
+              pinnedDate: pin.pinnedTimestamp
+            });
+
+            logger.info({
+              pinId: pin.pinId,
+              title: pin.title,
+              pinnedDate: pin.pinnedTimestamp
+            }, "Pin expired due to age limit");
+          }
+        } catch (error) {
+          errorLogger.error({
+            error: error.message,
+            pinId: pin.pinId
+          }, "Error expiring individual pin");
+        }
+      }
+
+      logger.info({
+        totalExpired: expiredCount,
+        totalProcessed: expiredPins.length
+      }, "Pin expiration completed");
+
+      return {
+        success: true,
+        expiredCount,
+        totalProcessed: expiredPins.length,
+        expiredPins: expiredPinDetails,
+        message: `${expiredCount} pins expired automatically`
+      };
+
+    } catch (error) {
+      errorLogger.error({
+        error: error.message
+      }, "Error in automatic pin expiration");
+      
+      throw error;
+    }
+  }
+
+  /**
+   * Clean up expired pins to make room for new ones
+   * Called when the softboard is full (15-20 pins)
+   */
+  static async cleanupExpiredPins() {
+    try {
+      const activePins = await getActivePins({
+        status: "ACTIVE"
+      });
+
+      // If we have more than 20 active pins, expire the oldest ones
+      if (activePins && activePins.length > 20) {
+        const pinsToExpire = activePins
+          .sort((a, b) => new Date(a.pinnedTimestamp) - new Date(b.pinnedTimestamp))
+          .slice(0, activePins.length - 15); // Keep only 15 most recent
+
+        let cleanedCount = 0;
+
+        for (const pin of pinsToExpire) {
+          const result = await updatePinStatus(pin.pinId, "EXPIRED");
+          if (result.success) {
+            cleanedCount++;
+          }
+        }
+
+        logger.info({
+          totalActive: activePins.length,
+          cleaned: cleanedCount
+        }, "Cleaned up old pins to make room for new ones");
+
+        return {
+          success: true,
+          cleanedCount,
+          message: `${cleanedCount} old pins cleaned up`
+        };
+      }
+
+      return {
+        success: true,
+        cleanedCount: 0,
+        message: "No cleanup needed"
+      };
+
+    } catch (error) {
+      errorLogger.error({
+        error: error.message
+      }, "Error in pin cleanup");
+      
+      throw error;
+    }
+  }
+
+  // ==================== ISF COINS AUTO-ASSIGNMENT ====================
+
+  /**
+   * Award ISF Coins to students when their content gets pinned
+   * Called when admin pins student work to WTF
+   */
+  static async awardCoinsForPinnedContent(pinData) {
+    try {
+      if (!pinData.originalAuthor?.userId || pinData.originalAuthor?.type !== "STUDENT") {
+        logger.info("No coin award - not student content", { pinData: pinData.pinId });
+        return { success: true, message: "Not student content - no coins awarded" };
+      }
+
+      const studentId = pinData.originalAuthor.userId;
+      const coinReward = this.calculateCoinReward(pinData.contentType);
+
+      if (coinReward <= 0) {
+        return { success: true, message: "No coins configured for this content type" };
+      }
+
+      // Award coins using the coin service
+      const coinResult = await CoinService.addCoins(
+        studentId,
+        coinReward,
+        "WTF_CONTENT_PINNED",
+        `Your ${pinData.contentType.toLowerCase()} "${pinData.title}" was featured on WTF!`,
+        {
+          pinId: pinData.pinId,
+          contentType: pinData.contentType,
+          pinnedBy: pinData.pinnedBy.adminId,
+        }
+      );
+
+      if (coinResult.success) {
+        logger.info({
+          studentId,
+          pinId: pinData.pinId,
+          coinsAwarded: coinReward,
+          contentType: pinData.contentType,
+        }, "ISF Coins awarded for pinned content");
+
+        return {
+          success: true,
+          coinsAwarded: coinReward,
+          message: `${coinReward} ISF Coins awarded to student for pinned content`,
+        };
+      }
+
+      return coinResult;
+    } catch (error) {
+      errorLogger.error({
+        error: error.message,
+        pinData: pinData?.pinId,
+      }, "Error awarding coins for pinned content");
+      
+      // Don't throw - coin awards shouldn't block pin creation
+      return {
+        success: false,
+        message: "Error awarding coins",
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Calculate coin reward based on content type
+   */
+  static calculateCoinReward(contentType) {
+    const coinRewards = {
+      IMAGE: 50,    // Student artwork/drawings
+      VIDEO: 100,   // Spoken English performances, student videos
+      AUDIO: 75,    // Voice notes, student recordings
+      TEXT: 25,     // Student articles/stories
+    };
+
+    return coinRewards[contentType] || 0;
+  }
+
+  /**
+   * Award coins for highly liked content (milestone rewards)
+   */
+  static async awardMilestoneCoins(pinId, likeCount, likeType = "total") {
+    try {
+      // Get pin data
+      const pin = await getWtfPinById(pinId);
+      if (!pin || !pin.originalAuthor?.userId || pin.originalAuthor?.type !== "STUDENT") {
+        return { success: true, message: "Not student content - no milestone coins" };
+      }
+
+      const milestones = [10, 25, 50, 100]; // Like count milestones
+      const milestoneRewards = [25, 50, 100, 200]; // Corresponding coin rewards
+
+      let totalMilestoneCoins = 0;
+
+      for (let i = 0; i < milestones.length; i++) {
+        const milestone = milestones[i];
+        const reward = milestoneRewards[i];
+
+        if (likeCount >= milestone) {
+          // Check if we've already awarded this milestone
+          const existingReward = await CoinService.checkExistingReward(
+            pin.originalAuthor.userId,
+            `WTF_MILESTONE_${milestone}`,
+            { pinId }
+          );
+
+          if (!existingReward) {
+            const coinResult = await CoinService.addCoins(
+              pin.originalAuthor.userId,
+              reward,
+              `WTF_MILESTONE_${milestone}`,
+              `Your content "${pin.title}" reached ${milestone} likes!`,
+              {
+                pinId,
+                milestone,
+                likeCount,
+                likeType,
+              }
+            );
+
+            if (coinResult.success) {
+              totalMilestoneCoins += reward;
+              logger.info({
+                studentId: pin.originalAuthor.userId,
+                pinId,
+                milestone,
+                coinsAwarded: reward,
+                totalLikes: likeCount,
+              }, "Milestone coins awarded for popular content");
+            }
+          }
+        }
+      }
+
+      return {
+        success: true,
+        coinsAwarded: totalMilestoneCoins,
+        message: totalMilestoneCoins > 0 
+          ? `${totalMilestoneCoins} milestone coins awarded` 
+          : "No new milestones reached",
+      };
+    } catch (error) {
+      errorLogger.error({
+        error: error.message,
+        pinId,
+        likeCount,
+      }, "Error awarding milestone coins");
+      
+      return {
+        success: false,
+        message: "Error awarding milestone coins",
+        error: error.message,
+      };
     }
   }
 }

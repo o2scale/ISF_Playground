@@ -1780,3 +1780,201 @@ exports.createCoachSuggestion = async (req, res) => {
       .json({ success: false, message: error.message });
   }
 };
+
+// ==================== COIN REWARD CONTROLLERS ====================
+
+// Award coins for pinned content (called after admin pins student work)
+exports.awardCoinsForPin = async (req, res) => {
+  try {
+    const { pinId } = req.params;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        pinId,
+        adminId: req.user?.id,
+      },
+      `Request received to award coins for pinned content`
+    );
+
+    // Get pin data first
+    const pinResult = await WtfService.getPinById(pinId);
+    if (!pinResult.success) {
+      return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
+        success: false,
+        message: "Pin not found"
+      });
+    }
+
+    // Award coins for the pinned content
+    const result = await WtfService.awardCoinsForPinnedContent(pinResult.data);
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          pinId,
+          coinsAwarded: result.coinsAwarded,
+          adminId: req.user?.id,
+        },
+        `Successfully awarded coins for pinned content`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          pinId,
+          adminId: req.user?.id,
+        },
+        `Failed to award coins for pinned content`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        pinId: req.params.pinId,
+        adminId: req.user?.id,
+      },
+      `Error occurred while awarding coins for pinned content`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Award milestone coins for highly liked content
+exports.awardMilestoneCoins = async (req, res) => {
+  try {
+    const { pinId } = req.params;
+    const { likeCount, likeType } = req.body;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        pinId,
+        likeCount,
+        likeType,
+        userId: req.user?.id,
+      },
+      `Request received to award milestone coins`
+    );
+
+    const result = await WtfService.awardMilestoneCoins(pinId, likeCount, likeType);
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          pinId,
+          coinsAwarded: result.coinsAwarded,
+          userId: req.user?.id,
+        },
+        `Successfully processed milestone coins`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          pinId,
+          userId: req.user?.id,
+        },
+        `Failed to award milestone coins`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        pinId: req.params.pinId,
+        userId: req.user?.id,
+      },
+      `Error occurred while awarding milestone coins`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Manual trigger for pin expiration (admin function)
+exports.expireOldPins = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Manual pin expiration triggered by admin`
+    );
+
+    const result = await WtfService.expireOldPins();
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          expiredCount: result.expiredCount,
+          adminId: req.user?.id,
+        },
+        `Successfully expired old pins`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          adminId: req.user?.id,
+        },
+        `Failed to expire old pins`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while expiring old pins`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};

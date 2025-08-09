@@ -220,41 +220,20 @@ class SchedulerService {
   // Process expired pins
   async processExpiredPins() {
     try {
-      // Get expired pins
-      const expiredPinsResult = await getExpiredPins();
+      // Use the new WTF service method for expiring old pins
+      const result = await WtfService.expireOldPins();
 
-      if (!expiredPinsResult.success || expiredPinsResult.data.length === 0) {
-        logger.info("No expired pins found");
-        return { expiredPinsCount: 0 };
-      }
-
-      const expiredPinIds = expiredPinsResult.data.map((pin) => pin._id);
-
-      // Update expired pins to "unpinned" status
-      const updateResult = await bulkUpdatePinStatus(expiredPinIds, "unpinned");
-
-      if (updateResult.success) {
-        logger.info(
-          { expiredPinsCount: expiredPinIds.length },
-          "Successfully unpinned expired pins"
+      if (result.success && result.expiredCount > 0) {
+        schedulerLogger.info(
+          { 
+            expiredPinsCount: result.expiredCount,
+            totalProcessed: result.totalProcessed 
+          },
+          "Successfully expired old pins using WTF service"
         );
-
-        // Log detailed information about expired pins
-        expiredPinsResult.data.forEach((pin) => {
-          logger.info(
-            {
-              pinId: pin._id,
-              title: pin.title,
-              author: pin.author,
-              createdAt: pin.createdAt,
-              expiresAt: pin.expiresAt,
-            },
-            "Pin expired and unpinned"
-          );
-        });
       }
 
-      return { expiredPinsCount: expiredPinIds.length };
+      return { expiredPinsCount: result.expiredCount || 0 };
     } catch (error) {
       errorLogger.error(
         { error: error.message },
