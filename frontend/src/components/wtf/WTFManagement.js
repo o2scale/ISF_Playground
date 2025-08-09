@@ -386,8 +386,8 @@ const WTFManagement = ({ onToggleView }) => {
   ).length; // Real data from API
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 w-full">
-      <div className="max-w-screen-xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-6 w-full pb-8">
+      <div className="max-w-screen-xl mx-auto pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">

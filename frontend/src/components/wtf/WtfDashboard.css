@@ -2,7 +2,7 @@
 .wtf-dashboard {
   background-color: #f9fafb;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
@@ -10,15 +10,17 @@
 .wtf-management {
   background-color: #f9fafb;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
+  padding-bottom: 2rem;
 }
 
 .wtf-submit {
   background-color: #f9fafb;
   width: 100%;
-  height: 100vh;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -32,5 +34,7 @@
 .main-content:has(.wtf-submit) {
   padding: 0 !important;
   width: 100% !important;
-  height: 100vh !important;
+  height: auto !important;
+  min-height: 100vh !important;
+  overflow-y: auto !important;
 }
