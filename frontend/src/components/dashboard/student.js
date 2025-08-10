@@ -450,12 +450,17 @@ function StudentDashboard() {
             </div>
           </div>
 
-          {/* Study and Shop */}
+          {/* Study, Shop, and WTF */}
           <div className="study-shop-section">
             <div className="action-buttons">
               <button className="action-btn homework-btn">Homework</button>
-
               <button className="action-btn shop-btn">ISF Shop</button>
+              <button
+                className="action-btn wtf-btn"
+                onClick={() => (window.location.href = "/wtf")}
+              >
+                🎉 WTF
+              </button>
             </div>
           </div>
         </div>

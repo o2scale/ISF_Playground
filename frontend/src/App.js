@@ -23,6 +23,7 @@ import PermissionDebugger from "./PermissionDebugger";
 import BalagruhaDashboard from "./components/dashboard/balagruha";
 import AttendanceComponent from "./components/Attendance/attendance";
 import BalagruhaManagement from "./components/balagruhaManagement/balagruhamanagement";
+import WtfDashboard from "./components/wtf/WtfDashboard";
 
 const App = () => {
   return (
@@ -105,6 +106,16 @@ const App = () => {
                     // <ProtectedRoute module="Machine Management" action="Read">
                     <AttendanceComponent />
                     // </ProtectedRoute>
+                  }
+                />
+
+                {/* WTF (Wall of Fame) Route */}
+                <Route
+                  path="/wtf"
+                  element={
+                    <ProtectedRoute>
+                      <WtfDashboard />
+                    </ProtectedRoute>
                   }
                 />
 

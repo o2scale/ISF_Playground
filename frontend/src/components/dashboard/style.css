@@ -377,6 +377,18 @@
   transform: scale(1.05);
 }
 
+.action-btn.wtf-btn {
+  background: linear-gradient(45deg, #667eea, #764ba2);
+  color: white;
+  font-weight: bold;
+}
+
+.action-btn.wtf-btn:hover {
+  background: linear-gradient(45deg, #5a6fd8, #6a4190);
+  transform: scale(1.05);
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+}
+
 /* Right panel */
 .right-panel {
   width: 70%;

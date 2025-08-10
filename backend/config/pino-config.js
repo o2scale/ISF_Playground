@@ -82,7 +82,67 @@ errorLogger = pino(
   pino.multistream(logStreams)
 );
 
+// Create WTF-specific logger
+const wtfLogger = pino(
+  {
+    level: "info",
+    source: "WTF",
+    timestamp: pino.stdTimeFunctions.isoTime,
+    redact: ["req"],
+  },
+  pino.multistream([
+    { stream: process.stdout },
+    {
+      stream: pino.destination({
+        dest: path.join(logsDir, "wtf-events.log"),
+        sync: true,
+      }),
+    },
+  ])
+);
+
+// Create lifecycle logger
+const lifecycleLogger = pino(
+  {
+    level: "info",
+    source: "LIFECYCLE",
+    timestamp: pino.stdTimeFunctions.isoTime,
+    redact: ["req"],
+  },
+  pino.multistream([
+    { stream: process.stdout },
+    {
+      stream: pino.destination({
+        dest: path.join(logsDir, "lifecycle-events.log"),
+        sync: true,
+      }),
+    },
+  ])
+);
+
+// Create scheduler logger
+const schedulerLogger = pino(
+  {
+    level: "info",
+    source: "SCHEDULER",
+    timestamp: pino.stdTimeFunctions.isoTime,
+    redact: ["req"],
+  },
+  pino.multistream([
+    { stream: process.stdout },
+    {
+      stream: pino.destination({
+        dest: path.join(logsDir, "scheduler-events.log"),
+        sync: true,
+      }),
+    },
+  ])
+);
+
 module.exports = {
   logger,
   errorLogger,
+  wtfLogger,
+  lifecycleLogger,
+  schedulerLogger,
 };

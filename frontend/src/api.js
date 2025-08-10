@@ -536,3 +536,437 @@ export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
     throw error;
   }
 };
+
+// ==================== WTF API FUNCTIONS ====================
+
+// Pin Management APIs
+export const createWtfPin = async (data) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating WTF pin:", error);
+    throw error;
+  }
+};
+
+export const getActiveWtfPins = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/active`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching active WTF pins:", error);
+    throw error;
+  }
+};
+
+export const createCoachSuggestion = async (suggestionData) => {
+  try {
+    const formData = new FormData();
+
+    // Add all the suggestion data
+    formData.append("title", suggestionData.title);
+    formData.append("content", suggestionData.content || "");
+    formData.append("type", suggestionData.type);
+    formData.append("studentName", suggestionData.studentName);
+    formData.append("studentId", suggestionData.studentId);
+    formData.append("balagruha", suggestionData.balagruha || "");
+    formData.append("reason", suggestionData.reason);
+
+    // Add file if present
+    if (suggestionData.file) {
+      formData.append("file", suggestionData.file);
+    }
+
+    const response = await api.post("/api/v1/wtf/coach-suggestions", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error creating coach suggestion:", error);
+    throw error;
+  }
+};
+
+export const getWtfPinById = async (pinId) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/${pinId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF pin by ID:", error);
+    throw error;
+  }
+};
+
+export const updateWtfPin = async (pinId, data) => {
+  try {
+    const response = await api.put(`/api/v1/wtf/pins/${pinId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating WTF pin:", error);
+    throw error;
+  }
+};
+
+export const deleteWtfPin = async (pinId) => {
+  try {
+    const response = await api.delete(`/api/v1/wtf/pins/${pinId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting WTF pin:", error);
+    throw error;
+  }
+};
+
+// WTF Settings API
+export const getWtfSettings = async () => {
+  try {
+    const response = await api.get("/api/v1/wtf/settings/current");
+    return response.data;
+  } catch (error) {
+    console.error("Error getting WTF settings:", error);
+    throw error;
+  }
+};
+
+export const updateWtfSettings = async (settings) => {
+  try {
+    const response = await api.put("/api/v1/wtf/settings/update", settings);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating WTF settings:", error);
+    throw error;
+  }
+};
+
+export const uploadWtfBackgroundImage = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("backgroundImage", file);
+
+    const response = await api.post(
+      "/api/v1/wtf/settings/background-image",
+      formData,
+      {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error uploading WTF background image:", error);
+    throw error;
+  }
+};
+
+export const getWtfSettingsHistory = async (page = 1, limit = 10) => {
+  try {
+    const response = await api.get(
+      `/api/v1/wtf/settings/history?page=${page}&limit=${limit}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error getting WTF settings history:", error);
+    throw error;
+  }
+};
+
+export const changeWtfPinStatus = async (pinId, status) => {
+  try {
+    const response = await api.patch(`/api/v1/wtf/pins/${pinId}/status`, {
+      status,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error changing WTF pin status:", error);
+    throw error;
+  }
+};
+
+// Interaction APIs
+export const likeWtfPin = async (pinId) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/like`);
+    return response.data;
+  } catch (error) {
+    console.error("Error liking WTF pin:", error);
+    throw error;
+  }
+};
+
+export const markWtfPinAsSeen = async (pinId) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/seen`);
+    return response.data;
+  } catch (error) {
+    console.error("Error marking WTF pin as seen:", error);
+    throw error;
+  }
+};
+
+export const getWtfPinInteractions = async (pinId) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/${pinId}/interactions`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF pin interactions:", error);
+    throw error;
+  }
+};
+
+// Submission APIs
+export const submitVoiceNote = async (data) => {
+  try {
+    const response = await apiWithoutContentType.post(
+      `/api/v1/wtf/submissions/voice`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting voice note:", error);
+    throw error;
+  }
+};
+
+export const submitArticle = async (data) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/submissions/article`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting article:", error);
+    throw error;
+  }
+};
+
+export const getSubmissionsForReview = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/submissions/review`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching submissions for review:", error);
+    throw error;
+  }
+};
+
+export const reviewSubmission = async (submissionId, data) => {
+  try {
+    const response = await api.post(
+      `/api/v1/wtf/submissions/${submissionId}/review`,
+      data
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error reviewing submission:", error);
+    throw error;
+  }
+};
+
+// Analytics APIs
+export const getWtfAnalytics = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF analytics:", error);
+    throw error;
+  }
+};
+
+export const getWtfInteractionAnalytics = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics/interactions`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF interaction analytics:", error);
+    throw error;
+  }
+};
+
+export const getWtfSubmissionAnalytics = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics/submissions`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF submission analytics:", error);
+    throw error;
+  }
+};
+
+// Student Management APIs
+export const getStudentSubmissions = async (studentId, params = {}) => {
+  try {
+    const response = await api.get(
+      `/api/v1/wtf/students/${studentId}/submissions`,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student submissions:", error);
+    throw error;
+  }
+};
+
+export const getStudentInteractionHistory = async (studentId, params = {}) => {
+  try {
+    const response = await api.get(
+      `/api/v1/wtf/students/${studentId}/interactions`,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student interaction history:", error);
+    throw error;
+  }
+};
+
+// Admin Management APIs
+export const getPinsByAuthor = async (authorId, params = {}) => {
+  try {
+    const response = await api.get(
+      `/api/v1/wtf/admin/pins/author/${authorId}`,
+      { params }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pins by author:", error);
+    throw error;
+  }
+};
+
+export const getSubmissionStats = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/submissions/stats`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching submission stats:", error);
+    throw error;
+  }
+};
+
+// WebSocket APIs
+export const getWebSocketStatus = async () => {
+  try {
+    const response = await api.get(`/api/v1/websocket/status`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WebSocket status:", error);
+    throw error;
+  }
+};
+
+// WTF Transaction History
+export const getWtfTransactionHistory = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/coins/wtf/transactions`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF transaction history:", error);
+    throw error;
+  }
+};
+
+// Admin Control Counts
+export const getWtfAdminCounts = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/counts`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF admin counts:", error);
+    throw error;
+  }
+};
+
+// Get submission statistics
+export const getWtfSubmissionStats = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/admin/submissions/stats`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF submission stats:", error);
+    throw error;
+  }
+};
+
+// Get pending submissions count
+export const getPendingSubmissionsCount = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/submissions/review`, {
+      params: { page: 1, limit: 1 },
+    });
+    return response.data?.pagination?.total || 0;
+  } catch (error) {
+    console.error("Error fetching pending submissions count:", error);
+    throw error;
+  }
+};
+
+// WTF Dashboard Metrics
+export const getWtfDashboardMetrics = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/dashboard/metrics`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF dashboard metrics:", error);
+    throw error;
+  }
+};
+
+// Get active pins count
+export const getActivePinsCount = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/active/count`);
+    return response.data?.data || 0;
+  } catch (error) {
+    console.error("Error fetching active pins count:", error);
+    throw error;
+  }
+};
+
+// Get total engagement (views)
+export const getWtfTotalEngagement = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/analytics/engagement`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF total engagement:", error);
+    throw error;
+  }
+};
+
+// Get coach suggestions count
+export const getCoachSuggestionsCount = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/coach-suggestions/count`);
+    return response.data?.data?.pendingCount || 0;
+  } catch (error) {
+    console.error("Error fetching coach suggestions count:", error);
+    throw error;
+  }
+};
+
+// Get coach suggestions
+export const getCoachSuggestions = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/coach-suggestions`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coach suggestions:", error);
+    throw error;
+  }
+};
