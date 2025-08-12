@@ -225,9 +225,9 @@ class SchedulerService {
 
       if (result.success && result.expiredCount > 0) {
         schedulerLogger.info(
-          { 
+          {
             expiredPinsCount: result.expiredCount,
-            totalProcessed: result.totalProcessed 
+            totalProcessed: result.totalProcessed,
           },
           "Successfully expired old pins using WTF service"
         );
@@ -243,44 +243,116 @@ class SchedulerService {
     }
   }
 
-  // Process FIFO management
+  // Process FIFO management - delete oldest pins when board exceeds 20 pins
   async processFifoManagement() {
     try {
       // Get pins for FIFO management (beyond 20 active pins limit)
       const fifoPinsResult = await getPinsForFifoManagement();
 
       if (!fifoPinsResult.success || fifoPinsResult.data.length === 0) {
-        logger.info("No pins need FIFO management");
-        return { fifoPinsCount: 0 };
+        logger.info(
+          "No pins need FIFO management - board has 20 or fewer active pins"
+        );
+        return { deletedPinsCount: 0 };
       }
 
-      const fifoPinIds = fifoPinsResult.data.map((pin) => pin._id);
+      const pinsToDelete = fifoPinsResult.data;
+      let deletedCount = 0;
+      const deletedPinDetails = [];
+      const failedDeletions = [];
 
-      // Update FIFO pins to "unpinned" status
-      const updateResult = await bulkUpdatePinStatus(fifoPinIds, "unpinned");
+      logger.info(
+        {
+          pinsToDeleteCount: pinsToDelete.length,
+          reason: "Board exceeded 20 active pins limit",
+        },
+        "Starting FIFO pin deletion process"
+      );
 
-      if (updateResult.success) {
-        logger.info(
-          { fifoPinsCount: fifoPinIds.length },
-          "Successfully unpinned FIFO pins"
-        );
-
-        // Log detailed information about FIFO pins
-        fifoPinsResult.data.forEach((pin) => {
+      // Delete each pin (including S3 files) using WtfService.deletePin
+      for (const pin of pinsToDelete) {
+        try {
           logger.info(
             {
               pinId: pin._id,
               title: pin.title,
-              author: pin.author,
               createdAt: pin.createdAt,
-              status: pin.status,
+              author: pin.author?.name || "Unknown",
             },
-            "Pin removed due to FIFO management"
+            "Deleting oldest pin for FIFO management"
           );
-        });
+
+          // Use WtfService.deletePin for proper S3 cleanup
+          const deleteResult = await WtfService.deletePin(pin._id);
+
+          if (deleteResult.success) {
+            deletedCount++;
+            deletedPinDetails.push({
+              pinId: pin._id,
+              title: pin.title,
+              createdAt: pin.createdAt,
+              author: pin.author?.name || "Unknown",
+              s3DeletionResults: deleteResult.s3DeletionResults,
+            });
+
+            logger.info(
+              {
+                pinId: pin._id,
+                title: pin.title,
+                createdAt: pin.createdAt,
+                s3FilesDeleted: deleteResult.s3DeletionResults?.length || 0,
+              },
+              "Pin deleted due to FIFO management (board full)"
+            );
+          } else {
+            failedDeletions.push({
+              pinId: pin._id,
+              title: pin.title,
+              error: deleteResult.message,
+            });
+
+            logger.error(
+              {
+                pinId: pin._id,
+                title: pin.title,
+                error: deleteResult.message,
+              },
+              "Failed to delete pin during FIFO management"
+            );
+          }
+        } catch (error) {
+          errorLogger.error(
+            {
+              error: error.message,
+              pinId: pin._id,
+              title: pin.title,
+            },
+            "Error deleting pin during FIFO management"
+          );
+          failedDeletions.push({
+            pinId: pin._id,
+            title: pin.title,
+            error: error.message,
+          });
+        }
       }
 
-      return { fifoPinsCount: fifoPinIds.length };
+      logger.info(
+        {
+          totalDeleted: deletedCount,
+          totalProcessed: pinsToDelete.length,
+          failedDeletions: failedDeletions.length,
+        },
+        "FIFO management process completed"
+      );
+
+      return {
+        deletedPinsCount: deletedCount,
+        totalProcessed: pinsToDelete.length,
+        deletedPins: deletedPinDetails,
+        failedDeletions,
+        message: `${deletedCount} oldest pins deleted to maintain 20-pin limit`,
+      };
     } catch (error) {
       errorLogger.error(
         { error: error.message },

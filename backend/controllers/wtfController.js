@@ -2072,3 +2072,191 @@ exports.expireOldPins = async (req, res) => {
       .json({ success: false, message: error.message });
   }
 };
+
+// ==================== SCHEDULER MANAGEMENT CONTROLLERS ====================
+
+// Manually trigger pin expiration process
+exports.triggerPinExpiration = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Admin manually triggered pin expiration process`
+    );
+
+    const result = await WtfService.expireOldPins();
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          adminId: req.user?.id,
+          expiredCount: result.expiredCount,
+          totalProcessed: result.totalProcessed,
+        },
+        `Pin expiration process completed successfully`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          adminId: req.user?.id,
+        },
+        `Pin expiration process failed`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while triggering pin expiration`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Manually trigger FIFO management process
+exports.triggerFifoManagement = async (req, res) => {
+  try {
+    const SchedulerService = require("../services/scheduler");
+    const schedulerService = new SchedulerService();
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Admin manually triggered FIFO management process`
+    );
+
+    const result = await schedulerService.processFifoManagement();
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+        deletedPinsCount: result.deletedPinsCount,
+        totalProcessed: result.totalProcessed,
+      },
+      `FIFO management process completed`
+    );
+
+    res.status(HTTP_STATUS_CODE.OK).json({
+      success: true,
+      data: result,
+      message: result.message || "FIFO management process completed",
+    });
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while triggering FIFO management`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Get scheduler status and next run times
+exports.getSchedulerStatus = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Admin requested scheduler status`
+    );
+
+    // Get current active pins count for FIFO status
+    const activePinsResult = await WtfService.getActivePinsCount();
+    const activePinsCount = activePinsResult.success
+      ? activePinsResult.data
+      : 0;
+
+    // Get expired pins count
+    const { getExpiredPins } = require("../data-access/wtfPin");
+    const expiredPinsResult = await getExpiredPins();
+    const expiredPinsCount = expiredPinsResult.success
+      ? expiredPinsResult.data.length
+      : 0;
+
+    const status = {
+      activePins: {
+        count: activePinsCount,
+        limit: 20,
+        needsFifoCleanup: activePinsCount > 20,
+        excessPins: Math.max(0, activePinsCount - 20),
+      },
+      expiredPins: {
+        count: expiredPinsCount,
+        cutoffDate: expiredPinsResult.expirationCutoff,
+        needsCleanup: expiredPinsCount > 0,
+      },
+      scheduledJobs: {
+        pinExpiration: {
+          schedule: "0 * * * *", // Every hour
+          description: "Deletes pins older than 7 days (including S3 files)",
+        },
+        fifoManagement: {
+          schedule: "*/30 * * * *", // Every 30 minutes
+          description: "Deletes oldest pins when board exceeds 20 pins",
+        },
+        weeklyCleanup: {
+          schedule: "0 2 * * 0", // Sunday at 2 AM
+          description: "Weekly maintenance and cleanup",
+        },
+      },
+    };
+
+    res.status(HTTP_STATUS_CODE.OK).json({
+      success: true,
+      data: status,
+      message: "Scheduler status retrieved successfully",
+    });
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while getting scheduler status`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};

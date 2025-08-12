@@ -222,18 +222,24 @@ exports.getPinsByAuthor = async (
   }
 };
 
-// Get expired pins for cleanup
+// Get expired pins for cleanup (pins older than 7 days)
 exports.getExpiredPins = async () => {
   try {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
     const pins = await WtfPin.find({
       status: "active",
-      expiresAt: { $lte: new Date() },
-    }).lean();
+      createdAt: { $lte: oneWeekAgo },
+    })
+      .populate("author", "name role")
+      .lean();
 
     return {
       success: true,
       data: pins,
       message: "Expired pins fetched successfully",
+      expirationCutoff: oneWeekAgo,
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in getExpiredPins");

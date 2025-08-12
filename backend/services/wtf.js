@@ -3,7 +3,7 @@ const { default: mongoose } = require("mongoose");
 const fs = require("fs");
 const CoinService = require("./coin");
 const wtfWebSocketService = require("./wtfWebSocket");
-const { uploadWtfMedia } = require("./aws/s3");
+const { uploadWtfMedia, deleteWtfMedia } = require("./aws/s3");
 
 // Import data access methods
 const {
@@ -440,7 +440,130 @@ class WtfService {
         };
       }
 
+      // First, get the pin data to access media URLs before deletion
+      const pinResult = await getWtfPinById(pinId);
+      if (!pinResult.success) {
+        return {
+          success: false,
+          data: null,
+          message: "Pin not found",
+        };
+      }
+
+      const pin = pinResult.data;
+      logger.info(
+        {
+          pinId,
+          title: pin.title,
+          mediaUrl: pin.mediaUrl,
+          thumbnailUrl: pin.thumbnailUrl,
+        },
+        "Deleting pin and associated media files"
+      );
+
+      // Delete associated S3 files if they exist
+      const s3DeletionResults = [];
+
+      // Delete main media file
+      if (pin.mediaUrl && pin.mediaUrl.includes("s3.")) {
+        try {
+          const mediaDeleteResult = await deleteWtfMedia(pin.mediaUrl);
+          s3DeletionResults.push({
+            type: "media",
+            url: pin.mediaUrl,
+            result: mediaDeleteResult,
+          });
+
+          if (mediaDeleteResult.success) {
+            logger.info(
+              { pinId, mediaUrl: pin.mediaUrl },
+              "Successfully deleted main media file from S3"
+            );
+          } else {
+            logger.warn(
+              {
+                pinId,
+                mediaUrl: pin.mediaUrl,
+                error: mediaDeleteResult.message,
+              },
+              "Failed to delete main media file from S3"
+            );
+          }
+        } catch (s3Error) {
+          logger.warn(
+            { pinId, mediaUrl: pin.mediaUrl, error: s3Error.message },
+            "Error deleting main media file from S3"
+          );
+          s3DeletionResults.push({
+            type: "media",
+            url: pin.mediaUrl,
+            result: { success: false, error: s3Error.message },
+          });
+        }
+      }
+
+      // Delete thumbnail file if different from main media
+      if (
+        pin.thumbnailUrl &&
+        pin.thumbnailUrl.includes("s3.") &&
+        pin.thumbnailUrl !== pin.mediaUrl
+      ) {
+        try {
+          const thumbnailDeleteResult = await deleteWtfMedia(pin.thumbnailUrl);
+          s3DeletionResults.push({
+            type: "thumbnail",
+            url: pin.thumbnailUrl,
+            result: thumbnailDeleteResult,
+          });
+
+          if (thumbnailDeleteResult.success) {
+            logger.info(
+              { pinId, thumbnailUrl: pin.thumbnailUrl },
+              "Successfully deleted thumbnail file from S3"
+            );
+          } else {
+            logger.warn(
+              {
+                pinId,
+                thumbnailUrl: pin.thumbnailUrl,
+                error: thumbnailDeleteResult.message,
+              },
+              "Failed to delete thumbnail file from S3"
+            );
+          }
+        } catch (s3Error) {
+          logger.warn(
+            { pinId, thumbnailUrl: pin.thumbnailUrl, error: s3Error.message },
+            "Error deleting thumbnail file from S3"
+          );
+          s3DeletionResults.push({
+            type: "thumbnail",
+            url: pin.thumbnailUrl,
+            result: { success: false, error: s3Error.message },
+          });
+        }
+      }
+
+      // Delete the pin from database
       const result = await deleteWtfPin(pinId);
+
+      if (result.success) {
+        logger.info(
+          {
+            pinId,
+            title: pin.title,
+            s3DeletionResults,
+          },
+          "Pin and associated files deleted successfully"
+        );
+
+        // Include S3 deletion results in response
+        return {
+          ...result,
+          s3DeletionResults,
+        };
+      }
+
       return result;
     } catch (error) {
       errorLogger.error({ error: error.message }, "Error in deletePin service");
@@ -1383,84 +1506,114 @@ class WtfService {
   // ==================== PIN LIFECYCLE MANAGEMENT ====================
 
   /**
-   * Automatically expire pins after one week
+   * Automatically delete pins after one week (including S3 files)
    * Should be called by a scheduled job (cron/scheduler)
    */
   static async expireOldPins() {
     try {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      logger.info("Starting automatic pin expiration process");
 
-      logger.info(
-        { expirationDate: oneWeekAgo },
-        "Starting automatic pin expiration"
-      );
+      // Get expired pins using the updated data access method
+      const expiredPinsResult = await getExpiredPins();
 
-      // Find pins that are older than one week and still active
-      const expiredPins = await getActivePins({
-        pinnedTimestamp: { $lt: oneWeekAgo },
-        status: "ACTIVE",
-      });
-
-      if (!expiredPins || expiredPins.length === 0) {
+      if (!expiredPinsResult.success || expiredPinsResult.data.length === 0) {
         logger.info("No pins to expire");
         return {
           success: true,
           expiredCount: 0,
           message: "No pins to expire",
+          expirationCutoff: expiredPinsResult.expirationCutoff,
         };
       }
 
-      let expiredCount = 0;
-      const expiredPinDetails = [];
+      const expiredPins = expiredPinsResult.data;
+      let deletedCount = 0;
+      const deletedPinDetails = [];
+      const failedDeletions = [];
+
+      logger.info(
+        {
+          expiredPinsCount: expiredPins.length,
+          expirationCutoff: expiredPinsResult.expirationCutoff,
+        },
+        "Found expired pins to delete"
+      );
 
       for (const pin of expiredPins) {
         try {
-          // Update pin status to expired instead of deleting
-          const result = await updatePinStatus(pin.pinId, "EXPIRED");
+          logger.info(
+            {
+              pinId: pin._id,
+              title: pin.title,
+              createdAt: pin.createdAt,
+              author: pin.author?.name,
+            },
+            "Deleting expired pin"
+          );
+
+          // Use the enhanced deletePin method which includes S3 cleanup
+          const result = await this.deletePin(pin._id);
 
           if (result.success) {
-            expiredCount++;
-            expiredPinDetails.push({
-              pinId: pin.pinId,
+            deletedCount++;
+            deletedPinDetails.push({
+              pinId: pin._id,
               title: pin.title,
-              pinnedDate: pin.pinnedTimestamp,
+              createdAt: pin.createdAt,
+              author: pin.author?.name,
+              s3DeletionResults: result.s3DeletionResults,
             });
 
             logger.info(
               {
-                pinId: pin.pinId,
+                pinId: pin._id,
                 title: pin.title,
-                pinnedDate: pin.pinnedTimestamp,
+                createdAt: pin.createdAt,
+                s3FilesDeleted: result.s3DeletionResults?.length || 0,
               },
-              "Pin expired due to age limit"
+              "Pin deleted due to age limit (1 week)"
             );
+          } else {
+            failedDeletions.push({
+              pinId: pin._id,
+              title: pin.title,
+              error: result.message,
+            });
           }
         } catch (error) {
           errorLogger.error(
             {
               error: error.message,
-              pinId: pin.pinId,
+              pinId: pin._id,
+              title: pin.title,
             },
-            "Error expiring individual pin"
+            "Error deleting expired pin"
           );
+          failedDeletions.push({
+            pinId: pin._id,
+            title: pin.title,
+            error: error.message,
+          });
         }
       }
 
       logger.info(
         {
-          totalExpired: expiredCount,
+          totalDeleted: deletedCount,
           totalProcessed: expiredPins.length,
+          failedDeletions: failedDeletions.length,
         },
-        "Pin expiration completed"
+        "Pin expiration process completed"
       );
 
       return {
         success: true,
-        expiredCount,
+        expiredCount: deletedCount,
         totalProcessed: expiredPins.length,
-        expiredPins: expiredPinDetails,
-        message: `${expiredCount} pins expired automatically`,
+        deletedPins: deletedPinDetails,
+        failedDeletions,
+        message: `${deletedCount} expired pins deleted automatically (including S3 files)`,
+        expirationCutoff: expiredPinsResult.expirationCutoff,
       };
     } catch (error) {
       errorLogger.error(

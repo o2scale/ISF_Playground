@@ -59,6 +59,11 @@ const {
   awardCoinsForPin,
   awardMilestoneCoins,
   expireOldPins,
+
+  // Scheduler Management Controllers
+  triggerPinExpiration,
+  triggerFifoManagement,
+  getSchedulerStatus,
 } = require("../../controllers/wtfController");
 
 const router = express.Router();
@@ -356,6 +361,38 @@ router.post(
   wtfSecurityHeaders,
   wtfRateLimiters.general,
   expireOldPins
+);
+
+// ==================== SCHEDULER MANAGEMENT ROUTES ====================
+
+// Manual trigger for pin expiration process (Admin only)
+router.post(
+  "/admin/scheduler/expire-pins",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_DELETE, "Delete"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  triggerPinExpiration
+);
+
+// Manual trigger for FIFO management process (Admin only)
+router.post(
+  "/admin/scheduler/fifo-cleanup",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_DELETE, "Delete"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  triggerFifoManagement
+);
+
+// Get scheduler status (Admin only)
+router.get(
+  "/admin/scheduler/status",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  getSchedulerStatus
 );
 
 // WTF Settings Routes
