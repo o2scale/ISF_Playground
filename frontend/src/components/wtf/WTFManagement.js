@@ -126,8 +126,12 @@ const WTFManagementContent = ({ onToggleView }) => {
               submissionsResponse.data.submissions) ||
             [];
 
+          console.log("Submissions response:", submissionsResponse);
+          console.log("Fetched submissions:", fetchedSubmissions);
+
           setStudentSubmissions(fetchedSubmissions);
         } else {
+          console.error("Submissions API failed:", submissionsResponse);
           setStudentSubmissions([]);
         }
       } catch (error) {
@@ -370,11 +374,15 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handlePinToWTF = async (submission) => {
     try {
+      console.log("handlePinToWTF called with submission:", submission);
+
       // First approve the submission
       const reviewResponse = await reviewSubmission(submission._id, {
         action: "approve",
         notes: "Approved and pinned to WTF",
       });
+
+      console.log("Review submission response:", reviewResponse);
 
       if (reviewResponse.success) {
         // The backend automatically creates a WTF pin when approving submissions
@@ -628,10 +636,26 @@ const WTFManagementContent = ({ onToggleView }) => {
   // Student submissions pagination logic
   const paginatedStudentSubmissions = useMemo(() => {
     if (!Array.isArray(studentSubmissions)) return [];
+
+    console.log("Filtering student submissions:", studentSubmissions);
+
     const filteredSubmissions = studentSubmissions.filter(
       (s) =>
         s.status === "pending" && !(s.metadata && s.metadata.isCoachSuggestion)
     );
+
+    console.log("Filtered submissions:", filteredSubmissions);
+    console.log(
+      "Filter criteria - status pending:",
+      studentSubmissions.filter((s) => s.status === "pending")
+    );
+    console.log(
+      "Filter criteria - not coach suggestion:",
+      studentSubmissions.filter(
+        (s) => !(s.metadata && s.metadata.isCoachSuggestion)
+      )
+    );
+
     const startIndex = (submissionsPage - 1) * submissionsPerPage;
     const endIndex = startIndex + submissionsPerPage;
     return filteredSubmissions.slice(startIndex, endIndex);

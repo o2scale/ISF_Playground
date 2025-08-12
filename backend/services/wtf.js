@@ -1157,20 +1157,49 @@ class WtfService {
             let pinType = "text";
             let mediaUrl = null;
 
+            console.log("Creating pin from approved submission:", {
+              type: approvedSubmission.type,
+              audioUrl: approvedSubmission.audioUrl,
+              content: approvedSubmission.content,
+              metadata: approvedSubmission.metadata,
+            });
+
             if (approvedSubmission.type === "voice") {
               pinType = "audio";
               mediaUrl = approvedSubmission.audioUrl;
+              console.log(
+                "Voice submission detected, setting pinType to audio, mediaUrl:",
+                mediaUrl
+              );
             } else if (approvedSubmission.metadata?.originalType === "image") {
               pinType = "image";
               mediaUrl = approvedSubmission.content; // content contains the S3 URL for images
+              console.log(
+                "Image submission detected, setting pinType to image, mediaUrl:",
+                mediaUrl
+              );
             } else if (approvedSubmission.metadata?.originalType === "video") {
               pinType = "video";
               mediaUrl = approvedSubmission.content; // content contains the S3 URL for videos
+              console.log(
+                "Video submission detected, setting pinType to video, mediaUrl:",
+                mediaUrl
+              );
             }
 
+            console.log("Final pin configuration:", { pinType, mediaUrl });
+
+            // Ensure required fields are populated according to pin type
+            const contentForPin =
+              pinType === "audio"
+                ? approvedSubmission.audioTranscription ||
+                  approvedSubmission.title ||
+                  "Voice Note"
+                : approvedSubmission.content;
+
             const pinPayload = {
-              title: approvedSubmission.title,
-              content: approvedSubmission.content, // Always use the original content
+              title: approvedSubmission.title || "Untitled",
+              content: contentForPin, // Text content or transcription/title for audio
               type: pinType,
               mediaUrl: mediaUrl, // Set mediaUrl for all media types
               author: approvedSubmission.studentId, // Use the original student as author, not the reviewer
@@ -1180,7 +1209,11 @@ class WtfService {
               tags: approvedSubmission.tags || [],
             };
 
+            console.log("Creating WTF pin with payload:", pinPayload);
+
             const pinCreateResult = await createWtfPin(pinPayload);
+
+            console.log("Pin creation result:", pinCreateResult);
             if (pinCreateResult?.success) {
               // Link the created pin back to the submission
               await updateWtfSubmission(submissionId, {
