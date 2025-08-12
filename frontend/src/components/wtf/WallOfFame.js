@@ -113,10 +113,15 @@ const WallOfFameContent = ({ onToggleView }) => {
   useEffect(() => {
     const fetchPins = async () => {
       try {
-        const pins = await getActiveWtfPins();
-        setContent(pins);
+        const response = await getActiveWtfPins();
+        if (response.success && response.data && response.data.pins) {
+          setContent(response.data.pins);
+        } else {
+          setContent([]);
+        }
       } catch (error) {
         console.error("Error fetching pins:", error);
+        setContent([]);
       }
     };
 

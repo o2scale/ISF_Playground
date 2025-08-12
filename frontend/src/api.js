@@ -556,7 +556,7 @@ export const createWtfPin = async (data) => {
 
 export const getActiveWtfPins = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/pins/active`, { params });
+    const response = await api.get(`/api/v1/wtf/pins`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching active WTF pins:", error);

@@ -96,8 +96,10 @@ const WTFManagementContent = ({ onToggleView }) => {
         limit: 20,
         type: filterType === "all" ? null : filterType,
       });
-      if (pinsResponse.success) {
-        setActivePins(pinsResponse.data || []);
+      if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
+        setActivePins(pinsResponse.data.pins);
+      } else {
+        setActivePins([]);
       }
 
       // Fetch submissions for review
