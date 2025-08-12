@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Star,
   Plus,
@@ -62,6 +62,19 @@ const WTFManagementContent = ({ onToggleView }) => {
     useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+
+  // Coach suggestions pagination
+  const [coachSuggestionsPage, setCoachSuggestionsPage] = useState(1);
+  const [coachSuggestionsPerPage, setCoachSuggestionsPerPage] = useState(10);
+
+  // Student submissions pagination
+  const [submissionsPage, setSubmissionsPage] = useState(1);
+  const [submissionsPerPage, setSubmissionsPerPage] = useState(10);
 
   // Real data from API
   const [activePins, setActivePins] = useState([]);
@@ -412,6 +425,55 @@ const WTFManagementContent = ({ onToggleView }) => {
       })
     : [];
 
+  // Pagination logic
+  const paginatedPins = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredPins.slice(startIndex, endIndex);
+  }, [filteredPins, currentPage, itemsPerPage]);
+
+  const totalPages = Math.ceil(filteredPins.length / itemsPerPage);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterType]);
+
+  // Update total items when filtered pins change
+  useEffect(() => {
+    setTotalItems(filteredPins.length);
+  }, [filteredPins]);
+
+  // Coach suggestions pagination logic
+  const paginatedCoachSuggestions = useMemo(() => {
+    if (!Array.isArray(coachSuggestions)) return [];
+    const pendingSuggestions = coachSuggestions.filter(
+      (s) => s.status === "PENDING"
+    );
+    const startIndex = (coachSuggestionsPage - 1) * coachSuggestionsPerPage;
+    const endIndex = startIndex + coachSuggestionsPerPage;
+    return pendingSuggestions.slice(startIndex, endIndex);
+  }, [coachSuggestions, coachSuggestionsPage, coachSuggestionsPerPage]);
+
+  const totalCoachSuggestionsPages = Math.ceil(
+    (Array.isArray(coachSuggestions)
+      ? coachSuggestions.filter((s) => s.status === "PENDING").length
+      : 0) / coachSuggestionsPerPage
+  );
+
+  // Student submissions pagination logic
+  const paginatedStudentSubmissions = useMemo(() => {
+    if (!Array.isArray(studentSubmissions)) return [];
+    const startIndex = (submissionsPage - 1) * submissionsPerPage;
+    const endIndex = startIndex + submissionsPerPage;
+    return studentSubmissions.slice(startIndex, endIndex);
+  }, [studentSubmissions, submissionsPage, submissionsPerPage]);
+
+  const totalSubmissionsPages = Math.ceil(
+    (Array.isArray(studentSubmissions) ? studentSubmissions.length : 0) /
+      submissionsPerPage
+  );
+
   const newSubmissionsCount = Array.isArray(studentSubmissions)
     ? studentSubmissions.filter((s) => s.status === "NEW").length
     : 0;
@@ -650,7 +712,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredPins.map((pin) => (
+                      {paginatedPins.map((pin) => (
                         <tr
                           key={pin._id}
                           className="border-b border-gray-100 hover:bg-gray-50"
@@ -765,6 +827,72 @@ const WTFManagementContent = ({ onToggleView }) => {
                     </tbody>
                   </table>
 
+                  {/* Pagination Controls */}
+                  {filteredPins.length > 0 && (
+                    <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50">
+                      <div className="flex items-center gap-4">
+                        <div className="text-sm text-gray-700">
+                          Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+                          {Math.min(currentPage * itemsPerPage, totalItems)} of{" "}
+                          {totalItems} results
+                        </div>
+                        <select
+                          value={itemsPerPage}
+                          onChange={(e) => {
+                            setItemsPerPage(Number(e.target.value));
+                            setCurrentPage(1);
+                          }}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm"
+                        >
+                          <option value={5}>5 per page</option>
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                        </select>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage - 1)}
+                          disabled={currentPage === 1}
+                          className="px-3 py-1"
+                        >
+                          Previous
+                        </Button>
+
+                        <div className="flex items-center gap-1">
+                          {Array.from(
+                            { length: totalPages },
+                            (_, i) => i + 1
+                          ).map((page) => (
+                            <Button
+                              key={page}
+                              variant={
+                                currentPage === page ? "default" : "outline"
+                              }
+                              size="sm"
+                              onClick={() => setCurrentPage(page)}
+                              className="px-3 py-1 min-w-[40px]"
+                            >
+                              {page}
+                            </Button>
+                          ))}
+                        </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setCurrentPage(currentPage + 1)}
+                          disabled={currentPage === totalPages}
+                          className="px-3 py-1"
+                        >
+                          Next
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* No Data State */}
                   {filteredPins.length === 0 && (
                     <div className="text-center py-12">
@@ -850,100 +978,197 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {coachSuggestions
-                          .filter((s) => s.status === "PENDING")
-                          .map((suggestion) => (
-                            <tr
-                              key={suggestion.id}
-                              className="border-b border-gray-100 hover:bg-gray-50"
-                            >
-                              <td className="py-4 px-4">
-                                <div className="flex items-start gap-3">
-                                  {suggestion.thumbnail && (
-                                    <img
-                                      src={suggestion.thumbnail}
-                                      alt=""
-                                      className="w-12 h-12 rounded object-cover"
-                                    />
-                                  )}
-                                  <div>
-                                    <div className="font-medium">
-                                      {suggestion.title}
-                                    </div>
-                                    <div className="text-sm text-gray-500 line-clamp-2">
-                                      {suggestion.content.length > 100
-                                        ? `${suggestion.content.substring(
-                                            0,
-                                            100
-                                          )}...`
-                                        : suggestion.content}
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
-                                  <FileText className="w-3 h-3" />
-                                  {suggestion.workType}
-                                </Badge>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="text-sm">
-                                  <div className="font-medium flex items-center gap-1">
-                                    <User className="w-3 h-3" />
-                                    {suggestion.studentName}
-                                  </div>
-                                  <div className="text-gray-500">
-                                    {suggestion.balagruha}
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="text-sm">
+                        {paginatedCoachSuggestions.map((suggestion) => (
+                          <tr
+                            key={suggestion.id}
+                            className="border-b border-gray-100 hover:bg-gray-50"
+                          >
+                            <td className="py-4 px-4">
+                              <div className="flex items-start gap-3">
+                                {suggestion.thumbnail && (
+                                  <img
+                                    src={suggestion.thumbnail}
+                                    alt=""
+                                    className="w-12 h-12 rounded object-cover"
+                                  />
+                                )}
+                                <div>
                                   <div className="font-medium">
-                                    {suggestion.coachName}
+                                    {suggestion.title}
                                   </div>
-                                  <div className="text-gray-500">Coach</div>
+                                  <div className="text-sm text-gray-500 line-clamp-2">
+                                    {suggestion.content.length > 100
+                                      ? `${suggestion.content.substring(
+                                          0,
+                                          100
+                                        )}...`
+                                      : suggestion.content}
+                                  </div>
                                 </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-1 text-sm text-gray-600">
-                                  <Calendar className="w-3 h-3" />
-                                  {new Date(
-                                    suggestion.suggestedDate
-                                  ).toLocaleDateString()}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <Badge className="bg-blue-100 text-blue-800 flex items-center gap-1 w-fit">
+                                <FileText className="w-3 h-3" />
+                                {suggestion.workType}
+                              </Badge>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="text-sm">
+                                <div className="font-medium flex items-center gap-1">
+                                  <User className="w-3 h-3" />
+                                  {suggestion.studentName}
                                 </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    className="bg-green-600 hover:bg-green-700 text-white"
-                                    onClick={() =>
-                                      handleReviewCoachSuggestion(suggestion)
-                                    }
-                                  >
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    Review & Pin
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      handleArchiveCoachSuggestion(
-                                        suggestion.id
-                                      )
-                                    }
-                                  >
-                                    <Archive className="w-4 h-4 mr-1" />
-                                    Archive
-                                  </Button>
+                                <div className="text-gray-500">
+                                  {suggestion.balagruha}
                                 </div>
-                              </td>
-                            </tr>
-                          ))}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="text-sm">
+                                <div className="font-medium">
+                                  {suggestion.coachName}
+                                </div>
+                                <div className="text-gray-500">Coach</div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-1 text-sm text-gray-600">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(
+                                  suggestion.suggestedDate
+                                ).toLocaleDateString()}
+                              </div>
+                            </td>
+                            <td className="py-4 px-4">
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  className="bg-green-600 hover:bg-green-700 text-white"
+                                  onClick={() =>
+                                    handleReviewCoachSuggestion(suggestion)
+                                  }
+                                >
+                                  <Eye className="w-4 h-4 mr-1" />
+                                  Review & Pin
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleArchiveCoachSuggestion(suggestion.id)
+                                  }
+                                >
+                                  <Archive className="w-4 h-4 mr-1" />
+                                  Archive
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
                       </tbody>
                     </table>
+
+                    {/* Coach Suggestions Pagination Controls */}
+                    {Array.isArray(coachSuggestions) &&
+                      coachSuggestions.filter((s) => s.status === "PENDING")
+                        .length > 0 && (
+                        <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm text-gray-700">
+                              Showing{" "}
+                              {(coachSuggestionsPage - 1) *
+                                coachSuggestionsPerPage +
+                                1}{" "}
+                              to{" "}
+                              {Math.min(
+                                coachSuggestionsPage * coachSuggestionsPerPage,
+                                coachSuggestions.filter(
+                                  (s) => s.status === "PENDING"
+                                ).length
+                              )}{" "}
+                              of{" "}
+                              {
+                                coachSuggestions.filter(
+                                  (s) => s.status === "PENDING"
+                                ).length
+                              }{" "}
+                              results
+                            </div>
+                            <select
+                              value={coachSuggestionsPerPage}
+                              onChange={(e) => {
+                                setCoachSuggestionsPerPage(
+                                  Number(e.target.value)
+                                );
+                                setCoachSuggestionsPage(1);
+                              }}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            >
+                              <option value={5}>5 per page</option>
+                              <option value={10}>10 per page</option>
+                              <option value={20}>20 per page</option>
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setCoachSuggestionsPage(
+                                  coachSuggestionsPage - 1
+                                )
+                              }
+                              disabled={coachSuggestionsPage === 1}
+                              className="px-3 py-1"
+                            >
+                              Previous
+                            </Button>
+
+                            <div className="flex items-center gap-1">
+                              {totalCoachSuggestionsPages > 0 &&
+                                Array.from(
+                                  { length: totalCoachSuggestionsPages },
+                                  (_, i) => i + 1
+                                ).map((page) => (
+                                  <Button
+                                    key={page}
+                                    variant={
+                                      coachSuggestionsPage === page
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    size="sm"
+                                    onClick={() =>
+                                      setCoachSuggestionsPage(page)
+                                    }
+                                    className="px-3 py-1 min-w-[40px]"
+                                  >
+                                    {page}
+                                  </Button>
+                                ))}
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setCoachSuggestionsPage(
+                                  coachSuggestionsPage + 1
+                                )
+                              }
+                              disabled={
+                                coachSuggestionsPage ===
+                                totalCoachSuggestionsPages
+                              }
+                              className="px-3 py-1"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                     {/* No Coach Suggestions State */}
                     {coachSuggestions.filter((s) => s.status === "PENDING")
@@ -1314,6 +1539,87 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </tbody>
                       </table>
                     )}
+
+                    {/* Student Submissions Pagination Controls */}
+                    {Array.isArray(studentSubmissions) &&
+                      studentSubmissions.length > 0 && (
+                        <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50">
+                          <div className="flex items-center gap-4">
+                            <div className="text-sm text-gray-700">
+                              Showing{" "}
+                              {(submissionsPage - 1) * submissionsPerPage + 1}{" "}
+                              to{" "}
+                              {Math.min(
+                                submissionsPage * submissionsPerPage,
+                                studentSubmissions.length
+                              )}{" "}
+                              of {studentSubmissions.length} results
+                            </div>
+                            <select
+                              value={submissionsPerPage}
+                              onChange={(e) => {
+                                setSubmissionsPerPage(Number(e.target.value));
+                                setSubmissionsPage(1);
+                              }}
+                              className="px-2 py-1 border border-gray-300 rounded text-sm"
+                            >
+                              <option value={5}>5 per page</option>
+                              <option value={10}>10 per page</option>
+                              <option value={20}>20 per page</option>
+                            </select>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setSubmissionsPage(submissionsPage - 1)
+                              }
+                              disabled={submissionsPage === 1}
+                              className="px-3 py-1"
+                            >
+                              Previous
+                            </Button>
+
+                            <div className="flex items-center gap-1">
+                              {totalSubmissionsPages > 0 &&
+                                Array.from(
+                                  { length: totalSubmissionsPages },
+                                  (_, i) => i + 1
+                                ).map((page) => (
+                                  <Button
+                                    key={page}
+                                    variant={
+                                      submissionsPage === page
+                                        ? "default"
+                                        : "outline"
+                                    }
+                                    size="sm"
+                                    onClick={() => setSubmissionsPage(page)}
+                                    className="px-3 py-1 min-w-[40px]"
+                                  >
+                                    {page}
+                                  </Button>
+                                ))}
+                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() =>
+                                setSubmissionsPage(submissionsPage + 1)
+                              }
+                              disabled={
+                                submissionsPage === totalSubmissionsPages
+                              }
+                              className="px-3 py-1"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        </div>
+                      )}
 
                     {/* No Student Submissions State */}
                     {(Array.isArray(studentSubmissions)
