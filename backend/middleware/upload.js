@@ -41,4 +41,33 @@ const upload = multer({
   fileFilter,
 });
 
-module.exports = upload;
+// WTF-specific upload configuration with support for media files
+const wtfFileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "video/mp4",
+    "video/webm",
+    "audio/mpeg",
+    "audio/wav",
+    "audio/ogg",
+  ];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid file type. Only images, videos, and audio files are allowed for WTF pins."));
+  }
+};
+
+const wtfUpload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB for WTF media files
+  fileFilter: wtfFileFilter,
+});
+
+module.exports = {
+  upload,
+  wtfUpload,
+};

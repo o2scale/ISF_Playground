@@ -109,7 +109,7 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
 
-    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
     console.log(`WTF media uploaded successfully: ${url}`);
     return url;
   } catch (error) {
@@ -135,7 +135,7 @@ exports.uploadWtfMediaBuffer = async (buffer, fileName, contentType) => {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
 
-    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
     console.log(`WTF background image uploaded successfully: ${url}`);
     return url;
   } catch (error) {

@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const taskController = require("../controllers/taskController");
-const upload = require("../middleware/upload"); // Multer middleware for file uploads
+const { upload } = require("../middleware/upload"); // Multer middleware for file uploads
 const { authenticate, authorize } = require("../middleware/auth"); // Authentication and authorization middleware
 
 // Destructure methods from taskController

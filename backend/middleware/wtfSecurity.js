@@ -119,17 +119,26 @@ const wtfContentValidation = [
   // Tags validation
   body("tags")
     .optional()
-    .isArray({ max: 10 })
-    .withMessage("Tags must be an array with maximum 10 items")
     .customSanitizer((value) => {
-      if (Array.isArray(value)) {
-        return value
-          .slice(0, 10) // Limit to 10 tags
-          .map((tag) => tag.toString().trim().substring(0, 50)) // Limit tag length
-          .filter((tag) => tag.length > 0); // Remove empty tags
+      // Handle JSON string from FormData
+      if (typeof value === "string") {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          return [];
+        }
       }
-      return [];
-    }),
+      // Ensure it's an array
+      if (!Array.isArray(value)) {
+        return [];
+      }
+      return value
+        .slice(0, 10) // Limit to 10 tags
+        .map((tag) => tag.toString().trim().substring(0, 50)) // Limit tag length
+        .filter((tag) => tag.length > 0); // Remove empty tags
+    })
+    .isArray({ max: 10 })
+    .withMessage("Tags must be an array with maximum 10 items"),
 
   // Language validation
   body("language")

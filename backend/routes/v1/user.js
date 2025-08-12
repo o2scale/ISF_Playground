@@ -17,7 +17,7 @@ const {
 } = require("../../controllers/userController");
 // const upload = require('../../middleware/upload'); // Multer middleware for file uploads
 const router = express.Router();
-const upload = require("../../middleware/upload");
+const { upload } = require("../../middleware/upload");
 // API for create USER
 router.post(
   "/",

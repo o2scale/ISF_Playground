@@ -15,12 +15,25 @@ exports.createPin = async (req, res) => {
         method: req.method,
         api: req.originalUrl,
         data: logData,
+        file: req.file
+          ? {
+              name: req.file.filename,
+              size: req.file.size,
+              type: req.file.mimetype,
+            }
+          : null,
         userId: req.user?.id,
       },
       `Request received for WTF pin creation`
     );
 
-    const result = await WtfService.createPin(req.body);
+    // Include file information in the payload
+    const payload = {
+      ...req.body,
+      file: req.file || null,
+    };
+
+    const result = await WtfService.createPin(payload);
 
     if (result.success) {
       logger.info(
@@ -1804,7 +1817,7 @@ exports.awardCoinsForPin = async (req, res) => {
     if (!pinResult.success) {
       return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
         success: false,
-        message: "Pin not found"
+        message: "Pin not found",
       });
     }
 
@@ -1875,7 +1888,11 @@ exports.awardMilestoneCoins = async (req, res) => {
       `Request received to award milestone coins`
     );
 
-    const result = await WtfService.awardMilestoneCoins(pinId, likeCount, likeType);
+    const result = await WtfService.awardMilestoneCoins(
+      pinId,
+      likeCount,
+      likeType
+    );
 
     if (result.success) {
       logger.info(

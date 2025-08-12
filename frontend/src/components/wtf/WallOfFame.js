@@ -159,7 +159,15 @@ const WallOfFameContent = ({ onToggleView }) => {
   const handlePinClick = (item) => {
     console.log("Pin clicked:", item.title, item.type);
     setSelectedContent(item);
-    setModalType(item.type);
+    // Map backend types to frontend modal types
+    const modalTypeMap = {
+      image: "photo",
+      video: "video",
+      audio: "audio",
+      text: "text",
+      link: "text", // Links can be displayed in text modal
+    };
+    setModalType(modalTypeMap[item.type] || "text");
   };
 
   const closeModal = () => {
@@ -1003,12 +1011,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         <ImageViewer
           isOpen={true}
           onClose={closeModal}
-          imageSrc={selectedContent.content}
+          imageSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 
@@ -1016,12 +1024,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         <VideoPlayer
           isOpen={true}
           onClose={closeModal}
-          videoSrc={selectedContent.content}
+          videoSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 
@@ -1029,12 +1037,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         <AudioPlayer
           isOpen={true}
           onClose={closeModal}
-          audioSrc={selectedContent.content}
+          audioSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 
@@ -1045,9 +1053,9 @@ const WallOfFameContent = ({ onToggleView }) => {
           title={selectedContent.title}
           content={selectedContent.content}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 

@@ -2,6 +2,7 @@ const express = require("express");
 const { authorize, authenticate } = require("../../middleware/auth");
 const { WtfPermissions } = require("../../constants/users");
 const wtfSettingsRoutes = require("./wtfSettings");
+const { wtfUpload } = require("../../middleware/upload");
 const {
   wtfRateLimiters,
   wtfContentValidation,
@@ -68,8 +69,10 @@ router.post(
   "/pins",
   authenticate,
   authorize(WtfPermissions.WTF_PIN_CREATE, "Create"),
+  wtfUpload.single("file"), // Add WTF-specific file upload middleware
   wtfSecurityHeaders,
   wtfRateLimiters.pinCreation,
+  wtfFileUploadSecurity,
   wtfContentValidation,
   checkContentSizeLimits("pin"),
   handleValidationErrors,

@@ -1,7 +1,9 @@
 const { errorLogger, logger } = require("../config/pino-config");
 const { default: mongoose } = require("mongoose");
+const fs = require("fs");
 const CoinService = require("./coin");
 const wtfWebSocketService = require("./wtfWebSocket");
+const { uploadWtfMedia } = require("./aws/s3");
 
 // Import data access methods
 const {
@@ -174,9 +176,62 @@ class WtfService {
         };
       }
 
+      // Handle file upload to S3 for media types
+      let mediaUrl = mappedPayload.mediaUrl || mappedPayload.content;
+
+      if (
+        mappedPayload.file &&
+        ["image", "video", "audio"].includes(mappedPayload.type)
+      ) {
+        try {
+          logger.info(
+            { type: mappedPayload.type, fileName: mappedPayload.file.filename },
+            "Uploading media file to S3"
+          );
+
+          // Upload file to S3
+          const s3Url = await uploadWtfMedia(
+            mappedPayload.file.path,
+            mappedPayload.type,
+            `temp_${Date.now()}` // Temporary ID, will be updated with actual pin ID
+          );
+
+          mediaUrl = s3Url;
+          logger.info({ s3Url }, "File uploaded to S3 successfully");
+          
+          // Clean up temporary file after successful S3 upload
+          try {
+            fs.unlinkSync(mappedPayload.file.path);
+            logger.info({ filePath: mappedPayload.file.path }, "Temporary file cleaned up");
+          } catch (cleanupError) {
+            logger.warn({ error: cleanupError.message, filePath: mappedPayload.file.path }, "Failed to delete temporary file");
+          }
+        } catch (uploadError) {
+          logger.error(
+            { error: uploadError.message },
+            "Failed to upload file to S3"
+          );
+          
+          // Clean up temporary file even if S3 upload failed
+          try {
+            fs.unlinkSync(mappedPayload.file.path);
+            logger.info({ filePath: mappedPayload.file.path }, "Temporary file cleaned up after failed upload");
+          } catch (cleanupError) {
+            logger.warn({ error: cleanupError.message, filePath: mappedPayload.file.path }, "Failed to delete temporary file after failed upload");
+          }
+          
+          return {
+            success: false,
+            data: null,
+            message: `Failed to upload file: ${uploadError.message}`,
+          };
+        }
+      }
+
       // Set default values
       const pinData = {
         ...mappedPayload,
+        mediaUrl: mediaUrl, // Use S3 URL if uploaded, otherwise original content
         status: mappedPayload.status || "active",
         isOfficial: mappedPayload.isOfficial || false,
         language: mappedPayload.language || "english",
@@ -184,6 +239,9 @@ class WtfService {
           mappedPayload.expiresAt ||
           new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       };
+
+      // Remove file object from pinData before saving to database
+      delete pinData.file;
 
       const result = await createWtfPin(pinData);
 

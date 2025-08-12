@@ -546,7 +546,35 @@ export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
 // Pin Management APIs
 export const createWtfPin = async (data) => {
   try {
-    const response = await api.post(`/api/v1/wtf/pins`, data);
+    // Create FormData for file upload
+    const formData = new FormData();
+
+    // Append all fields to FormData
+    Object.keys(data).forEach((key) => {
+      if (key === "file" && data[key]) {
+        // Append file with the field name expected by multer
+        formData.append("file", data[key]);
+      } else if (key === "tags" && Array.isArray(data[key])) {
+        // Handle tags array - append each tag separately or empty array
+        if (data[key].length > 0) {
+          data[key].forEach((tag) => {
+            formData.append("tags[]", tag);
+          });
+        } else {
+          // Send empty array as tags[]
+          formData.append("tags", JSON.stringify([]));
+        }
+      } else if (data[key] !== null && data[key] !== undefined) {
+        // Append other fields as strings
+        formData.append(key, data[key]);
+      }
+    });
+
+    const response = await api.post(`/api/v1/wtf/pins`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error creating WTF pin:", error);

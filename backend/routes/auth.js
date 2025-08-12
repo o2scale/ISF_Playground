@@ -5,7 +5,7 @@ const User = require("../models/user");
 const { authenticate, authorize } = require("../middleware/auth");
 const { UserTypes } = require("../constants/users");
 const { fetchMachinesByIds } = require("../data-access/machines");
-const upload = require("../middleware/upload");
+const { upload } = require("../middleware/upload");
 const { facialLogin } = require("../controllers/userController");
 // Register User
 

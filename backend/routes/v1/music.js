@@ -15,7 +15,7 @@ const {
   createMusicTask,
   updateMusicTask,
 } = require("../../controllers/music");
-const upload = require("../../middleware/upload");
+const { upload } = require("../../middleware/upload");
 
 // Create a new task (with file upload)
 router.post(
