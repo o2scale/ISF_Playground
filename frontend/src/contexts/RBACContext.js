@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
 import axios from "axios";
+import config from "../config";
 
 const RBACContext = createContext(null);
 
@@ -23,7 +24,7 @@ export const RBACProvider = ({ children }) => {
         setIsLoading(true);
 
         const response = await axios.get(
-          "https://playground.initiativesewafoundation.com/server/api//roles/getAllRolePermissions"
+          `${config.API_BASE_URL}/api/roles/getAllRolePermissions`
         );
 
         console.log("Roles API response:", response.data);

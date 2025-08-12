@@ -1,12 +1,16 @@
 const { errorLogger, logger } = require("../config/pino-config");
 const { default: mongoose } = require("mongoose");
+const fs = require("fs");
 const CoinService = require("./coin");
 const wtfWebSocketService = require("./wtfWebSocket");
+const { uploadWtfMedia, deleteWtfMedia } = require("./aws/s3");
 
 // Import data access methods
 const {
   createWtfPin,
   getActivePins,
+  getActivePinsForAdmin: getActivePinsForAdminDA,
+  getActivePinsCountForAdmin,
   getWtfPinById,
   updateWtfPin,
   deleteWtfPin,
@@ -20,7 +24,7 @@ const {
   bulkUpdatePinStatus,
 } = require("../data-access/wtfPin");
 
-const { getSubmissionsForReview } = require("../data-access/wtfSubmission");
+// getSubmissionsForReview is implemented as a static method in this service
 
 const {
   createInteraction,
@@ -84,12 +88,77 @@ class WtfService {
 
   static async createPin(payload) {
     try {
+      // Map frontend field names to backend expected names
+      const mappedPayload = {
+        ...payload,
+        type: payload.type || payload.contentType, // Accept both 'type' and 'contentType'
+        author: payload.author || payload.pinnedBy, // Accept both 'author' and 'pinnedBy'
+      };
+
+      // Clean up the mapped payload to remove original field names
+      if (payload.contentType && !payload.type) {
+        delete mappedPayload.contentType; // Remove contentType if we mapped it to type
+      }
+      if (payload.pinnedBy && !payload.author) {
+        delete mappedPayload.pinnedBy; // Remove pinnedBy if we mapped it to author
+      }
+
+      // Handle case where author might be a string (user name) instead of user ID
+      // For now, we'll need to find the user by name or create a placeholder
+      // TODO: In production, this should be a proper user ID lookup
+      if (
+        typeof mappedPayload.author === "string" &&
+        !mappedPayload.author.match(/^[0-9a-fA-F]{24}$/)
+      ) {
+        // If author is a string name (not a MongoDB ObjectId), we need to handle it
+        // For development, we'll use a placeholder approach
+        console.log(
+          `⚠️  Author is a string name: ${mappedPayload.author}. Using placeholder user ID for development.`
+        );
+
+        // In development mode, we can bypass this or use a default user ID
+        if (
+          process.env.NODE_ENV === "development" ||
+          process.env.NODE_ENV === "local"
+        ) {
+          // For development, we'll need to either:
+          // 1. Find the user by name in the database, or
+          // 2. Use a default user ID, or
+          // 3. Skip the author requirement temporarily
+
+          // Option 1: Try to find user by name (recommended)
+          try {
+            const User = require("../models/user");
+            const user = await User.findOne({ name: mappedPayload.author });
+            if (user) {
+              mappedPayload.author = user._id;
+              console.log(`✅ Found user by name: ${mappedPayload.author}`);
+            } else {
+              console.log(`❌ User not found by name: ${mappedPayload.author}`);
+              // For development, we could create a default user or skip this
+              return {
+                success: false,
+                data: null,
+                message: `User not found: ${mappedPayload.author}. Please ensure the user exists in the database.`,
+              };
+            }
+          } catch (userError) {
+            console.error("Error finding user by name:", userError);
+            return {
+              success: false,
+              data: null,
+              message: `Error finding user: ${userError.message}`,
+            };
+          }
+        }
+      }
+
       // Validate required fields
       if (
-        !payload.title ||
-        !payload.content ||
-        !payload.type ||
-        !payload.author
+        !mappedPayload.title ||
+        !mappedPayload.content ||
+        !mappedPayload.type ||
+        !mappedPayload.author
       ) {
         return {
           success: false,
@@ -100,7 +169,7 @@ class WtfService {
 
       // Validate pin type
       const validTypes = ["image", "video", "audio", "text", "link"];
-      if (!validTypes.includes(payload.type)) {
+      if (!validTypes.includes(mappedPayload.type)) {
         return {
           success: false,
           data: null,
@@ -109,15 +178,114 @@ class WtfService {
         };
       }
 
+      // Handle file upload to S3 for media types
+      let mediaUrl = mappedPayload.mediaUrl || mappedPayload.content;
+
+      if (
+        mappedPayload.file &&
+        ["image", "video", "audio"].includes(mappedPayload.type)
+      ) {
+        try {
+          logger.info(
+            {
+              type: mappedPayload.type,
+              fileName: mappedPayload.file.filename,
+              filePath: mappedPayload.file.path,
+              fileSize: mappedPayload.file.size,
+            },
+            "Uploading media file to S3"
+          );
+
+          // Upload file to S3
+          const s3Url = await uploadWtfMedia(
+            mappedPayload.file.path,
+            mappedPayload.type,
+            `temp_${Date.now()}` // Temporary ID, will be updated with actual pin ID
+          );
+
+          mediaUrl = s3Url;
+          logger.info({ s3Url }, "File uploaded to S3 successfully");
+
+          // Clean up temporary file after successful S3 upload
+          try {
+            logger.info(
+              { filePath: mappedPayload.file.path },
+              "Attempting to clean up temporary file"
+            );
+
+            if (fs.existsSync(mappedPayload.file.path)) {
+              fs.unlinkSync(mappedPayload.file.path);
+              logger.info(
+                { filePath: mappedPayload.file.path },
+                "Temporary file cleaned up successfully"
+              );
+            } else {
+              logger.warn(
+                { filePath: mappedPayload.file.path },
+                "Temporary file not found for cleanup"
+              );
+            }
+          } catch (cleanupError) {
+            logger.error(
+              {
+                error: cleanupError.message,
+                filePath: mappedPayload.file.path,
+                errorCode: cleanupError.code,
+                errorStack: cleanupError.stack,
+              },
+              "Failed to delete temporary file"
+            );
+          }
+        } catch (uploadError) {
+          logger.error(
+            { error: uploadError.message },
+            "Failed to upload file to S3"
+          );
+
+          // Clean up temporary file even if S3 upload failed
+          try {
+            fs.unlinkSync(mappedPayload.file.path);
+            logger.info(
+              { filePath: mappedPayload.file.path },
+              "Temporary file cleaned up after failed upload"
+            );
+          } catch (cleanupError) {
+            logger.warn(
+              {
+                error: cleanupError.message,
+                filePath: mappedPayload.file.path,
+              },
+              "Failed to delete temporary file after failed upload"
+            );
+          }
+
+          return {
+            success: false,
+            data: null,
+            message: `Failed to upload file: ${uploadError.message}`,
+          };
+        }
+      }
+
       // Set default values
       const pinData = {
-        ...payload,
-        status: payload.status || "active",
-        isOfficial: payload.isOfficial || false,
-        language: payload.language || "english",
+        ...mappedPayload,
+        mediaUrl: mediaUrl, // Use S3 URL if uploaded, otherwise original content
+        // For image pins, set thumbnailUrl to the same as mediaUrl for display purposes
+        thumbnailUrl:
+          mappedPayload.type === "image"
+            ? mediaUrl
+            : mappedPayload.thumbnailUrl,
+        status: mappedPayload.status || "active",
+        isOfficial: mappedPayload.isOfficial || false,
+        language: mappedPayload.language || "english",
         expiresAt:
-          payload.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          mappedPayload.expiresAt ||
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       };
+
+      // Remove file object from pinData before saving to database
+      delete pinData.file;
 
       const result = await createWtfPin(pinData);
 
@@ -132,15 +300,15 @@ class WtfService {
         // Award coins for pin creation
         try {
           const isFirstPin = await CoinService.isEligibleForFirstPinBonus(
-            payload.author
+            mappedPayload.author
           );
           const coinResult = await CoinService.awardPinCreationCoins(
-            payload.author,
+            mappedPayload.author,
             result.data._id,
             isFirstPin,
             {
-              userAgent: payload.userAgent,
-              ipAddress: payload.ipAddress,
+              userAgent: mappedPayload.userAgent,
+              ipAddress: mappedPayload.ipAddress,
             }
           );
 
@@ -209,6 +377,39 @@ class WtfService {
     }
   }
 
+  static async getActivePinsForAdmin({
+    page = 1,
+    limit = 20,
+    type = null,
+    isOfficial = null,
+  }) {
+    try {
+      // Use admin version that doesn't filter by expiry date
+      const result = await getActivePinsForAdminDA({
+        page,
+        limit,
+        type,
+        isOfficial,
+      });
+
+      if (result.success) {
+        return {
+          success: true,
+          data: result.data,
+          message: "Active pins fetched successfully for admin",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getActivePinsForAdmin service"
+      );
+      throw error;
+    }
+  }
+
   static async getPinById(pinId) {
     try {
       if (!pinId) {
@@ -258,7 +459,130 @@ class WtfService {
         };
       }
 
+      // First, get the pin data to access media URLs before deletion
+      const pinResult = await getWtfPinById(pinId);
+      if (!pinResult.success) {
+        return {
+          success: false,
+          data: null,
+          message: "Pin not found",
+        };
+      }
+
+      const pin = pinResult.data;
+      logger.info(
+        {
+          pinId,
+          title: pin.title,
+          mediaUrl: pin.mediaUrl,
+          thumbnailUrl: pin.thumbnailUrl,
+        },
+        "Deleting pin and associated media files"
+      );
+
+      // Delete associated S3 files if they exist
+      const s3DeletionResults = [];
+
+      // Delete main media file
+      if (pin.mediaUrl && pin.mediaUrl.includes("s3.")) {
+        try {
+          const mediaDeleteResult = await deleteWtfMedia(pin.mediaUrl);
+          s3DeletionResults.push({
+            type: "media",
+            url: pin.mediaUrl,
+            result: mediaDeleteResult,
+          });
+
+          if (mediaDeleteResult.success) {
+            logger.info(
+              { pinId, mediaUrl: pin.mediaUrl },
+              "Successfully deleted main media file from S3"
+            );
+          } else {
+            logger.warn(
+              {
+                pinId,
+                mediaUrl: pin.mediaUrl,
+                error: mediaDeleteResult.message,
+              },
+              "Failed to delete main media file from S3"
+            );
+          }
+        } catch (s3Error) {
+          logger.warn(
+            { pinId, mediaUrl: pin.mediaUrl, error: s3Error.message },
+            "Error deleting main media file from S3"
+          );
+          s3DeletionResults.push({
+            type: "media",
+            url: pin.mediaUrl,
+            result: { success: false, error: s3Error.message },
+          });
+        }
+      }
+
+      // Delete thumbnail file if different from main media
+      if (
+        pin.thumbnailUrl &&
+        pin.thumbnailUrl.includes("s3.") &&
+        pin.thumbnailUrl !== pin.mediaUrl
+      ) {
+        try {
+          const thumbnailDeleteResult = await deleteWtfMedia(pin.thumbnailUrl);
+          s3DeletionResults.push({
+            type: "thumbnail",
+            url: pin.thumbnailUrl,
+            result: thumbnailDeleteResult,
+          });
+
+          if (thumbnailDeleteResult.success) {
+            logger.info(
+              { pinId, thumbnailUrl: pin.thumbnailUrl },
+              "Successfully deleted thumbnail file from S3"
+            );
+          } else {
+            logger.warn(
+              {
+                pinId,
+                thumbnailUrl: pin.thumbnailUrl,
+                error: thumbnailDeleteResult.message,
+              },
+              "Failed to delete thumbnail file from S3"
+            );
+          }
+        } catch (s3Error) {
+          logger.warn(
+            { pinId, thumbnailUrl: pin.thumbnailUrl, error: s3Error.message },
+            "Error deleting thumbnail file from S3"
+          );
+          s3DeletionResults.push({
+            type: "thumbnail",
+            url: pin.thumbnailUrl,
+            result: { success: false, error: s3Error.message },
+          });
+        }
+      }
+
+      // Delete the pin from database
       const result = await deleteWtfPin(pinId);
+
+      if (result.success) {
+        logger.info(
+          {
+            pinId,
+            title: pin.title,
+            s3DeletionResults,
+          },
+          "Pin and associated files deleted successfully"
+        );
+
+        // Include S3 deletion results in response
+        return {
+          ...result,
+          s3DeletionResults,
+        };
+      }
+
       return result;
     } catch (error) {
       errorLogger.error({ error: error.message }, "Error in deletePin service");
@@ -554,6 +878,30 @@ class WtfService {
         },
       };
 
+      // If a file was uploaded, validate duration metadata if provided and store it in S3
+      if (payload.file && payload.file.path) {
+        try {
+          const s3Url = await uploadWtfVoiceNote(
+            payload.file.path,
+            `submission_${Date.now()}`
+          );
+          if (s3Url && s3Url.url) {
+            submissionData.audioUrl = s3Url.url;
+          }
+          try {
+            const fs = require("fs");
+            if (fs.existsSync(payload.file.path)) {
+              fs.unlinkSync(payload.file.path);
+            }
+          } catch {}
+        } catch (e) {
+          errorLogger.error(
+            { error: e.message },
+            "Failed to upload voice note to S3"
+          );
+        }
+      }
+
       const result = await createWtfSubmission(submissionData);
 
       // Trigger real-time event
@@ -573,6 +921,98 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in submitVoiceNote service"
+      );
+      throw error;
+    }
+  }
+
+  static async submitMedia(studentId, payload) {
+    try {
+      if (!studentId) {
+        return {
+          success: false,
+          data: null,
+          message: "Student ID is required",
+        };
+      }
+
+      const type = (payload.type || "").toLowerCase();
+      if (!["image", "video"].includes(type)) {
+        return {
+          success: false,
+          data: null,
+          message: "Invalid media type. Must be 'image' or 'video'",
+        };
+      }
+
+      if (!payload.file || !payload.file.path) {
+        return {
+          success: false,
+          data: null,
+          message: "Media file is required",
+        };
+      }
+
+      // Upload media to S3
+      let mediaUrl = null;
+      try {
+        const s3Url = await uploadWtfMedia(
+          payload.file.path,
+          type,
+          `submission_${Date.now()}`
+        );
+        mediaUrl = s3Url;
+        // Cleanup local temp file
+        try {
+          if (fs.existsSync(payload.file.path)) {
+            fs.unlinkSync(payload.file.path);
+          }
+        } catch {}
+      } catch (e) {
+        errorLogger.error({ error: e.message }, "Failed to upload media to S3");
+        return {
+          success: false,
+          data: null,
+          message: `Failed to upload media: ${e.message}`,
+        };
+      }
+
+      // Persist as an article submission with content URL and type in metadata
+      const submissionData = {
+        studentId: new mongoose.Types.ObjectId(studentId),
+        type: "article",
+        title: payload.title,
+        content: mediaUrl,
+        language: payload.language || "english",
+        tags: payload.tags || [],
+        isDraft: payload.isDraft || false,
+        metadata: {
+          originalType: type,
+          fileSize: payload.file.size,
+          userAgent: payload.userAgent,
+          ipAddress: payload.ipAddress,
+        },
+      };
+
+      const result = await createWtfSubmission(submissionData);
+
+      // Trigger real-time event
+      if (result.success) {
+        try {
+          wtfWebSocketService.handleSubmissionCreated(result.data);
+        } catch (wsError) {
+          errorLogger.error(
+            { submissionId: result.data._id, error: wsError.message },
+            "Error triggering WebSocket submission created event"
+          );
+        }
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in submitMedia service"
       );
       throw error;
     }
@@ -662,8 +1102,47 @@ class WtfService {
       if (action === "approve") {
         result = await approveSubmission(submissionId, reviewerId, notes);
 
-        // Award coins for submission approval
-        if (result.success) {
+        // On approval, auto-create a pin which will appear on the Wall of Fame
+        if (result.success && result.data) {
+          try {
+            const approvedSubmission = result.data;
+            const pinType =
+              approvedSubmission.type === "voice" ? "audio" : "text";
+            const pinPayload = {
+              title: approvedSubmission.title,
+              // For text pins, the backend reads `content`; for audio we pass media via `mediaUrl`
+              content:
+                pinType === "text"
+                  ? approvedSubmission.content
+                  : approvedSubmission.audioUrl,
+              type: pinType,
+              ...(pinType === "audio" && {
+                mediaUrl: approvedSubmission.audioUrl,
+              }),
+              author: new mongoose.Types.ObjectId(reviewerId),
+              status: "active",
+              isOfficial: false,
+              language: approvedSubmission.language || "english",
+              tags: approvedSubmission.tags || [],
+            };
+
+            const pinCreateResult = await createWtfPin(pinPayload);
+            if (pinCreateResult?.success) {
+              // Link the created pin back to the submission
+              await updateWtfSubmission(submissionId, {
+                approvedPinId: pinCreateResult.data._id,
+              });
+              // Attach info for client
+              result.data.approvedPin = pinCreateResult.data;
+            }
+          } catch (pinError) {
+            errorLogger.error(
+              { submissionId, reviewerId, error: pinError.message },
+              "Error creating pin from approved submission"
+            );
+          }
+
+          // Award coins for submission approval
           try {
             const coinResult = await CoinService.awardSubmissionApprovalCoins(
               result.data.studentId,
@@ -942,48 +1421,61 @@ class WtfService {
 
   // ==================== DASHBOARD METRICS ====================
 
-  static async getWtfDashboardMetrics() {
+  static async getWtfDashboardCounts() {
     try {
-      // Get all the metrics needed for dashboard
-      const [activePinsCount, submissionStats, analytics] = await Promise.all([
-        this.getActivePinsCount(),
-        this.getSubmissionStats(),
-        this.getWtfAnalytics(),
-      ]);
+      // Get all the counts needed for dashboard in parallel
+      const [activePinsResult, submissionStatsResult, analyticsResult] =
+        await Promise.all([
+          this.getActivePinsCount(),
+          this.getSubmissionStats(),
+          this.getWtfAnalytics(),
+        ]);
 
-      const dashboardMetrics = {
-        activePins: activePinsCount?.data || 0,
-        coachSuggestions: submissionStats?.data?.pendingCount || 0,
-        studentSubmissions: submissionStats?.data?.newCount || 0,
-        totalEngagement:
-          analytics?.data?.totalViews || analytics?.data?.totalSeen || 0,
-        pendingSuggestions: submissionStats?.data?.pendingCount || 0,
-        newSubmissions: submissionStats?.data?.newCount || 0,
-        reviewQueueCount: submissionStats?.data?.pendingCount || 0,
+      // Extract counts with fallbacks
+      const activePinsCount = activePinsResult?.success
+        ? activePinsResult.data
+        : 0;
+      const submissionStats = submissionStatsResult?.success
+        ? submissionStatsResult.data
+        : {};
+      const analytics = analyticsResult?.success ? analyticsResult.data : {};
+
+      const dashboardCounts = {
+        activePins: activePinsCount,
+        coachSuggestions: submissionStats?.pendingCount || 0,
+        studentSubmissions: submissionStats?.newCount || 0,
+        totalEngagement: analytics?.totalSeen || analytics?.totalViews || 0,
+        // Additional useful metrics
+        totalPins: analytics?.totalPins || 0,
+        officialPins: analytics?.officialPins || 0,
+        totalLikes: analytics?.totalLikes || 0,
+        totalShares: analytics?.totalShares || 0,
       };
 
       return {
         success: true,
-        data: dashboardMetrics,
-        message: "Dashboard metrics fetched successfully",
+        data: dashboardCounts,
+        message: "Dashboard counts fetched successfully",
       };
     } catch (error) {
       errorLogger.error(
         { error: error.message },
-        "Error in getWtfDashboardMetrics service"
+        "Error in getWtfDashboardCounts service"
       );
       throw error;
     }
   }
 
+  // Legacy method for backward compatibility
+  static async getWtfDashboardMetrics() {
+    return this.getWtfDashboardCounts();
+  }
+
   static async getActivePinsCount() {
     try {
-      const result = await getActivePins({ page: 1, limit: 1 });
-      return {
-        success: true,
-        data: result?.pagination?.total || 0,
-        message: "Active pins count fetched successfully",
-      };
+      // Use admin version that doesn't filter by expiry date
+      const result = await getActivePinsCountForAdmin();
+      return result;
     } catch (error) {
       errorLogger.error(
         { error: error.message },
@@ -1035,8 +1527,11 @@ class WtfService {
   static async getCoachSuggestions({ page = 1, limit = 20, status = null }) {
     try {
       // For now, we'll use the submissions data as coach suggestions
-      // In a real implementation, you might have a separate coach suggestions table
-      const result = await getSubmissionsForReview({ page, limit, type: null });
+      const result = await WtfService.getSubmissionsForReview({
+        page,
+        limit,
+        type: null,
+      });
 
       if (!result.success) {
         return {
@@ -1047,22 +1542,43 @@ class WtfService {
       }
 
       // Transform submissions to coach suggestions format
-      const coachSuggestions = result.data.map((submission) => ({
-        id: submission._id,
-        studentName: submission.studentName || "Unknown Student",
-        coachName: submission.suggestedBy || "Coach",
-        workType: submission.type === "voice" ? "Voice Note" : "Article",
-        title: submission.title,
-        content: submission.content || submission.audioUrl,
-        suggestedDate: submission.createdAt,
-        status: submission.status === "NEW" ? "PENDING" : submission.status,
-        balagruha: submission.balagruha || "Unknown House",
-      }));
+      const submissions = result.data.submissions || [];
+      const coachSuggestions = submissions.map((submission) => {
+        const meta = submission.metadata || {};
+        const originalType = (
+          meta.originalType ||
+          submission.type ||
+          "text"
+        ).toLowerCase();
+        const normalizedType =
+          originalType === "voice" ? "audio" : originalType;
+        const contentUrl =
+          submission.type === "voice"
+            ? submission.audioUrl
+            : submission.content;
+        return {
+          id: submission._id,
+          studentName: meta.studentName || "Unknown Student",
+          coachName: meta.suggestedBy || "Coach",
+          workType:
+            originalType === "audio" || originalType === "voice"
+              ? "Voice Note"
+              : originalType.charAt(0).toUpperCase() + originalType.slice(1),
+          type: normalizedType,
+          title: submission.title,
+          content: contentUrl,
+          suggestedDate: submission.createdAt,
+          status: submission.status
+            ? submission.status.toUpperCase()
+            : "PENDING",
+          balagruha: meta.balagruha || "Unknown House",
+        };
+      });
 
       return {
         success: true,
         data: coachSuggestions,
-        pagination: result.pagination,
+        pagination: result.data.pagination,
         message: "Coach suggestions fetched successfully",
       };
     } catch (error) {
@@ -1131,13 +1647,43 @@ class WtfService {
         tags: payload.tags || [],
       };
 
-      // Add type-specific fields
-      if (submissionType === "voice") {
-        suggestionData.audioUrl = payload.audioUrl || payload.content;
-        suggestionData.audioDuration = payload.audioDuration || 0;
-        suggestionData.audioTranscription = payload.audioTranscription;
+      // If a file is present, upload to S3 first and get a URL
+      if (payload.file && payload.file.path) {
+        try {
+          const s3Url = await uploadWtfMedia(
+            payload.file.path,
+            payload.type === "audio" ? "audio" : payload.type,
+            `coach_suggestion_${Date.now()}`
+          );
+          // Map to correct field
+          if (submissionType === "voice") {
+            suggestionData.audioUrl = s3Url;
+          } else if (submissionType === "article") {
+            suggestionData.content = s3Url || payload.content || "";
+          }
+          // Clean up local temp file
+          try {
+            if (fs.existsSync(payload.file.path)) {
+              fs.unlinkSync(payload.file.path);
+            }
+          } catch {}
+        } catch (e) {
+          errorLogger.error(
+            { error: e.message },
+            "S3 upload failed for coach suggestion"
+          );
+        }
       } else {
-        suggestionData.content = payload.content;
+        // No file provided; use URL/text from payload
+        if (submissionType === "voice") {
+          suggestionData.audioUrl = payload.audioUrl || payload.content;
+          if (payload.audioDuration != null) {
+            suggestionData.audioDuration = payload.audioDuration;
+          }
+          suggestionData.audioTranscription = payload.audioTranscription;
+        } else {
+          suggestionData.content = payload.content;
+        }
       }
 
       // Create the suggestion using the submission system
@@ -1180,79 +1726,123 @@ class WtfService {
   // ==================== PIN LIFECYCLE MANAGEMENT ====================
 
   /**
-   * Automatically expire pins after one week
+   * Automatically delete pins after one week (including S3 files)
    * Should be called by a scheduled job (cron/scheduler)
    */
   static async expireOldPins() {
     try {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      logger.info("Starting automatic pin expiration process");
 
-      logger.info({ expirationDate: oneWeekAgo }, "Starting automatic pin expiration");
+      // Get expired pins using the updated data access method
+      const expiredPinsResult = await getExpiredPins();
 
-      // Find pins that are older than one week and still active
-      const expiredPins = await getActivePins({
-        pinnedTimestamp: { $lt: oneWeekAgo },
-        status: "ACTIVE"
-      });
-
-      if (!expiredPins || expiredPins.length === 0) {
+      if (!expiredPinsResult.success || expiredPinsResult.data.length === 0) {
         logger.info("No pins to expire");
         return {
           success: true,
           expiredCount: 0,
-          message: "No pins to expire"
+          message: "No pins to expire",
+          expirationCutoff: expiredPinsResult.expirationCutoff,
         };
       }
 
-      let expiredCount = 0;
-      const expiredPinDetails = [];
+      const expiredPins = expiredPinsResult.data;
+      let deletedCount = 0;
+      const deletedPinDetails = [];
+      const failedDeletions = [];
+
+      logger.info(
+        {
+          expiredPinsCount: expiredPins.length,
+          expirationCutoff: expiredPinsResult.expirationCutoff,
+        },
+        "Found expired pins to delete"
+      );
 
       for (const pin of expiredPins) {
         try {
-          // Update pin status to expired instead of deleting
-          const result = await updatePinStatus(pin.pinId, "EXPIRED");
-          
-          if (result.success) {
-            expiredCount++;
-            expiredPinDetails.push({
-              pinId: pin.pinId,
+          logger.info(
+            {
+              pinId: pin._id,
               title: pin.title,
-              pinnedDate: pin.pinnedTimestamp
+              createdAt: pin.createdAt,
+              author: pin.author?.name,
+            },
+            "Deleting expired pin"
+          );
+
+          // Use the enhanced deletePin method which includes S3 cleanup
+          const result = await this.deletePin(pin._id);
+
+          if (result.success) {
+            deletedCount++;
+            deletedPinDetails.push({
+              pinId: pin._id,
+              title: pin.title,
+              createdAt: pin.createdAt,
+              author: pin.author?.name,
+              s3DeletionResults: result.s3DeletionResults,
             });
 
-            logger.info({
-              pinId: pin.pinId,
+            logger.info(
+              {
+                pinId: pin._id,
+                title: pin.title,
+                createdAt: pin.createdAt,
+                s3FilesDeleted: result.s3DeletionResults?.length || 0,
+              },
+              "Pin deleted due to age limit (1 week)"
+            );
+          } else {
+            failedDeletions.push({
+              pinId: pin._id,
               title: pin.title,
-              pinnedDate: pin.pinnedTimestamp
-            }, "Pin expired due to age limit");
+              error: result.message,
+            });
           }
         } catch (error) {
-          errorLogger.error({
+          errorLogger.error(
+            {
+              error: error.message,
+              pinId: pin._id,
+              title: pin.title,
+            },
+            "Error deleting expired pin"
+          );
+          failedDeletions.push({
+            pinId: pin._id,
+            title: pin.title,
             error: error.message,
-            pinId: pin.pinId
-          }, "Error expiring individual pin");
+          });
         }
       }
 
-      logger.info({
-        totalExpired: expiredCount,
-        totalProcessed: expiredPins.length
-      }, "Pin expiration completed");
+      logger.info(
+        {
+          totalDeleted: deletedCount,
+          totalProcessed: expiredPins.length,
+          failedDeletions: failedDeletions.length,
+        },
+        "Pin expiration process completed"
+      );
 
       return {
         success: true,
-        expiredCount,
+        expiredCount: deletedCount,
         totalProcessed: expiredPins.length,
-        expiredPins: expiredPinDetails,
-        message: `${expiredCount} pins expired automatically`
+        deletedPins: deletedPinDetails,
+        failedDeletions,
+        message: `${deletedCount} expired pins deleted automatically (including S3 files)`,
+        expirationCutoff: expiredPinsResult.expirationCutoff,
       };
-
     } catch (error) {
-      errorLogger.error({
-        error: error.message
-      }, "Error in automatic pin expiration");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+        },
+        "Error in automatic pin expiration"
+      );
+
       throw error;
     }
   }
@@ -1264,13 +1854,15 @@ class WtfService {
   static async cleanupExpiredPins() {
     try {
       const activePins = await getActivePins({
-        status: "ACTIVE"
+        status: "ACTIVE",
       });
 
       // If we have more than 20 active pins, expire the oldest ones
       if (activePins && activePins.length > 20) {
         const pinsToExpire = activePins
-          .sort((a, b) => new Date(a.pinnedTimestamp) - new Date(b.pinnedTimestamp))
+          .sort(
+            (a, b) => new Date(a.pinnedTimestamp) - new Date(b.pinnedTimestamp)
+          )
           .slice(0, activePins.length - 15); // Keep only 15 most recent
 
         let cleanedCount = 0;
@@ -1282,29 +1874,34 @@ class WtfService {
           }
         }
 
-        logger.info({
-          totalActive: activePins.length,
-          cleaned: cleanedCount
-        }, "Cleaned up old pins to make room for new ones");
+        logger.info(
+          {
+            totalActive: activePins.length,
+            cleaned: cleanedCount,
+          },
+          "Cleaned up old pins to make room for new ones"
+        );
 
         return {
           success: true,
           cleanedCount,
-          message: `${cleanedCount} old pins cleaned up`
+          message: `${cleanedCount} old pins cleaned up`,
         };
       }
 
       return {
         success: true,
         cleanedCount: 0,
-        message: "No cleanup needed"
+        message: "No cleanup needed",
       };
-
     } catch (error) {
-      errorLogger.error({
-        error: error.message
-      }, "Error in pin cleanup");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+        },
+        "Error in pin cleanup"
+      );
+
       throw error;
     }
   }
@@ -1317,16 +1914,27 @@ class WtfService {
    */
   static async awardCoinsForPinnedContent(pinData) {
     try {
-      if (!pinData.originalAuthor?.userId || pinData.originalAuthor?.type !== "STUDENT") {
-        logger.info("No coin award - not student content", { pinData: pinData.pinId });
-        return { success: true, message: "Not student content - no coins awarded" };
+      if (
+        !pinData.originalAuthor?.userId ||
+        pinData.originalAuthor?.type !== "STUDENT"
+      ) {
+        logger.info("No coin award - not student content", {
+          pinData: pinData.pinId,
+        });
+        return {
+          success: true,
+          message: "Not student content - no coins awarded",
+        };
       }
 
       const studentId = pinData.originalAuthor.userId;
       const coinReward = this.calculateCoinReward(pinData.contentType);
 
       if (coinReward <= 0) {
-        return { success: true, message: "No coins configured for this content type" };
+        return {
+          success: true,
+          message: "No coins configured for this content type",
+        };
       }
 
       // Award coins using the coin service
@@ -1334,7 +1942,9 @@ class WtfService {
         studentId,
         coinReward,
         "WTF_CONTENT_PINNED",
-        `Your ${pinData.contentType.toLowerCase()} "${pinData.title}" was featured on WTF!`,
+        `Your ${pinData.contentType.toLowerCase()} "${
+          pinData.title
+        }" was featured on WTF!`,
         {
           pinId: pinData.pinId,
           contentType: pinData.contentType,
@@ -1343,12 +1953,15 @@ class WtfService {
       );
 
       if (coinResult.success) {
-        logger.info({
-          studentId,
-          pinId: pinData.pinId,
-          coinsAwarded: coinReward,
-          contentType: pinData.contentType,
-        }, "ISF Coins awarded for pinned content");
+        logger.info(
+          {
+            studentId,
+            pinId: pinData.pinId,
+            coinsAwarded: coinReward,
+            contentType: pinData.contentType,
+          },
+          "ISF Coins awarded for pinned content"
+        );
 
         return {
           success: true,
@@ -1359,11 +1972,14 @@ class WtfService {
 
       return coinResult;
     } catch (error) {
-      errorLogger.error({
-        error: error.message,
-        pinData: pinData?.pinId,
-      }, "Error awarding coins for pinned content");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+          pinData: pinData?.pinId,
+        },
+        "Error awarding coins for pinned content"
+      );
+
       // Don't throw - coin awards shouldn't block pin creation
       return {
         success: false,
@@ -1378,10 +1994,10 @@ class WtfService {
    */
   static calculateCoinReward(contentType) {
     const coinRewards = {
-      IMAGE: 50,    // Student artwork/drawings
-      VIDEO: 100,   // Spoken English performances, student videos
-      AUDIO: 75,    // Voice notes, student recordings
-      TEXT: 25,     // Student articles/stories
+      IMAGE: 50, // Student artwork/drawings
+      VIDEO: 100, // Spoken English performances, student videos
+      AUDIO: 75, // Voice notes, student recordings
+      TEXT: 25, // Student articles/stories
     };
 
     return coinRewards[contentType] || 0;
@@ -1394,8 +2010,15 @@ class WtfService {
     try {
       // Get pin data
       const pin = await getWtfPinById(pinId);
-      if (!pin || !pin.originalAuthor?.userId || pin.originalAuthor?.type !== "STUDENT") {
-        return { success: true, message: "Not student content - no milestone coins" };
+      if (
+        !pin ||
+        !pin.originalAuthor?.userId ||
+        pin.originalAuthor?.type !== "STUDENT"
+      ) {
+        return {
+          success: true,
+          message: "Not student content - no milestone coins",
+        };
       }
 
       const milestones = [10, 25, 50, 100]; // Like count milestones
@@ -1431,13 +2054,16 @@ class WtfService {
 
             if (coinResult.success) {
               totalMilestoneCoins += reward;
-              logger.info({
-                studentId: pin.originalAuthor.userId,
-                pinId,
-                milestone,
-                coinsAwarded: reward,
-                totalLikes: likeCount,
-              }, "Milestone coins awarded for popular content");
+              logger.info(
+                {
+                  studentId: pin.originalAuthor.userId,
+                  pinId,
+                  milestone,
+                  coinsAwarded: reward,
+                  totalLikes: likeCount,
+                },
+                "Milestone coins awarded for popular content"
+              );
             }
           }
         }
@@ -1446,17 +2072,21 @@ class WtfService {
       return {
         success: true,
         coinsAwarded: totalMilestoneCoins,
-        message: totalMilestoneCoins > 0 
-          ? `${totalMilestoneCoins} milestone coins awarded` 
-          : "No new milestones reached",
+        message:
+          totalMilestoneCoins > 0
+            ? `${totalMilestoneCoins} milestone coins awarded`
+            : "No new milestones reached",
       };
     } catch (error) {
-      errorLogger.error({
-        error: error.message,
-        pinId,
-        likeCount,
-      }, "Error awarding milestone coins");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+          pinId,
+          likeCount,
+        },
+        "Error awarding milestone coins"
+      );
+
       return {
         success: false,
         message: "Error awarding milestone coins",

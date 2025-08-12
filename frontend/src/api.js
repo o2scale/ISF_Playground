@@ -1,21 +1,25 @@
 import axios from "axios";
+import config from "./config";
+
 const macAddress = localStorage.getItem("macAddress");
 
 export const api = axios.create({
-  baseURL: "https://playground.initiativesewafoundation.com/server",
+  baseURL: config.API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     "MAC-Address": `${macAddress}`,
     mode: "no-cors",
   },
+  timeout: config.API_TIMEOUT,
 });
 
 export const apiWithoutContentType = axios.create({
-  baseURL: "https://playground.initiativesewafoundation.com/server",
+  baseURL: config.API_BASE_URL,
   headers: {
     "MAC-Address": `${macAddress}`,
     mode: "no-cors",
   },
+  timeout: config.API_TIMEOUT,
 });
 
 export const headers = {
@@ -542,7 +546,35 @@ export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
 // Pin Management APIs
 export const createWtfPin = async (data) => {
   try {
-    const response = await api.post(`/api/v1/wtf/pins`, data);
+    // Create FormData for file upload
+    const formData = new FormData();
+
+    // Append all fields to FormData
+    Object.keys(data).forEach((key) => {
+      if (key === "file" && data[key]) {
+        // Append file with the field name expected by multer
+        formData.append("file", data[key]);
+      } else if (key === "tags" && Array.isArray(data[key])) {
+        // Handle tags array - append each tag separately or empty array
+        if (data[key].length > 0) {
+          data[key].forEach((tag) => {
+            formData.append("tags[]", tag);
+          });
+        } else {
+          // Send empty array as tags[]
+          formData.append("tags", JSON.stringify([]));
+        }
+      } else if (data[key] !== null && data[key] !== undefined) {
+        // Append other fields as strings
+        formData.append(key, data[key]);
+      }
+    });
+
+    const response = await api.post(`/api/v1/wtf/pins`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
     return response.data;
   } catch (error) {
     console.error("Error creating WTF pin:", error);
@@ -552,7 +584,7 @@ export const createWtfPin = async (data) => {
 
 export const getActiveWtfPins = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/pins/active`, { params });
+    const response = await api.get(`/api/v1/wtf/pins`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching active WTF pins:", error);
@@ -562,9 +594,22 @@ export const getActiveWtfPins = async (params = {}) => {
 
 export const createCoachSuggestion = async (suggestionData) => {
   try {
-    const formData = new FormData();
+    // If no file is present, send JSON so backend validators can read body
+    if (!suggestionData.file) {
+      const response = await api.post("/api/v1/wtf/coach-suggestions", {
+        title: suggestionData.title,
+        content: suggestionData.content || "",
+        type: suggestionData.type,
+        studentName: suggestionData.studentName,
+        studentId: suggestionData.studentId,
+        balagruha: suggestionData.balagruha || "",
+        reason: suggestionData.reason,
+      });
+      return response.data;
+    }
 
-    // Add all the suggestion data
+    // Fallback to multipart when a file is attached
+    const formData = new FormData();
     formData.append("title", suggestionData.title);
     formData.append("content", suggestionData.content || "");
     formData.append("type", suggestionData.type);
@@ -572,11 +617,7 @@ export const createCoachSuggestion = async (suggestionData) => {
     formData.append("studentId", suggestionData.studentId);
     formData.append("balagruha", suggestionData.balagruha || "");
     formData.append("reason", suggestionData.reason);
-
-    // Add file if present
-    if (suggestionData.file) {
-      formData.append("file", suggestionData.file);
-    }
+    formData.append("file", suggestionData.file);
 
     const response = await api.post("/api/v1/wtf/coach-suggestions", formData, {
       headers: {
@@ -732,6 +773,19 @@ export const submitVoiceNote = async (data) => {
   }
 };
 
+export const submitWtfMedia = async (formData) => {
+  try {
+    const response = await apiWithoutContentType.post(
+      `/api/v1/wtf/submissions/media`,
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting WTF media:", error);
+    throw error;
+  }
+};
+
 export const submitArticle = async (data) => {
   try {
     const response = await api.post(`/api/v1/wtf/submissions/article`, data);
@@ -756,7 +810,8 @@ export const getSubmissionsForReview = async (params = {}) => {
 
 export const reviewSubmission = async (submissionId, data) => {
   try {
-    const response = await api.post(
+    // Backend route expects PUT
+    const response = await api.put(
       `/api/v1/wtf/submissions/${submissionId}/review`,
       data
     );
@@ -907,7 +962,8 @@ export const getPendingSubmissionsCount = async () => {
     const response = await api.get(`/api/v1/wtf/submissions/review`, {
       params: { page: 1, limit: 1 },
     });
-    return response.data?.pagination?.total || 0;
+    // API shape: { success, data: { submissions, pagination } }
+    return response.data?.data?.pagination?.total || 0;
   } catch (error) {
     console.error("Error fetching pending submissions count:", error);
     throw error;
@@ -925,7 +981,18 @@ export const getWtfDashboardMetrics = async () => {
   }
 };
 
-// Get active pins count
+// Get unified dashboard counts (NEW)
+export const getWtfDashboardCounts = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/dashboard/counts`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching dashboard counts:", error);
+    throw error;
+  }
+};
+
+// Get active pins count (LEGACY - kept for backward compatibility)
 export const getActivePinsCount = async () => {
   try {
     const response = await api.get(`/api/v1/wtf/pins/active/count`);

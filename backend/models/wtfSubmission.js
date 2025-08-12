@@ -16,7 +16,6 @@ const wtfSubmissionSchema = new mongoose.Schema(
       type: String,
       required: [true, "Title is required"],
       trim: true,
-      maxlength: [200, "Title cannot exceed 200 characters"],
     },
     content: {
       type: String,
@@ -38,7 +37,11 @@ const wtfSubmissionSchema = new mongoose.Schema(
       type: Number, // Duration in seconds
       min: [0, "Audio duration cannot be negative"],
       required: function () {
-        return this.type === "voice";
+        // For coach suggestions, audio duration is optional
+        return (
+          this.type === "voice" &&
+          !(this.metadata && this.metadata.isCoachSuggestion)
+        );
       },
     },
     audioTranscription: {
@@ -137,13 +140,16 @@ wtfSubmissionSchema.pre("save", function (next) {
       return next(new Error("Audio URL is required for voice submissions"));
     }
 
-    if (!this.audioDuration || this.audioDuration < 0) {
-      return next(new Error("Valid audio duration is required"));
-    }
-
-    // Limit voice duration to 60 seconds (1 minute)
-    if (this.audioDuration > 60) {
-      return next(new Error("Voice recording cannot exceed 60 seconds"));
+    // For coach suggestions, allow missing duration
+    const isCoachSuggestion = this.metadata && this.metadata.isCoachSuggestion;
+    if (!isCoachSuggestion) {
+      if (this.audioDuration == null || this.audioDuration < 0) {
+        return next(new Error("Valid audio duration is required"));
+      }
+      // Limit voice duration to 60 seconds (1 minute)
+      if (this.audioDuration > 60) {
+        return next(new Error("Voice recording cannot exceed 60 seconds"));
+      }
     }
   }
 

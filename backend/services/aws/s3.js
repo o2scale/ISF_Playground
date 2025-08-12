@@ -109,7 +109,7 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
 
-    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
     console.log(`WTF media uploaded successfully: ${url}`);
     return url;
   } catch (error) {
@@ -135,7 +135,7 @@ exports.uploadWtfMediaBuffer = async (buffer, fileName, contentType) => {
     const command = new PutObjectCommand(params);
     await s3Client.send(command);
 
-    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${fileName}`;
+    const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
     console.log(`WTF background image uploaded successfully: ${url}`);
     return url;
   } catch (error) {
@@ -214,9 +214,62 @@ exports.generateWtfThumbnail = async (originalKey, thumbnailKey) => {
   }
 };
 
-// Delete WTF media
-exports.deleteWtfMedia = async (key) => {
+// Extract S3 key from full S3 URL
+exports.extractS3KeyFromUrl = (s3Url) => {
   try {
+    if (!s3Url || typeof s3Url !== "string") {
+      return null;
+    }
+
+    // Handle both formats:
+    // https://bucket-name.s3.region.amazonaws.com/key
+    // https://s3.region.amazonaws.com/bucket-name/key
+    const url = new URL(s3Url);
+    const pathname = url.pathname;
+
+    // For https://bucket-name.s3.region.amazonaws.com/key format
+    if (url.hostname.includes(".s3.")) {
+      return pathname.startsWith("/") ? pathname.substring(1) : pathname;
+    }
+
+    // For https://s3.region.amazonaws.com/bucket-name/key format
+    const pathParts = pathname.split("/").filter((part) => part);
+    if (pathParts.length >= 2) {
+      return pathParts.slice(1).join("/"); // Remove bucket name, keep the rest as key
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error extracting S3 key from URL:", error);
+    return null;
+  }
+};
+
+// Delete WTF media by URL or key
+exports.deleteWtfMedia = async (keyOrUrl) => {
+  try {
+    let key = keyOrUrl;
+
+    // If it's a full URL, extract the key
+    if (keyOrUrl && keyOrUrl.startsWith("http")) {
+      key = exports.extractS3KeyFromUrl(keyOrUrl);
+      if (!key) {
+        return {
+          success: false,
+          message: "Could not extract S3 key from URL",
+          keyOrUrl: keyOrUrl,
+        };
+      }
+    }
+
+    if (!key) {
+      return {
+        success: false,
+        message: "No valid S3 key or URL provided",
+        keyOrUrl: keyOrUrl,
+      };
+    }
+
     const params = {
       Bucket: process.env.AWS_S3_WTF_BUCKET_NAME,
       Key: key,
@@ -225,10 +278,12 @@ exports.deleteWtfMedia = async (key) => {
     const command = new DeleteObjectCommand(params);
     await s3Client.send(command);
 
+    console.log(`WTF media deleted successfully: ${key}`);
     return {
       success: true,
       message: "WTF media deleted successfully",
       key: key,
+      originalInput: keyOrUrl,
     };
   } catch (error) {
     console.error("Error deleting WTF media:", error);
@@ -236,6 +291,7 @@ exports.deleteWtfMedia = async (key) => {
       success: false,
       message: "WTF media deletion failed",
       error: error.message,
+      keyOrUrl: keyOrUrl,
     };
   }
 };

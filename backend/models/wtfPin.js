@@ -6,7 +6,6 @@ const wtfPinSchema = new mongoose.Schema(
       type: String,
       required: [true, "Title is required"],
       trim: true,
-      maxlength: [200, "Title cannot exceed 200 characters"],
     },
     content: {
       type: String,

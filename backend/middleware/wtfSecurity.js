@@ -72,11 +72,11 @@ const wtfRateLimiters = {
 
 // Content sanitization and validation for WTF submissions
 const wtfContentValidation = [
-  // Title validation
+  // Title validation (presence only)
   body("title")
     .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage("Title must be between 1 and 200 characters")
+    .notEmpty()
+    .withMessage("Title is required")
     .escape()
     .customSanitizer((value) => {
       // Remove potentially dangerous HTML/script tags
@@ -119,17 +119,26 @@ const wtfContentValidation = [
   // Tags validation
   body("tags")
     .optional()
-    .isArray({ max: 10 })
-    .withMessage("Tags must be an array with maximum 10 items")
     .customSanitizer((value) => {
-      if (Array.isArray(value)) {
-        return value
-          .slice(0, 10) // Limit to 10 tags
-          .map((tag) => tag.toString().trim().substring(0, 50)) // Limit tag length
-          .filter((tag) => tag.length > 0); // Remove empty tags
+      // Handle JSON string from FormData
+      if (typeof value === "string") {
+        try {
+          value = JSON.parse(value);
+        } catch (e) {
+          return [];
+        }
       }
-      return [];
-    }),
+      // Ensure it's an array
+      if (!Array.isArray(value)) {
+        return [];
+      }
+      return value
+        .slice(0, 10) // Limit to 10 tags
+        .map((tag) => tag.toString().trim().substring(0, 50)) // Limit tag length
+        .filter((tag) => tag.length > 0); // Remove empty tags
+    })
+    .isArray({ max: 10 })
+    .withMessage("Tags must be an array with maximum 10 items"),
 
   // Language validation
   body("language")
@@ -137,32 +146,17 @@ const wtfContentValidation = [
     .isIn(["english", "hindi", "both"])
     .withMessage("Language must be english, hindi, or both"),
 
-  // File size validation for media uploads
-  body("fileSize")
-    .if(body("type").isIn(["image", "video", "audio"]))
-    .isInt({ min: 1, max: 50 * 1024 * 1024 }) // Max 50MB
-    .withMessage("File size must be between 1 byte and 50MB"),
-
-  // Audio duration validation
-  body("audioDuration")
-    .if(body("type").equals("audio"))
-    .isInt({ min: 1, max: 300 }) // Max 5 minutes
-    .withMessage("Audio duration must be between 1 second and 5 minutes"),
-
-  // Video duration validation
-  body("videoDuration")
-    .if(body("type").equals("video"))
-    .isInt({ min: 1, max: 600 }) // Max 10 minutes
-    .withMessage("Video duration must be between 1 second and 10 minutes"),
+  // File size validation removed - pins can have variable file sizes
+  // Duration validation removed - not needed for file uploads
 ];
 
 // Validation for WTF submissions
 const wtfSubmissionValidation = [
-  // Title validation
+  // Title validation (presence only)
   body("title")
     .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage("Title must be between 1 and 200 characters")
+    .notEmpty()
+    .withMessage("Title is required")
     .escape()
     .customSanitizer((value) => {
       return value.replace(
@@ -221,17 +215,8 @@ const wtfSubmissionValidation = [
     .isIn(["english", "hindi"])
     .withMessage("Language must be english or hindi"),
 
-  // File size validation
-  body("fileSize")
-    .if(body("type").equals("voice"))
-    .isInt({ min: 1, max: 25 * 1024 * 1024 }) // Max 25MB for voice notes
-    .withMessage("Voice note file size must be between 1 byte and 25MB"),
-
-  // Audio duration validation
-  body("audioDuration")
-    .if(body("type").equals("voice"))
-    .isInt({ min: 1, max: 300 }) // Max 5 minutes
-    .withMessage("Voice note duration must be between 1 second and 5 minutes"),
+  // File size validation removed - voice notes can have variable file sizes
+  // Duration validation removed - not needed for file uploads
 ];
 
 // Validation for WTF interactions
@@ -303,10 +288,7 @@ const checkContentSizeLimits = (type) => {
 
     const violations = [];
 
-    // Check title length
-    if (req.body.title && req.body.title.length > limits.title) {
-      violations.push(`Title exceeds ${limits.title} character limit`);
-    }
+    // Title length is not limited (presence checked in validators only)
 
     // Check content length
     if (req.body.content && req.body.content.length > limits.content) {
@@ -382,7 +364,7 @@ const wtfSecurityHeaders = (req, res, next) => {
 const wtfFileUploadSecurity = (req, res, next) => {
   // Check file size limits
   if (req.file) {
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 100 * 1024 * 1024; // Increased to 100MB
     if (req.file.size > maxSize) {
       errorLogger.warn(
         {
@@ -398,7 +380,7 @@ const wtfFileUploadSecurity = (req, res, next) => {
 
       return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
         success: false,
-        message: "File size exceeds the maximum limit of 50MB",
+        message: "File size exceeds the maximum limit of 100MB",
       });
     }
 
@@ -410,9 +392,13 @@ const wtfFileUploadSecurity = (req, res, next) => {
       "image/webp",
       "video/mp4",
       "video/webm",
-      "audio/mpeg",
+      "audio/mpeg", // Standard MP3 MIME type
+      "audio/mp3", // Alternative MP3 MIME type
+      "audio/mpeg3", // Legacy MP3 MIME type
       "audio/wav",
       "audio/ogg",
+      "audio/aac", // AAC audio support
+      "audio/m4a", // M4A audio support
     ];
 
     if (!allowedTypes.includes(req.file.mimetype)) {

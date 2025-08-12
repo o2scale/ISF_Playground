@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const { authorize } = require("../../middleware/auth");
+const { authorize, authenticate } = require("../../middleware/auth");
 const { upload } = require("../../middleware/upload");
 const { WtfPermissions } = require("../../constants/users");
 const {
@@ -13,6 +13,7 @@ const {
 // Get current WTF settings (accessible to all WTF users)
 router.get(
   "/current",
+  authenticate,
   authorize([
     WtfPermissions.WTF_READ,
     WtfPermissions.WTF_ADMIN,
@@ -22,11 +23,17 @@ router.get(
 );
 
 // Update WTF settings (admin only)
-router.put("/update", authorize([WtfPermissions.WTF_ADMIN]), updateSettings);
+router.put(
+  "/update",
+  authenticate,
+  authorize([WtfPermissions.WTF_ADMIN]),
+  updateSettings
+);
 
 // Upload background image (admin only)
 router.post(
   "/background-image",
+  authenticate,
   authorize([WtfPermissions.WTF_ADMIN]),
   upload.single("backgroundImage"),
   uploadBackgroundImage
@@ -35,6 +42,7 @@ router.post(
 // Get settings history (admin only)
 router.get(
   "/history",
+  authenticate,
   authorize([WtfPermissions.WTF_ADMIN]),
   getSettingsHistory
 );

@@ -37,6 +37,7 @@ import {
   createCoachSuggestion,
   getWtfSubmissionStats,
   getPendingSubmissionsCount,
+  getCoachSuggestionsCount,
   submitVoiceNote,
   submitArticle,
   updateWtfSettings,
@@ -113,26 +114,34 @@ const WallOfFameContent = ({ onToggleView }) => {
   useEffect(() => {
     const fetchPins = async () => {
       try {
-        const pins = await getActiveWtfPins();
-        setContent(pins);
+        const response = await getActiveWtfPins();
+        if (response.success && response.data && response.data.pins) {
+          setContent(response.data.pins);
+        } else {
+          setContent([]);
+        }
       } catch (error) {
         console.error("Error fetching pins:", error);
+        setContent([]);
       }
     };
 
     const fetchAdminCounts = async () => {
       if (isAdmin) {
         try {
-          const [submissionStats, pendingCount] = await Promise.all([
-            getWtfSubmissionStats(),
+          const [coachCountResp, studentPendingResp] = await Promise.all([
+            getCoachSuggestionsCount(),
             getPendingSubmissionsCount(),
           ]);
 
+          const coachPending = coachCountResp?.data?.pendingCount || 0;
+          const studentPending = studentPendingResp || 0;
+
           setAdminCounts({
-            pendingSuggestions: submissionStats?.data?.pendingCount || 0,
-            newSubmissions: pendingCount || 0,
-            reviewQueue:
-              (submissionStats?.data?.pendingCount || 0) + (pendingCount || 0),
+            // As per requirement: show combined totals everywhere
+            pendingSuggestions: coachPending + studentPending,
+            newSubmissions: coachPending + studentPending,
+            reviewQueue: coachPending + studentPending,
           });
         } catch (error) {
           console.error("Error fetching admin counts:", error);
@@ -152,9 +161,16 @@ const WallOfFameContent = ({ onToggleView }) => {
   }, [isAdmin]);
 
   const handlePinClick = (item) => {
-    console.log("Pin clicked:", item.title, item.type);
     setSelectedContent(item);
-    setModalType(item.type);
+    // Map backend types to frontend modal types
+    const modalTypeMap = {
+      image: "photo",
+      video: "video",
+      audio: "audio",
+      text: "text",
+      link: "text", // Links can be displayed in text modal
+    };
+    setModalType(modalTypeMap[item.type] || "text");
   };
 
   const closeModal = () => {
@@ -346,49 +362,60 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const handleCreatePin = async (newPin) => {
     console.log("Creating new pin:", newPin);
-    try {
-      if (isCoach && newPin.studentId) {
-        // This is a coach suggestion
-        const suggestionData = {
-          title: newPin.title,
-          content: newPin.content,
-          type: newPin.contentType,
-          studentName: newPin.studentName,
-          studentId: newPin.studentId,
-          balagruha: newPin.balagruha,
-          reason: newPin.reason,
-          file: newPin.file,
-        };
-        await createCoachSuggestion(suggestionData);
-        alert("Suggestion submitted successfully! Admin will review it soon.");
-      } else if (isStudent) {
-        // This is a student submission
-        const submissionData = {
-          title: newPin.title,
-          content: newPin.content || newPin.title,
-          type: newPin.contentType,
-          file: newPin.file,
-          language: "english",
-          tags: newPin.tags || [],
-        };
 
-        // Call appropriate submission API based on content type
-        if (newPin.contentType === "audio") {
-          await submitVoiceNote(submissionData);
-        } else {
-          await submitArticle(submissionData);
-        }
-        alert(
-          "Submission created successfully! It will be reviewed for the Wall of Fame."
-        );
-      } else {
-        // This is an admin pin creation
-        const createdPin = await createWtfPin(newPin);
-        setContent((prev) => [createdPin, ...prev]);
+    if (isCoach && newPin.studentId) {
+      // This is a coach suggestion
+      const suggestionData = {
+        title: newPin.title,
+        content: newPin.content,
+        type: newPin.contentType,
+        studentName: newPin.studentName,
+        studentId: newPin.studentId,
+        balagruha: newPin.balagruha,
+        reason: newPin.reason,
+        file: newPin.file,
+      };
+      const response = await createCoachSuggestion(suggestionData);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to submit suggestion");
       }
+      alert("Suggestion submitted successfully! Admin will review it soon.");
       setShowCreateModal(false);
-    } catch (error) {
-      console.error("Error creating pin/suggestion:", error);
+    } else if (isStudent) {
+      // This is a student submission
+      const submissionData = {
+        title: newPin.title,
+        content: newPin.content || newPin.title,
+        type: newPin.contentType,
+        file: newPin.file,
+        language: "english",
+        tags: newPin.tags || [],
+      };
+
+      // Call appropriate submission API based on content type
+      let response;
+      if (newPin.contentType === "audio") {
+        response = await submitVoiceNote(submissionData);
+      } else {
+        response = await submitArticle(submissionData);
+      }
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to submit article");
+      }
+
+      alert(
+        "Submission created successfully! It will be reviewed for the Wall of Fame."
+      );
+      setShowCreateModal(false);
+    } else {
+      // This is an admin pin creation
+      const response = await createWtfPin(newPin);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to create pin");
+      }
+      setContent((prev) => [response.data, ...prev]);
+      setShowCreateModal(false);
     }
   };
 
@@ -433,6 +460,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     const iconClass = "w-4 h-4";
     switch (type) {
       case "photo":
+      case "image":
         return <Camera className={`${iconClass} text-blue-600`} />;
       case "video":
         return <Play className={`${iconClass} text-blue-600`} />;
@@ -445,12 +473,25 @@ const WallOfFameContent = ({ onToggleView }) => {
     }
   };
 
-  const getCardBackground = (type, thumbnail) => {
+  const getCardBackground = (type, thumbnail, mediaUrl) => {
     switch (type) {
       case "photo":
-        return thumbnail
+      case "image":
+        // Use thumbnail first, then mediaUrl, or default to gray background
+        const imageUrl = thumbnail || mediaUrl;
+        console.log(
+          "Card background - Type:",
+          type,
+          "Thumbnail:",
+          thumbnail,
+          "MediaUrl:",
+          mediaUrl,
+          "Using:",
+          imageUrl
+        );
+        return imageUrl
           ? {
-              backgroundImage: `url(${thumbnail})`,
+              backgroundImage: `url(${imageUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }
@@ -498,9 +539,10 @@ const WallOfFameContent = ({ onToggleView }) => {
 
       <div
         className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center"
-        style={getCardBackground(item.type, item.thumbnail)}
+        style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
       >
-        {item.type === "photo" && item.thumbnail ? null : (
+        {(item.type === "photo" || item.type === "image") &&
+        (item.thumbnailUrl || item.mediaUrl) ? null : (
           <div className="text-center">
             <div className="mb-2 flex justify-center opacity-60">
               {renderTypeIcon(item.type)}
@@ -998,12 +1040,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         <ImageViewer
           isOpen={true}
           onClose={closeModal}
-          imageSrc={selectedContent.content}
+          imageSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 
@@ -1011,12 +1053,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         <VideoPlayer
           isOpen={true}
           onClose={closeModal}
-          videoSrc={selectedContent.content}
+          videoSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 
@@ -1024,12 +1066,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         <AudioPlayer
           isOpen={true}
           onClose={closeModal}
-          audioSrc={selectedContent.content}
+          audioSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 
@@ -1040,9 +1082,9 @@ const WallOfFameContent = ({ onToggleView }) => {
           title={selectedContent.title}
           content={selectedContent.content}
           author={selectedContent.author}
-          likes={selectedContent.likes}
-          hearts={selectedContent.hearts}
-          views={selectedContent.views}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.shares || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
 

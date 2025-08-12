@@ -2,6 +2,8 @@ const express = require("express");
 const { authorize, authenticate } = require("../../middleware/auth");
 const { WtfPermissions } = require("../../constants/users");
 const wtfSettingsRoutes = require("./wtfSettings");
+const { wtfUploadWithErrorHandling } = require("../../middleware/upload");
+const { cleanupOrphanedFiles } = require("../../middleware/upload");
 const {
   wtfRateLimiters,
   wtfContentValidation,
@@ -28,6 +30,7 @@ const {
 
   // Submission Controllers
   submitVoiceNote,
+  submitMedia,
   submitArticle,
   getSubmissionsForReview,
   reviewSubmission,
@@ -39,6 +42,7 @@ const {
 
   // Dashboard Metrics Controllers
   getWtfDashboardMetrics,
+  getDashboardCounts,
   getActivePinsCount,
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
@@ -57,6 +61,11 @@ const {
   awardCoinsForPin,
   awardMilestoneCoins,
   expireOldPins,
+
+  // Scheduler Management Controllers
+  triggerPinExpiration,
+  triggerFifoManagement,
+  getSchedulerStatus,
 } = require("../../controllers/wtfController");
 
 const router = express.Router();
@@ -68,8 +77,10 @@ router.post(
   "/pins",
   authenticate,
   authorize(WtfPermissions.WTF_PIN_CREATE, "Create"),
+  wtfUploadWithErrorHandling, // Add WTF-specific file upload middleware with error handling
   wtfSecurityHeaders,
   wtfRateLimiters.pinCreation,
+  wtfFileUploadSecurity,
   wtfContentValidation,
   checkContentSizeLimits("pin"),
   handleValidationErrors,
@@ -159,6 +170,7 @@ router.post(
   "/submissions/voice",
   authenticate,
   authorize(WtfPermissions.WTF_SUBMISSION_CREATE, "Create"),
+  wtfUploadWithErrorHandling,
   wtfSecurityHeaders,
   wtfRateLimiters.submissions,
   wtfSubmissionValidation,
@@ -166,6 +178,21 @@ router.post(
   wtfFileUploadSecurity,
   handleValidationErrors,
   submitVoiceNote
+);
+
+// Submit media (image/video) (Students only)
+router.post(
+  "/submissions/media",
+  authenticate,
+  authorize(WtfPermissions.WTF_SUBMISSION_CREATE, "Create"),
+  wtfUploadWithErrorHandling,
+  wtfSecurityHeaders,
+  wtfRateLimiters.submissions,
+  wtfSubmissionValidation,
+  checkContentSizeLimits("submission"),
+  wtfFileUploadSecurity,
+  handleValidationErrors,
+  submitMedia
 );
 
 // Submit article (Students only)
@@ -225,7 +252,15 @@ router.get(
 
 // ==================== DASHBOARD METRICS ROUTES ====================
 
-// Get WTF dashboard metrics (Admin only)
+// Get unified dashboard counts (Admin only) - NEW UNIFIED API
+router.get(
+  "/dashboard/counts",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getDashboardCounts
+);
+
+// Get WTF dashboard metrics (Admin only) - Legacy
 router.get(
   "/dashboard/metrics",
   authenticate,
@@ -270,6 +305,8 @@ router.post(
   "/coach-suggestions",
   authenticate,
   authorize(WtfPermissions.WTF_COACH_SUGGESTION_CREATE, "Create"),
+  // Parse multipart form-data if the client sends FormData (even without a file)
+  wtfUploadWithErrorHandling,
   wtfSecurityHeaders,
   wtfRateLimiters.submissions,
   wtfContentValidation,
@@ -344,6 +381,62 @@ router.post(
   wtfSecurityHeaders,
   wtfRateLimiters.general,
   expireOldPins
+);
+
+// ==================== SCHEDULER MANAGEMENT ROUTES ====================
+
+// Manual trigger for pin expiration process (Admin only)
+router.post(
+  "/admin/scheduler/expire-pins",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_DELETE, "Delete"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  triggerPinExpiration
+);
+
+// Manual trigger for FIFO management process (Admin only)
+router.post(
+  "/admin/scheduler/fifo-cleanup",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_DELETE, "Delete"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  triggerFifoManagement
+);
+
+// Get scheduler status (Admin only)
+router.get(
+  "/admin/scheduler/status",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  getSchedulerStatus
+);
+
+// ==================== ADMIN UTILITY ROUTES ====================
+
+// Clean up orphaned files (Admin only)
+router.post(
+  "/admin/cleanup-files",
+  authenticate,
+  authorize(WtfPermissions.WTF_ADMIN, "Admin"),
+  (req, res) => {
+    try {
+      cleanupOrphanedFiles();
+      res.json({
+        success: true,
+        message: "File cleanup completed successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "File cleanup failed",
+        error: error.message,
+      });
+    }
+  }
 );
 
 // WTF Settings Routes

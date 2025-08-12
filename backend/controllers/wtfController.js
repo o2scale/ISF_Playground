@@ -15,12 +15,25 @@ exports.createPin = async (req, res) => {
         method: req.method,
         api: req.originalUrl,
         data: logData,
+        file: req.file
+          ? {
+              name: req.file.filename,
+              size: req.file.size,
+              type: req.file.mimetype,
+            }
+          : null,
         userId: req.user?.id,
       },
       `Request received for WTF pin creation`
     );
 
-    const result = await WtfService.createPin(req.body);
+    // Include file information in the payload
+    const payload = {
+      ...req.body,
+      file: req.file || null,
+    };
+
+    const result = await WtfService.createPin(payload);
 
     if (result.success) {
       logger.info(
@@ -80,13 +93,33 @@ exports.getActivePins = async (req, res) => {
       `Request received to fetch active WTF pins`
     );
 
-    const result = await WtfService.getActivePinsForStudents({
-      page: parseInt(page),
-      limit: parseInt(limit),
-      type: type || null,
-      isOfficial:
-        isOfficial === "true" ? true : isOfficial === "false" ? false : null,
-    });
+    // Use different service based on user role
+    // Admins can see all active pins (including expired), students see only non-expired pins
+    const isAdmin =
+      req.user?.role === "admin" || req.user?.role === "superadmin";
+    const result = isAdmin
+      ? await WtfService.getActivePinsForAdmin({
+          page: parseInt(page),
+          limit: parseInt(limit),
+          type: type || null,
+          isOfficial:
+            isOfficial === "true"
+              ? true
+              : isOfficial === "false"
+              ? false
+              : null,
+        })
+      : await WtfService.getActivePinsForStudents({
+          page: parseInt(page),
+          limit: parseInt(limit),
+          type: type || null,
+          isOfficial:
+            isOfficial === "true"
+              ? true
+              : isOfficial === "false"
+              ? false
+              : null,
+        });
 
     if (result.success) {
       logger.info(
@@ -660,7 +693,7 @@ exports.getPinInteractions = async (req, res) => {
 exports.submitVoiceNote = async (req, res) => {
   try {
     const studentId = req.user?.id;
-    const submissionData = req.body;
+    const submissionData = { ...req.body, file: req.file || null };
 
     if (!studentId) {
       return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
@@ -721,6 +754,53 @@ exports.submitVoiceNote = async (req, res) => {
         error: error.message,
       },
       `Error occurred while submitting voice note`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Submit media (image/video) as a student submission
+exports.submitMedia = async (req, res) => {
+  try {
+    const studentId = req.user?.id;
+    const submissionData = { ...req.body, file: req.file || null };
+
+    if (!studentId) {
+      return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
+        success: false,
+        message: "User authentication required",
+      });
+    }
+
+    // Basic validation
+    const allowedTypes = ["image", "video"];
+    const type = (submissionData.type || "").toLowerCase();
+    if (!allowedTypes.includes(type)) {
+      return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid media type. Must be 'image' or 'video'",
+      });
+    }
+
+    const result = await WtfService.submitMedia(studentId, submissionData);
+
+    if (result.success) {
+      res.status(HTTP_STATUS_CODE.CREATED).json(result);
+    } else {
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        studentId: req.user?.id,
+        error: error.message,
+      },
+      `Error occurred while submitting media`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
@@ -1478,7 +1558,64 @@ exports.getWtfDashboardMetrics = async (req, res) => {
   }
 };
 
-// Get active pins count
+// Get unified dashboard counts
+exports.getDashboardCounts = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?.id,
+      },
+      `Request received to fetch dashboard counts`
+    );
+
+    const result = await WtfService.getWtfDashboardCounts();
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?.id,
+          counts: result.data,
+        },
+        `Successfully fetched dashboard counts`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to fetch dashboard counts`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while fetching dashboard counts`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Get active pins count (legacy - kept for backward compatibility)
 exports.getActivePinsCount = async (req, res) => {
   try {
     logger.info(
@@ -1722,6 +1859,7 @@ exports.createCoachSuggestion = async (req, res) => {
       ...req.body,
       coachId: req.user?.id,
       suggestedBy: req.user?.name || req.user?.email || "Coach",
+      file: req.file || null,
     };
 
     logger.info(
@@ -1804,7 +1942,7 @@ exports.awardCoinsForPin = async (req, res) => {
     if (!pinResult.success) {
       return res.status(HTTP_STATUS_CODE.NOT_FOUND).json({
         success: false,
-        message: "Pin not found"
+        message: "Pin not found",
       });
     }
 
@@ -1875,7 +2013,11 @@ exports.awardMilestoneCoins = async (req, res) => {
       `Request received to award milestone coins`
     );
 
-    const result = await WtfService.awardMilestoneCoins(pinId, likeCount, likeType);
+    const result = await WtfService.awardMilestoneCoins(
+      pinId,
+      likeCount,
+      likeType
+    );
 
     if (result.success) {
       logger.info(
@@ -1972,6 +2114,194 @@ exports.expireOldPins = async (req, res) => {
         adminId: req.user?.id,
       },
       `Error occurred while expiring old pins`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// ==================== SCHEDULER MANAGEMENT CONTROLLERS ====================
+
+// Manually trigger pin expiration process
+exports.triggerPinExpiration = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Admin manually triggered pin expiration process`
+    );
+
+    const result = await WtfService.expireOldPins();
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          adminId: req.user?.id,
+          expiredCount: result.expiredCount,
+          totalProcessed: result.totalProcessed,
+        },
+        `Pin expiration process completed successfully`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          adminId: req.user?.id,
+        },
+        `Pin expiration process failed`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while triggering pin expiration`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Manually trigger FIFO management process
+exports.triggerFifoManagement = async (req, res) => {
+  try {
+    const SchedulerService = require("../services/scheduler");
+    const schedulerService = new SchedulerService();
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Admin manually triggered FIFO management process`
+    );
+
+    const result = await schedulerService.processFifoManagement();
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+        deletedPinsCount: result.deletedPinsCount,
+        totalProcessed: result.totalProcessed,
+      },
+      `FIFO management process completed`
+    );
+
+    res.status(HTTP_STATUS_CODE.OK).json({
+      success: true,
+      data: result,
+      message: result.message || "FIFO management process completed",
+    });
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while triggering FIFO management`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Get scheduler status and next run times
+exports.getSchedulerStatus = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId: req.user?.id,
+      },
+      `Admin requested scheduler status`
+    );
+
+    // Get current active pins count for FIFO status
+    const activePinsResult = await WtfService.getActivePinsCount();
+    const activePinsCount = activePinsResult.success
+      ? activePinsResult.data
+      : 0;
+
+    // Get expired pins count
+    const { getExpiredPins } = require("../data-access/wtfPin");
+    const expiredPinsResult = await getExpiredPins();
+    const expiredPinsCount = expiredPinsResult.success
+      ? expiredPinsResult.data.length
+      : 0;
+
+    const status = {
+      activePins: {
+        count: activePinsCount,
+        limit: 20,
+        needsFifoCleanup: activePinsCount > 20,
+        excessPins: Math.max(0, activePinsCount - 20),
+      },
+      expiredPins: {
+        count: expiredPinsCount,
+        cutoffDate: expiredPinsResult.expirationCutoff,
+        needsCleanup: expiredPinsCount > 0,
+      },
+      scheduledJobs: {
+        pinExpiration: {
+          schedule: "0 * * * *", // Every hour
+          description: "Deletes pins older than 7 days (including S3 files)",
+        },
+        fifoManagement: {
+          schedule: "*/30 * * * *", // Every 30 minutes
+          description: "Deletes oldest pins when board exceeds 20 pins",
+        },
+        weeklyCleanup: {
+          schedule: "0 2 * * 0", // Sunday at 2 AM
+          description: "Weekly maintenance and cleanup",
+        },
+      },
+    };
+
+    res.status(HTTP_STATUS_CODE.OK).json({
+      success: true,
+      data: status,
+      message: "Scheduler status retrieved successfully",
+    });
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      `Error occurred while getting scheduler status`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)

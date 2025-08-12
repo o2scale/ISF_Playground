@@ -15,7 +15,7 @@ const {
   addCommentToSportsTask,
   createSportsTrainingSession,
 } = require("../../controllers/sports");
-const upload = require("../../middleware/upload");
+const { upload } = require("../../middleware/upload");
 
 // Create a new task (with file upload)
 router.post(

@@ -23,6 +23,11 @@ const CoachSuggestionReviewModal = ({
   if (!suggestion) return null;
 
   const renderContentPreview = () => {
+    const workType = (
+      suggestion.workType ||
+      suggestion.type ||
+      ""
+    ).toLowerCase();
     if (suggestion.thumbnail) {
       return (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
@@ -36,26 +41,28 @@ const CoachSuggestionReviewModal = ({
       );
     }
 
-    if (suggestion.workType.toLowerCase().includes("video")) {
+    if (workType.includes("video")) {
       return (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
-          <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-600 mb-4">Video Player</p>
-          <div className="bg-white rounded p-4 text-sm text-gray-500">
-            Video player would be embedded here to play: {suggestion.content}
-          </div>
+          <video
+            src={suggestion.content}
+            controls
+            className="w-full max-h-[420px] rounded mb-3 bg-black"
+          />
+          <p className="text-xs text-gray-500 break-all">
+            {suggestion.content}
+          </p>
         </div>
       );
     }
 
-    if (suggestion.workType.toLowerCase().includes("audio")) {
+    if (workType.includes("audio") || workType.includes("voice")) {
       return (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
-          <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-          <p className="text-gray-600 mb-4">Audio Player</p>
-          <div className="bg-white rounded p-4 text-sm text-gray-500">
-            Audio player would be embedded here to play: {suggestion.content}
-          </div>
+          <audio src={suggestion.content} controls className="w-full mb-3" />
+          <p className="text-xs text-gray-500 break-all">
+            {suggestion.content}
+          </p>
         </div>
       );
     }

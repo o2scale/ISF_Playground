@@ -68,7 +68,7 @@ const VideoPlayer = ({
                 {title}
               </h3>
               {author && (
-                <p className="text-sm text-gray-600">Performance by {author}</p>
+                <p className="text-sm text-gray-600">Performance by {typeof author === 'object' ? author.name : author}</p>
               )}
             </div>
           </div>

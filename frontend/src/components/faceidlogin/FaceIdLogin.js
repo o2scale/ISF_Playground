@@ -62,10 +62,11 @@ const FaceIdLogin = ({ onToggle }) => {
       formData.append("facialData", imageBlob, "capture.jpg");
 
       const response = await faceIdlogin(formData);
-      console.log("respsdsd", response.data);
-
-      console.log("respsdsd", response.data);
-      const { token, user } = response.data;
+      const apiRes = response?.data || response; // backend returns { success, data }
+      if (!apiRes?.success) {
+        throw new Error(apiRes?.message || "Login failed");
+      }
+      const { token, user } = apiRes.data;
 
       // Format the user data to match our auth context expectations
       const userData = {
@@ -85,9 +86,10 @@ const FaceIdLogin = ({ onToggle }) => {
 
       console.log("Photo uploaded successfully");
     } catch (err) {
-      console.log("errr", err?.response?.data?.message);
-      if (err) {
-        setError(err?.response?.data?.message);
+      const apiMsg =
+        err?.response?.data?.message || err?.message || "Unexpected error";
+      if (apiMsg) {
+        setError(apiMsg);
       } else {
         setError("Error capturing or uploading photo");
       }

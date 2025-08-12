@@ -5,7 +5,7 @@ const User = require("../models/user");
 const { authenticate, authorize } = require("../middleware/auth");
 const { UserTypes } = require("../constants/users");
 const { fetchMachinesByIds } = require("../data-access/machines");
-const upload = require("../middleware/upload");
+const { upload } = require("../middleware/upload");
 const { facialLogin } = require("../controllers/userController");
 // Register User
 
@@ -249,7 +249,6 @@ router.post("/login", async (req, res) => {
       // get the machines details from the users assigned machines
       if (user.assignedMachines && user.assignedMachines.length > 0) {
         let machineIds = user.assignedMachines.map((item) => item);
-        console.log("machineIds", machineIds);
         let machines = await fetchMachinesByIds(machineIds);
         if (machines && machines.success) {
           let machineMacAddressList = machines.data.map(

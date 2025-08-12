@@ -25,6 +25,9 @@ const fs = require("fs"); // For file system operations
 const path = require("path");
 const faceapi = require("face-api.js");
 
+// Import cleanup function
+const { cleanupOrphanedFiles } = require("./middleware/upload");
+
 // if (!process.env.JWT_SECRET) {
 //     console.error('JWT_SECRET is not defined in environment variables');
 //     process.exit(1);
@@ -35,7 +38,8 @@ dotenv.config();
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: "100mb" }));
+app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
 app.use("/api/users", userRoutes);
 app.use("/api/v1/users", userV1Routes);
@@ -124,6 +128,17 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5001;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Backend URL: http://localhost:${PORT}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`🔗 Health Check: http://localhost:${PORT}/`);
+
+  // Run initial cleanup of orphaned files
+  try {
+    cleanupOrphanedFiles();
+    console.log("🧹 Initial file cleanup completed");
+  } catch (error) {
+    console.error("❌ Initial file cleanup failed:", error.message);
+  }
 });
 
 // Initialize WTF WebSocket server
