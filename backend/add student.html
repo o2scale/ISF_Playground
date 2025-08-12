@@ -344,7 +344,6 @@
 
             if (response.ok) {
               const result = await response.json();
-              console.log("Success:", result);
               alert("Data submitted successfully!");
             } else {
               console.error("Error:", response.statusText);

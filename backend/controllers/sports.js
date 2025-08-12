@@ -29,13 +29,11 @@ exports.createSportsTask = async (req, res) => {
         },
         `Successfully created a new sports task`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Task created successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Task created successfully",
+      });
     } else {
       logger.error(
         {
@@ -50,14 +48,11 @@ exports.createSportsTask = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error.",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };
 
@@ -106,7 +101,6 @@ exports.updateSportsTask = async (req, res) => {
       });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       {
         clientIP: req.socket.remoteAddress,
@@ -196,7 +190,6 @@ exports.getSportsTasks = async (req, res) => {
       });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       {
         clientIP: req.socket.remoteAddress,
@@ -238,13 +231,11 @@ exports.createSportsTrainingSession = async (req, res) => {
         },
         `Successfully created a new training session`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Training session created successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Training session created successfully",
+      });
     } else {
       logger.error(
         {
@@ -259,14 +250,11 @@ exports.createSportsTrainingSession = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error.",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };
 
@@ -295,13 +283,11 @@ exports.getAllTrainingSessions = async (req, res) => {
         },
         `Successfully fetched all training sessions for balagruhaId: ${balagruhaIds}`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Training sessions fetched successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Training sessions fetched successfully",
+      });
     } else {
       logger.error(
         {
@@ -316,14 +302,11 @@ exports.getAllTrainingSessions = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error.",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };
 
@@ -354,13 +337,11 @@ exports.getStudentsWithSportsTask = async (req, res) => {
         },
         `Successfully fetched all students with sports tasks for balagruhaId: ${balagruhaId}`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Students fetched successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Students fetched successfully",
+      });
     } else {
       logger.error(
         {
@@ -375,7 +356,6 @@ exports.getStudentsWithSportsTask = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -406,13 +386,11 @@ exports.getSportsInsights = async (req, res) => {
         },
         `Successfully fetched sports overview for balagruhaIds: ${balagruhaIds}`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Sports overview fetched successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Sports overview fetched successfully",
+      });
     } else {
       logger.error(
         {
@@ -427,7 +405,6 @@ exports.getSportsInsights = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -463,13 +440,11 @@ exports.editTrainingSession = async (req, res) => {
         },
         `Successfully updated training session with ID: ${trainingSessionId}`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Training session updated successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Training session updated successfully",
+      });
     } else {
       logger.error(
         {
@@ -484,7 +459,6 @@ exports.editTrainingSession = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -516,13 +490,11 @@ exports.deleteTrainingSession = async (req, res) => {
         },
         `Successfully deleted training session with ID: ${trainingSessionId}`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Training session deleted successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Training session deleted successfully",
+      });
     } else {
       logger.error(
         {
@@ -537,7 +509,6 @@ exports.deleteTrainingSession = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       {
         clientIP: req.socket.remoteAddress,
@@ -583,13 +554,11 @@ exports.addOrUpdateSportsTaskAttachment = async (req, res) => {
         },
         `Successfully updated task attachment`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Task attachment updated successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Task attachment updated successfully",
+      });
     } else {
       logger.error(
         {
@@ -604,14 +573,11 @@ exports.addOrUpdateSportsTaskAttachment = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error.",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };
 
@@ -646,13 +612,11 @@ exports.addCommentToSportsTask = async (req, res) => {
         },
         `Successfully added comment to task`
       );
-      res
-        .status(HTTP_STATUS_CODE.OK)
-        .json({
-          success: true,
-          data: result.data,
-          message: "Comment added successfully",
-        });
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Comment added successfully",
+      });
     } else {
       logger.error(
         {
@@ -667,13 +631,10 @@ exports.addCommentToSportsTask = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error.",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
   }
 };

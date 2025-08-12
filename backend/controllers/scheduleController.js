@@ -49,13 +49,11 @@ exports.createSchedule = async (req, res) => {
       },
       `Error creating schedule: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -105,13 +103,11 @@ exports.getScheduleById = async (req, res) => {
       },
       `Error fetching schedule: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -161,13 +157,11 @@ exports.getSchedules = async (req, res) => {
       },
       `Error fetching schedules: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -215,13 +209,11 @@ exports.updateSchedule = async (req, res) => {
       },
       `Error updating schedule: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -271,13 +263,11 @@ exports.deleteSchedule = async (req, res) => {
       },
       `Error deleting schedule: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -327,13 +317,11 @@ exports.getSchedulesByUser = async (req, res) => {
       },
       `Error fetching user schedules: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -341,12 +329,10 @@ exports.getSchedulesForAdmin = async (req, res) => {
   try {
     const { balagruhaIds, assignedTo, startDate, endDate, status } = req.body;
     if (!isValidDate(startDate) || !isValidDate(endDate)) {
-      return res
-        .status(HTTP_STATUS_CODE.BAD_REQUEST)
-        .json({
-          success: false,
-          message: "Invalid startDate / endDate format",
-        });
+      return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid startDate / endDate format",
+      });
     }
     const result = await Schedule.getSchedulesForAdmin(
       balagruhaIds,
@@ -365,7 +351,6 @@ exports.getSchedulesForAdmin = async (req, res) => {
         .json({ success: false, data: {}, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       {
         clientIP: req.socket.remoteAddress,
@@ -374,13 +359,11 @@ exports.getSchedulesForAdmin = async (req, res) => {
       },
       `Error fetching schedules for admin: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -404,7 +387,6 @@ exports.getSchedulesForCoach = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       {
         clientIP: req.socket.remoteAddress,
@@ -413,13 +395,11 @@ exports.getSchedulesForCoach = async (req, res) => {
       },
       `Error fetching schedules for coach: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -438,7 +418,6 @@ exports.updateScheduleStatus = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       {
         clientIP: req.socket.remoteAddress,
@@ -447,12 +426,10 @@ exports.updateScheduleStatus = async (req, res) => {
       },
       `Error updating schedule status: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.BAD_REQUEST)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };

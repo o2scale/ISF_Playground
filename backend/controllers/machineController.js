@@ -501,7 +501,6 @@ exports.deleteMachine = async (req, res) => {
           .json({ success: false, message: "Internal server error" });
       });
   } catch (error) {
-    console.log("error", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

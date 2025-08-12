@@ -49,13 +49,11 @@ exports.createOfflineRequest = async (req, res) => {
     }
   } catch (error) {
     logger.error(`Error in createOfflineRequest controller: ${error.message}`);
-    res
-      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -100,13 +98,11 @@ exports.getOfflineRequestById = async (req, res) => {
     }
   } catch (error) {
     logger.error(`Error in getOfflineRequestById controller: ${error.message}`);
-    res
-      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -151,25 +147,20 @@ exports.syncOfflineRequestToServer = async (req, res) => {
           .json({ success: false, message: result.message });
       }
     } else {
-      return res
-        .status(HTTP_STATUS_CODE.UNAUTHORIZED)
-        .json({
-          success: false,
-          message: "Offline request can only be synced from localhost",
-        });
+      return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
+        success: false,
+        message: "Offline request can only be synced from localhost",
+      });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(
       `Error in syncOfflineRequestToServer controller: ${error.message}`
     );
-    res
-      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
 
@@ -212,22 +203,17 @@ exports.syncRemoteDBToLocalDB = async (req, res) => {
           .json({ success: false, message: result.message });
       }
     } else {
-      return res
-        .status(HTTP_STATUS_CODE.UNAUTHORIZED)
-        .json({
-          success: false,
-          message: "Offline request can only be synced from localhost",
-        });
+      return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
+        success: false,
+        message: "Offline request can only be synced from localhost",
+      });
     }
   } catch (error) {
-    console.log("error", error);
     logger.error(`Error in syncRemoteDBToLocalDB controller: ${error.message}`);
-    res
-      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
-      .json({
-        success: false,
-        message: "Internal server error",
-        error: error.message,
-      });
+    res.status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
   }
 };
