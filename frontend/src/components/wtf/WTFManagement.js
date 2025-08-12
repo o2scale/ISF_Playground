@@ -120,7 +120,8 @@ const WTFManagementContent = ({ onToggleView }) => {
           type: submissionTab,
         });
         if (submissionsResponse.success) {
-          fetchedSubmissions = submissionsResponse.data || [];
+          fetchedSubmissions =
+            (submissionsResponse.data && submissionsResponse.data.submissions) || [];
           setStudentSubmissions(fetchedSubmissions);
         } else {
           setStudentSubmissions([]);
@@ -167,7 +168,7 @@ const WTFManagementContent = ({ onToggleView }) => {
             : 0,
           coachSuggestions: Array.isArray(suggestions) ? suggestions.length : 0,
           studentSubmissions: Array.isArray(submissions)
-            ? submissions.filter((s) => s.status === "NEW").length
+            ? submissions.filter((s) => s.status === "pending").length
             : 0,
           totalEngagement: Array.isArray(pins)
             ? pins.reduce(
@@ -567,7 +568,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   );
 
   const newSubmissionsCount = Array.isArray(studentSubmissions)
-    ? studentSubmissions.filter((s) => s.status === "NEW").length
+    ? studentSubmissions.filter((s) => s.status === "pending").length
     : 0;
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter((s) => s.status === "PENDING").length
@@ -1416,7 +1417,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                       {(() => {
                         const voiceCount = Array.isArray(studentSubmissions)
                           ? studentSubmissions.filter(
-                              (s) => s.status === "NEW" && s.type === "voice"
+                              (s) => s.status === "pending" && s.type === "voice"
                             ).length
                           : 0;
                         return voiceCount > 0 ? (
@@ -1428,17 +1429,17 @@ const WTFManagementContent = ({ onToggleView }) => {
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-md ${
-                        submissionTab === "articles"
+                        submissionTab === "article"
                           ? "bg-blue-100 text-blue-700"
                           : "text-gray-500 hover:text-gray-700"
                       }`}
-                      onClick={() => setSubmissionTab("articles")}
+                      onClick={() => setSubmissionTab("article")}
                     >
                       Articles
                       {(() => {
                         const articleCount = Array.isArray(studentSubmissions)
                           ? studentSubmissions.filter(
-                              (s) => s.status === "NEW" && s.type === "article"
+                              (s) => s.status === "pending" && s.type === "article"
                             ).length
                           : 0;
                         return articleCount > 0 ? (
@@ -1474,8 +1475,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {(Array.isArray(studentSubmissions)
-                            ? studentSubmissions.filter(
-                                (s) => s.status === "NEW" && s.type === "voice"
+                           ? studentSubmissions.filter(
+                               (s) => s.status === "pending" && s.type === "voice"
                               )
                             : []
                           ).map((submission) => (
@@ -1562,9 +1563,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {(Array.isArray(studentSubmissions)
-                            ? studentSubmissions.filter(
+                           ? studentSubmissions.filter(
                                 (s) =>
-                                  s.status === "NEW" && s.type === "article"
+                                  s.status === "pending" && s.type === "article"
                               )
                             : []
                           ).map((submission) => (
@@ -1713,7 +1714,7 @@ const WTFManagementContent = ({ onToggleView }) => {
 
                     {/* No Student Submissions State */}
                     {(Array.isArray(studentSubmissions)
-                      ? studentSubmissions.filter((s) => s.status === "NEW")
+                      ? studentSubmissions.filter((s) => s.status === "pending")
                           .length
                       : 0) === 0 && (
                       <div className="text-center py-12">
