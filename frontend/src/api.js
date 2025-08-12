@@ -706,6 +706,17 @@ export const pinLogin = async (data) => {
   }
 };
 
+// Student userId-only login
+export const studentPinLogin = async (data) => {
+  try {
+    const response = await api.post("/api/auth/student/login", data);
+    return response;
+  } catch (error) {
+    console.error("Error in student pin login:", error);
+    throw error;
+  }
+};
+
 // ==================== WTF API FUNCTIONS ====================
 
 // Pin Management APIs

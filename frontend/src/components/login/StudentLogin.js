@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import "./StudentLogin.css";
-import PinLogin from "../pinlogin/PinLogin";
+import UserIdLogin from "../pinlogin/UserIdLogin";
 import FaceIdLogin from "../faceidlogin/FaceIdLogin";
 
 export default function StudentLogin() {
@@ -40,7 +40,7 @@ export default function StudentLogin() {
         {loginMethod === "faceId" ? (
           <FaceIdLogin onToggle={toggleLoginMethod} />
         ) : (
-          <PinLogin onToggle={toggleLoginMethod} />
+          <UserIdLogin onToggle={toggleLoginMethod} />
         )}
       </div>
     </div>
