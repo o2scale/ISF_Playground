@@ -372,52 +372,81 @@ const WTFManagementContent = ({ onToggleView }) => {
     setShowCoachSuggestionModal(true);
   };
 
-  const handlePinCoachSuggestion = (suggestion) => {
-    console.log("Pin coach suggestion:", suggestion);
-    // Update suggestion status
-    setCoachSuggestions((prev) =>
-      prev.map((s) => (s.id === suggestion.id ? { ...s, status: "PINNED" } : s))
-    );
+  const handlePinCoachSuggestion = async (suggestion) => {
+    try {
+      // Approve (pin) via backend; this also creates the WTF pin server-side
+      const response = await reviewSubmission(suggestion.id, {
+        action: "approve",
+        notes: "Approved and pinned to WTF",
+      });
 
-    // Create a new pin from the suggestion
-    const newPin = {
-      id: Date.now(),
-      title: suggestion.title,
-      caption: `Student work by ${suggestion.studentName} - suggested by ${suggestion.coachName}`,
-      contentType: suggestion.workType.toLowerCase().includes("video")
-        ? "video"
-        : suggestion.workType.toLowerCase().includes("audio")
-        ? "audio"
-        : suggestion.workType.toLowerCase().includes("artwork")
-        ? "image"
-        : "text",
-      content: suggestion.content,
-      pinnedDate: new Date().toISOString().split("T")[0],
-      pinnedBy: user?.name || "Unknown User",
-      originalAuthor: suggestion.studentName,
-      isOfficial: false,
-      status: "ACTIVE",
-      likes: 0,
-      hearts: 0,
-      views: 0,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
-    };
-    setActivePins((prev) => [newPin, ...prev]);
-    setShowCoachSuggestionModal(false);
-    setSelectedCoachSuggestion(null);
+      if (response && response.success) {
+        // Remove the suggestion from the pending list
+        setCoachSuggestions((prev) =>
+          prev.filter((s) => s.id !== suggestion.id)
+        );
+
+        // If backend returned the created pin, prepend it; else refetch active pins
+        const approvedPin = response.data?.approvedPin;
+        if (approvedPin) {
+          setActivePins((prev) => [approvedPin, ...prev]);
+        } else {
+          try {
+            const pinsResp = await getActiveWtfPins();
+            if (pinsResp.success && pinsResp.data?.pins) {
+              setActivePins(pinsResp.data.pins);
+            }
+          } catch (e) {
+            console.error("Failed to refresh active pins:", e);
+          }
+        }
+
+        // Refresh dashboard counts using the unified counts API
+        try {
+          const countsResp = await getWtfDashboardCounts();
+          if (countsResp.success) setDashboardMetrics(countsResp.data);
+        } catch (e) {
+          // Fallback update if counts API fails
+          setDashboardMetrics((prev) => ({
+            ...prev,
+            activePins: (prev.activePins || 0) + 1,
+            coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
+          }));
+        }
+      }
+    } catch (error) {
+      console.error("Error pinning coach suggestion:", error);
+    } finally {
+      setShowCoachSuggestionModal(false);
+      setSelectedCoachSuggestion(null);
+    }
   };
 
-  const handleArchiveCoachSuggestion = (suggestionId) => {
-    console.log("Archive coach suggestion:", suggestionId);
-    setCoachSuggestions((prev) =>
-      prev.map((s) =>
-        s.id === suggestionId ? { ...s, status: "REVIEWED" } : s
-      )
-    );
-    setShowCoachSuggestionModal(false);
-    setSelectedCoachSuggestion(null);
+  const handleArchiveCoachSuggestion = async (suggestionId) => {
+    try {
+      // Use the existing review API to reject (archive) the suggestion
+      const response = await reviewSubmission(suggestionId, {
+        action: "reject",
+        notes: "Archived by admin",
+      });
+
+      if (response && response.success) {
+        // Remove from pending queue
+        setCoachSuggestions((prev) =>
+          prev.filter((s) => s.id !== suggestionId)
+        );
+        // Update badge metric locally
+        setDashboardMetrics((prev) => ({
+          ...prev,
+          coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
+        }));
+      }
+    } catch (error) {
+      console.error("Error archiving coach suggestion:", error);
+    } finally {
+      setShowCoachSuggestionModal(false);
+      setSelectedCoachSuggestion(null);
+    }
   };
 
   const filteredPins = Array.isArray(activePins)
