@@ -117,7 +117,7 @@ const WTFManagementContent = ({ onToggleView }) => {
         const submissionsResponse = await getSubmissionsForReview({
           page: 1,
           limit: 20,
-          type: submissionTab,
+          type: null, // Fetch all types, we'll filter on frontend
           isCoachSuggestion: false, // Only fetch student submissions, not coach suggestions
         });
         if (submissionsResponse.success) {
@@ -125,6 +125,17 @@ const WTFManagementContent = ({ onToggleView }) => {
             (submissionsResponse.data &&
               submissionsResponse.data.submissions) ||
             [];
+          console.log("Fetched submissions:", fetchedSubmissions);
+          console.log(
+            "Submission types:",
+            fetchedSubmissions.map((s) => ({
+              id: s._id,
+              type: s.type,
+              status: s.status,
+              title: s.title,
+              metadata: s.metadata,
+            }))
+          );
           setStudentSubmissions(fetchedSubmissions);
         } else {
           setStudentSubmissions([]);
@@ -1486,8 +1497,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                     </h3>
                   </div>
                   <p className="text-gray-600 mb-6">
-                    Review student-submitted voice notes and articles for
-                    potential WTF featuring
+                    Review student-submitted voice notes, articles, audio, and
+                    video content for potential WTF featuring
                   </p>
 
                   {/* Sub-tabs */}
@@ -1502,9 +1513,18 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       ▷ Voice Notes
                       {(() => {
-                        const voiceCount = paginatedStudentSubmissions.filter(
-                          (s) => s.type === "voice"
+                        const voiceCount = studentSubmissions.filter(
+                          (s) =>
+                            s.type === "voice" &&
+                            s.status === "pending" &&
+                            !(s.metadata && s.metadata.isCoachSuggestion)
                         ).length;
+                        console.log(
+                          "Voice count:",
+                          voiceCount,
+                          "Total submissions:",
+                          studentSubmissions.length
+                        );
                         return voiceCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {voiceCount}
@@ -1520,11 +1540,20 @@ const WTFManagementContent = ({ onToggleView }) => {
                       }`}
                       onClick={() => setSubmissionTab("article")}
                     >
-                      Articles
+                      Articles & Media
                       {(() => {
-                        const articleCount = paginatedStudentSubmissions.filter(
-                          (s) => s.type === "article"
+                        const articleCount = studentSubmissions.filter(
+                          (s) =>
+                            ["article", "audio", "video"].includes(s.type) &&
+                            s.status === "pending" &&
+                            !(s.metadata && s.metadata.isCoachSuggestion)
                         ).length;
+                        console.log(
+                          "Article count:",
+                          articleCount,
+                          "Total submissions:",
+                          studentSubmissions.length
+                        );
                         return articleCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {articleCount}
@@ -1647,7 +1676,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                         <thead>
                           <tr className="border-b border-gray-200">
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
-                              Article
+                              Content
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
                               Balagruha
@@ -1665,19 +1694,29 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {paginatedStudentSubmissions
-                            .filter((s) => s.type === "article")
+                            .filter((s) =>
+                              ["article", "audio", "video"].includes(s.type)
+                            )
                             .map((submission) => (
                               <tr
                                 key={submission._id}
                                 className="border-b border-gray-100 hover:bg-gray-50"
                               >
                                 <td className="py-4 px-4">
-                                  <div>
-                                    <div className="font-medium">
-                                      {submission.title}
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2">
+                                      {getContentTypeIcon(submission.type)}
+                                      <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                        {submission.type}
+                                      </Badge>
                                     </div>
-                                    <div className="text-sm text-gray-500">
-                                      {submission.studentName}
+                                    <div>
+                                      <div className="font-medium">
+                                        {submission.title}
+                                      </div>
+                                      <div className="text-sm text-gray-500">
+                                        {submission.studentName}
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
@@ -1842,10 +1881,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                             No Student Submissions Yet
                           </h3>
                           <p className="text-gray-600 mb-6">
-                            Students haven't submitted any voice notes or
-                            articles for review yet. When they do, you'll see
-                            them here to potentially feature on the Wall of
-                            Fame.
+                            Students haven't submitted any voice notes,
+                            articles, audio, or video content for review yet.
+                            When they do, you'll see them here to potentially
+                            feature on the Wall of Fame.
                           </p>
                           <div className="flex gap-3 justify-center">
                             <Button
@@ -1864,8 +1903,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                             </Button>
                           </div>
                           <div className="text-sm text-gray-500 mt-4">
-                            💡 Tip: Students can submit voice notes and articles
-                            through their learning interfaces
+                            💡 Tip: Students can submit voice notes, articles,
+                            audio, and video content through their learning
+                            interfaces
                           </div>
                         </div>
                       </div>
@@ -1883,8 +1923,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                   </div>
                   <div className="space-y-2 text-sm text-green-700">
                     <div>
-                      • Students can submit voice notes and articles through
-                      their learning interfaces
+                      • Students can submit voice notes, articles, audio, and
+                      video content through their learning interfaces
                     </div>
                     <div>
                       • All submissions appear here for admin review and
