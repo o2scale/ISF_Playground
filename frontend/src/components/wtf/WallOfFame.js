@@ -395,7 +395,12 @@ const WallOfFameContent = ({ onToggleView }) => {
       // Call appropriate submission API based on content type
       let response;
       if (newPin.contentType === "audio") {
-        response = await submitVoiceNote(submissionData);
+        // Always send multipart so backend receives the file
+        const fd = new FormData();
+        if (submissionData.file) fd.append("file", submissionData.file);
+        if (submissionData.title) fd.append("title", submissionData.title);
+        fd.append("type", "voice");
+        response = await submitVoiceNote(fd);
       } else {
         response = await submitArticle(submissionData);
       }

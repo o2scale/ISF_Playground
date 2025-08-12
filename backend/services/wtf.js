@@ -3,7 +3,11 @@ const { default: mongoose } = require("mongoose");
 const fs = require("fs");
 const CoinService = require("./coin");
 const wtfWebSocketService = require("./wtfWebSocket");
-const { uploadWtfMedia, deleteWtfMedia } = require("./aws/s3");
+const {
+  uploadWtfMedia,
+  deleteWtfMedia,
+  uploadWtfVoiceNote,
+} = require("./aws/s3");
 
 // Import data access methods
 const {
@@ -878,28 +882,60 @@ class WtfService {
         },
       };
 
-      // If a file was uploaded, validate duration metadata if provided and store it in S3
+      // If a file was uploaded, try S3 first; if it fails or not configured, fall back to local file URL
       if (payload.file && payload.file.path) {
+        let uploadedToS3 = false;
         try {
           const s3Url = await uploadWtfVoiceNote(
             payload.file.path,
             `submission_${Date.now()}`
           );
-          if (s3Url && s3Url.url) {
+          if (s3Url && s3Url.success && s3Url.url) {
             submissionData.audioUrl = s3Url.url;
+            uploadedToS3 = true;
           }
-          try {
-            const fs = require("fs");
-            if (fs.existsSync(payload.file.path)) {
-              fs.unlinkSync(payload.file.path);
-            }
-          } catch {}
         } catch (e) {
           errorLogger.error(
             { error: e.message },
             "Failed to upload voice note to S3"
           );
         }
+
+        if (!submissionData.audioUrl) {
+          try {
+            const { getUploadedFilesFullPath } = require("../utils/helper");
+            submissionData.audioUrl = getUploadedFilesFullPath(
+              payload.file.path
+            );
+          } catch {}
+        }
+
+        // Delete local temp file only if uploaded to S3
+        if (uploadedToS3) {
+          try {
+            const fs = require("fs");
+            if (fs.existsSync(payload.file.path)) {
+              fs.unlinkSync(payload.file.path);
+            }
+          } catch {}
+        }
+      }
+
+      // Ensure audio URL fallback even if no S3 attempt (e.g., S3 not configured)
+      if (!submissionData.audioUrl && payload.file?.path) {
+        try {
+          const { getUploadedFilesFullPath } = require("../utils/helper");
+          submissionData.audioUrl = getUploadedFilesFullPath(payload.file.path);
+        } catch {}
+      }
+
+      // Normalize and default audio duration if missing
+      if (submissionData.audioDuration == null) {
+        const parsed = parseInt(payload.audioDuration, 10);
+        let duration = Number.isNaN(parsed) ? 10 : parsed; // default 10s
+        if (duration < 0) duration = 0;
+        if (duration > 60) duration = 60;
+        submissionData.audioDuration = duration;
       }
 
       const result = await createWtfSubmission(submissionData);

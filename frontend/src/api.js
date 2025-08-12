@@ -762,9 +762,36 @@ export const getWtfPinInteractions = async (pinId) => {
 // Submission APIs
 export const submitVoiceNote = async (data) => {
   try {
+    // Accept both FormData and plain objects; always send multipart
+    let formData;
+    if (data instanceof FormData) {
+      formData = data;
+    } else {
+      formData = new FormData();
+      if (data?.file) formData.append("file", data.file);
+      if (data?.title) formData.append("title", data.title);
+      // Optional fields
+      if (data?.type) formData.append("type", data.type);
+      if (data?.audioDuration != null)
+        formData.append("audioDuration", String(data.audioDuration));
+      if (data?.audioTranscription)
+        formData.append("audioTranscription", data.audioTranscription);
+      // Tags may be array or string
+      if (Array.isArray(data?.tags)) {
+        if (data.tags.length > 0) {
+          data.tags.forEach((tag) => formData.append("tags[]", tag));
+        } else {
+          formData.append("tags", JSON.stringify([]));
+        }
+      }
+    }
+
     const response = await apiWithoutContentType.post(
       `/api/v1/wtf/submissions/voice`,
-      data
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
     );
     return response.data;
   } catch (error) {
