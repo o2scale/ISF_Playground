@@ -395,9 +395,13 @@ const wtfFileUploadSecurity = (req, res, next) => {
       "image/webp",
       "video/mp4",
       "video/webm",
-      "audio/mpeg",
+      "audio/mpeg", // Standard MP3 MIME type
+      "audio/mp3", // Alternative MP3 MIME type
+      "audio/mpeg3", // Legacy MP3 MIME type
       "audio/wav",
       "audio/ogg",
+      "audio/aac", // AAC audio support
+      "audio/m4a", // M4A audio support
     ];
 
     if (!allowedTypes.includes(req.file.mimetype)) {

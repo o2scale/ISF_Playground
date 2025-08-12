@@ -58,18 +58,30 @@ const wtfFileFilter = (req, file, cb) => {
     "image/webp",
     "video/mp4",
     "video/webm",
-    "audio/mpeg",
+    "audio/mpeg", // Standard MP3 MIME type
+    "audio/mp3", // Alternative MP3 MIME type
+    "audio/mpeg3", // Legacy MP3 MIME type
     "audio/wav",
     "audio/ogg",
+    "audio/aac", // AAC audio support
+    "audio/m4a", // M4A audio support
   ];
+
+  console.log("📋 Allowed MIME types:", allowedTypes);
+  console.log("🎯 File MIME type:", file.mimetype);
+  console.log("🔍 Is MIME type allowed?", allowedTypes.includes(file.mimetype));
+
   if (allowedTypes.includes(file.mimetype)) {
     console.log("✅ WTF File Filter - File accepted:", file.mimetype);
     cb(null, true);
   } else {
     console.log("❌ WTF File Filter - File rejected:", file.mimetype);
+    console.log("💡 Suggestion: Check if file extension matches MIME type");
     cb(
       new Error(
-        "Invalid file type. Only images, videos, and audio files are allowed for WTF pins."
+        `Invalid file type: ${
+          file.mimetype
+        }. Allowed types: ${allowedTypes.join(", ")}`
       )
     );
   }
