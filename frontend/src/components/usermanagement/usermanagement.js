@@ -8,6 +8,7 @@ import {
   getBalagruha,
   updateUsers,
   getMachines,
+  getBalagruhaById,
 } from "../../api";
 import { usePermission } from "../hooks/usePermission";
 import { useAuth } from "../../contexts/AuthContext";
@@ -19,6 +20,8 @@ const UserManagement = () => {
   const [selectedUser, setSelectedUser] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
+  const [filterBalagruha, setFilterBalagruha] = useState("all");
+  const [balagruhas, setBalagruhas] = useState([]);
   const [filterStatus, setFilterStatus] = useState("all");
   const [sortBy, setSortBy] = useState("name");
   const [sortOrder, setSortOrder] = useState("asc");
@@ -318,6 +321,7 @@ const UserManagement = () => {
   useEffect(() => {
     getBalagruhaList();
     getUsers();
+    getBalagruhaByUserId();
   }, []);
 
   useEffect(() => {
@@ -371,15 +375,40 @@ const UserManagement = () => {
   const getUsers = async () => {
     try {
       const response = await fetchUsers();
-      console.log("Users fetched:", response);
 
-      if (localStorage.getItem("role") !== "sports-coach") {
-        setUsers(response);
+      if (
+        localStorage.getItem("role") === "sports-coach" ||
+        localStorage.getItem("role") === "coach" ||
+        localStorage.getItem("role") === "medical-incharge" ||
+        localStorage.getItem("role") === "music-coach"
+      ) {
+        const allowedBalagruhaIds =
+          localStorage.getItem("balagruhaIds")?.split(",") || [];
+        const filteredStudents = response?.filter((user) => {
+          if (user.role !== "student") return false;
+
+          // Check if any of the student's balagruhaIds match the allowed ones
+          return user.balagruhaIds?.some((b) =>
+            allowedBalagruhaIds.includes(b._id)
+          );
+        });
+        setUsers(filteredStudents);
       } else {
-        setUsers(response?.filter((item) => item.role === "student"));
+        setUsers(response);
       }
     } catch (error) {
       console.error("Error fetching users:", error);
+    }
+  };
+
+  const getBalagruhaByUserId = async () => {
+    try {
+      const id = localStorage.getItem("userId");
+      const response = await getBalagruhaById(id);
+      console.log("Balagruha details by userId:", response?.data?.balagruhas);
+      setBalagruhas(response?.data?.balagruhas || []);
+    } catch (error) {
+      console.error("Error fetching balagruha list:", error);
     }
   };
 
@@ -455,13 +484,76 @@ const UserManagement = () => {
   };
 
   // Filter and sort users
+  //   const filteredUsers = users
+  //     .filter((user) => {
+  //       // Filter by search term
+  //       if (
+  //         searchTerm &&
+  //         !user.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
+  //         !user.email.toLowerCase().includes(searchTerm.toLowerCase())
+  //       ) {
+  //         return false;
+  //       }
+
+  //       // Filter by role
+  //       if (filterRole !== "all" && user.role !== filterRole) {
+  //         return false;
+  //       }
+
+  //       // Filter by status
+  //       if (filterStatus !== "all" && user.status !== filterStatus) {
+  //         return false;
+  //       }
+
+  //       return true;
+  //     })
+  //     .sort((a, b) => {
+  //       // Sort by selected field
+  //       let valueA, valueB;
+
+  //       switch (sortBy) {
+  //         case "name":
+  //           valueA = a.name.toLowerCase();
+  //           valueB = b.name.toLowerCase();
+  //           break;
+  //         case "email":
+  //           valueA = a.email.toLowerCase();
+  //           valueB = b.email.toLowerCase();
+  //           break;
+  //         case "role":
+  //           valueA = a.role.toLowerCase();
+  //           valueB = b.role.toLowerCase();
+  //           break;
+  //         case "status":
+  //           valueA = a.status.toLowerCase();
+  //           valueB = b.status.toLowerCase();
+  //           break;
+  //         case "lastLogin":
+  //           valueA = a.lastLogin ? new Date(a.lastLogin) : new Date(0);
+  //           valueB = b.lastLogin ? new Date(b.lastLogin) : new Date(0);
+  //           break;
+  //         default:
+  //           valueA = a.name.toLowerCase();
+  //           valueB = b.name.toLowerCase();
+  //       }
+
+  //       // Apply sort order
+  //       if (sortOrder === "asc") {
+  //         return valueA > valueB ? 1 : -1;
+  //       } else {
+  //         return valueA < valueB ? 1 : -1;
+  //       }
+  //     });
+
   const filteredUsers = users
     .filter((user) => {
+      const role = localStorage.getItem("role");
+
       // Filter by search term
       if (
         searchTerm &&
-        !user.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-        !user.email.toLowerCase().includes(searchTerm.toLowerCase())
+        !user?.name?.toLowerCase().includes(searchTerm.toLowerCase()) &&
+        !user?.email?.toLowerCase().includes(searchTerm.toLowerCase())
       ) {
         return false;
       }
@@ -476,44 +568,56 @@ const UserManagement = () => {
         return false;
       }
 
+      // Coach-specific Balagruha filter
+      if (
+        (role === "coach" && filterBalagruha !== "all") ||
+        (role === "medical-incharge" && filterBalagruha !== "all") ||
+        (role === "sports-coach" && filterBalagruha !== "all") ||
+        (role === "music-coach" && filterBalagruha !== "all") ||
+        (role === "admin" && filterBalagruha !== "all")
+      ) {
+        const userBalagruhaIds = user.balagruhaIds?.map((bg) => bg._id) || [];
+        return userBalagruhaIds.includes(filterBalagruha);
+      }
+
       return true;
     })
     .sort((a, b) => {
-      // Sort by selected field
       let valueA, valueB;
 
       switch (sortBy) {
         case "name":
-          valueA = a.name.toLowerCase();
-          valueB = b.name.toLowerCase();
+          valueA = a?.name?.toLowerCase();
+          valueB = b?.name?.toLowerCase();
           break;
         case "email":
-          valueA = a.email.toLowerCase();
-          valueB = b.email.toLowerCase();
+          valueA = a?.email?.toLowerCase();
+          valueB = b?.email?.toLowerCase();
           break;
         case "role":
-          valueA = a.role.toLowerCase();
-          valueB = b.role.toLowerCase();
+          valueA = a?.role?.toLowerCase();
+          valueB = b?.role?.toLowerCase();
           break;
         case "status":
-          valueA = a.status.toLowerCase();
-          valueB = b.status.toLowerCase();
+          valueA = a?.status?.toLowerCase();
+          valueB = b?.status?.toLowerCase();
           break;
         case "lastLogin":
-          valueA = a.lastLogin ? new Date(a.lastLogin) : new Date(0);
-          valueB = b.lastLogin ? new Date(b.lastLogin) : new Date(0);
+          valueA = a?.lastLogin ? new Date(a.lastLogin) : new Date(0);
+          valueB = b?.lastLogin ? new Date(b.lastLogin) : new Date(0);
           break;
         default:
-          valueA = a.name.toLowerCase();
-          valueB = b.name.toLowerCase();
+          valueA = a?.name.toLowerCase();
+          valueB = b?.name.toLowerCase();
       }
 
-      // Apply sort order
-      if (sortOrder === "asc") {
-        return valueA > valueB ? 1 : -1;
-      } else {
-        return valueA < valueB ? 1 : -1;
-      }
+      return sortOrder === "asc"
+        ? valueA > valueB
+          ? 1
+          : -1
+        : valueA < valueB
+        ? 1
+        : -1;
     });
 
   // Get unique roles for filter dropdown
@@ -641,9 +745,7 @@ const UserManagement = () => {
         errors.balagruhaId = "Please select a Balagruha";
       }
 
-      // File validations
       if (view === "add") {
-        // Only validate files for new users, not when editing
         if (!medicalHistoryFile && !medicalHistoryPreview) {
           errors.medicalHistory = "Medical history document is required";
         }
@@ -1029,46 +1131,126 @@ const UserManagement = () => {
           )}
 
           <div className="list-controls">
-            <div className="search-box">
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="search-input"
-              />
-              <span className="search-icon">🔍</span>
+            <div className="search-box  search-box-input">
+              <div>
+                <p className="search-icon">🔍</p>
+              </div>
+              <div>
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="search-input"
+                />
+              </div>
             </div>
 
-            {localStorage?.getItem("role") !== "sports-coach" && (
-              <div className="filters">
-                {canCreateUser && (
-                  <button
-                    className={`tab ${view === "add" ? "active" : ""}`}
-                    onClick={() => {
-                      setView("add");
-                      setFormData({
-                        name: "",
-                        email: "",
-                        password: "",
-                        role: "student",
-                        status: "active",
-                        age: "",
-                        gender: "",
-                        balagruhaIds: "",
-                        parentalStatus: "",
-                        guardianContact: "",
-                      });
-                      setMedicalHistoryFile(null);
-                      setFacialDataFile(null);
-                      setMedicalHistoryPreview(null);
-                      setFacialDataPreview(null);
-                      setFormErrors({});
-                    }}
+            {/* {localStorage?.getItem("role") !== "sports-coach" && ( */}
+            <div className="filters">
+              {canCreateUser && (
+                <button
+                  className={`tab ${view === "add" ? "active" : ""}`}
+                  onClick={() => {
+                    setView("add");
+                    setFormData({
+                      name: "",
+                      email: "",
+                      password: "",
+                      role: "student",
+                      status: "active",
+                      age: "",
+                      gender: "",
+                      balagruhaIds: "",
+                      parentalStatus: "",
+                      guardianContact: "",
+                    });
+                    setMedicalHistoryFile(null);
+                    setFacialDataFile(null);
+                    setMedicalHistoryPreview(null);
+                    setFacialDataPreview(null);
+                    setFormErrors({});
+                  }}
+                >
+                  ➕ Add User
+                </button>
+              )}
+              {/* {localStorage.getItem("role") === "coach" || localStorage.getItem("role") === "medical-incharge" || localStorage.getItem("role") === "sports-coach" || localStorage.getItem("role") === "music-coach" ? (
+                  <select
+                    value={filterBalagruha}
+                    onChange={(e) => setFilterBalagruha(e.target.value)}
+                    className="filter-select"
                   >
-                    ➕ Add User
-                  </button>
-                )}
+                    <option value="all">All Balagruhas</option>
+                    {balagruhas.map((bg, index) => (
+                      <option key={index} value={bg._id}>
+                        {bg.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <select
+                    value={filterRole}
+                    onChange={(e) => setFilterRole(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="all">All Roles</option>
+                    {uniqueRoles.map((role, index) => (
+                      <option key={index} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                )} */}
+
+              <div style={{display: "flex", gap: "10px"}}>
+              {localStorage.getItem("role") === "admin" ? (
+                <>
+                  <select
+                    value={filterBalagruha}
+                    onChange={(e) => setFilterBalagruha(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="all">All Balagruhas</option>
+                    {balagruhas.map((bg, index) => (
+                      <option key={index} value={bg._id}>
+                        {bg.name}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={filterRole}
+                    onChange={(e) => setFilterRole(e.target.value)}
+                    className="filter-select"
+                  >
+                    <option value="all">All Roles</option>
+                    {uniqueRoles.map((role, index) => (
+                      <option key={index} value={role}>
+                        {role.charAt(0).toUpperCase() + role.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </>
+              ) : [
+                  "coach",
+                  "medical-incharge",
+                  "sports-coach",
+                  "music-coach",
+                ].includes(localStorage.getItem("role")) ? (
+                <select
+                  value={filterBalagruha}
+                  onChange={(e) => setFilterBalagruha(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map((bg, index) => (
+                    <option key={index} value={bg._id}>
+                      {bg.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
                 <select
                   value={filterRole}
                   onChange={(e) => setFilterRole(e.target.value)}
@@ -1081,18 +1263,20 @@ const UserManagement = () => {
                     </option>
                   ))}
                 </select>
+              )}
 
-                <select
-                  value={filterStatus}
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Statuses</option>
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
-                </select>
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="filter-select"
+              >
+                <option value="all">All Statuses</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
               </div>
-            )}
+            </div>
+            {/* )} */}
           </div>
 
           <div className="user-table-container">
@@ -1138,37 +1322,37 @@ const UserManagement = () => {
                     Role{" "}
                     {sortBy === "role" && (sortOrder === "asc" ? "↑" : "↓")}
                   </th>
-                  {localStorage.getItem("role") !== "sports-coach" && (
-                    <th
-                      onClick={() => {
-                        if (sortBy === "status") {
-                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                        } else {
-                          setSortBy("status");
-                          setSortOrder("asc");
-                        }
-                      }}
-                    >
-                      Status{" "}
-                      {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
-                    </th>
-                  )}
-                  {localStorage.getItem("role") !== "sports-coach" && (
-                    <th
-                      onClick={() => {
-                        if (sortBy === "lastLogin") {
-                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                        } else {
-                          setSortBy("lastLogin");
-                          setSortOrder("desc");
-                        }
-                      }}
-                    >
-                      Last Login{" "}
-                      {sortBy === "lastLogin" &&
-                        (sortOrder === "asc" ? "↑" : "↓")}
-                    </th>
-                  )}
+                  {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
+                  <th
+                    onClick={() => {
+                      if (sortBy === "status") {
+                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("status");
+                        setSortOrder("asc");
+                      }
+                    }}
+                  >
+                    Status{" "}
+                    {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
+                  </th>
+                  {/* )} */}
+                  {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
+                  <th
+                    onClick={() => {
+                      if (sortBy === "lastLogin") {
+                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                      } else {
+                        setSortBy("lastLogin");
+                        setSortOrder("desc");
+                      }
+                    }}
+                  >
+                    Last Login{" "}
+                    {sortBy === "lastLogin" &&
+                      (sortOrder === "asc" ? "↑" : "↓")}
+                  </th>
+                  {/* )} */}
                   {(canUpdateUser || canDeleteUser) && <th>Actions</th>}
                 </tr>
               </thead>
@@ -1204,21 +1388,21 @@ const UserManagement = () => {
                         </span>
                       </div>
                     </td>
-                    {localStorage.getItem("role") !== "sports-coach" && (
-                      <td>
-                        <div
-                          className="user-status-indicator"
-                          style={{
-                            backgroundColor: getStatusColor(user.status),
-                          }}
-                        >
-                          {user.status === "active" ? "Active" : "Inactive"}
-                        </div>
-                      </td>
-                    )}
-                    {localStorage.getItem("role") !== "sports-coach" && (
-                      <td>{formatDate(user.lastLogin)}</td>
-                    )}
+                    {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
+                    <td>
+                      <div
+                        className="user-status-indicator"
+                        style={{
+                          backgroundColor: getStatusColor(user.status),
+                        }}
+                      >
+                        {user.status === "active" ? "Active" : "Inactive"}
+                      </div>
+                    </td>
+                    {/* )} */}
+                    {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
+                    <td>{formatDate(user.lastLogin)}</td>
+                    {/* )} */}
                     {(canUpdateUser || canDeleteUser) && (
                       <td>
                         <div className="action-buttons">

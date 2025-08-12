@@ -48,11 +48,11 @@ const wtfRateLimiters = {
     "Interaction limit exceeded. Maximum 100 interactions per hour."
   ),
 
-  // Submissions - 5 requests per hour
+  // Submissions - 15 requests per hour
   submissions: createRateLimiter(
     60 * 60 * 1000, // 1 hour
-    5,
-    "Submission limit exceeded. Maximum 5 submissions per hour."
+    15,
+    "Submission limit exceeded. Maximum 15 submissions per hour."
   ),
 
   // General WTF endpoints - 200 requests per hour

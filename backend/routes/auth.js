@@ -7,6 +7,7 @@ const { UserTypes } = require("../constants/users");
 const { fetchMachinesByIds } = require("../data-access/machines");
 const { upload } = require("../middleware/upload");
 const { facialLogin } = require("../controllers/userController");
+const { default: mongoose } = require("mongoose");
 // Register User
 
 /**
@@ -308,6 +309,56 @@ router.post("/login", async (req, res) => {
       message: "Error in login",
       error: err.message,
     });
+  }
+});
+
+// Student userId-only login
+router.post("/student/login", async (req, res) => {
+  try {
+    const { userId } = req.body;
+    if (!userId) {
+      return res
+        .status(400)
+        .json({ success: false, message: "userId is required" });
+    }
+    // Find user by _id; if a custom userId field exists, adjust accordingly
+    const isValid = mongoose.Types.ObjectId.isValid(userId);
+    const user = isValid
+      ? await User.findById(userId)
+      : await User.findOne({ email: userId });
+    if (!user || user.role !== UserTypes.STUDENT) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid credentials" });
+    }
+
+    // Update last login
+    user.lastLogin = new Date();
+    await user.save();
+
+    // Create token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      data: {
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+        },
+      },
+    });
+  } catch (err) {
+    res
+      .status(500)
+      .json({ success: false, message: "Error in login", error: err.message });
   }
 });
 

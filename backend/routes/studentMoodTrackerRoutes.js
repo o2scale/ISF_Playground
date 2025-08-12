@@ -30,6 +30,9 @@ router.get(
   studentMoodTrackerController.getMoodEntriesByDateRange
 );
 
+// Latest mood by balagruhaIds
+router.post("/latest", studentMoodTrackerController.getLatestMoodEntry);
+
 // Get, update, delete mood entry by id
 router.get("/:id", studentMoodTrackerController.getMoodEntryById);
 router.put("/:id", studentMoodTrackerController.updateMoodEntry);

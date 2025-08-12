@@ -531,12 +531,188 @@ export const getBalagruhaListbyUserID = async (id) => {
   }
 };
 
+export const getBalagruhaListByAssignedID = async (id) => {
+  try {
+    const response = await api.get(`/api/v1/balagruha/user/assigned/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error balagruha list by assigned id", error);
+    throw error;
+  }
+};
+
 export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
   try {
     const response = await api.get(`/api/v1/users/role/${role}?${balagruhaId}`);
     return response.data;
   } catch (error) {
     console.error("Error balagruha list by user id", error);
+    throw error;
+  }
+};
+
+// ==================== SCHEDULE API FUNCTIONS ====================
+
+export const createSchedule = async (data) => {
+  try {
+    const response = await api.post("/api/schedules", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating schedule:", error);
+    throw error;
+  }
+};
+
+export const getSchedules = async (filters) => {
+  try {
+    const response = await api.post("/api/schedules/admin", filters);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching schedules:", error);
+    throw error;
+  }
+};
+
+export const updateSchedule = async (data, scheduleId) => {
+  try {
+    const response = await api.put(`/api/schedules/${scheduleId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating schedule:", error);
+    throw error;
+  }
+};
+
+export const deleteSchedule = async (scheduleId) => {
+  try {
+    const response = await api.delete(`/api/schedules/${scheduleId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting schedule:", error);
+    throw error;
+  }
+};
+
+export const getSchedulesByUser = async (userId) => {
+  try {
+    const response = await api.get(`/api/schedules/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching schedules by user:", error);
+    throw error;
+  }
+};
+
+export const getSchedulesForAdmin = async (filters) => {
+  try {
+    const response = await api.post("/api/schedules/admin", filters);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching schedules for admin:", error);
+    throw error;
+  }
+};
+
+export const getSchedulesForCoach = async (filters) => {
+  try {
+    const response = await api.post("/api/schedules/coach", filters);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching schedules for coach:", error);
+    throw error;
+  }
+};
+
+export const getSchedulesCoach = async (filters) => {
+  try {
+    const response = await api.post("/api/schedules/coach", filters);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching schedules for coach:", error);
+    throw error;
+  }
+};
+
+export const updateScheduleStatus = async (scheduleId, status) => {
+  try {
+    const response = await api.put(`/api/schedules/${scheduleId}/status`, {
+      status,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating schedule status:", error);
+    throw error;
+  }
+};
+
+// ==================== MEDICAL & MOOD API FUNCTIONS ====================
+
+export const getMedicalConditionBasedOnBalagruha = async (balagruhaIds) => {
+  try {
+    const response = await api.post(
+      "/api/medical-check-ins/students/list",
+      balagruhaIds
+    );
+    return response.data;
+  } catch (error) {
+    console.error(
+      "Error fetching medical conditions based on balagruha:",
+      error
+    );
+    throw error;
+  }
+};
+
+export const getMoodBasedOnBalagruha = async (balagruhaIds) => {
+  try {
+    const response = await api.post(
+      "/api/v1/mood-tracker/latest",
+      balagruhaIds
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching mood based on balagruha:", error);
+    throw error;
+  }
+};
+
+export const createMedicalCheckin = async (data) => {
+  try {
+    const response = await api.post("/api/medical-check-ins", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating medical check-in:", error);
+    throw error;
+  }
+};
+
+export const createMood = async (data) => {
+  try {
+    const response = await api.post("/api/v1/mood-tracker", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating mood:", error);
+    throw error;
+  }
+};
+
+export const pinLogin = async (data) => {
+  try {
+    const response = await api.post("/api/auth/login", data);
+    return response.data;
+  } catch (error) {
+    console.error("Error in pin login:", error);
+    throw error;
+  }
+};
+
+// Student userId-only login
+export const studentPinLogin = async (data) => {
+  try {
+    const response = await api.post("/api/auth/student/login", data);
+    return response;
+  } catch (error) {
+    console.error("Error in student pin login:", error);
     throw error;
   }
 };
@@ -762,9 +938,36 @@ export const getWtfPinInteractions = async (pinId) => {
 // Submission APIs
 export const submitVoiceNote = async (data) => {
   try {
+    // Accept both FormData and plain objects; always send multipart
+    let formData;
+    if (data instanceof FormData) {
+      formData = data;
+    } else {
+      formData = new FormData();
+      if (data?.file) formData.append("file", data.file);
+      if (data?.title) formData.append("title", data.title);
+      // Optional fields
+      if (data?.type) formData.append("type", data.type);
+      if (data?.audioDuration != null)
+        formData.append("audioDuration", String(data.audioDuration));
+      if (data?.audioTranscription)
+        formData.append("audioTranscription", data.audioTranscription);
+      // Tags may be array or string
+      if (Array.isArray(data?.tags)) {
+        if (data.tags.length > 0) {
+          data.tags.forEach((tag) => formData.append("tags[]", tag));
+        } else {
+          formData.append("tags", JSON.stringify([]));
+        }
+      }
+    }
+
     const response = await apiWithoutContentType.post(
       `/api/v1/wtf/submissions/voice`,
-      data
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
     );
     return response.data;
   } catch (error) {
@@ -775,10 +978,17 @@ export const submitVoiceNote = async (data) => {
 
 export const submitWtfMedia = async (formData) => {
   try {
+    console.log("submitWtfMedia called with:", {
+      formDataEntries: Array.from(formData.entries()),
+      formDataKeys: Array.from(formData.keys()),
+    });
+
     const response = await apiWithoutContentType.post(
       `/api/v1/wtf/submissions/media`,
       formData
     );
+
+    console.log("submitWtfMedia response:", response);
     return response.data;
   } catch (error) {
     console.error("Error submitting WTF media:", error);
@@ -956,11 +1166,23 @@ export const getWtfSubmissionStats = async () => {
   }
 };
 
+// ==================== COINS ====================
+// Get current user's ISF coin balance
+export const getUserCoinBalance = async () => {
+  try {
+    const response = await api.get(`/api/v1/coin/balance`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user coin balance:", error);
+    throw error;
+  }
+};
+
 // Get pending submissions count
 export const getPendingSubmissionsCount = async () => {
   try {
     const response = await api.get(`/api/v1/wtf/submissions/review`, {
-      params: { page: 1, limit: 1 },
+      params: { page: 1, limit: 1, isCoachSuggestion: false },
     });
     // API shape: { success, data: { submissions, pagination } }
     return response.data?.data?.pagination?.total || 0;

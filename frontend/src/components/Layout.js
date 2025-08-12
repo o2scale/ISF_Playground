@@ -5,6 +5,7 @@ import "./Layout.css";
 import { useAuth } from "../contexts/AuthContext";
 import { useRBAC } from "../contexts/RBACContext";
 import { usePermission } from "./hooks/usePermission";
+import { getUserCoinBalance } from "../api";
 
 // Create Sidebar Context
 const SidebarContext = createContext();
@@ -29,6 +30,7 @@ const Layout = () => {
   const [showChatWindow, setShowChatWindow] = useState(null); // null, "coach", or "admin"
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [coinBalance, setCoinBalance] = useState(null);
 
   // Check if current route is WTF
   const isWTFRoute = location.pathname === "/wtf";
@@ -162,6 +164,20 @@ const Layout = () => {
     );
 
     setVisibleMenus(filteredMenus);
+    // Fetch coin balance for student
+    if (userRole === "student") {
+      (async () => {
+        try {
+          const res = await getUserCoinBalance();
+          // API returns { success, data: { balance } }
+          const balance = res?.data?.balance ?? null;
+          setCoinBalance(typeof balance === "number" ? balance : 0);
+        } catch (err) {
+          console.error("Failed to fetch coin balance:", err);
+          setCoinBalance(0);
+        }
+      })();
+    }
   }, []);
 
   // Removed duplicate declaration of sportCoachMenu
@@ -248,7 +264,7 @@ const Layout = () => {
                   <br />
                   EARNED
                 </span>
-                <div className="coins-circle">50</div>
+                <div className="coins-circle">{coinBalance ?? "--"}</div>
               </div>
               <div className="notifications-container">
                 <div

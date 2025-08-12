@@ -33,6 +33,22 @@ exports.getAllBalagruha = async () => {
   }
 };
 
+// Optional filtered fetch helper used by service fallback
+exports.getAllBalagruhaFiltered = async (filter = {}) => {
+  try {
+    const result = await Balagruha.find(filter)
+      .populate("assignedMachines")
+      .lean();
+    return { success: true, data: result, message: "Balagruhas fetched" };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in getAllBalagruhaFiltered"
+    );
+    throw error;
+  }
+};
+
 // Function to get balagruha by id
 exports.getBalagruhaById = async (id) => {
   try {

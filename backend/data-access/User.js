@@ -1012,6 +1012,106 @@ exports.getSportsTasksCountByBalagruhaId = async ({ balagruhaIds }) => {
     });
 };
 
+// Fetch students' medical check-ins by balagruha Ids
+// Returns one document per student with an array field `medicalCheckIns`
+exports.getStudentMedicalCheckInsByBalagruhaIds = async ({ balagruhaIds }) => {
+  try {
+    if (!Array.isArray(balagruhaIds)) {
+      balagruhaIds = [balagruhaIds].filter(Boolean);
+    }
+
+    const balagruhaObjectIds = balagruhaIds.map((id) =>
+      mongoose.Types.ObjectId.createFromHexString(String(id))
+    );
+
+    const result = await User.aggregate([
+      {
+        $match: {
+          role: "student",
+          balagruhaIds: { $in: balagruhaObjectIds },
+        },
+      },
+      {
+        $lookup: {
+          from: "medical_check_ins",
+          localField: "_id",
+          foreignField: "studentId",
+          as: "medicalCheckIns",
+        },
+      },
+      {
+        $project: {
+          // only return the medical check-ins array for each student
+          medicalCheckIns: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      data: result,
+      message: "Medical check-ins by balagruha fetched successfully",
+    };
+  } catch (error) {
+    console.log("error", error);
+    throw error;
+  }
+};
+
+// Aggregate: latest mood tracker entry per student for given balagruhaIds
+exports.getStudentMoodTrackerDetailsByBalagruhaIds = async ({
+  balagruhaIds,
+}) => {
+  try {
+    const ids = (Array.isArray(balagruhaIds) ? balagruhaIds : [balagruhaIds])
+      .filter(Boolean)
+      .map((id) => mongoose.Types.ObjectId.createFromHexString(String(id)));
+
+    const result = await User.aggregate([
+      {
+        $match: {
+          role: "student",
+          balagruhaIds: { $in: ids },
+        },
+      },
+      {
+        $lookup: {
+          from: "student_mood_tracker",
+          let: { userId: "$_id" },
+          pipeline: [
+            { $match: { $expr: { $eq: ["$userId", "$$userId"] } } },
+            { $sort: { date: -1 } },
+            { $limit: 1 },
+          ],
+          as: "latestMoodTracker",
+        },
+      },
+      {
+        $unwind: {
+          path: "$latestMoodTracker",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          latestMoodTracker: 1,
+          _id: 0,
+        },
+      },
+    ]);
+
+    return {
+      success: true,
+      data: result,
+      message: "Latest mood entries fetched",
+    };
+  } catch (error) {
+    console.log("error", error);
+    throw error;
+  }
+};
+
 // Function for fetch all students users sports task by balagruhaId and given date
 exports.getStudentsWithSportsTaskByBalagruhaId = async ({
   balagruhaIds,

@@ -3,7 +3,11 @@ const { default: mongoose } = require("mongoose");
 const fs = require("fs");
 const CoinService = require("./coin");
 const wtfWebSocketService = require("./wtfWebSocket");
-const { uploadWtfMedia, deleteWtfMedia } = require("./aws/s3");
+const {
+  uploadWtfMedia,
+  deleteWtfMedia,
+  uploadWtfVoiceNote,
+} = require("./aws/s3");
 
 // Import data access methods
 const {
@@ -878,28 +882,60 @@ class WtfService {
         },
       };
 
-      // If a file was uploaded, validate duration metadata if provided and store it in S3
+      // If a file was uploaded, try S3 first; if it fails or not configured, fall back to local file URL
       if (payload.file && payload.file.path) {
+        let uploadedToS3 = false;
         try {
           const s3Url = await uploadWtfVoiceNote(
             payload.file.path,
             `submission_${Date.now()}`
           );
-          if (s3Url && s3Url.url) {
+          if (s3Url && s3Url.success && s3Url.url) {
             submissionData.audioUrl = s3Url.url;
+            uploadedToS3 = true;
           }
-          try {
-            const fs = require("fs");
-            if (fs.existsSync(payload.file.path)) {
-              fs.unlinkSync(payload.file.path);
-            }
-          } catch {}
         } catch (e) {
           errorLogger.error(
             { error: e.message },
             "Failed to upload voice note to S3"
           );
         }
+
+        if (!submissionData.audioUrl) {
+          try {
+            const { getUploadedFilesFullPath } = require("../utils/helper");
+            submissionData.audioUrl = getUploadedFilesFullPath(
+              payload.file.path
+            );
+          } catch {}
+        }
+
+        // Delete local temp file only if uploaded to S3
+        if (uploadedToS3) {
+          try {
+            const fs = require("fs");
+            if (fs.existsSync(payload.file.path)) {
+              fs.unlinkSync(payload.file.path);
+            }
+          } catch {}
+        }
+      }
+
+      // Ensure audio URL fallback even if no S3 attempt (e.g., S3 not configured)
+      if (!submissionData.audioUrl && payload.file?.path) {
+        try {
+          const { getUploadedFilesFullPath } = require("../utils/helper");
+          submissionData.audioUrl = getUploadedFilesFullPath(payload.file.path);
+        } catch {}
+      }
+
+      // Normalize and default audio duration if missing
+      if (submissionData.audioDuration == null) {
+        const parsed = parseInt(payload.audioDuration, 10);
+        let duration = Number.isNaN(parsed) ? 10 : parsed; // default 10s
+        if (duration < 0) duration = 0;
+        if (duration > 60) duration = 60;
+        submissionData.audioDuration = duration;
       }
 
       const result = await createWtfSubmission(submissionData);
@@ -1066,9 +1102,19 @@ class WtfService {
     }
   }
 
-  static async getSubmissionsForReview({ page = 1, limit = 20, type = null }) {
+  static async getSubmissionsForReview({
+    page = 1,
+    limit = 20,
+    type = null,
+    isCoachSuggestion = null,
+  }) {
     try {
-      const result = await getPendingSubmissions({ page, limit, type });
+      const result = await getPendingSubmissions({
+        page,
+        limit,
+        type,
+        isCoachSuggestion,
+      });
       return result;
     } catch (error) {
       errorLogger.error(
@@ -1106,27 +1152,68 @@ class WtfService {
         if (result.success && result.data) {
           try {
             const approvedSubmission = result.data;
-            const pinType =
-              approvedSubmission.type === "voice" ? "audio" : "text";
+
+            // Determine pin type based on submission type and metadata
+            let pinType = "text";
+            let mediaUrl = null;
+
+            console.log("Creating pin from approved submission:", {
+              type: approvedSubmission.type,
+              audioUrl: approvedSubmission.audioUrl,
+              content: approvedSubmission.content,
+              metadata: approvedSubmission.metadata,
+            });
+
+            if (approvedSubmission.type === "voice") {
+              pinType = "audio";
+              mediaUrl = approvedSubmission.audioUrl;
+              console.log(
+                "Voice submission detected, setting pinType to audio, mediaUrl:",
+                mediaUrl
+              );
+            } else if (approvedSubmission.metadata?.originalType === "image") {
+              pinType = "image";
+              mediaUrl = approvedSubmission.content; // content contains the S3 URL for images
+              console.log(
+                "Image submission detected, setting pinType to image, mediaUrl:",
+                mediaUrl
+              );
+            } else if (approvedSubmission.metadata?.originalType === "video") {
+              pinType = "video";
+              mediaUrl = approvedSubmission.content; // content contains the S3 URL for videos
+              console.log(
+                "Video submission detected, setting pinType to video, mediaUrl:",
+                mediaUrl
+              );
+            }
+
+            console.log("Final pin configuration:", { pinType, mediaUrl });
+
+            // Ensure required fields are populated according to pin type
+            const contentForPin =
+              pinType === "audio"
+                ? approvedSubmission.audioTranscription ||
+                  approvedSubmission.title ||
+                  "Voice Note"
+                : approvedSubmission.content;
+
             const pinPayload = {
-              title: approvedSubmission.title,
-              // For text pins, the backend reads `content`; for audio we pass media via `mediaUrl`
-              content:
-                pinType === "text"
-                  ? approvedSubmission.content
-                  : approvedSubmission.audioUrl,
+              title: approvedSubmission.title || "Untitled",
+              content: contentForPin, // Text content or transcription/title for audio
               type: pinType,
-              ...(pinType === "audio" && {
-                mediaUrl: approvedSubmission.audioUrl,
-              }),
-              author: new mongoose.Types.ObjectId(reviewerId),
+              mediaUrl: mediaUrl, // Set mediaUrl for all media types
+              author: approvedSubmission.studentId, // Use the original student as author, not the reviewer
               status: "active",
               isOfficial: false,
               language: approvedSubmission.language || "english",
               tags: approvedSubmission.tags || [],
             };
 
+            console.log("Creating WTF pin with payload:", pinPayload);
+
             const pinCreateResult = await createWtfPin(pinPayload);
+
+            console.log("Pin creation result:", pinCreateResult);
             if (pinCreateResult?.success) {
               // Link the created pin back to the submission
               await updateWtfSubmission(submissionId, {
@@ -1424,26 +1511,45 @@ class WtfService {
   static async getWtfDashboardCounts() {
     try {
       // Get all the counts needed for dashboard in parallel
-      const [activePinsResult, submissionStatsResult, analyticsResult] =
-        await Promise.all([
-          this.getActivePinsCount(),
-          this.getSubmissionStats(),
-          this.getWtfAnalytics(),
-        ]);
+      const [
+        activePinsResult,
+        coachSuggestionsResult,
+        studentSubmissionsResult,
+        analyticsResult,
+      ] = await Promise.all([
+        this.getActivePinsCount(),
+        this.getCoachSuggestionsCount(),
+        this.getSubmissionsForReview({
+          page: 1,
+          limit: 1,
+          isCoachSuggestion: false,
+        }),
+        this.getWtfAnalytics(),
+      ]);
 
       // Extract counts with fallbacks
       const activePinsCount = activePinsResult?.success
         ? activePinsResult.data
         : 0;
-      const submissionStats = submissionStatsResult?.success
-        ? submissionStatsResult.data
-        : {};
+      const coachSuggestionsCount = coachSuggestionsResult?.success
+        ? coachSuggestionsResult.data?.pendingCount || 0
+        : 0;
+      const studentSubmissionsCount = studentSubmissionsResult?.success
+        ? studentSubmissionsResult.data?.pagination?.total || 0
+        : 0;
       const analytics = analyticsResult?.success ? analyticsResult.data : {};
+
+      console.log("Dashboard counts calculation:", {
+        activePinsCount,
+        coachSuggestionsCount,
+        studentSubmissionsCount,
+        analytics,
+      });
 
       const dashboardCounts = {
         activePins: activePinsCount,
-        coachSuggestions: submissionStats?.pendingCount || 0,
-        studentSubmissions: submissionStats?.newCount || 0,
+        coachSuggestions: coachSuggestionsCount,
+        studentSubmissions: studentSubmissionsCount,
         totalEngagement: analytics?.totalSeen || analytics?.totalViews || 0,
         // Additional useful metrics
         totalPins: analytics?.totalPins || 0,
@@ -1507,8 +1613,20 @@ class WtfService {
 
   static async getCoachSuggestionsCount() {
     try {
-      const result = await this.getSubmissionStats();
-      const pendingCount = result?.data?.pendingCount || 0;
+      // Get count of only coach suggestions, not all pending submissions
+      const result = await WtfService.getSubmissionsForReview({
+        page: 1,
+        limit: 1,
+        isCoachSuggestion: true,
+      });
+
+      console.log("Coach suggestions count result:", {
+        success: result.success,
+        data: result.data,
+        total: result?.data?.pagination?.total,
+      });
+
+      const pendingCount = result?.data?.pagination?.total || 0;
 
       return {
         success: true,
@@ -1526,11 +1644,12 @@ class WtfService {
 
   static async getCoachSuggestions({ page = 1, limit = 20, status = null }) {
     try {
-      // For now, we'll use the submissions data as coach suggestions
+      // Only fetch submissions that are specifically coach suggestions
       const result = await WtfService.getSubmissionsForReview({
         page,
         limit,
         type: null,
+        isCoachSuggestion: true, // Add this filter
       });
 
       if (!result.success) {
@@ -1557,7 +1676,7 @@ class WtfService {
             ? submission.audioUrl
             : submission.content;
         return {
-          id: submission._id,
+          _id: submission._id, // Use _id to match frontend expectations
           studentName: meta.studentName || "Unknown Student",
           coachName: meta.suggestedBy || "Coach",
           workType:
@@ -1569,8 +1688,8 @@ class WtfService {
           content: contentUrl,
           suggestedDate: submission.createdAt,
           status: submission.status
-            ? submission.status.toUpperCase()
-            : "PENDING",
+            ? submission.status.toLowerCase() // Use lowercase to match frontend expectations
+            : "pending",
           balagruha: meta.balagruha || "Unknown House",
         };
       });

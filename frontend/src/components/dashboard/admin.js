@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./AdminDashboard.css";
 import {
   getBalagruha,
@@ -9,6 +9,11 @@ import {
   getMachines,
   getTaskBytaskId,
   getAnyUserBasedonRoleandBalagruha,
+  getMedicalConditionBasedOnBalagruha,
+  getMoodBasedOnBalagruha,
+  getBalagruhaListbyUserID,
+  getBalagruhaListByAssignedID,
+  getSchedules,
 } from "../../api";
 import { TaskDetailsModal } from "../TaskManagement/taskmanagement";
 import WeeklyCalendar from "./WeeklyCalendar";
@@ -16,14 +21,19 @@ import WeeklyCalendar from "./WeeklyCalendar";
 function AdminDashboard() {
   // Initialize with pre-selected values
   const [selectedBalagruha, setSelectedBalagruha] = useState();
-  const [selectedCoach, setSelectedCoach] = useState(1);
+  const [selectedBalagruhaOfCoach, setSelectedBalagruhaOfCoach] = useState();
+  const [selectedCoach, setSelectedCoach] = useState();
   const [adminMenuSelected, setAdminMenuSelected] = useState(1);
   const [coachMenuSelected, setCoachMenuSelected] = useState(1);
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0);
   const [balagruhas, setBalagruhas] = useState([]);
+  const [balagruhaOfCoach, setBalagruhaOfCoach] = useState([]);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [balagruhaStudents, setBalagruhaStudents] = useState([]);
   const [selectedStudents, setSelectedStudents] = useState([]);
+  const [medicalIssuesData, setMedicalIssuesData] = useState();
+  const [studentUserId, setStudentUserId] = useState([]);
+  const [moodData, setMoodData] = useState();
 
   // New state variables for task modal
   const [showTaskModal, setShowTaskModal] = useState(false);
@@ -34,6 +44,14 @@ function AdminDashboard() {
   const [attendance, setAttendance] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [machines, setMachines] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  // const [schedules, setSchedules] = useState({
+  //     balagruhaId: '',
+  //     assignedTo: '',
+  //     startDate: '',
+  //     endDate: '',
+  //     status: []
+  // });
 
   const getBalagruhaList = async () => {
     try {
@@ -42,6 +60,18 @@ function AdminDashboard() {
       setBalagruhas(response?.data?.balagruhas || []);
     } catch (error) {
       console.error("Error fetching balagruha list:", error);
+    }
+  };
+
+  const scrollRef = useRef(null);
+
+  const scrollMenu = (direction) => {
+    const scrollAmount = 200;
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({
+        left: direction === "left" ? -scrollAmount : scrollAmount,
+        behavior: "smooth",
+      });
     }
   };
 
@@ -103,6 +133,43 @@ function AdminDashboard() {
     }
   };
 
+  const fetchBalagruhaByCoach = async (id) => {
+    try {
+      const response = await getBalagruhaListByAssignedID(id);
+      setBalagruhaOfCoach(response?.data?.balagruhas);
+    } catch (error) {
+      console.error("Error in fetching balagruha based on user", error);
+    }
+  };
+
+  const fetchSchedules = async (balagruha, startDate, endDate) => {
+    try {
+      let dataToSend;
+      if (balagruha) {
+        dataToSend = {
+          balagruhaIds: [balagruha],
+          assignedTo: selectedCoach,
+          startDate: startDate,
+          endDate: endDate,
+          status: [],
+        };
+      } else {
+        dataToSend = {
+          balagruhaIds: [selectedBalagruhaOfCoach],
+          assignedTo: selectedCoach,
+          startDate: startDate,
+          endDate: endDate,
+          status: [],
+        };
+      }
+
+      const response = await getSchedules(dataToSend);
+      setSchedules(response?.data?.schedules);
+    } catch (error) {
+      console.error("Error in fetching schedules", error);
+    }
+  };
+
   useEffect(() => {
     getBalagruhaList();
     getTasksList();
@@ -112,14 +179,89 @@ function AdminDashboard() {
   }, [selectedBalagruha]);
 
   // Handle student checkbox change
-  const handleStudentCheckboxChange = (studentId) => {
-    setSelectedStudents((prevSelected) => {
-      if (prevSelected.includes(studentId)) {
-        return prevSelected.filter((id) => id !== studentId);
-      } else {
-        return [...prevSelected, studentId];
-      }
-    });
+  // const handleStudentCheckboxChange = async (studentId, userId) => {
+  //     setSelectedStudents(prevSelected => {
+  //         if (prevSelected?.includes(studentId)) {
+  //             return prevSelected.filter(id => id !== studentId);
+  //         } else {
+  //             return [...prevSelected, studentId];
+  //         }
+  //     });
+
+  //     setStudentUserId(prevSelected => {
+  //         if (prevSelected?.includes(userId)) {
+  //             return prevSelected.filter(id => id !== userId);
+  //         } else {
+  //             return [...prevSelected, userId];
+  //         }
+  //     });
+
+  //     // setSelectedStudents(studentId)
+  //     // setStudentUserId(userId);
+
+  //     const balagruhaIds = {
+  //         balagruhaIds: [selectedBalagruha]
+  //     }
+
+  //     const response = await getMedicalConditionBasedOnBalagruha(balagruhaIds);
+  //     const moodResponse = await getMoodBasedOnBalagruha(balagruhaIds);
+
+  //     if (response.success) {
+  //         setMedicalIssuesData(prev => {
+  //             const selectedIds = [...selectedStudents]; // Using stale state here
+  //             const filteredCheckIns = response.data.medicalCheckIns.filter(
+  //                 checkIn => selectedIds.includes(checkIn.studentId)
+  //             );
+  //             return filteredCheckIns;
+  //         });
+  //     }
+
+  //     if (moodResponse.success) {
+  //         setMoodData(prev => {
+  //             const selectedUserIds = [...studentUserId]; // Also stale
+  //             const filteredMood = moodResponse.data.moodInfor.filter(
+  //                 mood => selectedUserIds.includes(mood.userId)
+  //             );
+  //             return filteredMood;
+  //         });
+  //     }
+
+  //     console.log(response, moodResponse, balagruhaIds);
+  // };
+
+  const handleStudentCheckboxChange = async (studentId, userId) => {
+    // Calculate new selections
+    const newSelectedStudents = selectedStudents.includes(studentId)
+      ? selectedStudents.filter((id) => id !== studentId)
+      : [...selectedStudents, studentId];
+
+    const newStudentUserIds = studentUserId.includes(userId)
+      ? studentUserId.filter((id) => id !== userId)
+      : [...studentUserId, userId];
+
+    // Apply them to state
+    setSelectedStudents(newSelectedStudents);
+    setStudentUserId(newStudentUserIds);
+
+    const balagruhaIds = { balagruhaIds: [selectedBalagruha] };
+
+    const response = await getMedicalConditionBasedOnBalagruha(balagruhaIds);
+    if (response.success) {
+      const filteredCheckIns = response?.data?.medicalCheckIns?.filter(
+        (checkIn) => newSelectedStudents.includes(checkIn.studentId)
+      );
+      setMedicalIssuesData(filteredCheckIns);
+    }
+
+    const moodResponse = await getMoodBasedOnBalagruha(balagruhaIds);
+    if (moodResponse.success) {
+      const filteredMood = moodResponse?.data?.moodInfo?.filter((mood) => {
+        return newStudentUserIds.includes(mood.userId);
+      });
+      setMoodData(filteredMood);
+    }
+
+    console.log(response, moodResponse, balagruhaIds);
   };
 
   // Handle select all students
@@ -127,7 +269,7 @@ function AdminDashboard() {
     if (selectedStudents.length === balagruhaStudents.length) {
       setSelectedStudents([]);
     } else {
-      setSelectedStudents(balagruhaStudents.map((student) => student._id));
+      setSelectedStudents(balagruhaStudents?.map((student) => student._id));
     }
   };
 
@@ -165,12 +307,13 @@ function AdminDashboard() {
   };
 
   const adminMenus = [
-    { id: 1, name: "Subject wise progress" },
-    { id: 2, name: "Computer Usage" },
+    // { id: 1, name: "Subject wise progress" },
+    // { id: 2, name: "Computer Usage" },
     { id: 3, name: "Medical Issues" },
-    { id: 4, name: "Balgruh & Children Details" },
-    { id: 5, name: "Performance Reports" },
-    { id: 6, name: "Attendance" },
+    // { id: 4, name: "Balgruh & Children Details" },
+    // { id: 5, name: "Performance Reports" },
+    // { id: 6, name: "Attendance" },
+    { id: 7, name: "Mood" },
   ];
 
   const coachMenus = [
@@ -186,62 +329,58 @@ function AdminDashboard() {
   ];
 
   // Convert tasks to calendar events
-  const getCalendarEvents = () => {
-    if (!tasks || tasks.length === 0) {
-      // If no tasks, use dummy data
-      return [
-        {
-          id: 1,
-          title: "Visit to Sampare",
-          location: "Shelpimplegaon",
-          date: "2025-03-20",
-          time: "09:00-11:00",
-          type: "visit",
-          description: "Regular visit to check on children's progress",
-          attendees: ["Coach 1", "Admin", "Local Volunteer"],
-          status: "Confirmed",
-          // Create a task-like object for the modal
-          taskData: {
-            _id: "1",
-            title: "Visit to Sampare",
-            description: "Regular visit to check on children's progress",
-            status: "pending",
-            priority: "High",
-            deadline: "2025-03-20T11:00:00",
-            createdAt: "2025-03-15T09:00:00",
-            assignedUser: "1",
-            createdBy: "2",
-            comments: [],
-            attachments: [],
-          },
-        },
-      ];
-    }
+  // const getCalendarEvents = () => {
+  //     if (!tasks || tasks.length === 0) {
+  //         // If no tasks, use dummy data
+  //         return [
+  //             {
+  //                 id: 1,
+  //                 title: "Visit to Sampare",
+  //                 location: "Shelpimplegaon",
+  //                 date: "2025-03-20",
+  //                 time: "09:00-11:00",
+  //                 type: "visit",
+  //                 description: "Regular visit to check on children's progress",
+  //                 attendees: ["Coach 1", "Admin", "Local Volunteer"],
+  //                 status: "Confirmed",
+  //                 // Create a task-like object for the modal
+  //                 taskData: {
+  //                     _id: "1",
+  //                     title: "Visit to Sampare",
+  //                     description: "Regular visit to check on children's progress",
+  //                     status: "pending",
+  //                     priority: "High",
+  //                     deadline: "2025-03-20T11:00:00",
+  //                     createdAt: "2025-03-15T09:00:00",
+  //                     assignedUser: "1",
+  //                     createdBy: "2",
+  //                     comments: [],
+  //                     attachments: []
+  //                 }
+  //             }
+  //         ];
+  //     }
 
-    return tasks.map((task) => ({
-      id: task._id,
-      title: task.title,
-      location: task.location || "Not specified",
-      date: task.deadline ? task.deadline.split("T")[0] : "2025-03-20",
-      time: task.startTime || "All day",
-      type: (task.priority || "medium").toLowerCase(),
-      description: task.description,
-      attendees: [
-        users.find((u) => u._id === task.assignedUser)?.name || "Unassigned",
-        users.find((u) => u._id === task.createdBy)?.name || "Unknown",
-      ],
-      status:
-        task.status === "completed"
-          ? "Completed"
-          : task.status === "in progress"
-          ? "In Progress"
-          : "Pending",
-      taskData: task,
-    }));
-  };
+  //     return tasks?.map(task => ({
+  //         id: task._id,
+  //         title: task.title,
+  //         location: task.location || "Not specified",
+  //         date: task.deadline ? task.deadline.split('T')[0] : "2025-03-20",
+  //         time: task.startTime || "All day",
+  //         type: (task.priority || "medium").toLowerCase(),
+  //         description: task.description,
+  //         attendees: [
+  //             users.find(u => u._id === task.assignedUser)?.name || "Unassigned",
+  //             users.find(u => u._id === task.createdBy)?.name || "Unknown"
+  //         ],
+  //         status: task.status === "completed" ? "Completed" :
+  //             task.status === "in progress" ? "In Progress" : "Pending",
+  //         taskData: task
+  //     }));
+  // };
 
-  // Calendar events data
-  const calendarEvents = getCalendarEvents();
+  // // Calendar events data
+  // const calendarEvents = getCalendarEvents();
 
   // Function to handle event click - opens the task modal
   const handleEventClick = (event) => {
@@ -361,43 +500,13 @@ function AdminDashboard() {
   ];
 
   // Medical issues data
-  const medicalIssuesData = [
-    {
-      id: 1,
-      studentName: "Rahul Sharma",
-      balagruhaName: "Balagruha 1",
-      doctorName: "Dr. Mehta",
-      disease: "Common Cold",
-    },
-    {
-      id: 2,
-      studentName: "Priya Patel",
-      balagruhaName: "Balagruha 2",
-      doctorName: "Dr. Sharma",
-      disease: "Allergic Rhinitis",
-    },
-    {
-      id: 3,
-      studentName: "Amit Kumar",
-      balagruhaName: "Balagruha 1",
-      doctorName: "Dr. Gupta",
-      disease: "Viral Fever",
-    },
-    {
-      id: 4,
-      studentName: "Sneha Gupta",
-      balagruhaName: "Balagruha 3",
-      doctorName: "Dr. Patel",
-      disease: "Skin Rash",
-    },
-    {
-      id: 5,
-      studentName: "Raj Malhotra",
-      balagruhaName: "Balagruha 2",
-      doctorName: "Dr. Singh",
-      disease: "Gastroenteritis",
-    },
-  ];
+  // const medicalIssuesData = [
+  //     { id: 1, studentName: "Rahul Sharma", balagruhaName: "Balagruha 1", doctorName: "Dr. Mehta", disease: "Common Cold" },
+  //     { id: 2, studentName: "Priya Patel", balagruhaName: "Balagruha 2", doctorName: "Dr. Sharma", disease: "Allergic Rhinitis" },
+  //     { id: 3, studentName: "Amit Kumar", balagruhaName: "Balagruha 1", doctorName: "Dr. Gupta", disease: "Viral Fever" },
+  //     { id: 4, studentName: "Sneha Gupta", balagruhaName: "Balagruha 3", doctorName: "Dr. Patel", disease: "Skin Rash" },
+  //     { id: 5, studentName: "Raj Malhotra", balagruhaName: "Balagruha 2", doctorName: "Dr. Singh", disease: "Gastroenteritis" }
+  // ];
 
   // Balagruha and children details
   const balagruhaDetailsData = [
@@ -548,69 +657,109 @@ function AdminDashboard() {
             {/* Balagruha Selection */}
             <div className="balagruha-selection">
               <h3>Balagruhas</h3>
-              <div className="scroll-container scrollable-menu">
-                {balagruhas.map((bal) => (
-                  <div
-                    key={bal._id}
-                    className={`balagruha-item ${
-                      selectedBalagruha === bal._id ? "selected" : ""
-                    }`}
-                    onClick={() => {
-                      setSelectedBalagruha(bal._id);
-                      getStudentListBasedonDate(bal._id);
-                      setAdminMenuSelected(1);
-                    }}
-                  >
-                    <div>{bal.name}</div>
-                  </div>
-                ))}
+              {/* <div className="scroll-container scrollable-menu">
+                                {balagruhas?.map(bal => (
+                                    <div
+                                        key={bal._id}
+                                        className={`balagruha-item ${selectedBalagruha === bal._id ? 'selected' : ''}`}
+                                        onClick={() => {
+                                            setSelectedStudents([]);
+                                            setStudentUserId([]);
+                                            setMoodData();
+                                            setMedicalIssuesData();
+                                            setSelectedBalagruha(bal._id);
+                                            getStudentListBasedonDate(bal._id);
+                                            // setAdminMenuSelected(3);
+                                        }}
+                                    >
+                                        <div>{bal.name}</div>
+                                    </div>
+                                ))}
+                            </div> */}
+              <div className="scroll-wrapper">
+                <button
+                  className="scroll-button left"
+                  onClick={() => scrollMenu("left")}
+                >
+                  &lt;
+                </button>
+
+                <div
+                  className="scroll-container scrollable-menu"
+                  ref={scrollRef}
+                >
+                  {balagruhas?.map((bal) => (
+                    <div
+                      key={bal._id}
+                      className={`balagruha-item ${
+                        selectedBalagruha === bal._id ? "selected" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedStudents([]);
+                        setStudentUserId([]);
+                        setMoodData();
+                        setMedicalIssuesData();
+                        setSelectedBalagruha(bal._id);
+                        getStudentListBasedonDate(bal._id);
+                      }}
+                    >
+                      <div>{bal.name}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  className="scroll-button right"
+                  onClick={() => scrollMenu("right")}
+                >
+                  &gt;
+                </button>
               </div>
             </div>
 
             {/* Student Dropdown */}
-            {showStudentDropdown && (
-              <div className="student-dropdown-container">
-                <div
-                  className="student-dropdown-header"
-                  onClick={() => setShowStudentDropdown(!showStudentDropdown)}
-                >
-                  <h3>Students</h3>
-                  <span className="dropdown-arrow">
-                    {showStudentDropdown ? "▲" : "▼"}
-                  </span>
-                </div>
+            {/* {showStudentDropdown && (
+                            
+                        )} */}
 
-                <div
-                  className={`student-dropdown-content ${
-                    showStudentDropdown ? "show" : ""
-                  }`}
-                >
-                  <div className="select-all-option">
-                    <label className="checkbox-container">
-                      <input
-                        type="checkbox"
-                        checked={
-                          selectedStudents.length ===
-                            balagruhaStudents.length &&
-                          balagruhaStudents.length > 0
-                        }
-                        onChange={handleSelectAllStudents}
-                      />
-                      <span className="checkmark"></span>
-                      Select All
-                    </label>
-                  </div>
+            <div className="student-dropdown-container">
+              <div
+                className="student-dropdown-header"
+                onClick={() => setShowStudentDropdown(!showStudentDropdown)}
+              >
+                <h3>Students</h3>
+                <span className="dropdown-arrow">
+                  {showStudentDropdown ? "▲" : "▼"}
+                </span>
+              </div>
 
+              <div className={`drop-container`}>
+                {/* <div className="select-all-option">
+                                    <label className="checkbox-container">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedStudents.length === balagruhaStudents.length && balagruhaStudents.length > 0}
+                                            onChange={handleSelectAllStudents}
+                                        />
+                                        <span className="checkmark"></span>
+                                        Select All
+                                    </label>
+                                </div> */}
+
+                {showStudentDropdown && (
                   <div className="student-list">
                     {balagruhaStudents.length > 0 ? (
-                      balagruhaStudents.map((student) => (
+                      balagruhaStudents?.map((student) => (
                         <div key={student._id} className="student-item">
                           <label className="checkbox-container">
                             <input
                               type="checkbox"
-                              checked={selectedStudents.includes(student._id)}
+                              checked={selectedStudents?.includes(student._id)}
                               onChange={() =>
-                                handleStudentCheckboxChange(student._id)
+                                handleStudentCheckboxChange(
+                                  student._id,
+                                  student.userId
+                                )
                               }
                             />
                             <span className="checkmark"></span>
@@ -624,16 +773,16 @@ function AdminDashboard() {
                       </div>
                     )}
                   </div>
-                </div>
+                )}
               </div>
-            )}
+            </div>
 
             {/* Admin Menus (shown when Balagruha is selected) */}
             {selectedBalagruha && (
               <div className="admin-menus">
                 <h3>Management Options</h3>
                 <div className="menu-grid scrollable-menu">
-                  {adminMenus.map((menu) => (
+                  {adminMenus?.map((menu) => (
                     <div
                       key={menu.id}
                       className={`menu-item ${
@@ -646,89 +795,62 @@ function AdminDashboard() {
                   ))}
                 </div>
 
-                {/* Subject wise progress */}
-                {adminMenuSelected === 1 && (
-                  <div className="data-display">
-                    <h3>Subject Wise Progress</h3>
-                    <div className="table-container">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Student Name</th>
-                            <th>Subject</th>
-                            <th>Progress</th>
-                            <th>Date</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {subjectProgressData.map((item, index) => (
-                            <tr
-                              key={item.id}
-                              className={index % 2 === 0 ? "even-row" : ""}
-                            >
-                              <td>
-                                {students[index]?.name || item.studentName}
-                              </td>
-                              <td>{item.subject}</td>
-                              <td>
-                                <div className="progress-bar-bg">
-                                  <div
-                                    className="progress-bar-fill"
-                                    style={{
-                                      width: `${item.progress}%`,
-                                      backgroundColor:
-                                        item.progress > 70
-                                          ? "#4caf50"
-                                          : item.progress > 40
-                                          ? "#ff9800"
-                                          : "#f44336",
-                                    }}
-                                  ></div>
-                                </div>
-                                <div className="progress-text">
-                                  {item.progress}%
-                                </div>
-                              </td>
-                              <td>{item.date}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
+                {/* {adminMenuSelected === 1 && (
+                                    <div className="data-display">
+                                        <h3>Subject Wise Progress</h3>
+                                        <div className="table-container">
+                                            <table className="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Student Name</th>
+                                                        <th>Subject</th>
+                                                        <th>Progress</th>
+                                                        <th>Date</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {subjectProgressData.map((item, index) => (
+                                                        <tr key={item.id} className={index % 2 === 0 ? 'even-row' : ''}>
+                                                            <td>{students[index]?.name || item.studentName}</td>
+                                                            <td>{item.subject}</td>
+                                                            <td>
+                                                                <div className="progress-bar-bg">
+                                                                    <div
+                                                                        className="progress-bar-fill"
+                                                                        style={{
+                                                                            width: `${item.progress}%`,
+                                                                            backgroundColor: item.progress > 70 ? "#4caf50" : item.progress > 40 ? "#ff9800" : "#f44336"
+                                                                        }}
+                                                                    ></div>
+                                                                </div>
+                                                                <div className="progress-text">{item.progress}%</div>
+                                                            </td>
+                                                            <td>{item.date}</td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )} */}
 
-                {/* Computer Usage */}
-                {adminMenuSelected === 2 && (
-                  <div className="data-display">
-                    <h3>Computer Usage</h3>
-                    <div className="computer-stats-container">
-                      {computerUsageStats.map((stat, index) => (
-                        <div
-                          className="computer-stat-card"
-                          key={index}
-                          style={{
-                            backgroundColor: stat.color + "15",
-                            borderLeft: `4px solid ${stat.color}`,
-                          }}
-                        >
-                          <div
-                            className="stat-icon"
-                            style={{ backgroundColor: stat.color }}
-                          >
-                            {stat.icon}
-                          </div>
-                          <div className="stat-info">
-                            <div className="stat-value">{stat.value}</div>
-                            <div className="stat-title">{stat.title}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* {adminMenuSelected === 2 && (
+                                    <div className="data-display">
+                                        <h3>Computer Usage</h3>
+                                        <div className="computer-stats-container">
+                                            {computerUsageStats.map((stat, index) => (
+                                                <div className="computer-stat-card" key={index} style={{ backgroundColor: stat.color + '15', borderLeft: `4px solid ${stat.color}` }}>
+                                                    <div className="stat-icon" style={{ backgroundColor: stat.color }}>{stat.icon}</div>
+                                                    <div className="stat-info">
+                                                        <div className="stat-value">{stat.value}</div>
+                                                        <div className="stat-title">{stat.title}</div>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )} */}
 
-                {/* Medical Issues */}
                 {adminMenuSelected === 3 && (
                   <div className="data-display">
                     <h3>Medical Issues</h3>
@@ -736,147 +858,175 @@ function AdminDashboard() {
                       <table className="data-table">
                         <thead>
                           <tr>
+                            <th>SI NO</th>
                             <th>Student Name</th>
-                            <th>Balagruha</th>
-                            <th>Doctor</th>
-                            <th>Disease/Condition</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {medicalIssuesData.map((item, index) => (
-                            <tr
-                              key={item.id}
-                              className={index % 2 === 0 ? "even-row" : ""}
-                            >
-                              <td>
-                                {students[index]?.name || item.studentName}
-                              </td>
-                              <td>{item.balagruhaName}</td>
-                              <td>{item.doctorName}</td>
-                              <td>{item.disease}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Balagruha & Children Details */}
-                {adminMenuSelected === 4 && (
-                  <div className="data-display">
-                    <h3>Balagruha & Children Details</h3>
-                    <div className="table-container">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Balagruha Name</th>
-                            <th>Children Count</th>
-                            <th>Location</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {balagruhas.map((item, index) => (
-                            <tr
-                              key={item._id}
-                              className={index % 2 === 0 ? "even-row" : ""}
-                            >
-                              <td>{item.name}</td>
-                              <td>25</td>
-                              <td>{item.location}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Performance Reports */}
-                {adminMenuSelected === 5 && (
-                  <div className="data-display">
-                    <h3>Performance Reports</h3>
-                    <div className="table-container">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Student Name</th>
-                            <th>Subject</th>
-                            <th>Excels In</th>
-                            <th>Percentage</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {performanceReportsData.map((item, index) => (
-                            <tr
-                              key={item.id}
-                              className={index % 2 === 0 ? "even-row" : ""}
-                            >
-                              <td>
-                                {students[index]?.name || item.studentName}
-                              </td>
-                              <td>{item.subject}</td>
-                              <td>{item.excellsIn}</td>
-                              <td>
-                                <div
-                                  className="percentage-badge"
-                                  style={{
-                                    backgroundColor:
-                                      item.percentage > 85
-                                        ? "#4caf50"
-                                        : item.percentage > 70
-                                        ? "#8bc34a"
-                                        : item.percentage > 60
-                                        ? "#ff9800"
-                                        : "#f44336",
-                                  }}
-                                >
-                                  {item.percentage}%
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {/* Attendance */}
-                {adminMenuSelected === 6 && (
-                  <div className="data-display">
-                    <h3>Attendance</h3>
-                    <div className="table-container">
-                      <table className="data-table">
-                        <thead>
-                          <tr>
-                            <th>Student Name</th>
-                            <th>Date</th>
+                            <th>Medical Incharge</th>
+                            <th>Temperature</th>
+                            <th>Time Stamp</th>
                             <th>Status</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {attendance.map((item, index) => (
+                          {medicalIssuesData?.map((item, index) => (
                             <tr
-                              key={item._id}
+                              key={item.id}
                               className={index % 2 === 0 ? "even-row" : ""}
                             >
-                              <td>{item.name}</td>
-                              <td>{new Date(item.updatedAt).toDateString()}</td>
+                              <td>{index + 1}</td>
+                              <td>{item?.userName}</td>
+                              <td>{item.createdByUser}</td>
+                              <td>{item.temperature}</td>
                               <td>
-                                <span
-                                  className={`attendance-badge ${
-                                    item.status?.toLowerCase() ||
-                                    (item.attendance &&
-                                      item.attendance[0]?.status?.toLowerCase())
-                                  }`}
-                                >
-                                  {item.status ||
-                                    (item.attendance &&
-                                      item.attendance[0]?.status) ||
-                                    "Unknown"}
-                                </span>
+                                {new Date(item.date).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
                               </td>
+                              <td>{item.healthStatus}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* {adminMenuSelected === 4 && (
+                                    <div className="data-display">
+                                        <h3>Balagruha & Children Details</h3>
+                                        <div className="table-container">
+                                            <table className="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Balagruha Name</th>
+                                                        <th>Children Count</th>
+                                                        <th>Location</th>
+
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {balagruhas.map((item, index) => (
+                                                        <tr key={item._id} className={index % 2 === 0 ? 'even-row' : ''}>
+                                                            <td>{item.name}</td>
+                                                            <td>25</td>
+                                                            <td>{item.location}</td>
+
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )} */}
+
+                {/* {adminMenuSelected === 5 && (
+                                    <div className="data-display">
+                                        <h3>Performance Reports</h3>
+                                        <div className="table-container">
+                                            <table className="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Student Name</th>
+                                                        <th>Subject</th>
+                                                        <th>Excels In</th>
+                                                        <th>Percentage</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {performanceReportsData.map((item, index) => (
+                                                        <tr key={item.id} className={index % 2 === 0 ? 'even-row' : ''}>
+                                                            <td>{students[index]?.name || item.studentName}</td>
+                                                            <td>{item.subject}</td>
+                                                            <td>{item.excellsIn}</td>
+                                                            <td>
+                                                                <div className="percentage-badge" style={{
+                                                                    backgroundColor: item.percentage > 85 ? "#4caf50" :
+                                                                        item.percentage > 70 ? "#8bc34a" :
+                                                                            item.percentage > 60 ? "#ff9800" : "#f44336"
+                                                                }}>
+                                                                    {item.percentage}%
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )} */}
+
+                {/* {adminMenuSelected === 6 && (
+                                    <div className="data-display">
+                                        <h3>Attendance</h3>
+                                        <div className="table-container">
+                                            <table className="data-table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Student Name</th>
+                                                        <th>Date</th>
+                                                        <th>Status</th>
+
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {attendance.map((item, index) => (
+                                                        <tr key={item._id} className={index % 2 === 0 ? 'even-row' : ''}>
+                                                            <td>{item.name}</td>
+                                                            <td>{new Date(item.updatedAt).toDateString()}</td>
+                                                            <td>
+                                                                <span className={`attendance-badge ${item.status?.toLowerCase() || (item.attendance && item.attendance[0]?.status?.toLowerCase())}`}>
+                                                                    {item.status || (item.attendance && item.attendance[0]?.status) || "Unknown"}
+                                                                </span>
+                                                            </td>
+
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )} */}
+
+                {adminMenuSelected === 7 && (
+                  <div className="data-display">
+                    <h3>Mood</h3>
+                    <div className="table-container">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>SI NO</th>
+                            <th>Student Name</th>
+                            <th>User ID</th>
+                            <th>Mood</th>
+                            <th>Time Stamp</th>
+                            <th>Notes</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {moodData?.map((item, index) => (
+                            <tr
+                              key={item.id}
+                              className={index % 2 === 0 ? "even-row" : ""}
+                            >
+                              <td>{index + 1}</td>
+                              <td>{item?.userName}</td>
+                              <td>{item.userId}</td>
+                              <td>{item.mood}</td>
+                              <td>
+                                {new Date(item.date).toLocaleString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })}
+                              </td>
+                              <td>{item.notes}</td>
                             </tr>
                           ))}
                         </tbody>
@@ -926,61 +1076,215 @@ function AdminDashboard() {
 
             {/* Balagruha assigned to coach */}
 
-            <div className="assigned-balagruha">
-              <h3>Assigned Balagruhas</h3>
-              <div className="scroll-container scrollable-menu">
-                {balagruhas.map((bal) => (
-                  <div
-                    key={bal._id}
-                    className={`balagruha-item ${
-                      selectedBalagruha === bal._id ? "selected" : ""
-                    }`}
-                    onClick={() => {
-                      setSelectedBalagruha(bal._id);
-                      getStudentListBasedonDate(bal._id);
-                      setAdminMenuSelected(1);
-                    }}
-                  >
-                    <div>{bal.name}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            {/* <div className="coach-selection">
+                            <h3>Coaches</h3>
+                            <div className="scroll-container scrollable-menu">
+                                {coaches.length > 0 ?
+                                    coaches?.map(coach => (
+                                        <div
+                                            key={coach._id}
+                                            className={`coach-item ${selectedCoach === coach._id ? 'selected' : ''}`}
+                                            onClick={() => {
+                                                setSelectedCoach(coach._id);
+                                                setSelectedBalagruhaOfCoach();
+                                                fetchBalagruhaByCoach(coach._id);
+                                                // setCoachMenuSelected(1);
+                                            }}
+                                        >
+                                            {coach.name}
+                                        </div>
+                                    )) :
+                                    // Fallback to dummy data if no coaches found
+                                    <p>Select a balagruha to view coaches</p>
+                                }
+                            </div>
+                        </div> */}
 
             <div className="coach-selection">
               <h3>Coaches</h3>
-              <div className="scroll-container scrollable-menu">
-                {coaches.length > 0 ? (
-                  coaches.map((coach) => (
-                    <div
-                      key={coach._id}
-                      className={`coach-item ${
-                        selectedCoach === coach._id ? "selected" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedCoach(coach._id);
-                        setCoachMenuSelected(1);
-                      }}
-                    >
-                      {coach.name}
-                    </div>
-                  ))
-                ) : (
-                  // Fallback to dummy data if no coaches found
-                  <p>Select a balagruha to view coaches</p>
-                )}
+              <div className="scroll-wrapper" style={{ position: "relative" }}>
+                <button
+                  className="scroll-button left"
+                  onClick={() => {
+                    document
+                      .getElementById("coach-scroll-container")
+                      .scrollBy({ left: -200, behavior: "smooth" });
+                  }}
+                >
+                  &lt;
+                </button>
+                <div
+                  id="coach-scroll-container"
+                  className="scroll-container scrollable-menu"
+                >
+                  {coaches.length > 0 ? (
+                    coaches.map((coach) => (
+                      <div
+                        key={coach._id}
+                        className={`coach-item ${
+                          selectedCoach === coach._id ? "selected" : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedCoach(coach._id);
+                          setSelectedBalagruhaOfCoach();
+                          fetchBalagruhaByCoach(coach._id);
+                        }}
+                      >
+                        {coach.name}
+                      </div>
+                    ))
+                  ) : (
+                    <p>Select a balagruha to view coaches</p>
+                  )}
+                </div>
+                <button
+                  className="scroll-button right"
+                  onClick={() => {
+                    document
+                      .getElementById("coach-scroll-container")
+                      .scrollBy({ left: 200, behavior: "smooth" });
+                  }}
+                >
+                  &gt;
+                </button>
               </div>
             </div>
+
+            {/* {balagruhaOfCoach.length > 0 && (
+              <div className="assigned-balagruha">
+                <h3>Assigned Balagruhas</h3>
+                <div className="scroll-container scrollable-menu">
+                  {balagruhaOfCoach?.map((bal) => (
+                    <div
+                      key={bal._id}
+                      className={`balagruha-item ${
+                        selectedBalagruhaOfCoach === bal._id ? "selected" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedBalagruhaOfCoach(bal._id);
+                        // const today = new Date();
+                        // const dayOfWeek = today.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+
+                        // // Get Monday (start of week)
+                        // const startDate = new Date(today);
+                        // startDate.setDate(today.getDate() - ((dayOfWeek + 6) % 7));
+                        // startDate.setHours(0, 0, 0, 0);
+
+                        // // Get Sunday (end of week)
+                        // const endDate = new Date(startDate);
+                        // endDate.setDate(startDate.getDate() + 6);
+                        // endDate.setHours(23, 59, 59, 999);
+
+                        // // Now call fetchSchedules
+                        // fetchSchedules(bal._id, startDate, endDate);
+
+                        const today = new Date();
+                        const dayOfWeek = today.getDay(); // Sunday = 0, Monday = 1, ..., Saturday = 6
+
+                        // Get Monday
+                        const monday = new Date(today);
+                        monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7));
+                        monday.setHours(0, 0, 0, 0);
+
+                        // Get Sunday
+                        const sunday = new Date(monday);
+                        sunday.setDate(monday.getDate() + 6);
+                        sunday.setHours(23, 59, 59, 999);
+
+                        // Format to 'YYYY-MM-DD'
+                        const startDate = monday.toISOString().slice(0, 10);
+                        const endDate = sunday.toISOString().slice(0, 10);
+
+                        // Call your function
+                        fetchSchedules(bal._id, startDate, endDate);
+                        // getStudentListBasedonDate(bal._id);
+                        // setAdminMenuSelected(3);
+                      }}
+                    >
+                      <div>{bal.name}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )} */}
+
+            {balagruhaOfCoach.length > 0 && (
+              <div className="assigned-balagruha">
+                <h3>Assigned Balagruhas</h3>
+                <div
+                  className="scroll-wrapper"
+                  style={{ position: "relative" }}
+                >
+                  <button
+                    className="scroll-button left"
+                    onClick={() => {
+                      document
+                        .getElementById("balagruha-scroll-container")
+                        .scrollBy({ left: -200, behavior: "smooth" });
+                    }}
+                  >
+                    &lt;
+                  </button>
+
+                  <div
+                    id="balagruha-scroll-container"
+                    className="scroll-container scrollable-menu"
+                  >
+                    {balagruhaOfCoach.map((bal) => (
+                      <div
+                        key={bal._id}
+                        className={`balagruha-item ${
+                          selectedBalagruhaOfCoach === bal._id ? "selected" : ""
+                        }`}
+                        onClick={() => {
+                          setSelectedBalagruhaOfCoach(bal._id);
+
+                          const today = new Date();
+                          const dayOfWeek = today.getDay();
+                          const monday = new Date(today);
+                          monday.setDate(
+                            today.getDate() - ((dayOfWeek + 6) % 7)
+                          );
+                          monday.setHours(0, 0, 0, 0);
+
+                          const sunday = new Date(monday);
+                          sunday.setDate(monday.getDate() + 6);
+                          sunday.setHours(23, 59, 59, 999);
+
+                          const startDate = monday.toISOString().slice(0, 10);
+                          const endDate = sunday.toISOString().slice(0, 10);
+
+                          fetchSchedules(bal._id, startDate, endDate);
+                        }}
+                      >
+                        <div>{bal.name}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    className="scroll-button right"
+                    onClick={() => {
+                      document
+                        .getElementById("balagruha-scroll-container")
+                        .scrollBy({ left: 200, behavior: "smooth" });
+                    }}
+                  >
+                    &gt;
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Coach Menus */}
             {selectedCoach && (
               <div className="coach-menus">
-                <h3>Coach Options</h3>
+                {/* <h3>Coach Options</h3>
                 <div
                   className="menu-grid scrollable-menu"
                   style={{ paddingTop: "15px", boxSizing: "border-box" }}
                 >
-                  {coachMenus.map((menu) => (
+                  {coachMenus?.map((menu) => (
                     <div style={{ position: "relative" }}>
                       <div
                         key={menu.id}
@@ -996,6 +1300,60 @@ function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                </div> */}
+
+                <h3>Coach Options</h3>
+                <div
+                  className="scroll-wrapper"
+                  style={{ position: "relative" }}
+                >
+                  <button
+                    className="scroll-button left"
+                    onClick={() =>
+                      document
+                        .getElementById("coach-options-scroll")
+                        .scrollBy({ left: -200, behavior: "smooth" })
+                    }
+                  >
+                    &lt;
+                  </button>
+
+                  <div
+                    id="coach-options-scroll"
+                    className="menu-grid scrollable-menu"
+                    style={{
+                      paddingTop: "15px",
+                      boxSizing: "border-box",
+                      overflowX: "auto",
+                      display: "flex",
+                      gap: "1rem",
+                    }}
+                  >
+                    {coachMenus?.map((menu) => (
+                      <div key={menu.id} style={{ position: "relative" }}>
+                        <div
+                          className={`menu-item ${
+                            coachMenuSelected === menu.id ? "selected" : ""
+                          }`}
+                          onClick={() => setCoachMenuSelected(menu.id)}
+                        >
+                          {menu.name}
+                        </div>
+                        <div className="menu-bubble">{menu.count || 0}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    className="scroll-button right"
+                    onClick={() =>
+                      document
+                        .getElementById("coach-options-scroll")
+                        .scrollBy({ left: 200, behavior: "smooth" })
+                    }
+                  >
+                    &gt;
+                  </button>
                 </div>
 
                 {/* Display dummy data when coach menu is selected */}
@@ -1061,9 +1419,12 @@ function AdminDashboard() {
                   <WeeklyCalendar
                     currentWeekOffset={currentWeekOffset}
                     setCurrentWeekOffset={setCurrentWeekOffset}
-                    calendarEvents={calendarEvents}
+                    calendarEvents={schedules}
                     users={users}
                     onEventClick={handleEventClick}
+                    fetchSchedules={fetchSchedules}
+                    selectedBalagruhaOfCoach={selectedBalagruhaOfCoach}
+                    // selectedCoach={selectedCoach}
                   />
                 )}
               </div>

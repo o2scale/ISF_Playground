@@ -883,7 +883,7 @@ exports.submitArticle = async (req, res) => {
 // Get submissions for review (Admin only)
 exports.getSubmissionsForReview = async (req, res) => {
   try {
-    const { page = 1, limit = 20, type } = req.query;
+    const { page = 1, limit = 20, type, isCoachSuggestion } = req.query;
 
     logger.info(
       {
@@ -900,6 +900,12 @@ exports.getSubmissionsForReview = async (req, res) => {
       page: parseInt(page),
       limit: parseInt(limit),
       type: type || null,
+      isCoachSuggestion:
+        isCoachSuggestion === "true"
+          ? true
+          : isCoachSuggestion === "false"
+          ? false
+          : null,
     });
 
     if (result.success) {

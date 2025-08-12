@@ -7,6 +7,7 @@ const {
   updateBalagruha,
   deleteBalagruha,
   getBalagruhaListByUserId,
+  getBalagruhaListByAssignedID,
 } = require("../../controllers/balagruha");
 const router = express.Router();
 
@@ -47,5 +48,13 @@ router.get(
   authenticate,
   authorize("User Management", "Read"),
   getBalagruhaListByUserId
+);
+
+// API for fetch balagruha list by assigned user id
+router.get(
+  "/user/assigned/:userId",
+  authenticate,
+  authorize("User Management", "Read"),
+  getBalagruhaListByAssignedID
 );
 module.exports = router;

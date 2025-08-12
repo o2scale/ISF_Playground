@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import "./PinLogin.css";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
-import showToast from "../../utils/toast";
+import { Link, useLocation, useNavigate } from "react-router-dom";
+import { pinLogin } from "../../api";
 import { useAuth } from "../../contexts/AuthContext"; // Import the auth context
-import config from "../../config";
+import showToast from "../../utils/toast";
+import "./PinLogin.css";
 
 const PinLogin = ({ onToggle }) => {
   const macAddress = localStorage.getItem("macAddress");
@@ -14,6 +13,8 @@ const PinLogin = ({ onToggle }) => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login: authLogin } = useAuth(); // Use the login function from auth context
+  const location = useLocation();
+  const isStudentLogin = location.pathname === "/login";
   const headers = {
     "Content-Type": "application/json",
     "MAC-Address": `${macAddress}`,
@@ -43,14 +44,13 @@ const PinLogin = ({ onToggle }) => {
     };
 
     try {
-      const response = await axios.post(
-        `${config.API_BASE_URL}/api/auth/login`,
-        data,
-        { headers }
-      );
+      // const response = await axios.post("https://playground.initiativesewafoundation.com/server/api/auth/login", data, { headers });
 
-      if (response.data && response.data.data) {
-        const { token, user } = response.data.data;
+      // API helper already returns response.data, not the full axios response
+      const resData = await pinLogin(data);
+
+      if (resData && resData.data) {
+        const { token, user } = resData.data;
 
         // Format the user data to match our auth context expectations
         const userData = {
@@ -61,6 +61,7 @@ const PinLogin = ({ onToggle }) => {
             email: user.email,
             role: user.role,
             status: user.status,
+            balagruhaIds: user?.balagruhaIds,
           },
         };
 
@@ -146,6 +147,16 @@ const PinLogin = ({ onToggle }) => {
       <a href="#" onClick={handleToggle} className="toggle-link">
         Login with Face ID
       </a>
+
+      {isStudentLogin ? (
+        <Link to={"/admin/login"}>
+          <p className="toggle-link admin-btn">Admin Login</p>
+        </Link>
+      ) : (
+        <Link to={"/login"}>
+          <p className="toggle-link admin-btn">Student Login</p>
+        </Link>
+      )}
     </div>
   );
 };
