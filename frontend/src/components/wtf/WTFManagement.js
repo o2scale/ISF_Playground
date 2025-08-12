@@ -169,7 +169,7 @@ const WTFManagementContent = ({ onToggleView }) => {
         // Fallback to local calculations
         setDashboardMetrics({
           activePins: Array.isArray(activePins)
-            ? activePins.filter((p) => p.status === "ACTIVE").length
+            ? activePins.filter((p) => p.status === "active").length
             : 0,
           coachSuggestions: Array.isArray(pendingSuggestions)
             ? pendingSuggestions.length
@@ -406,9 +406,8 @@ const WTFManagementContent = ({ onToggleView }) => {
         const matchesSearch =
           pin.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
           pin.caption?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesFilter =
-          filterType === "all" || pin.contentType === filterType;
-        return matchesSearch && matchesFilter && pin.status === "ACTIVE";
+        const matchesFilter = filterType === "all" || pin.type === filterType;
+        return matchesSearch && matchesFilter && pin.status === "active";
       })
     : [];
 
@@ -652,7 +651,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                     <tbody>
                       {filteredPins.map((pin) => (
                         <tr
-                          key={pin.id}
+                          key={pin._id}
                           className="border-b border-gray-100 hover:bg-gray-50"
                         >
                           <td className="py-4 px-4">
@@ -683,24 +682,24 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-2">
-                              {getContentTypeIcon(pin.contentType)}
+                              {getContentTypeIcon(pin.type)}
                               <span className="capitalize text-gray-700">
-                                {pin.contentType}
+                                {pin.type}
                               </span>
                             </div>
                           </td>
                           <td className="py-4 px-4">
                             <div>
                               <div className="font-medium text-gray-900">
-                                {pin.originalAuthor || "Admin"}
+                                {pin.author?.name || "Admin"}
                               </div>
                               <div className="text-sm text-gray-500">
-                                by {pin.pinnedBy}
+                                by {pin.author?.name || "Admin"}
                               </div>
                             </div>
                           </td>
                           <td className="py-4 px-4 text-gray-700">
-                            {new Date(pin.pinnedDate).toLocaleDateString()}
+                            {new Date(pin.createdAt).toLocaleDateString()}
                           </td>
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-1 text-orange-600">
@@ -715,19 +714,19 @@ const WTFManagementContent = ({ onToggleView }) => {
                               <div className="flex items-center gap-1">
                                 <Eye className="w-4 h-4 text-gray-500" />
                                 <span className="text-gray-700">
-                                  {pin.views}
+                                  {pin.engagementMetrics?.seen || 0}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <Heart className="w-4 h-4 text-red-500" />
                                 <span className="text-gray-700">
-                                  {pin.hearts}
+                                  {pin.engagementMetrics?.shares || 0}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <ThumbsUp className="w-4 h-4 text-blue-500" />
                                 <span className="text-gray-700">
-                                  {pin.likes}
+                                  {pin.engagementMetrics?.likes || 0}
                                 </span>
                               </div>
                             </div>
@@ -745,7 +744,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleUnpin(pin.id)}
+                                onClick={() => handleUnpin(pin._id)}
                                 className="text-gray-600 hover:text-gray-900"
                               >
                                 <Archive className="w-4 h-4" />
@@ -753,7 +752,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleDelete(pin.id)}
+                                onClick={() => handleDelete(pin._id)}
                                 className="text-red-600 hover:text-red-700"
                               >
                                 <Trash2 className="w-4 h-4" />
