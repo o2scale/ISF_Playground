@@ -63,6 +63,10 @@ const CreateNewPinModal = ({
   const [recordingTimer, setRecordingTimer] = useState(null);
   const [playbackProgress, setPlaybackProgress] = useState(0);
 
+  // Error handling state
+  const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   // Fetch data for coach mode
   useEffect(() => {
     const fetchData = async () => {
@@ -103,6 +107,13 @@ const CreateNewPinModal = ({
     fetchData();
   }, [isOpen, isCoachMode]);
 
+  // Clear errors when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setError("");
+    }
+  }, [isOpen]);
+
   // Filter students by balagruha
   useEffect(() => {
     if (formData.balagruha) {
@@ -119,6 +130,7 @@ const CreateNewPinModal = ({
           studentId: "",
           studentName: "",
         }));
+        setError(""); // Clear errors when student is filtered out
       }
     } else {
       setFilteredStudents(students);
@@ -222,6 +234,7 @@ const CreateNewPinModal = ({
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
+      setError(""); // Clear any previous errors
       setFormData((prev) => ({
         ...prev,
         file,
@@ -231,6 +244,7 @@ const CreateNewPinModal = ({
   };
 
   const handleStudentSelect = (student) => {
+    setError(""); // Clear errors when student is selected
     setFormData((prev) => ({
       ...prev,
       studentId: student._id,
@@ -287,9 +301,13 @@ const CreateNewPinModal = ({
         ...prev,
         file: null,
       }));
+      // Clear errors when modal closes
+      setError("");
     } else if (formData.contentType !== "audio") {
       // Only cleanup active audio when switching content types (keep recorded state)
       cleanupAudio();
+      // Clear errors when content type changes
+      setError("");
     }
   }, [isOpen, formData.contentType]);
 
@@ -469,64 +487,128 @@ const CreateNewPinModal = ({
     }));
   };
 
-  const handleSubmit = (e, isDraft = false) => {
+  const handleSubmit = async (e, isDraft = false) => {
     e.preventDefault();
-    if (!formData.title || !formData.contentType) return;
+    setError(""); // Clear any previous errors
+
+    if (!formData.title || !formData.contentType) {
+      setError("Please fill in all required fields");
+      return;
+    }
 
     // Additional validation for coach mode
     if (
       isCoachMode &&
       (!formData.studentName || !formData.studentId || !formData.reason)
     ) {
-      alert(
+      setError(
         "Please fill in all required fields: student, and reason for suggestion"
       );
       return;
     }
 
-    const newPin = {
-      title: formData.title,
-      content: formData.content,
-      type: formData.contentType, // Backend expects 'type' not 'contentType'
-      author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
-      isOfficial: formData.isOfficial,
-      status: isDraft ? "archived" : "active", // Backend expects lowercase enum values
-      language: "english", // Default language
-      tags: [], // Default empty tags
-      // For text and link types, content is sufficient
-      ...(formData.contentType === "link" && {
-        linkUrl: formData.content,
-      }),
-      // Include file if available (for proper file upload handling)
-      ...(formData.file && {
-        file: formData.file,
-      }),
-    };
+    // File validation for media types
+    if (["image", "video", "audio"].includes(formData.contentType)) {
+      if (!formData.file && !formData.content) {
+        setError(
+          `Please upload a file or provide a URL for ${formData.contentType} content`
+        );
+        return;
+      }
 
-    onCreatePin(newPin);
-    setFormData({
-      title: "",
-      contentType: "",
-      content: "",
-      caption: "",
-      isOfficial: false,
-      file: null,
-      studentName: "",
-      studentId: "",
-      balagruha: "",
-      reason: "",
-    });
+      // Validate file type if file is uploaded
+      if (formData.file) {
+        const allowedTypes = {
+          image: [
+            "image/jpeg",
+            "image/jpg",
+            "image/png",
+            "image/gif",
+            "image/webp",
+          ],
+          video: ["video/mp4", "video/mov", "video/avi", "video/webm"],
+          audio: ["audio/mp3", "audio/wav", "audio/m4a", "audio/aac"],
+        };
 
-    // Clear audio recording state
-    cleanupAudio();
-    setRecordedAudio(null);
-    setAudioUrl("");
-    setRecordingTime(0);
-    setAudioDuration(0);
-    setIsRecording(false);
-    setIsPlaying(false);
-    setIsMouseDown(false);
-    setPlaybackProgress(0);
+        if (!allowedTypes[formData.contentType].includes(formData.file.type)) {
+          setError(
+            `Invalid file type. For ${
+              formData.contentType
+            }, please use: ${allowedTypes[formData.contentType].join(", ")}`
+          );
+          return;
+        }
+      }
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const newPin = {
+        title: formData.title,
+        content: formData.content,
+        type: formData.contentType, // Backend expects 'type' not 'contentType'
+        author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
+        isOfficial: formData.isOfficial,
+        status: isDraft ? "archived" : "active", // Backend expects lowercase enum values
+        language: "english", // Default language
+        tags: [], // Default empty tags
+        // For text and link types, content is sufficient
+        ...(formData.contentType === "link" && {
+          linkUrl: formData.content,
+        }),
+        // Include file if available (for proper file upload handling)
+        ...(formData.file && {
+          file: formData.file,
+        }),
+      };
+
+      await onCreatePin(newPin);
+
+      // Success - reset form and close modal
+      setFormData({
+        title: "",
+        contentType: "",
+        content: "",
+        caption: "",
+        isOfficial: false,
+        file: null,
+        studentName: "",
+        studentId: "",
+        balagruha: "",
+        reason: "",
+      });
+
+      // Clear audio recording state
+      cleanupAudio();
+      setRecordedAudio(null);
+      setAudioUrl("");
+      setRecordingTime(0);
+      setAudioDuration(0);
+      setIsRecording(false);
+      setIsPlaying(false);
+      setIsMouseDown(false);
+      setPlaybackProgress(0);
+
+      setError(""); // Clear any errors
+    } catch (error) {
+      console.error("Error creating pin:", error);
+
+      // Extract error message from API response
+      let errorMessage = "Failed to create pin. Please try again.";
+
+      if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const renderContentInput = () => {
@@ -538,9 +620,10 @@ const CreateNewPinModal = ({
             <label className="block text-sm font-medium mb-2">Content</label>
             <textarea
               value={formData.content}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, content: e.target.value }))
-              }
+              onChange={(e) => {
+                setError(""); // Clear errors when user types
+                setFormData((prev) => ({ ...prev, content: e.target.value }));
+              }}
               placeholder="Enter your announcement text here..."
               className="w-full h-32 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               required
@@ -555,9 +638,10 @@ const CreateNewPinModal = ({
             <Input
               type="url"
               value={formData.content}
-              onChange={(e) =>
-                setFormData((prev) => ({ ...prev, content: e.target.value }))
-              }
+              onChange={(e) => {
+                setError(""); // Clear errors when user types
+                setFormData((prev) => ({ ...prev, content: e.target.value }));
+              }}
               placeholder="https://example.com"
               required
             />
@@ -780,9 +864,10 @@ const CreateNewPinModal = ({
               <Input
                 type="url"
                 value={formData.content}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, content: e.target.value }))
-                }
+                onChange={(e) => {
+                  setError(""); // Clear errors when user types
+                  setFormData((prev) => ({ ...prev, content: e.target.value }));
+                }}
                 placeholder="https://example.com/media-url"
               />
             </div>
@@ -851,6 +936,18 @@ const CreateNewPinModal = ({
             </h2>
           )}
 
+          {/* Error Display */}
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center">
+                  <span className="text-red-600 text-sm font-bold">!</span>
+                </div>
+                <p className="text-red-800 text-sm font-medium">{error}</p>
+              </div>
+            </div>
+          )}
+
           <form onSubmit={(e) => handleSubmit(e, false)} className="space-y-6">
             {isCoachMode && (
               <div className="bg-blue-50 p-4 rounded-lg">
@@ -866,12 +963,13 @@ const CreateNewPinModal = ({
                     </label>
                     <select
                       value={formData.balagruha}
-                      onChange={(e) =>
+                      onChange={(e) => {
+                        setError(""); // Clear errors when selection changes
                         setFormData((prev) => ({
                           ...prev,
                           balagruha: e.target.value,
-                        }))
-                      }
+                        }));
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     >
                       <option value="">All Balagruhas</option>
@@ -891,6 +989,7 @@ const CreateNewPinModal = ({
                     <select
                       value={formData.studentId}
                       onChange={(e) => {
+                        setError(""); // Clear errors when selection changes
                         const student = filteredStudents.find(
                           (s) => s._id === e.target.value
                         );
@@ -926,9 +1025,10 @@ const CreateNewPinModal = ({
               <Input
                 type="text"
                 value={formData.title}
-                onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, title: e.target.value }))
-                }
+                onChange={(e) => {
+                  setError(""); // Clear errors when user types
+                  setFormData((prev) => ({ ...prev, title: e.target.value }));
+                }}
                 placeholder={
                   isCoachMode
                     ? "e.g., Amazing artwork by [Student Name]"
@@ -949,6 +1049,7 @@ const CreateNewPinModal = ({
                     type="button"
                     onClick={() => {
                       console.log("Setting content type to:", type.value);
+                      setError(""); // Clear errors when content type changes
                       setFormData((prev) => ({
                         ...prev,
                         contentType: type.value,
@@ -994,9 +1095,13 @@ const CreateNewPinModal = ({
                 </label>
                 <textarea
                   value={formData.reason}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, reason: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    setError(""); // Clear errors when user types
+                    setFormData((prev) => ({
+                      ...prev,
+                      reason: e.target.value,
+                    }));
+                  }}
                   placeholder="Explain why this work deserves to be on the Wall of Fame (creativity, effort, improvement, etc.)"
                   className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                   required
@@ -1011,12 +1116,13 @@ const CreateNewPinModal = ({
                   <Input
                     type="text"
                     value={formData.caption}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setError(""); // Clear errors when user types
                       setFormData((prev) => ({
                         ...prev,
                         caption: e.target.value,
-                      }))
-                    }
+                      }));
+                    }}
                     placeholder="Short description or caption"
                   />
                 </div>
@@ -1026,12 +1132,13 @@ const CreateNewPinModal = ({
                     type="checkbox"
                     id="isOfficial"
                     checked={formData.isOfficial}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      setError(""); // Clear errors when checkbox changes
                       setFormData((prev) => ({
                         ...prev,
                         isOfficial: e.target.checked,
-                      }))
-                    }
+                      }));
+                    }}
                     className="rounded"
                   />
                   <label htmlFor="isOfficial" className="text-sm font-medium">
@@ -1046,11 +1153,24 @@ const CreateNewPinModal = ({
                 <>
                   <Button
                     type="submit"
-                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Submit Suggestion
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Submitting...
+                      </div>
+                    ) : (
+                      "Submit Suggestion"
+                    )}
                   </Button>
-                  <Button type="button" onClick={onClose} variant="outline">
+                  <Button
+                    type="button"
+                    onClick={onClose}
+                    variant="outline"
+                    disabled={isSubmitting}
+                  >
                     Cancel
                   </Button>
                 </>
@@ -1058,11 +1178,24 @@ const CreateNewPinModal = ({
                 <>
                   <Button
                     type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Submit for Review
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Submitting...
+                      </div>
+                    ) : (
+                      "Submit for Review"
+                    )}
                   </Button>
-                  <Button type="button" onClick={onClose} variant="outline">
+                  <Button
+                    type="button"
+                    onClick={onClose}
+                    variant="outline"
+                    disabled={isSubmitting}
+                  >
                     Cancel
                   </Button>
                 </>
@@ -1070,19 +1203,40 @@ const CreateNewPinModal = ({
                 <>
                   <Button
                     type="submit"
-                    className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                    disabled={isSubmitting}
+                    className="flex-1 bg-green-600 hover:bg-green-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Publish Pin
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Publishing...
+                      </div>
+                    ) : (
+                      "Publish Pin"
+                    )}
                   </Button>
                   <Button
                     type="button"
                     onClick={(e) => handleSubmit(e, true)}
                     variant="outline"
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
-                    Save as Draft
+                    {isSubmitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Saving...
+                      </div>
+                    ) : (
+                      "Save as Draft"
+                    )}
                   </Button>
-                  <Button type="button" onClick={onClose} variant="outline">
+                  <Button
+                    type="button"
+                    onClick={onClose}
+                    variant="outline"
+                    disabled={isSubmitting}
+                  >
                     Cancel
                   </Button>
                 </>

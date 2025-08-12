@@ -358,49 +358,60 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const handleCreatePin = async (newPin) => {
     console.log("Creating new pin:", newPin);
-    try {
-      if (isCoach && newPin.studentId) {
-        // This is a coach suggestion
-        const suggestionData = {
-          title: newPin.title,
-          content: newPin.content,
-          type: newPin.contentType,
-          studentName: newPin.studentName,
-          studentId: newPin.studentId,
-          balagruha: newPin.balagruha,
-          reason: newPin.reason,
-          file: newPin.file,
-        };
-        await createCoachSuggestion(suggestionData);
-        alert("Suggestion submitted successfully! Admin will review it soon.");
-      } else if (isStudent) {
-        // This is a student submission
-        const submissionData = {
-          title: newPin.title,
-          content: newPin.content || newPin.title,
-          type: newPin.contentType,
-          file: newPin.file,
-          language: "english",
-          tags: newPin.tags || [],
-        };
 
-        // Call appropriate submission API based on content type
-        if (newPin.contentType === "audio") {
-          await submitVoiceNote(submissionData);
-        } else {
-          await submitArticle(submissionData);
-        }
-        alert(
-          "Submission created successfully! It will be reviewed for the Wall of Fame."
-        );
-      } else {
-        // This is an admin pin creation
-        const createdPin = await createWtfPin(newPin);
-        setContent((prev) => [createdPin, ...prev]);
+    if (isCoach && newPin.studentId) {
+      // This is a coach suggestion
+      const suggestionData = {
+        title: newPin.title,
+        content: newPin.content,
+        type: newPin.contentType,
+        studentName: newPin.studentName,
+        studentId: newPin.studentId,
+        balagruha: newPin.balagruha,
+        reason: newPin.reason,
+        file: newPin.file,
+      };
+      const response = await createCoachSuggestion(suggestionData);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to submit suggestion");
       }
+      alert("Suggestion submitted successfully! Admin will review it soon.");
       setShowCreateModal(false);
-    } catch (error) {
-      console.error("Error creating pin/suggestion:", error);
+    } else if (isStudent) {
+      // This is a student submission
+      const submissionData = {
+        title: newPin.title,
+        content: newPin.content || newPin.title,
+        type: newPin.contentType,
+        file: newPin.file,
+        language: "english",
+        tags: newPin.tags || [],
+      };
+
+      // Call appropriate submission API based on content type
+      let response;
+      if (newPin.contentType === "audio") {
+        response = await submitVoiceNote(submissionData);
+      } else {
+        response = await submitArticle(submissionData);
+      }
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to submit article");
+      }
+
+      alert(
+        "Submission created successfully! It will be reviewed for the Wall of Fame."
+      );
+      setShowCreateModal(false);
+    } else {
+      // This is an admin pin creation
+      const response = await createWtfPin(newPin);
+      if (!response.success) {
+        throw new Error(response.message || "Failed to create pin");
+      }
+      setContent((prev) => [response.data, ...prev]);
+      setShowCreateModal(false);
     }
   };
 

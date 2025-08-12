@@ -254,16 +254,12 @@ const WTFManagementContent = ({ onToggleView }) => {
   };
 
   const handleCreatePin = async (newPin) => {
-    try {
-      const response = await createWtfPin(newPin);
-      if (response.success) {
-        setActivePins((prev) => [response.data, ...prev]);
-        setShowCreateModal(false);
-      }
-    } catch (error) {
-      console.error("Error creating pin:", error);
-      setError("Failed to create pin. Please try again.");
+    const response = await createWtfPin(newPin);
+    if (!response.success) {
+      throw new Error(response.message || "Failed to create pin");
     }
+    setActivePins((prev) => [response.data, ...prev]);
+    setShowCreateModal(false);
   };
 
   const handleUpdatePin = async (updatedPin) => {

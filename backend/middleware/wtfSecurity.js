@@ -147,18 +147,7 @@ const wtfContentValidation = [
     .withMessage("Language must be english, hindi, or both"),
 
   // File size validation removed - pins can have variable file sizes
-
-  // Audio duration validation
-  body("audioDuration")
-    .if(body("type").equals("audio"))
-    .isInt({ min: 1, max: 300 }) // Max 5 minutes
-    .withMessage("Audio duration must be between 1 second and 5 minutes"),
-
-  // Video duration validation
-  body("videoDuration")
-    .if(body("type").equals("video"))
-    .isInt({ min: 1, max: 600 }) // Max 10 minutes
-    .withMessage("Video duration must be between 1 second and 10 minutes"),
+  // Duration validation removed - not needed for file uploads
 ];
 
 // Validation for WTF submissions
@@ -227,12 +216,7 @@ const wtfSubmissionValidation = [
     .withMessage("Language must be english or hindi"),
 
   // File size validation removed - voice notes can have variable file sizes
-
-  // Audio duration validation
-  body("audioDuration")
-    .if(body("type").equals("voice"))
-    .isInt({ min: 1, max: 300 }) // Max 5 minutes
-    .withMessage("Voice note duration must be between 1 second and 5 minutes"),
+  // Duration validation removed - not needed for file uploads
 ];
 
 // Validation for WTF interactions
@@ -383,7 +367,7 @@ const wtfSecurityHeaders = (req, res, next) => {
 const wtfFileUploadSecurity = (req, res, next) => {
   // Check file size limits
   if (req.file) {
-    const maxSize = 50 * 1024 * 1024; // 50MB
+    const maxSize = 100 * 1024 * 1024; // Increased to 100MB
     if (req.file.size > maxSize) {
       errorLogger.warn(
         {
@@ -399,7 +383,7 @@ const wtfFileUploadSecurity = (req, res, next) => {
 
       return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
         success: false,
-        message: "File size exceeds the maximum limit of 50MB",
+        message: "File size exceeds the maximum limit of 100MB",
       });
     }
 
