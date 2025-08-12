@@ -198,28 +198,46 @@ class WtfService {
 
           mediaUrl = s3Url;
           logger.info({ s3Url }, "File uploaded to S3 successfully");
-          
+
           // Clean up temporary file after successful S3 upload
           try {
             fs.unlinkSync(mappedPayload.file.path);
-            logger.info({ filePath: mappedPayload.file.path }, "Temporary file cleaned up");
+            logger.info(
+              { filePath: mappedPayload.file.path },
+              "Temporary file cleaned up"
+            );
           } catch (cleanupError) {
-            logger.warn({ error: cleanupError.message, filePath: mappedPayload.file.path }, "Failed to delete temporary file");
+            logger.warn(
+              {
+                error: cleanupError.message,
+                filePath: mappedPayload.file.path,
+              },
+              "Failed to delete temporary file"
+            );
           }
         } catch (uploadError) {
           logger.error(
             { error: uploadError.message },
             "Failed to upload file to S3"
           );
-          
+
           // Clean up temporary file even if S3 upload failed
           try {
             fs.unlinkSync(mappedPayload.file.path);
-            logger.info({ filePath: mappedPayload.file.path }, "Temporary file cleaned up after failed upload");
+            logger.info(
+              { filePath: mappedPayload.file.path },
+              "Temporary file cleaned up after failed upload"
+            );
           } catch (cleanupError) {
-            logger.warn({ error: cleanupError.message, filePath: mappedPayload.file.path }, "Failed to delete temporary file after failed upload");
+            logger.warn(
+              {
+                error: cleanupError.message,
+                filePath: mappedPayload.file.path,
+              },
+              "Failed to delete temporary file after failed upload"
+            );
           }
-          
+
           return {
             success: false,
             data: null,
@@ -232,6 +250,11 @@ class WtfService {
       const pinData = {
         ...mappedPayload,
         mediaUrl: mediaUrl, // Use S3 URL if uploaded, otherwise original content
+        // For image pins, set thumbnailUrl to the same as mediaUrl for display purposes
+        thumbnailUrl:
+          mappedPayload.type === "image"
+            ? mediaUrl
+            : mappedPayload.thumbnailUrl,
         status: mappedPayload.status || "active",
         isOfficial: mappedPayload.isOfficial || false,
         language: mappedPayload.language || "english",

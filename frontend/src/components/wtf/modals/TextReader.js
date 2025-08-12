@@ -70,7 +70,7 @@ const TextReader = ({
                     {title}
                   </h3>
                   {author && (
-                    <p className="text-sm text-gray-600">Posted by {author}</p>
+                    <p className="text-sm text-gray-600">Posted by {typeof author === 'object' ? author.name : author}</p>
                   )}
                 </div>
                 <button

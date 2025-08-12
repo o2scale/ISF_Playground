@@ -493,10 +493,6 @@ const CreateNewPinModal = ({
       status: isDraft ? "archived" : "active", // Backend expects lowercase enum values
       language: "english", // Default language
       tags: [], // Default empty tags
-      // Add mediaUrl for media types (image, video, audio)
-      ...(["image", "video", "audio"].includes(formData.contentType) && {
-        mediaUrl: formData.content || "", // For now, use content as mediaUrl - this should be improved for file uploads
-      }),
       // For text and link types, content is sufficient
       ...(formData.contentType === "link" && {
         linkUrl: formData.content,

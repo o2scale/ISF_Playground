@@ -285,10 +285,10 @@ const WTFManagementContent = ({ onToggleView }) => {
           status: "active", // Backend expects lowercase enum values
           language: "english", // Default language
           tags: [], // Default empty tags
-          // Add mediaUrl for audio submissions
+          // For audio submissions, include the file/audioUrl if available
           ...(pinType === "audio" &&
             submission.audioUrl && {
-              mediaUrl: submission.audioUrl,
+              content: submission.audioUrl, // Let backend handle proper S3 upload
             }),
         };
 

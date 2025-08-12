@@ -57,7 +57,7 @@ const ImageViewer = ({
               <h3 className="font-handwriting text-lg text-gray-800 mb-1">
                 {title}
               </h3>
-              {author && <p className="text-sm text-gray-600">by {author}</p>}
+              {author && <p className="text-sm text-gray-600">by {typeof author === 'object' ? author.name : author}</p>}
             </div>
           </div>
 

@@ -104,7 +104,7 @@ const AudioPlayer = ({
                 {title}
               </h3>
               {author && (
-                <p className="text-sm text-gray-600">Speaker: {author}</p>
+                <p className="text-sm text-gray-600">Speaker: {typeof author === 'object' ? author.name : author}</p>
               )}
             </div>
 

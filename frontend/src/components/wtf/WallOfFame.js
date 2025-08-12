@@ -458,12 +458,14 @@ const WallOfFameContent = ({ onToggleView }) => {
     }
   };
 
-  const getCardBackground = (type, thumbnail) => {
+  const getCardBackground = (type, thumbnail, mediaUrl) => {
     switch (type) {
       case "photo":
-        return thumbnail
+        // Use thumbnail first, then mediaUrl, or default to gray background
+        const imageUrl = thumbnail || mediaUrl;
+        return imageUrl
           ? {
-              backgroundImage: `url(${thumbnail})`,
+              backgroundImage: `url(${imageUrl})`,
               backgroundSize: "cover",
               backgroundPosition: "center",
             }
@@ -511,9 +513,10 @@ const WallOfFameContent = ({ onToggleView }) => {
 
       <div
         className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center"
-        style={getCardBackground(item.type, item.thumbnail)}
+        style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
       >
-        {item.type === "photo" && item.thumbnail ? null : (
+        {item.type === "photo" &&
+        (item.thumbnailUrl || item.mediaUrl) ? null : (
           <div className="text-center">
             <div className="mb-2 flex justify-center opacity-60">
               {renderTypeIcon(item.type)}
