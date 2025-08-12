@@ -157,7 +157,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   }, [isAdmin]);
 
   const handlePinClick = (item) => {
-    console.log("Pin clicked:", item.title, item.type);
     setSelectedContent(item);
     // Map backend types to frontend modal types
     const modalTypeMap = {
@@ -446,6 +445,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     const iconClass = "w-4 h-4";
     switch (type) {
       case "photo":
+      case "image":
         return <Camera className={`${iconClass} text-blue-600`} />;
       case "video":
         return <Play className={`${iconClass} text-blue-600`} />;
@@ -461,8 +461,19 @@ const WallOfFameContent = ({ onToggleView }) => {
   const getCardBackground = (type, thumbnail, mediaUrl) => {
     switch (type) {
       case "photo":
+      case "image":
         // Use thumbnail first, then mediaUrl, or default to gray background
         const imageUrl = thumbnail || mediaUrl;
+        console.log(
+          "Card background - Type:",
+          type,
+          "Thumbnail:",
+          thumbnail,
+          "MediaUrl:",
+          mediaUrl,
+          "Using:",
+          imageUrl
+        );
         return imageUrl
           ? {
               backgroundImage: `url(${imageUrl})`,
@@ -515,7 +526,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center"
         style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
       >
-        {item.type === "photo" &&
+        {(item.type === "photo" || item.type === "image") &&
         (item.thumbnailUrl || item.mediaUrl) ? null : (
           <div className="text-center">
             <div className="mb-2 flex justify-center opacity-60">
