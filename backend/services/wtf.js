@@ -1246,7 +1246,8 @@ class WtfService {
       }
 
       // Transform submissions to coach suggestions format
-      const coachSuggestions = result.data.map((submission) => ({
+      const submissions = result.data.submissions || [];
+      const coachSuggestions = submissions.map((submission) => ({
         id: submission._id,
         studentName: submission.studentName || "Unknown Student",
         coachName: submission.suggestedBy || "Coach",
@@ -1254,14 +1255,17 @@ class WtfService {
         title: submission.title,
         content: submission.content || submission.audioUrl,
         suggestedDate: submission.createdAt,
-        status: submission.status === "NEW" ? "PENDING" : submission.status,
+        status:
+          submission.status === "pending"
+            ? "PENDING"
+            : submission.status.toUpperCase(),
         balagruha: submission.balagruha || "Unknown House",
       }));
 
       return {
         success: true,
         data: coachSuggestions,
-        pagination: result.pagination,
+        pagination: result.data.pagination,
         message: "Coach suggestions fetched successfully",
       };
     } catch (error) {
