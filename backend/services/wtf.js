@@ -84,12 +84,77 @@ class WtfService {
 
   static async createPin(payload) {
     try {
+      // Map frontend field names to backend expected names
+      const mappedPayload = {
+        ...payload,
+        type: payload.type || payload.contentType, // Accept both 'type' and 'contentType'
+        author: payload.author || payload.pinnedBy, // Accept both 'author' and 'pinnedBy'
+      };
+
+      // Clean up the mapped payload to remove original field names
+      if (payload.contentType && !payload.type) {
+        delete mappedPayload.contentType; // Remove contentType if we mapped it to type
+      }
+      if (payload.pinnedBy && !payload.author) {
+        delete mappedPayload.pinnedBy; // Remove pinnedBy if we mapped it to author
+      }
+
+      // Handle case where author might be a string (user name) instead of user ID
+      // For now, we'll need to find the user by name or create a placeholder
+      // TODO: In production, this should be a proper user ID lookup
+      if (
+        typeof mappedPayload.author === "string" &&
+        !mappedPayload.author.match(/^[0-9a-fA-F]{24}$/)
+      ) {
+        // If author is a string name (not a MongoDB ObjectId), we need to handle it
+        // For development, we'll use a placeholder approach
+        console.log(
+          `⚠️  Author is a string name: ${mappedPayload.author}. Using placeholder user ID for development.`
+        );
+
+        // In development mode, we can bypass this or use a default user ID
+        if (
+          process.env.NODE_ENV === "development" ||
+          process.env.NODE_ENV === "local"
+        ) {
+          // For development, we'll need to either:
+          // 1. Find the user by name in the database, or
+          // 2. Use a default user ID, or
+          // 3. Skip the author requirement temporarily
+
+          // Option 1: Try to find user by name (recommended)
+          try {
+            const User = require("../models/user");
+            const user = await User.findOne({ name: mappedPayload.author });
+            if (user) {
+              mappedPayload.author = user._id;
+              console.log(`✅ Found user by name: ${mappedPayload.author}`);
+            } else {
+              console.log(`❌ User not found by name: ${mappedPayload.author}`);
+              // For development, we could create a default user or skip this
+              return {
+                success: false,
+                data: null,
+                message: `User not found: ${mappedPayload.author}. Please ensure the user exists in the database.`,
+              };
+            }
+          } catch (userError) {
+            console.error("Error finding user by name:", userError);
+            return {
+              success: false,
+              data: null,
+              message: `Error finding user: ${userError.message}`,
+            };
+          }
+        }
+      }
+
       // Validate required fields
       if (
-        !payload.title ||
-        !payload.content ||
-        !payload.type ||
-        !payload.author
+        !mappedPayload.title ||
+        !mappedPayload.content ||
+        !mappedPayload.type ||
+        !mappedPayload.author
       ) {
         return {
           success: false,
@@ -100,7 +165,7 @@ class WtfService {
 
       // Validate pin type
       const validTypes = ["image", "video", "audio", "text", "link"];
-      if (!validTypes.includes(payload.type)) {
+      if (!validTypes.includes(mappedPayload.type)) {
         return {
           success: false,
           data: null,
@@ -111,12 +176,13 @@ class WtfService {
 
       // Set default values
       const pinData = {
-        ...payload,
-        status: payload.status || "active",
-        isOfficial: payload.isOfficial || false,
-        language: payload.language || "english",
+        ...mappedPayload,
+        status: mappedPayload.status || "active",
+        isOfficial: mappedPayload.isOfficial || false,
+        language: mappedPayload.language || "english",
         expiresAt:
-          payload.expiresAt || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+          mappedPayload.expiresAt ||
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       };
 
       const result = await createWtfPin(pinData);
@@ -132,15 +198,15 @@ class WtfService {
         // Award coins for pin creation
         try {
           const isFirstPin = await CoinService.isEligibleForFirstPinBonus(
-            payload.author
+            mappedPayload.author
           );
           const coinResult = await CoinService.awardPinCreationCoins(
-            payload.author,
+            mappedPayload.author,
             result.data._id,
             isFirstPin,
             {
-              userAgent: payload.userAgent,
-              ipAddress: payload.ipAddress,
+              userAgent: mappedPayload.userAgent,
+              ipAddress: mappedPayload.ipAddress,
             }
           );
 
@@ -1188,12 +1254,15 @@ class WtfService {
       const oneWeekAgo = new Date();
       oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-      logger.info({ expirationDate: oneWeekAgo }, "Starting automatic pin expiration");
+      logger.info(
+        { expirationDate: oneWeekAgo },
+        "Starting automatic pin expiration"
+      );
 
       // Find pins that are older than one week and still active
       const expiredPins = await getActivePins({
         pinnedTimestamp: { $lt: oneWeekAgo },
-        status: "ACTIVE"
+        status: "ACTIVE",
       });
 
       if (!expiredPins || expiredPins.length === 0) {
@@ -1201,7 +1270,7 @@ class WtfService {
         return {
           success: true,
           expiredCount: 0,
-          message: "No pins to expire"
+          message: "No pins to expire",
         };
       }
 
@@ -1212,47 +1281,58 @@ class WtfService {
         try {
           // Update pin status to expired instead of deleting
           const result = await updatePinStatus(pin.pinId, "EXPIRED");
-          
+
           if (result.success) {
             expiredCount++;
             expiredPinDetails.push({
               pinId: pin.pinId,
               title: pin.title,
-              pinnedDate: pin.pinnedTimestamp
+              pinnedDate: pin.pinnedTimestamp,
             });
 
-            logger.info({
-              pinId: pin.pinId,
-              title: pin.title,
-              pinnedDate: pin.pinnedTimestamp
-            }, "Pin expired due to age limit");
+            logger.info(
+              {
+                pinId: pin.pinId,
+                title: pin.title,
+                pinnedDate: pin.pinnedTimestamp,
+              },
+              "Pin expired due to age limit"
+            );
           }
         } catch (error) {
-          errorLogger.error({
-            error: error.message,
-            pinId: pin.pinId
-          }, "Error expiring individual pin");
+          errorLogger.error(
+            {
+              error: error.message,
+              pinId: pin.pinId,
+            },
+            "Error expiring individual pin"
+          );
         }
       }
 
-      logger.info({
-        totalExpired: expiredCount,
-        totalProcessed: expiredPins.length
-      }, "Pin expiration completed");
+      logger.info(
+        {
+          totalExpired: expiredCount,
+          totalProcessed: expiredPins.length,
+        },
+        "Pin expiration completed"
+      );
 
       return {
         success: true,
         expiredCount,
         totalProcessed: expiredPins.length,
         expiredPins: expiredPinDetails,
-        message: `${expiredCount} pins expired automatically`
+        message: `${expiredCount} pins expired automatically`,
       };
-
     } catch (error) {
-      errorLogger.error({
-        error: error.message
-      }, "Error in automatic pin expiration");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+        },
+        "Error in automatic pin expiration"
+      );
+
       throw error;
     }
   }
@@ -1264,13 +1344,15 @@ class WtfService {
   static async cleanupExpiredPins() {
     try {
       const activePins = await getActivePins({
-        status: "ACTIVE"
+        status: "ACTIVE",
       });
 
       // If we have more than 20 active pins, expire the oldest ones
       if (activePins && activePins.length > 20) {
         const pinsToExpire = activePins
-          .sort((a, b) => new Date(a.pinnedTimestamp) - new Date(b.pinnedTimestamp))
+          .sort(
+            (a, b) => new Date(a.pinnedTimestamp) - new Date(b.pinnedTimestamp)
+          )
           .slice(0, activePins.length - 15); // Keep only 15 most recent
 
         let cleanedCount = 0;
@@ -1282,29 +1364,34 @@ class WtfService {
           }
         }
 
-        logger.info({
-          totalActive: activePins.length,
-          cleaned: cleanedCount
-        }, "Cleaned up old pins to make room for new ones");
+        logger.info(
+          {
+            totalActive: activePins.length,
+            cleaned: cleanedCount,
+          },
+          "Cleaned up old pins to make room for new ones"
+        );
 
         return {
           success: true,
           cleanedCount,
-          message: `${cleanedCount} old pins cleaned up`
+          message: `${cleanedCount} old pins cleaned up`,
         };
       }
 
       return {
         success: true,
         cleanedCount: 0,
-        message: "No cleanup needed"
+        message: "No cleanup needed",
       };
-
     } catch (error) {
-      errorLogger.error({
-        error: error.message
-      }, "Error in pin cleanup");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+        },
+        "Error in pin cleanup"
+      );
+
       throw error;
     }
   }
@@ -1317,16 +1404,27 @@ class WtfService {
    */
   static async awardCoinsForPinnedContent(pinData) {
     try {
-      if (!pinData.originalAuthor?.userId || pinData.originalAuthor?.type !== "STUDENT") {
-        logger.info("No coin award - not student content", { pinData: pinData.pinId });
-        return { success: true, message: "Not student content - no coins awarded" };
+      if (
+        !pinData.originalAuthor?.userId ||
+        pinData.originalAuthor?.type !== "STUDENT"
+      ) {
+        logger.info("No coin award - not student content", {
+          pinData: pinData.pinId,
+        });
+        return {
+          success: true,
+          message: "Not student content - no coins awarded",
+        };
       }
 
       const studentId = pinData.originalAuthor.userId;
       const coinReward = this.calculateCoinReward(pinData.contentType);
 
       if (coinReward <= 0) {
-        return { success: true, message: "No coins configured for this content type" };
+        return {
+          success: true,
+          message: "No coins configured for this content type",
+        };
       }
 
       // Award coins using the coin service
@@ -1334,7 +1432,9 @@ class WtfService {
         studentId,
         coinReward,
         "WTF_CONTENT_PINNED",
-        `Your ${pinData.contentType.toLowerCase()} "${pinData.title}" was featured on WTF!`,
+        `Your ${pinData.contentType.toLowerCase()} "${
+          pinData.title
+        }" was featured on WTF!`,
         {
           pinId: pinData.pinId,
           contentType: pinData.contentType,
@@ -1343,12 +1443,15 @@ class WtfService {
       );
 
       if (coinResult.success) {
-        logger.info({
-          studentId,
-          pinId: pinData.pinId,
-          coinsAwarded: coinReward,
-          contentType: pinData.contentType,
-        }, "ISF Coins awarded for pinned content");
+        logger.info(
+          {
+            studentId,
+            pinId: pinData.pinId,
+            coinsAwarded: coinReward,
+            contentType: pinData.contentType,
+          },
+          "ISF Coins awarded for pinned content"
+        );
 
         return {
           success: true,
@@ -1359,11 +1462,14 @@ class WtfService {
 
       return coinResult;
     } catch (error) {
-      errorLogger.error({
-        error: error.message,
-        pinData: pinData?.pinId,
-      }, "Error awarding coins for pinned content");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+          pinData: pinData?.pinId,
+        },
+        "Error awarding coins for pinned content"
+      );
+
       // Don't throw - coin awards shouldn't block pin creation
       return {
         success: false,
@@ -1378,10 +1484,10 @@ class WtfService {
    */
   static calculateCoinReward(contentType) {
     const coinRewards = {
-      IMAGE: 50,    // Student artwork/drawings
-      VIDEO: 100,   // Spoken English performances, student videos
-      AUDIO: 75,    // Voice notes, student recordings
-      TEXT: 25,     // Student articles/stories
+      IMAGE: 50, // Student artwork/drawings
+      VIDEO: 100, // Spoken English performances, student videos
+      AUDIO: 75, // Voice notes, student recordings
+      TEXT: 25, // Student articles/stories
     };
 
     return coinRewards[contentType] || 0;
@@ -1394,8 +1500,15 @@ class WtfService {
     try {
       // Get pin data
       const pin = await getWtfPinById(pinId);
-      if (!pin || !pin.originalAuthor?.userId || pin.originalAuthor?.type !== "STUDENT") {
-        return { success: true, message: "Not student content - no milestone coins" };
+      if (
+        !pin ||
+        !pin.originalAuthor?.userId ||
+        pin.originalAuthor?.type !== "STUDENT"
+      ) {
+        return {
+          success: true,
+          message: "Not student content - no milestone coins",
+        };
       }
 
       const milestones = [10, 25, 50, 100]; // Like count milestones
@@ -1431,13 +1544,16 @@ class WtfService {
 
             if (coinResult.success) {
               totalMilestoneCoins += reward;
-              logger.info({
-                studentId: pin.originalAuthor.userId,
-                pinId,
-                milestone,
-                coinsAwarded: reward,
-                totalLikes: likeCount,
-              }, "Milestone coins awarded for popular content");
+              logger.info(
+                {
+                  studentId: pin.originalAuthor.userId,
+                  pinId,
+                  milestone,
+                  coinsAwarded: reward,
+                  totalLikes: likeCount,
+                },
+                "Milestone coins awarded for popular content"
+              );
             }
           }
         }
@@ -1446,17 +1562,21 @@ class WtfService {
       return {
         success: true,
         coinsAwarded: totalMilestoneCoins,
-        message: totalMilestoneCoins > 0 
-          ? `${totalMilestoneCoins} milestone coins awarded` 
-          : "No new milestones reached",
+        message:
+          totalMilestoneCoins > 0
+            ? `${totalMilestoneCoins} milestone coins awarded`
+            : "No new milestones reached",
       };
     } catch (error) {
-      errorLogger.error({
-        error: error.message,
-        pinId,
-        likeCount,
-      }, "Error awarding milestone coins");
-      
+      errorLogger.error(
+        {
+          error: error.message,
+          pinId,
+          likeCount,
+        },
+        "Error awarding milestone coins"
+      );
+
       return {
         success: false,
         message: "Error awarding milestone coins",
