@@ -118,6 +118,7 @@ const WTFManagementContent = ({ onToggleView }) => {
           page: 1,
           limit: 20,
           type: submissionTab,
+          isCoachSuggestion: false, // Only fetch student submissions, not coach suggestions
         });
         if (submissionsResponse.success) {
           fetchedSubmissions =
@@ -436,12 +437,17 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handleArchiveSubmission = async (submissionId) => {
     try {
+      console.log("Archiving submission with ID:", submissionId);
+
       const response = await reviewSubmission(submissionId, {
         action: "reject",
         notes: "Archived by admin",
       });
 
+      console.log("Archive response:", response);
+
       if (response.success) {
+        console.log("Successfully archived submission, updating UI...");
         setStudentSubmissions((prev) =>
           prev.filter((s) => s._id !== submissionId)
         );
@@ -471,6 +477,9 @@ const WTFManagementContent = ({ onToggleView }) => {
             studentSubmissions: Math.max(0, (prev.studentSubmissions || 1) - 1),
           }));
         }
+      } else {
+        console.error("Archive failed:", response.message);
+        setError(response.message || "Failed to archive submission");
       }
     } catch (error) {
       console.error("Error archiving submission:", error);
@@ -492,7 +501,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const handlePinCoachSuggestion = async (suggestion) => {
     try {
       // Approve (pin) via backend; this also creates the WTF pin server-side
-      const response = await reviewSubmission(suggestion.id, {
+      const response = await reviewSubmission(suggestion._id, {
         action: "approve",
         notes: "Approved and pinned to WTF",
       });
@@ -500,7 +509,7 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (response && response.success) {
         // Remove the suggestion from the pending list
         setCoachSuggestions((prev) =>
-          prev.filter((s) => s.id !== suggestion.id)
+          prev.filter((s) => s._id !== suggestion._id)
         );
 
         // If backend returned the created pin, prepend it; else refetch active pins
@@ -550,7 +559,7 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (response && response.success) {
         // Remove from pending queue
         setCoachSuggestions((prev) =>
-          prev.filter((s) => s.id !== suggestionId)
+          prev.filter((s) => s._id !== suggestionId)
         );
         // Update badge metric locally
         setDashboardMetrics((prev) => ({
@@ -615,18 +624,31 @@ const WTFManagementContent = ({ onToggleView }) => {
   // Student submissions pagination logic
   const paginatedStudentSubmissions = useMemo(() => {
     if (!Array.isArray(studentSubmissions)) return [];
+    const filteredSubmissions = studentSubmissions.filter(
+      (s) =>
+        s.status === "pending" && !(s.metadata && s.metadata.isCoachSuggestion)
+    );
     const startIndex = (submissionsPage - 1) * submissionsPerPage;
     const endIndex = startIndex + submissionsPerPage;
-    return studentSubmissions.slice(startIndex, endIndex);
+    return filteredSubmissions.slice(startIndex, endIndex);
   }, [studentSubmissions, submissionsPage, submissionsPerPage]);
 
   const totalSubmissionsPages = Math.ceil(
-    (Array.isArray(studentSubmissions) ? studentSubmissions.length : 0) /
-      submissionsPerPage
+    (Array.isArray(studentSubmissions)
+      ? studentSubmissions.filter(
+          (s) =>
+            s.status === "pending" &&
+            !(s.metadata && s.metadata.isCoachSuggestion)
+        ).length
+      : 0) / submissionsPerPage
   );
 
   const newSubmissionsCount = Array.isArray(studentSubmissions)
-    ? studentSubmissions.filter((s) => s.status === "pending").length
+    ? studentSubmissions.filter(
+        (s) =>
+          s.status === "pending" &&
+          !(s.metadata && s.metadata.isCoachSuggestion)
+      ).length
     : 0;
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter((s) => s.status === "PENDING").length
@@ -1131,7 +1153,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <tbody>
                         {paginatedCoachSuggestions.map((suggestion) => (
                           <tr
-                            key={suggestion.id}
+                            key={suggestion._id}
                             className="border-b border-gray-100 hover:bg-gray-50"
                           >
                             <td className="py-4 px-4">
@@ -1207,7 +1229,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    handleArchiveCoachSuggestion(suggestion.id)
+                                    handleArchiveCoachSuggestion(suggestion._id)
                                   }
                                 >
                                   <Archive className="w-4 h-4 mr-1" />
@@ -1375,7 +1397,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                         .slice(0, 5)
                         .map((suggestion) => (
                           <div
-                            key={suggestion.id}
+                            key={suggestion._id}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                           >
                             <div className="flex items-center gap-3">
@@ -1473,12 +1495,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       ▷ Voice Notes
                       {(() => {
-                        const voiceCount = Array.isArray(studentSubmissions)
-                          ? studentSubmissions.filter(
-                              (s) =>
-                                s.status === "pending" && s.type === "voice"
-                            ).length
-                          : 0;
+                        const voiceCount = paginatedStudentSubmissions.filter(
+                          (s) => s.type === "voice"
+                        ).length;
                         return voiceCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {voiceCount}
@@ -1496,12 +1515,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       Articles
                       {(() => {
-                        const articleCount = Array.isArray(studentSubmissions)
-                          ? studentSubmissions.filter(
-                              (s) =>
-                                s.status === "pending" && s.type === "article"
-                            ).length
-                          : 0;
+                        const articleCount = paginatedStudentSubmissions.filter(
+                          (s) => s.type === "article"
+                        ).length;
                         return articleCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {articleCount}
@@ -1534,71 +1550,89 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {(Array.isArray(studentSubmissions)
-                            ? studentSubmissions.filter(
-                                (s) =>
-                                  s.status === "pending" && s.type === "voice"
-                              )
-                            : []
-                          ).map((submission) => (
-                            <tr
-                              key={submission.id}
-                              className="border-b border-gray-100 hover:bg-gray-50"
-                            >
-                              <td className="py-4 px-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {submission.title}
+                          {paginatedStudentSubmissions
+                            .filter((s) => s.type === "voice")
+                            .map((submission) => (
+                              <tr
+                                key={submission._id}
+                                className="border-b border-gray-100 hover:bg-gray-50"
+                                onClick={() =>
+                                  console.log("Submission object:", submission)
+                                }
+                              >
+                                <td className="py-4 px-4">
+                                  <div>
+                                    <div className="font-medium">
+                                      {submission.title}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {submission.studentName}
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-gray-500">
-                                    {submission.studentName}
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="text-sm">
+                                    {submission.balagruha}
                                   </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="text-sm">
-                                  {submission.balagruha}
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-1 text-sm text-gray-600">
-                                  <Calendar className="w-4 h-4" />
-                                  {new Date(
-                                    submission.createdAt
-                                  ).toLocaleDateString()}
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <Badge className="bg-green-100 text-green-800">
-                                  {submission.status}
-                                </Badge>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                    onClick={() =>
-                                      handleReviewSubmission(submission)
-                                    }
-                                  >
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    Review
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      handleArchiveSubmission(submission.id)
-                                    }
-                                  >
-                                    <Archive className="w-4 h-4 mr-1" />
-                                    Archive
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                                    <Calendar className="w-4 h-4" />
+                                    {new Date(
+                                      submission.createdAt
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {submission.status}
+                                  </Badge>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                      onClick={() =>
+                                        handleReviewSubmission(submission)
+                                      }
+                                    >
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      Review
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        console.log(
+                                          "Archive button clicked for submission:",
+                                          submission
+                                        );
+                                        handleArchiveSubmission(submission._id);
+                                      }}
+                                    >
+                                      <Archive className="w-4 h-4 mr-1" />
+                                      Archive
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => {
+                                        console.log(
+                                          "Test button clicked for submission:",
+                                          submission
+                                        );
+                                        alert(
+                                          `Testing archive for submission: ${submission._id}`
+                                        );
+                                      }}
+                                    >
+                                      Test
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                     ) : (
@@ -1623,78 +1657,78 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {(Array.isArray(studentSubmissions)
-                            ? studentSubmissions.filter(
-                                (s) =>
-                                  s.status === "pending" && s.type === "article"
-                              )
-                            : []
-                          ).map((submission) => (
-                            <tr
-                              key={submission.id}
-                              className="border-b border-gray-100 hover:bg-gray-50"
-                            >
-                              <td className="py-4 px-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {submission.title}
+                          {paginatedStudentSubmissions
+                            .filter((s) => s.type === "article")
+                            .map((submission) => (
+                              <tr
+                                key={submission._id}
+                                className="border-b border-gray-100 hover:bg-gray-50"
+                              >
+                                <td className="py-4 px-4">
+                                  <div>
+                                    <div className="font-medium">
+                                      {submission.title}
+                                    </div>
+                                    <div className="text-sm text-gray-500">
+                                      {submission.studentName}
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-gray-500">
-                                    {submission.studentName}
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="text-sm">
+                                    {submission.balagruha}
                                   </div>
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="text-sm">
-                                  {submission.balagruha}
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-1 text-sm text-gray-600">
-                                  <Calendar className="w-4 h-4" />
-                                  {new Date(
-                                    submission.createdAt
-                                  ).toLocaleDateString()}
-                                </div>
-                              </td>
-                              <td className="py-4 px-4">
-                                <Badge className="bg-green-100 text-green-800">
-                                  {submission.status}
-                                </Badge>
-                              </td>
-                              <td className="py-4 px-4">
-                                <div className="flex items-center gap-2">
-                                  <Button
-                                    size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                                    onClick={() =>
-                                      handleReviewSubmission(submission)
-                                    }
-                                  >
-                                    <Eye className="w-4 h-4 mr-1" />
-                                    Review
-                                  </Button>
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() =>
-                                      handleArchiveSubmission(submission.id)
-                                    }
-                                  >
-                                    <Archive className="w-4 h-4 mr-1" />
-                                    Archive
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          ))}
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-1 text-sm text-gray-600">
+                                    <Calendar className="w-4 h-4" />
+                                    {new Date(
+                                      submission.createdAt
+                                    ).toLocaleDateString()}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <Badge className="bg-green-100 text-green-800">
+                                    {submission.status}
+                                  </Badge>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                      onClick={() =>
+                                        handleReviewSubmission(submission)
+                                      }
+                                    >
+                                      <Eye className="w-4 h-4 mr-1" />
+                                      Review
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() =>
+                                        handleArchiveSubmission(submission._id)
+                                      }
+                                    >
+                                      <Archive className="w-4 h-4 mr-1" />
+                                      Archive
+                                    </Button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
                         </tbody>
                       </table>
                     )}
 
                     {/* Student Submissions Pagination Controls */}
                     {Array.isArray(studentSubmissions) &&
-                      studentSubmissions.length > 0 && (
+                      studentSubmissions.filter(
+                        (s) =>
+                          s.status === "pending" &&
+                          !(s.metadata && s.metadata.isCoachSuggestion)
+                      ).length > 0 && (
                         <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50">
                           <div className="flex items-center gap-4">
                             <div className="text-sm text-gray-700">
@@ -1703,9 +1737,25 @@ const WTFManagementContent = ({ onToggleView }) => {
                               to{" "}
                               {Math.min(
                                 submissionsPage * submissionsPerPage,
-                                studentSubmissions.length
+                                studentSubmissions.filter(
+                                  (s) =>
+                                    s.status === "pending" &&
+                                    !(
+                                      s.metadata && s.metadata.isCoachSuggestion
+                                    )
+                                ).length
                               )}{" "}
-                              of {studentSubmissions.length} results
+                              of{" "}
+                              {
+                                studentSubmissions.filter(
+                                  (s) =>
+                                    s.status === "pending" &&
+                                    !(
+                                      s.metadata && s.metadata.isCoachSuggestion
+                                    )
+                                ).length
+                              }{" "}
+                              results
                             </div>
                             <select
                               value={submissionsPerPage}

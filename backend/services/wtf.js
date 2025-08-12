@@ -1470,27 +1470,45 @@ class WtfService {
   static async getWtfDashboardCounts() {
     try {
       // Get all the counts needed for dashboard in parallel
-      const [activePinsResult, submissionStatsResult, analyticsResult] =
-        await Promise.all([
-          this.getActivePinsCount(),
-          this.getSubmissionStats(),
-          this.getWtfAnalytics(),
-        ]);
+      const [
+        activePinsResult,
+        coachSuggestionsResult,
+        studentSubmissionsResult,
+        analyticsResult,
+      ] = await Promise.all([
+        this.getActivePinsCount(),
+        this.getCoachSuggestionsCount(),
+        this.getSubmissionsForReview({
+          page: 1,
+          limit: 1,
+          isCoachSuggestion: false,
+        }),
+        this.getWtfAnalytics(),
+      ]);
 
       // Extract counts with fallbacks
       const activePinsCount = activePinsResult?.success
         ? activePinsResult.data
         : 0;
-      const submissionStats = submissionStatsResult?.success
-        ? submissionStatsResult.data
-        : {};
+      const coachSuggestionsCount = coachSuggestionsResult?.success
+        ? coachSuggestionsResult.data?.pendingCount || 0
+        : 0;
+      const studentSubmissionsCount = studentSubmissionsResult?.success
+        ? studentSubmissionsResult.data?.pagination?.total || 0
+        : 0;
       const analytics = analyticsResult?.success ? analyticsResult.data : {};
 
-      console.log("Submission stats result:", submissionStats);
+      console.log("Dashboard counts calculation:", {
+        activePinsCount,
+        coachSuggestionsCount,
+        studentSubmissionsCount,
+        analytics,
+      });
+
       const dashboardCounts = {
         activePins: activePinsCount,
-        coachSuggestions: submissionStats?.pendingCount || 0,
-        studentSubmissions: submissionStats?.pendingCount || 0,
+        coachSuggestions: coachSuggestionsCount,
+        studentSubmissions: studentSubmissionsCount,
         totalEngagement: analytics?.totalSeen || analytics?.totalViews || 0,
         // Additional useful metrics
         totalPins: analytics?.totalPins || 0,
@@ -1555,10 +1573,16 @@ class WtfService {
   static async getCoachSuggestionsCount() {
     try {
       // Get count of only coach suggestions, not all pending submissions
-      const result = await this.getSubmissionsForReview({
+      const result = await WtfService.getSubmissionsForReview({
         page: 1,
         limit: 1,
         isCoachSuggestion: true,
+      });
+
+      console.log("Coach suggestions count result:", {
+        success: result.success,
+        data: result.data,
+        total: result?.data?.pagination?.total,
       });
 
       const pendingCount = result?.data?.pagination?.total || 0;
