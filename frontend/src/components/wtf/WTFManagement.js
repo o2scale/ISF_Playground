@@ -258,6 +258,24 @@ const WTFManagementContent = ({ onToggleView }) => {
         const response = await deleteWtfPin(pinId);
         if (response.success) {
           setActivePins((prev) => prev.filter((pin) => pin._id !== pinId));
+          // Refresh dashboard counts so the Active Pins card updates immediately
+          try {
+            const countsResp = await getWtfDashboardCounts();
+            if (countsResp.success) {
+              setDashboardMetrics(countsResp.data);
+            } else {
+              // Fallback optimistic update
+              setDashboardMetrics((prev) => ({
+                ...prev,
+                activePins: Math.max(0, (prev.activePins || 1) - 1),
+              }));
+            }
+          } catch (e) {
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              activePins: Math.max(0, (prev.activePins || 1) - 1),
+            }));
+          }
         }
       } catch (error) {
         console.error("Error deleting pin:", error);
