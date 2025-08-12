@@ -421,6 +421,9 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Coach Suggestions Data
   const [coachSuggestions, setCoachSuggestions] = useState([]);
+  const archivedCoachSuggestions = coachSuggestions.filter(
+    (s) => s.status && s.status !== "PENDING"
+  );
 
   const handleReviewCoachSuggestion = (suggestion) => {
     setSelectedCoachSuggestion(suggestion);
@@ -1300,8 +1303,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                 </div>
 
                 {/* Recent Activity */}
-                {coachSuggestions.filter((s) => s.status !== "PENDING").length >
-                  0 && (
+                {archivedCoachSuggestions.length > 0 && (
                   <div className="bg-white rounded-lg border p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <CheckCircle className="w-5 h-5 text-green-500" />
@@ -1310,8 +1312,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                       </h3>
                     </div>
                     <div className="space-y-3">
-                      {coachSuggestions
-                        .filter((s) => s.status !== "PENDING")
+                      {archivedCoachSuggestions
                         .slice(0, 5)
                         .map((suggestion) => (
                           <div

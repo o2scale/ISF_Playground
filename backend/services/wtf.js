@@ -1435,7 +1435,6 @@ class WtfService {
   static async getCoachSuggestions({ page = 1, limit = 20, status = null }) {
     try {
       // For now, we'll use the submissions data as coach suggestions
-      // In a real implementation, you might have a separate coach suggestions table
       const result = await WtfService.getSubmissionsForReview({
         page,
         limit,
@@ -1452,20 +1451,37 @@ class WtfService {
 
       // Transform submissions to coach suggestions format
       const submissions = result.data.submissions || [];
-      const coachSuggestions = submissions.map((submission) => ({
-        id: submission._id,
-        studentName: submission.studentName || "Unknown Student",
-        coachName: submission.suggestedBy || "Coach",
-        workType: submission.type === "voice" ? "Voice Note" : "Article",
-        title: submission.title,
-        content: submission.content || submission.audioUrl,
-        suggestedDate: submission.createdAt,
-        status:
-          submission.status === "pending"
-            ? "PENDING"
-            : submission.status.toUpperCase(),
-        balagruha: submission.balagruha || "Unknown House",
-      }));
+      const coachSuggestions = submissions.map((submission) => {
+        const meta = submission.metadata || {};
+        const originalType = (
+          meta.originalType ||
+          submission.type ||
+          "text"
+        ).toLowerCase();
+        const normalizedType =
+          originalType === "voice" ? "audio" : originalType;
+        const contentUrl =
+          submission.type === "voice"
+            ? submission.audioUrl
+            : submission.content;
+        return {
+          id: submission._id,
+          studentName: meta.studentName || "Unknown Student",
+          coachName: meta.suggestedBy || "Coach",
+          workType:
+            originalType === "audio" || originalType === "voice"
+              ? "Voice Note"
+              : originalType.charAt(0).toUpperCase() + originalType.slice(1),
+          type: normalizedType,
+          title: submission.title,
+          content: contentUrl,
+          suggestedDate: submission.createdAt,
+          status: submission.status
+            ? submission.status.toUpperCase()
+            : "PENDING",
+          balagruha: meta.balagruha || "Unknown House",
+        };
+      });
 
       return {
         success: true,
@@ -1551,7 +1567,7 @@ class WtfService {
           if (submissionType === "voice") {
             suggestionData.audioUrl = s3Url;
           } else if (submissionType === "article") {
-            suggestionData.content = payload.content || "";
+            suggestionData.content = s3Url || payload.content || "";
           }
           // Clean up local temp file
           try {

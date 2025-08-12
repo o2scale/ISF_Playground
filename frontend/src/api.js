@@ -949,7 +949,8 @@ export const getPendingSubmissionsCount = async () => {
     const response = await api.get(`/api/v1/wtf/submissions/review`, {
       params: { page: 1, limit: 1 },
     });
-    return response.data?.pagination?.total || 0;
+    // API shape: { success, data: { submissions, pagination } }
+    return response.data?.data?.pagination?.total || 0;
   } catch (error) {
     console.error("Error fetching pending submissions count:", error);
     throw error;

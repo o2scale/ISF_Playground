@@ -23,7 +23,11 @@ const CoachSuggestionReviewModal = ({
   if (!suggestion) return null;
 
   const renderContentPreview = () => {
-    const workType = (suggestion.workType || "").toLowerCase();
+    const workType = (
+      suggestion.workType ||
+      suggestion.type ||
+      ""
+    ).toLowerCase();
     if (suggestion.thumbnail) {
       return (
         <div className="bg-gray-50 rounded-lg p-6 text-center">

@@ -37,6 +37,7 @@ import {
   createCoachSuggestion,
   getWtfSubmissionStats,
   getPendingSubmissionsCount,
+  getCoachSuggestionsCount,
   submitVoiceNote,
   submitArticle,
   updateWtfSettings,
@@ -128,16 +129,19 @@ const WallOfFameContent = ({ onToggleView }) => {
     const fetchAdminCounts = async () => {
       if (isAdmin) {
         try {
-          const [submissionStats, pendingCount] = await Promise.all([
-            getWtfSubmissionStats(),
+          const [coachCountResp, studentPendingResp] = await Promise.all([
+            getCoachSuggestionsCount(),
             getPendingSubmissionsCount(),
           ]);
 
+          const coachPending = coachCountResp?.data?.pendingCount || 0;
+          const studentPending = studentPendingResp || 0;
+
           setAdminCounts({
-            pendingSuggestions: submissionStats?.data?.pendingCount || 0,
-            newSubmissions: pendingCount || 0,
-            reviewQueue:
-              (submissionStats?.data?.pendingCount || 0) + (pendingCount || 0),
+            // As per requirement: show combined totals everywhere
+            pendingSuggestions: coachPending + studentPending,
+            newSubmissions: coachPending + studentPending,
+            reviewQueue: coachPending + studentPending,
           });
         } catch (error) {
           console.error("Error fetching admin counts:", error);
