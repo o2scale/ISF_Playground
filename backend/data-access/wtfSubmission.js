@@ -53,6 +53,7 @@ exports.getPendingSubmissions = async ({
   page = 1,
   limit = 20,
   type = null,
+  isCoachSuggestion = null,
 }) => {
   try {
     const skip = (page - 1) * limit;
@@ -62,6 +63,17 @@ exports.getPendingSubmissions = async ({
     };
 
     if (type) query.type = type;
+
+    // Filter by coach suggestion status if specified
+    if (isCoachSuggestion !== null) {
+      if (isCoachSuggestion) {
+        // Only get coach suggestions
+        query["metadata.isCoachSuggestion"] = true;
+      } else {
+        // Only get student submissions (not coach suggestions)
+        query["metadata.isCoachSuggestion"] = { $ne: true };
+      }
+    }
 
     const submissions = await WtfSubmission.find(query)
       .sort({ createdAt: -1 })

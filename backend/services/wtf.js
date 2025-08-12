@@ -1102,9 +1102,19 @@ class WtfService {
     }
   }
 
-  static async getSubmissionsForReview({ page = 1, limit = 20, type = null }) {
+  static async getSubmissionsForReview({
+    page = 1,
+    limit = 20,
+    type = null,
+    isCoachSuggestion = null,
+  }) {
     try {
-      const result = await getPendingSubmissions({ page, limit, type });
+      const result = await getPendingSubmissions({
+        page,
+        limit,
+        type,
+        isCoachSuggestion,
+      });
       return result;
     } catch (error) {
       errorLogger.error(
@@ -1155,7 +1165,7 @@ class WtfService {
               ...(pinType === "audio" && {
                 mediaUrl: approvedSubmission.audioUrl,
               }),
-              author: new mongoose.Types.ObjectId(reviewerId),
+              author: approvedSubmission.studentId, // Use the original student as author, not the reviewer
               status: "active",
               isOfficial: false,
               language: approvedSubmission.language || "english",
@@ -1544,8 +1554,14 @@ class WtfService {
 
   static async getCoachSuggestionsCount() {
     try {
-      const result = await this.getSubmissionStats();
-      const pendingCount = result?.data?.pendingCount || 0;
+      // Get count of only coach suggestions, not all pending submissions
+      const result = await this.getSubmissionsForReview({
+        page: 1,
+        limit: 1,
+        isCoachSuggestion: true,
+      });
+
+      const pendingCount = result?.data?.pagination?.total || 0;
 
       return {
         success: true,
@@ -1563,11 +1579,12 @@ class WtfService {
 
   static async getCoachSuggestions({ page = 1, limit = 20, status = null }) {
     try {
-      // For now, we'll use the submissions data as coach suggestions
+      // Only fetch submissions that are specifically coach suggestions
       const result = await WtfService.getSubmissionsForReview({
         page,
         limit,
         type: null,
+        isCoachSuggestion: true, // Add this filter
       });
 
       if (!result.success) {

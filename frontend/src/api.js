@@ -987,7 +987,7 @@ export const getWtfSubmissionStats = async () => {
 export const getPendingSubmissionsCount = async () => {
   try {
     const response = await api.get(`/api/v1/wtf/submissions/review`, {
-      params: { page: 1, limit: 1 },
+      params: { page: 1, limit: 1, isCoachSuggestion: false },
     });
     // API shape: { success, data: { submissions, pagination } }
     return response.data?.data?.pagination?.total || 0;
