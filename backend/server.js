@@ -20,6 +20,11 @@ const schedulerRoutes = require("./routes/v1/scheduler");
 const websocketRoutes = require("./routes/v1/websocket");
 const wtfWebSocketService = require("./services/wtfWebSocket");
 const { swaggerUi, swaggerDocs } = require("./swagger");
+// Newly added routes from deployed backend
+const scheduleRoutes = require("./routes/scheduleRoutes");
+const medicalCheckInsRoutes = require("./routes/medicalCheckInsRoutes");
+const offlineRequestQueueRoutes = require("./routes/offlineRequestQueue");
+const courseRoutes = require("./routes/courseRoutes");
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -58,6 +63,11 @@ app.use("/api/v1/coin", coinRoutes);
 app.use("/api/v1/scheduler", schedulerRoutes);
 app.use("/api/v1/websocket", websocketRoutes);
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+// Newly added route mounts
+app.use("/api/schedules", scheduleRoutes);
+app.use("/api/medical-check-ins", medicalCheckInsRoutes);
+app.use("/api/offline-requests", offlineRequestQueueRoutes);
+app.use("/api/v1/courses", courseRoutes);
 
 const dbConnection =
   process.env.NODE_ENV === "local"
