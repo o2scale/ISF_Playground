@@ -138,10 +138,10 @@ const WallOfFameContent = ({ onToggleView }) => {
           const studentPending = studentPendingResp || 0;
 
           setAdminCounts({
-            // As per requirement: show combined totals everywhere
-            pendingSuggestions: coachPending + studentPending,
-            newSubmissions: coachPending + studentPending,
-            reviewQueue: coachPending + studentPending,
+            // Show separate counts for proper separation
+            pendingSuggestions: coachPending,
+            newSubmissions: studentPending,
+            reviewQueue: coachPending + studentPending, // Total for review queue
           });
         } catch (error) {
           console.error("Error fetching admin counts:", error);

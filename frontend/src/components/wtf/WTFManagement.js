@@ -171,7 +171,11 @@ const WTFManagementContent = ({ onToggleView }) => {
             : 0,
           coachSuggestions: Array.isArray(suggestions) ? suggestions.length : 0,
           studentSubmissions: Array.isArray(submissions)
-            ? submissions.filter((s) => s.status === "pending").length
+            ? submissions.filter(
+                (s) =>
+                  s.status === "pending" &&
+                  !(s.metadata && s.metadata.isCoachSuggestion)
+              ).length
             : 0,
           totalEngagement: Array.isArray(pins)
             ? pins.reduce(
@@ -777,14 +781,17 @@ const WTFManagementContent = ({ onToggleView }) => {
                   id: "coach-suggestions",
                   label: "Coach Suggestions",
                   count:
-                    pendingCoachSuggestionsCount > 0
-                      ? pendingCoachSuggestionsCount
+                    dashboardMetrics.coachSuggestions > 0
+                      ? dashboardMetrics.coachSuggestions
                       : null,
                 },
                 {
                   id: "submissions",
                   label: "Student Submissions",
-                  count: newSubmissionsCount > 0 ? newSubmissionsCount : null,
+                  count:
+                    dashboardMetrics.studentSubmissions > 0
+                      ? dashboardMetrics.studentSubmissions
+                      : null,
                 },
                 {
                   id: "background-settings",
