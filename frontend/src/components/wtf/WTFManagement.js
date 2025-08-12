@@ -121,7 +121,9 @@ const WTFManagementContent = ({ onToggleView }) => {
         });
         if (submissionsResponse.success) {
           fetchedSubmissions =
-            (submissionsResponse.data && submissionsResponse.data.submissions) || [];
+            (submissionsResponse.data &&
+              submissionsResponse.data.submissions) ||
+            [];
           setStudentSubmissions(fetchedSubmissions);
         } else {
           setStudentSubmissions([]);
@@ -570,6 +572,13 @@ const WTFManagementContent = ({ onToggleView }) => {
   const newSubmissionsCount = Array.isArray(studentSubmissions)
     ? studentSubmissions.filter((s) => s.status === "pending").length
     : 0;
+  // Update dashboard metric for student submissions (awaiting review)
+  useEffect(() => {
+    setDashboardMetrics((prev) => ({
+      ...prev,
+      studentSubmissions: newSubmissionsCount,
+    }));
+  }, [newSubmissionsCount]);
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter((s) => s.status === "PENDING").length
     : 0; // Real data from API
@@ -1417,7 +1426,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                       {(() => {
                         const voiceCount = Array.isArray(studentSubmissions)
                           ? studentSubmissions.filter(
-                              (s) => s.status === "pending" && s.type === "voice"
+                              (s) =>
+                                s.status === "pending" && s.type === "voice"
                             ).length
                           : 0;
                         return voiceCount > 0 ? (
@@ -1439,7 +1449,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                       {(() => {
                         const articleCount = Array.isArray(studentSubmissions)
                           ? studentSubmissions.filter(
-                              (s) => s.status === "pending" && s.type === "article"
+                              (s) =>
+                                s.status === "pending" && s.type === "article"
                             ).length
                           : 0;
                         return articleCount > 0 ? (
@@ -1475,8 +1486,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {(Array.isArray(studentSubmissions)
-                           ? studentSubmissions.filter(
-                               (s) => s.status === "pending" && s.type === "voice"
+                            ? studentSubmissions.filter(
+                                (s) =>
+                                  s.status === "pending" && s.type === "voice"
                               )
                             : []
                           ).map((submission) => (
@@ -1563,7 +1575,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {(Array.isArray(studentSubmissions)
-                           ? studentSubmissions.filter(
+                            ? studentSubmissions.filter(
                                 (s) =>
                                   s.status === "pending" && s.type === "article"
                               )
