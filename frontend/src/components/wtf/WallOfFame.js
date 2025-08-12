@@ -42,6 +42,7 @@ import {
   submitArticle,
   updateWtfSettings,
   uploadWtfBackgroundImage,
+  getWtfDashboardCounts,
 } from "../../api";
 
 const WallOfFameContent = ({ onToggleView }) => {
@@ -111,6 +112,52 @@ const WallOfFameContent = ({ onToggleView }) => {
     }
   }, [contextBgSettings]);
 
+  const fetchAdminCounts = async () => {
+    if (isAdmin) {
+      try {
+        // Use the same data source as the dashboard for consistency
+        const dashboardCountsResponse = await getWtfDashboardCounts();
+
+        if (dashboardCountsResponse.success) {
+          const counts = dashboardCountsResponse.data;
+          console.log("Admin counts from dashboard:", counts);
+
+          setAdminCounts({
+            pendingSuggestions: counts.coachSuggestions || 0,
+            newSubmissions: counts.studentSubmissions || 0,
+            reviewQueue:
+              (counts.coachSuggestions || 0) + (counts.studentSubmissions || 0),
+          });
+        } else {
+          // Fallback to individual API calls if dashboard fails
+          const [coachCountResp, studentPendingResp] = await Promise.all([
+            getCoachSuggestionsCount(),
+            getPendingSubmissionsCount(),
+          ]);
+
+          const coachPending = coachCountResp?.data?.pendingCount || 0;
+          const studentPending = studentPendingResp || 0;
+
+          console.log("Admin counts fallback calculation:", {
+            coachCountResp,
+            studentPendingResp,
+            coachPending,
+            studentPending,
+            reviewQueue: coachPending + studentPending,
+          });
+
+          setAdminCounts({
+            pendingSuggestions: coachPending,
+            newSubmissions: studentPending,
+            reviewQueue: coachPending + studentPending,
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching admin counts:", error);
+      }
+    }
+  };
+
   useEffect(() => {
     const fetchPins = async () => {
       try {
@@ -123,29 +170,6 @@ const WallOfFameContent = ({ onToggleView }) => {
       } catch (error) {
         console.error("Error fetching pins:", error);
         setContent([]);
-      }
-    };
-
-    const fetchAdminCounts = async () => {
-      if (isAdmin) {
-        try {
-          const [coachCountResp, studentPendingResp] = await Promise.all([
-            getCoachSuggestionsCount(),
-            getPendingSubmissionsCount(),
-          ]);
-
-          const coachPending = coachCountResp?.data?.pendingCount || 0;
-          const studentPending = studentPendingResp || 0;
-
-          setAdminCounts({
-            // Show separate counts for proper separation
-            pendingSuggestions: coachPending,
-            newSubmissions: studentPending,
-            reviewQueue: coachPending + studentPending, // Total for review queue
-          });
-        } catch (error) {
-          console.error("Error fetching admin counts:", error);
-        }
       }
     };
 
@@ -622,6 +646,12 @@ const WallOfFameContent = ({ onToggleView }) => {
             <div className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5" />
               Admin Controls
+              <button
+                onClick={fetchAdminCounts}
+                className="ml-auto text-xs text-purple-600 hover:text-purple-800 underline"
+              >
+                Refresh
+              </button>
             </div>
 
             <div className="space-y-3">
