@@ -28,6 +28,7 @@ import CreateNewPinModal from "./CreateNewPinModal";
 import PinEditModal from "./PinEditModal";
 import ReviewModal from "./ReviewModal";
 import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
+import { useAuth } from "../../contexts/AuthContext";
 import BackgroundSettings from "./BackgroundSettings";
 import {
   useWtfBackground,
@@ -51,6 +52,7 @@ import {
 } from "../../api";
 
 const WTFManagementContent = ({ onToggleView }) => {
+  const { user } = useAuth();
   const { getBackgroundStyle, refreshBackgroundSettings } = useWtfBackground();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [submissionTab, setSubmissionTab] = useState("voice");
@@ -189,11 +191,11 @@ const WTFManagementContent = ({ onToggleView }) => {
   const handleUnpin = async (pinId) => {
     if (window.confirm("Are you sure you want to unpin this content?")) {
       try {
-        const response = await changeWtfPinStatus(pinId, "UNPINNED");
+        const response = await changeWtfPinStatus(pinId, "unpinned");
         if (response.success) {
           setActivePins((prev) =>
             prev.map((pin) =>
-              pin._id === pinId ? { ...pin, status: "UNPINNED" } : pin
+              pin._id === pinId ? { ...pin, status: "unpinned" } : pin
             )
           );
         }
@@ -271,16 +273,21 @@ const WTFManagementContent = ({ onToggleView }) => {
 
       if (reviewResponse.success) {
         // Create a new pin from the approved submission
+        const pinType = submission.type === "voice" ? "audio" : "text";
         const newPin = {
           title: submission.title,
-          caption: `Student submission by ${submission.studentName}`,
-          contentType: submission.type === "voice" ? "audio" : "text",
           content: submission.content,
-          originalAuthor: submission.studentName,
+          type: pinType, // Backend expects 'type' not 'contentType'
+          author: user?.name || "Unknown User", // Backend expects 'author'
           isOfficial: false,
-          expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0],
+          status: "active", // Backend expects lowercase enum values
+          language: "english", // Default language
+          tags: [], // Default empty tags
+          // Add mediaUrl for audio submissions
+          ...(pinType === "audio" &&
+            submission.audioUrl && {
+              mediaUrl: submission.audioUrl,
+            }),
         };
 
         const pinResponse = await createWtfPin(newPin);
@@ -348,7 +355,7 @@ const WTFManagementContent = ({ onToggleView }) => {
         : "text",
       content: suggestion.content,
       pinnedDate: new Date().toISOString().split("T")[0],
-      pinnedBy: "Admin User",
+      pinnedBy: user?.name || "Unknown User",
       originalAuthor: suggestion.studentName,
       isOfficial: false,
       status: "ACTIVE",

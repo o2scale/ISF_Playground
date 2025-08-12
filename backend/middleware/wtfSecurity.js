@@ -137,11 +137,7 @@ const wtfContentValidation = [
     .isIn(["english", "hindi", "both"])
     .withMessage("Language must be english, hindi, or both"),
 
-  // File size validation for media uploads
-  body("fileSize")
-    .if(body("type").isIn(["image", "video", "audio"]))
-    .isInt({ min: 1, max: 50 * 1024 * 1024 }) // Max 50MB
-    .withMessage("File size must be between 1 byte and 50MB"),
+  // File size validation removed - pins can have variable file sizes
 
   // Audio duration validation
   body("audioDuration")
@@ -221,11 +217,7 @@ const wtfSubmissionValidation = [
     .isIn(["english", "hindi"])
     .withMessage("Language must be english or hindi"),
 
-  // File size validation
-  body("fileSize")
-    .if(body("type").equals("voice"))
-    .isInt({ min: 1, max: 25 * 1024 * 1024 }) // Max 25MB for voice notes
-    .withMessage("Voice note file size must be between 1 byte and 25MB"),
+  // File size validation removed - voice notes can have variable file sizes
 
   // Audio duration validation
   body("audioDuration")

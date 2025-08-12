@@ -19,6 +19,7 @@ import { Dialog, DialogContent } from "../ui/dialog.jsx";
 import { Input } from "../ui/input.jsx";
 import { Button } from "../ui/button.jsx";
 import { fetchUsers, getBalagruha } from "../../api";
+import { useAuth } from "../../contexts/AuthContext";
 
 const CreateNewPinModal = ({
   isOpen,
@@ -28,6 +29,7 @@ const CreateNewPinModal = ({
   isStudentMode = false,
   userRole = "admin",
 }) => {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     contentType: "",
@@ -483,23 +485,26 @@ const CreateNewPinModal = ({
     }
 
     const newPin = {
-      id: Date.now(),
       title: formData.title,
-      caption: formData.caption,
-      contentType: formData.contentType,
       content: formData.content,
-      thumbnail:
-        formData.contentType === "image" ? formData.content : undefined,
-      pinnedDate: new Date().toISOString().split("T")[0],
-      pinnedBy: "Admin User",
+      type: formData.contentType, // Backend expects 'type' not 'contentType'
+      author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
       isOfficial: formData.isOfficial,
-      status: isDraft ? "DRAFT" : "ACTIVE",
-      likes: 0,
-      hearts: 0,
-      views: 0,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split("T")[0],
+      status: isDraft ? "archived" : "active", // Backend expects lowercase enum values
+      language: "english", // Default language
+      tags: [], // Default empty tags
+      // Add mediaUrl for media types (image, video, audio)
+      ...(["image", "video", "audio"].includes(formData.contentType) && {
+        mediaUrl: formData.content || "", // For now, use content as mediaUrl - this should be improved for file uploads
+      }),
+      // For text and link types, content is sufficient
+      ...(formData.contentType === "link" && {
+        linkUrl: formData.content,
+      }),
+      // Include file if available (for proper file upload handling)
+      ...(formData.file && {
+        file: formData.file,
+      }),
     };
 
     onCreatePin(newPin);
