@@ -9,6 +9,8 @@ const { uploadWtfMedia } = require("./aws/s3");
 const {
   createWtfPin,
   getActivePins,
+  getActivePinsForAdmin: getActivePinsForAdminDA,
+  getActivePinsCountForAdmin,
   getWtfPinById,
   updateWtfPin,
   deleteWtfPin,
@@ -351,6 +353,39 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in getActivePinsForStudents service"
+      );
+      throw error;
+    }
+  }
+
+  static async getActivePinsForAdmin({
+    page = 1,
+    limit = 20,
+    type = null,
+    isOfficial = null,
+  }) {
+    try {
+      // Use admin version that doesn't filter by expiry date
+      const result = await getActivePinsForAdminDA({
+        page,
+        limit,
+        type,
+        isOfficial,
+      });
+
+      if (result.success) {
+        return {
+          success: true,
+          data: result.data,
+          message: "Active pins fetched successfully for admin",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getActivePinsForAdmin service"
       );
       throw error;
     }
@@ -1089,48 +1124,61 @@ class WtfService {
 
   // ==================== DASHBOARD METRICS ====================
 
-  static async getWtfDashboardMetrics() {
+  static async getWtfDashboardCounts() {
     try {
-      // Get all the metrics needed for dashboard
-      const [activePinsCount, submissionStats, analytics] = await Promise.all([
-        this.getActivePinsCount(),
-        this.getSubmissionStats(),
-        this.getWtfAnalytics(),
-      ]);
+      // Get all the counts needed for dashboard in parallel
+      const [activePinsResult, submissionStatsResult, analyticsResult] =
+        await Promise.all([
+          this.getActivePinsCount(),
+          this.getSubmissionStats(),
+          this.getWtfAnalytics(),
+        ]);
 
-      const dashboardMetrics = {
-        activePins: activePinsCount?.data || 0,
-        coachSuggestions: submissionStats?.data?.pendingCount || 0,
-        studentSubmissions: submissionStats?.data?.newCount || 0,
-        totalEngagement:
-          analytics?.data?.totalViews || analytics?.data?.totalSeen || 0,
-        pendingSuggestions: submissionStats?.data?.pendingCount || 0,
-        newSubmissions: submissionStats?.data?.newCount || 0,
-        reviewQueueCount: submissionStats?.data?.pendingCount || 0,
+      // Extract counts with fallbacks
+      const activePinsCount = activePinsResult?.success
+        ? activePinsResult.data
+        : 0;
+      const submissionStats = submissionStatsResult?.success
+        ? submissionStatsResult.data
+        : {};
+      const analytics = analyticsResult?.success ? analyticsResult.data : {};
+
+      const dashboardCounts = {
+        activePins: activePinsCount,
+        coachSuggestions: submissionStats?.pendingCount || 0,
+        studentSubmissions: submissionStats?.newCount || 0,
+        totalEngagement: analytics?.totalSeen || analytics?.totalViews || 0,
+        // Additional useful metrics
+        totalPins: analytics?.totalPins || 0,
+        officialPins: analytics?.officialPins || 0,
+        totalLikes: analytics?.totalLikes || 0,
+        totalShares: analytics?.totalShares || 0,
       };
 
       return {
         success: true,
-        data: dashboardMetrics,
-        message: "Dashboard metrics fetched successfully",
+        data: dashboardCounts,
+        message: "Dashboard counts fetched successfully",
       };
     } catch (error) {
       errorLogger.error(
         { error: error.message },
-        "Error in getWtfDashboardMetrics service"
+        "Error in getWtfDashboardCounts service"
       );
       throw error;
     }
   }
 
+  // Legacy method for backward compatibility
+  static async getWtfDashboardMetrics() {
+    return this.getWtfDashboardCounts();
+  }
+
   static async getActivePinsCount() {
     try {
-      const result = await getActivePins({ page: 1, limit: 1 });
-      return {
-        success: true,
-        data: result?.pagination?.total || 0,
-        message: "Active pins count fetched successfully",
-      };
+      // Use admin version that doesn't filter by expiry date
+      const result = await getActivePinsCountForAdmin();
+      return result;
     } catch (error) {
       errorLogger.error(
         { error: error.message },
@@ -1183,7 +1231,11 @@ class WtfService {
     try {
       // For now, we'll use the submissions data as coach suggestions
       // In a real implementation, you might have a separate coach suggestions table
-      const result = await WtfService.getSubmissionsForReview({ page, limit, type: null });
+      const result = await WtfService.getSubmissionsForReview({
+        page,
+        limit,
+        type: null,
+      });
 
       if (!result.success) {
         return {

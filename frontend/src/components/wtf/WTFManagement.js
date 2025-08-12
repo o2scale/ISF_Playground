@@ -43,11 +43,7 @@ import {
   getSubmissionsForReview,
   reviewSubmission,
   getWtfAnalytics,
-  getWtfTransactionHistory,
-  getWtfDashboardMetrics,
-  getActivePinsCount,
-  getWtfTotalEngagement,
-  getCoachSuggestionsCount,
+  getWtfDashboardCounts,
   getCoachSuggestions,
 } from "../../api";
 
@@ -96,13 +92,14 @@ const WTFManagementContent = ({ onToggleView }) => {
         limit: 20,
         type: filterType === "all" ? null : filterType,
       });
-      if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
-        setActivePins(pinsResponse.data.pins);
-      } else {
-        setActivePins([]);
-      }
+      const fetchedPins =
+        pinsResponse.success && pinsResponse.data && pinsResponse.data.pins
+          ? pinsResponse.data.pins
+          : [];
+      setActivePins(fetchedPins);
 
       // Fetch submissions for review
+      let fetchedSubmissions = [];
       try {
         const submissionsResponse = await getSubmissionsForReview({
           page: 1,
@@ -110,7 +107,8 @@ const WTFManagementContent = ({ onToggleView }) => {
           type: submissionTab,
         });
         if (submissionsResponse.success) {
-          setStudentSubmissions(submissionsResponse.data || []);
+          fetchedSubmissions = submissionsResponse.data || [];
+          setStudentSubmissions(fetchedSubmissions);
         } else {
           setStudentSubmissions([]);
         }
@@ -120,13 +118,15 @@ const WTFManagementContent = ({ onToggleView }) => {
       }
 
       // Fetch coach suggestions
+      let fetchedSuggestions = [];
       try {
         const coachSuggestionsResponse = await getCoachSuggestions({
           page: 1,
           limit: 20,
         });
         if (coachSuggestionsResponse.success) {
-          setPendingSuggestions(coachSuggestionsResponse.data || []);
+          fetchedSuggestions = coachSuggestionsResponse.data || [];
+          setPendingSuggestions(fetchedSuggestions);
         } else {
           setPendingSuggestions([]);
         }
@@ -141,46 +141,51 @@ const WTFManagementContent = ({ onToggleView }) => {
         setAnalytics(analyticsResponse.data || {});
       }
 
-      // Fetch dashboard metrics
-      try {
-        const [
-          activePinsCount,
-          coachSuggestionsCount,
-          totalEngagementResponse,
-        ] = await Promise.all([
-          getActivePinsCount(),
-          getCoachSuggestionsCount(),
-          getWtfTotalEngagement(),
-        ]);
+      // Calculate dashboard metrics after all data is fetched
+      const calculateDashboardMetrics = (pins, suggestions, submissions) => {
+        return {
+          activePins: Array.isArray(pins)
+            ? pins.filter((p) => p.status === "active").length
+            : 0,
+          coachSuggestions: Array.isArray(suggestions) ? suggestions.length : 0,
+          studentSubmissions: Array.isArray(submissions)
+            ? submissions.filter((s) => s.status === "NEW").length
+            : 0,
+          totalEngagement: Array.isArray(pins)
+            ? pins.reduce(
+                (acc, pin) => acc + (pin.engagementMetrics?.seen || 0),
+                0
+              )
+            : 0,
+        };
+      };
 
-        setDashboardMetrics({
-          activePins: activePinsCount,
-          coachSuggestions: coachSuggestionsCount,
-          studentSubmissions: Array.isArray(studentSubmissions)
-            ? studentSubmissions.filter((s) => s.status === "NEW").length
-            : 0,
-          totalEngagement:
-            totalEngagementResponse?.data?.totalViews ||
-            totalEngagementResponse?.data?.totalSeen ||
-            0,
-        });
+      // Try to fetch unified dashboard counts from the new API
+      try {
+        const dashboardCountsResponse = await getWtfDashboardCounts();
+
+        if (dashboardCountsResponse.success) {
+          const counts = dashboardCountsResponse.data;
+          setDashboardMetrics({
+            activePins: counts.activePins || 0,
+            coachSuggestions: counts.coachSuggestions || 0,
+            studentSubmissions: counts.studentSubmissions || 0,
+            totalEngagement: counts.totalEngagement || 0,
+          });
+        } else {
+          throw new Error("Dashboard counts API returned success: false");
+        }
       } catch (metricsError) {
-        console.error("Error fetching dashboard metrics:", metricsError);
-        // Fallback to local calculations
-        setDashboardMetrics({
-          activePins: Array.isArray(activePins)
-            ? activePins.filter((p) => p.status === "active").length
-            : 0,
-          coachSuggestions: Array.isArray(pendingSuggestions)
-            ? pendingSuggestions.length
-            : 0,
-          studentSubmissions: Array.isArray(studentSubmissions)
-            ? studentSubmissions.filter((s) => s.status === "NEW").length
-            : 0,
-          totalEngagement: Array.isArray(activePins)
-            ? activePins.reduce((acc, pin) => acc + (pin.views || 0), 0)
-            : 0,
-        });
+        console.error("Error fetching dashboard counts:", metricsError);
+        console.log("Using fallback calculations...");
+        // Fallback to local calculations using the fetched data
+        setDashboardMetrics(
+          calculateDashboardMetrics(
+            fetchedPins,
+            fetchedSuggestions,
+            fetchedSubmissions
+          )
+        );
       }
     } catch (error) {
       console.error("Error fetching WTF data:", error);

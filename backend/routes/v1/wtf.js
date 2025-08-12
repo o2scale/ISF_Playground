@@ -40,6 +40,7 @@ const {
 
   // Dashboard Metrics Controllers
   getWtfDashboardMetrics,
+  getDashboardCounts,
   getActivePinsCount,
   getWtfTotalEngagement,
   getCoachSuggestionsCount,
@@ -228,7 +229,15 @@ router.get(
 
 // ==================== DASHBOARD METRICS ROUTES ====================
 
-// Get WTF dashboard metrics (Admin only)
+// Get unified dashboard counts (Admin only) - NEW UNIFIED API
+router.get(
+  "/dashboard/counts",
+  authenticate,
+  authorize(WtfPermissions.WTF_ANALYTICS_READ, "Read"),
+  getDashboardCounts
+);
+
+// Get WTF dashboard metrics (Admin only) - Legacy
 router.get(
   "/dashboard/metrics",
   authenticate,

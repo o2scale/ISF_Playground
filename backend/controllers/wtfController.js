@@ -93,13 +93,33 @@ exports.getActivePins = async (req, res) => {
       `Request received to fetch active WTF pins`
     );
 
-    const result = await WtfService.getActivePinsForStudents({
-      page: parseInt(page),
-      limit: parseInt(limit),
-      type: type || null,
-      isOfficial:
-        isOfficial === "true" ? true : isOfficial === "false" ? false : null,
-    });
+    // Use different service based on user role
+    // Admins can see all active pins (including expired), students see only non-expired pins
+    const isAdmin =
+      req.user?.role === "admin" || req.user?.role === "superadmin";
+    const result = isAdmin
+      ? await WtfService.getActivePinsForAdmin({
+          page: parseInt(page),
+          limit: parseInt(limit),
+          type: type || null,
+          isOfficial:
+            isOfficial === "true"
+              ? true
+              : isOfficial === "false"
+              ? false
+              : null,
+        })
+      : await WtfService.getActivePinsForStudents({
+          page: parseInt(page),
+          limit: parseInt(limit),
+          type: type || null,
+          isOfficial:
+            isOfficial === "true"
+              ? true
+              : isOfficial === "false"
+              ? false
+              : null,
+        });
 
     if (result.success) {
       logger.info(
@@ -1491,7 +1511,64 @@ exports.getWtfDashboardMetrics = async (req, res) => {
   }
 };
 
-// Get active pins count
+// Get unified dashboard counts
+exports.getDashboardCounts = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?.id,
+      },
+      `Request received to fetch dashboard counts`
+    );
+
+    const result = await WtfService.getWtfDashboardCounts();
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?.id,
+          counts: result.data,
+        },
+        `Successfully fetched dashboard counts`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to fetch dashboard counts`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while fetching dashboard counts`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Get active pins count (legacy - kept for backward compatibility)
 exports.getActivePinsCount = async (req, res) => {
   try {
     logger.info(

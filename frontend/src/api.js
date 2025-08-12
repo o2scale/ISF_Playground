@@ -957,7 +957,18 @@ export const getWtfDashboardMetrics = async () => {
   }
 };
 
-// Get active pins count
+// Get unified dashboard counts (NEW)
+export const getWtfDashboardCounts = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/dashboard/counts`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching dashboard counts:", error);
+    throw error;
+  }
+};
+
+// Get active pins count (LEGACY - kept for backward compatibility)
 export const getActivePinsCount = async () => {
   try {
     const response = await api.get(`/api/v1/wtf/pins/active/count`);

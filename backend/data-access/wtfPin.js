@@ -18,12 +18,18 @@ exports.createWtfPin = async (payload) => {
 };
 
 // Get all active pins with pagination
-exports.getActivePins = async ({ page = 1, limit = 20, type = null, author = null, isOfficial = null }) => {
+exports.getActivePins = async ({
+  page = 1,
+  limit = 20,
+  type = null,
+  author = null,
+  isOfficial = null,
+}) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
       status: "active",
-      expiresAt: { $gt: new Date() }
+      expiresAt: { $gt: new Date() },
     };
 
     // Add filters
@@ -50,8 +56,8 @@ exports.getActivePins = async ({ page = 1, limit = 20, type = null, author = nul
           total,
           totalPages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       },
       message: "Active pins fetched successfully",
     };
@@ -101,7 +107,7 @@ exports.updateWtfPin = async (pinId, updateData) => {
   try {
     const pin = await WtfPin.findByIdAndUpdate(pinId, updateData, {
       new: true,
-      runValidators: true
+      runValidators: true,
     }).populate("author", "name role");
 
     if (!pin) {
@@ -127,7 +133,7 @@ exports.updateWtfPin = async (pinId, updateData) => {
 exports.deleteWtfPin = async (pinId) => {
   try {
     const pin = await WtfPin.findByIdAndDelete(pinId);
-    
+
     if (!pin) {
       return {
         success: false,
@@ -176,11 +182,14 @@ exports.updatePinStatus = async (pinId, status) => {
 };
 
 // Get pins by author
-exports.getPinsByAuthor = async (authorId, { page = 1, limit = 20, status = null }) => {
+exports.getPinsByAuthor = async (
+  authorId,
+  { page = 1, limit = 20, status = null }
+) => {
   try {
     const skip = (page - 1) * limit;
     const query = { author: new mongoose.Types.ObjectId(authorId) };
-    
+
     if (status) query.status = status;
 
     const pins = await WtfPin.find(query)
@@ -202,8 +211,8 @@ exports.getPinsByAuthor = async (authorId, { page = 1, limit = 20, status = null
           total,
           totalPages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       },
       message: "Author pins fetched successfully",
     };
@@ -218,7 +227,7 @@ exports.getExpiredPins = async () => {
   try {
     const pins = await WtfPin.find({
       status: "active",
-      expiresAt: { $lte: new Date() }
+      expiresAt: { $lte: new Date() },
     }).lean();
 
     return {
@@ -236,7 +245,7 @@ exports.getExpiredPins = async () => {
 exports.getPinsForFifoManagement = async () => {
   try {
     const activePinsCount = await WtfPin.countDocuments({ status: "active" });
-    
+
     if (activePinsCount <= 20) {
       return {
         success: true,
@@ -256,7 +265,10 @@ exports.getPinsForFifoManagement = async () => {
       message: "Pins for FIFO management fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getPinsForFifoManagement");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getPinsForFifoManagement"
+    );
     throw error;
   }
 };
@@ -266,12 +278,12 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
   try {
     const pin = await WtfPin.findByIdAndUpdate(
       pinId,
-      { 
+      {
         $inc: {
           "engagementMetrics.likes": metrics.likes || 0,
           "engagementMetrics.seen": metrics.seen || 0,
-          "engagementMetrics.shares": metrics.shares || 0
-        }
+          "engagementMetrics.shares": metrics.shares || 0,
+        },
       },
       { new: true, runValidators: true }
     );
@@ -290,7 +302,10 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
       message: "Engagement metrics updated successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in updateEngagementMetrics");
+    errorLogger.error(
+      { error: error.message },
+      "Error in updateEngagementMetrics"
+    );
     throw error;
   }
 };
@@ -299,7 +314,7 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
 exports.getPinAnalytics = async (pinId) => {
   try {
     const pin = await WtfPin.findById(pinId).lean();
-    
+
     if (!pin) {
       return {
         success: false,
@@ -317,7 +332,7 @@ exports.getPinAnalytics = async (pinId) => {
       daysUntilExpiration: pin.daysUntilExpiration,
       isActive: pin.isActive(),
       createdAt: pin.createdAt,
-      expiresAt: pin.expiresAt
+      expiresAt: pin.expiresAt,
     };
 
     return {
@@ -342,37 +357,39 @@ exports.getWtfAnalytics = async () => {
           activePins: {
             $sum: {
               $cond: [
-                { $and: [
-                  { $eq: ["$status", "active"] },
-                  { $gt: ["$expiresAt", new Date()] }
-                ]},
+                {
+                  $and: [
+                    { $eq: ["$status", "active"] },
+                    { $gt: ["$expiresAt", new Date()] },
+                  ],
+                },
                 1,
-                0
-              ]
-            }
+                0,
+              ],
+            },
           },
           totalLikes: { $sum: "$engagementMetrics.likes" },
           totalSeen: { $sum: "$engagementMetrics.seen" },
           totalShares: { $sum: "$engagementMetrics.shares" },
           officialPins: {
-            $sum: { $cond: ["$isOfficial", 1, 0] }
-          }
-        }
-      }
+            $sum: { $cond: ["$isOfficial", 1, 0] },
+          },
+        },
+      },
     ]);
 
     const typeDistribution = await WtfPin.aggregate([
       {
         $group: {
           _id: "$type",
-          count: { $sum: 1 }
-        }
-      }
+          count: { $sum: 1 },
+        },
+      },
     ]);
 
     const result = {
       ...analytics[0],
-      typeDistribution
+      typeDistribution,
     };
 
     return {
@@ -398,7 +415,7 @@ exports.bulkUpdatePinStatus = async (pinIds, status) => {
       success: true,
       data: {
         matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount
+        modifiedCount: result.modifiedCount,
       },
       message: `Bulk updated ${result.modifiedCount} pins to ${status}`,
     };
@@ -406,4 +423,72 @@ exports.bulkUpdatePinStatus = async (pinIds, status) => {
     errorLogger.error({ error: error.message }, "Error in bulkUpdatePinStatus");
     throw error;
   }
-}; 
+};
+
+// Get active pins count for admin (without expiry filter)
+exports.getActivePinsCountForAdmin = async () => {
+  try {
+    const count = await WtfPin.countDocuments({ status: "active" });
+    return {
+      success: true,
+      data: count,
+      message: "Active pins count fetched successfully",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in getActivePinsCountForAdmin"
+    );
+    throw error;
+  }
+};
+
+// Get all active pins for admin (without expiry filter)
+exports.getActivePinsForAdmin = async ({
+  page = 1,
+  limit = 20,
+  type = null,
+  author = null,
+  isOfficial = null,
+}) => {
+  try {
+    const skip = (page - 1) * limit;
+    const query = { status: "active" }; // No expiry filter for admin
+
+    // Add filters
+    if (type) query.type = type;
+    if (author) query.author = mongoose.Types.ObjectId(author);
+    if (isOfficial !== null) query.isOfficial = isOfficial;
+
+    const pins = await WtfPin.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "name role")
+      .lean();
+
+    const total = await WtfPin.countDocuments(query);
+
+    return {
+      success: true,
+      data: {
+        pins,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      },
+      message: "Active pins fetched successfully",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in getActivePinsForAdmin"
+    );
+    throw error;
+  }
+};
