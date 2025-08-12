@@ -1166,6 +1166,18 @@ export const getWtfSubmissionStats = async () => {
   }
 };
 
+// ==================== COINS ====================
+// Get current user's ISF coin balance
+export const getUserCoinBalance = async () => {
+  try {
+    const response = await api.get(`/api/v1/coin/balance`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user coin balance:", error);
+    throw error;
+  }
+};
+
 // Get pending submissions count
 export const getPendingSubmissionsCount = async () => {
   try {
