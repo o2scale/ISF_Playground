@@ -1010,7 +1010,10 @@ class WtfService {
 
       return result;
     } catch (error) {
-      errorLogger.error({ error: error.message }, "Error in submitMedia service");
+      errorLogger.error(
+        { error: error.message },
+        "Error in submitMedia service"
+      );
       throw error;
     }
   }
