@@ -378,7 +378,15 @@ const WTFManagementContent = ({ onToggleView }) => {
 
       if (reviewResponse.success) {
         // Create a new pin from the approved submission
-        const pinType = submission.type === "voice" ? "audio" : "text";
+        let pinType = "text";
+        if (submission.type === "voice") {
+          pinType = "audio";
+        } else if (submission.metadata?.originalType === "video") {
+          pinType = "video";
+        } else if (submission.metadata?.originalType === "image") {
+          pinType = "image";
+        }
+
         const newPin = {
           title: submission.title,
           content: submission.content,

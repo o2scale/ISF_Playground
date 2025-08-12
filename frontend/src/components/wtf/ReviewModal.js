@@ -26,7 +26,13 @@ const ReviewModal = ({
               </p>
             </div>
             <Badge className="text-sm">
-              {submission.type === "voice" ? "Voice Note" : "Article"}
+              {submission.type === "voice"
+                ? "Voice Note"
+                : submission.metadata?.originalType === "video"
+                ? "Video"
+                : submission.metadata?.originalType === "image"
+                ? "Image"
+                : "Article"}
             </Badge>
           </div>
 
@@ -50,6 +56,31 @@ const ReviewModal = ({
                   );
                 })()}
               </div>
+            ) : submission.metadata?.originalType === "video" ? (
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
+                <p className="text-gray-600 mb-4">Video Player</p>
+                <video
+                  controls
+                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
+                  preload="metadata"
+                >
+                  <source src={submission.content} type="video/mp4" />
+                  <source src={submission.content} type="video/webm" />
+                  <source src={submission.content} type="video/ogg" />
+                  Your browser does not support the video element.
+                </video>
+              </div>
+            ) : submission.metadata?.originalType === "image" ? (
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <div className="text-gray-600 mb-4">Image Preview</div>
+                <img
+                  src={submission.content}
+                  alt={submission.title}
+                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg object-contain"
+                  style={{ maxHeight: "400px" }}
+                />
+              </div>
             ) : (
               <div className="prose max-w-none bg-white rounded-lg p-6 border">
                 <div className="text-gray-800 leading-relaxed whitespace-pre-line">
@@ -67,7 +98,7 @@ const ReviewModal = ({
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button variant="outline" onClick={() => onArchive(submission.id)}>
+            <Button variant="outline" onClick={() => onArchive(submission._id)}>
               <Archive className="w-4 h-4 mr-2" />
               Archive
             </Button>

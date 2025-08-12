@@ -40,6 +40,7 @@ import {
   getCoachSuggestionsCount,
   submitVoiceNote,
   submitArticle,
+  submitWtfMedia,
   updateWtfSettings,
   uploadWtfBackgroundImage,
   getWtfDashboardCounts,
@@ -425,6 +426,40 @@ const WallOfFameContent = ({ onToggleView }) => {
         if (submissionData.title) fd.append("title", submissionData.title);
         fd.append("type", "voice");
         response = await submitVoiceNote(fd);
+      } else if (
+        newPin.contentType === "image" ||
+        newPin.contentType === "video"
+      ) {
+        // Handle image and video uploads
+        if (!submissionData.file) {
+          throw new Error(`Please upload a ${newPin.contentType} file`);
+        }
+
+        console.log("Submitting media file:", {
+          contentType: newPin.contentType,
+          fileName: submissionData.file.name,
+          fileSize: submissionData.file.size,
+          fileType: submissionData.file.type,
+        });
+
+        const fd = new FormData();
+        fd.append("file", submissionData.file);
+        fd.append("title", submissionData.title);
+        fd.append("type", newPin.contentType);
+        if (submissionData.language)
+          fd.append("language", submissionData.language);
+        if (submissionData.tags && submissionData.tags.length > 0) {
+          submissionData.tags.forEach((tag) => fd.append("tags[]", tag));
+        }
+
+        console.log("FormData contents:", {
+          title: fd.get("title"),
+          type: fd.get("type"),
+          file: fd.get("file"),
+        });
+
+        response = await submitWtfMedia(fd);
+        console.log("Media submission response:", response);
       } else {
         response = await submitArticle(submissionData);
       }

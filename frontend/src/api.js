@@ -802,10 +802,17 @@ export const submitVoiceNote = async (data) => {
 
 export const submitWtfMedia = async (formData) => {
   try {
+    console.log("submitWtfMedia called with:", {
+      formDataEntries: Array.from(formData.entries()),
+      formDataKeys: Array.from(formData.keys()),
+    });
+
     const response = await apiWithoutContentType.post(
       `/api/v1/wtf/submissions/media`,
       formData
     );
+
+    console.log("submitWtfMedia response:", response);
     return response.data;
   } catch (error) {
     console.error("Error submitting WTF media:", error);
