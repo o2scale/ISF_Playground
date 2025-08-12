@@ -1812,6 +1812,7 @@ exports.createCoachSuggestion = async (req, res) => {
       ...req.body,
       coachId: req.user?.id,
       suggestedBy: req.user?.name || req.user?.email || "Coach",
+      file: req.file || null,
     };
 
     logger.info(

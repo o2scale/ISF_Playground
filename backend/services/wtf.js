@@ -878,6 +878,30 @@ class WtfService {
         },
       };
 
+      // If a file was uploaded, store it in S3 and cleanup local temp
+      if (payload.file && payload.file.path) {
+        try {
+          const s3Url = await uploadWtfVoiceNote(
+            payload.file.path,
+            `submission_${Date.now()}`
+          );
+          if (s3Url && s3Url.url) {
+            submissionData.audioUrl = s3Url.url;
+          }
+          try {
+            const fs = require("fs");
+            if (fs.existsSync(payload.file.path)) {
+              fs.unlinkSync(payload.file.path);
+            }
+          } catch {}
+        } catch (e) {
+          errorLogger.error(
+            { error: e.message },
+            "Failed to upload voice note to S3"
+          );
+        }
+      }
+
       const result = await createWtfSubmission(submissionData);
 
       // Trigger real-time event
@@ -986,8 +1010,47 @@ class WtfService {
       if (action === "approve") {
         result = await approveSubmission(submissionId, reviewerId, notes);
 
-        // Award coins for submission approval
-        if (result.success) {
+        // On approval, auto-create a pin which will appear on the Wall of Fame
+        if (result.success && result.data) {
+          try {
+            const approvedSubmission = result.data;
+            const pinType =
+              approvedSubmission.type === "voice" ? "audio" : "text";
+            const pinPayload = {
+              title: approvedSubmission.title,
+              // For text pins, the backend reads `content`; for audio we pass media via `mediaUrl`
+              content:
+                pinType === "text"
+                  ? approvedSubmission.content
+                  : approvedSubmission.audioUrl,
+              type: pinType,
+              ...(pinType === "audio" && {
+                mediaUrl: approvedSubmission.audioUrl,
+              }),
+              author: new mongoose.Types.ObjectId(reviewerId),
+              status: "active",
+              isOfficial: false,
+              language: approvedSubmission.language || "english",
+              tags: approvedSubmission.tags || [],
+            };
+
+            const pinCreateResult = await createWtfPin(pinPayload);
+            if (pinCreateResult?.success) {
+              // Link the created pin back to the submission
+              await updateWtfSubmission(submissionId, {
+                approvedPinId: pinCreateResult.data._id,
+              });
+              // Attach info for client
+              result.data.approvedPin = pinCreateResult.data;
+            }
+          } catch (pinError) {
+            errorLogger.error(
+              { submissionId, reviewerId, error: pinError.message },
+              "Error creating pin from approved submission"
+            );
+          }
+
+          // Award coins for submission approval
           try {
             const coinResult = await CoinService.awardSubmissionApprovalCoins(
               result.data.studentId,
@@ -1476,13 +1539,43 @@ class WtfService {
         tags: payload.tags || [],
       };
 
-      // Add type-specific fields
-      if (submissionType === "voice") {
-        suggestionData.audioUrl = payload.audioUrl || payload.content;
-        suggestionData.audioDuration = payload.audioDuration || 0;
-        suggestionData.audioTranscription = payload.audioTranscription;
+      // If a file is present, upload to S3 first and get a URL
+      if (payload.file && payload.file.path) {
+        try {
+          const s3Url = await uploadWtfMedia(
+            payload.file.path,
+            payload.type === "audio" ? "audio" : payload.type,
+            `coach_suggestion_${Date.now()}`
+          );
+          // Map to correct field
+          if (submissionType === "voice") {
+            suggestionData.audioUrl = s3Url;
+          } else if (submissionType === "article") {
+            suggestionData.content = payload.content || "";
+          }
+          // Clean up local temp file
+          try {
+            if (fs.existsSync(payload.file.path)) {
+              fs.unlinkSync(payload.file.path);
+            }
+          } catch {}
+        } catch (e) {
+          errorLogger.error(
+            { error: e.message },
+            "S3 upload failed for coach suggestion"
+          );
+        }
       } else {
-        suggestionData.content = payload.content;
+        // No file provided; use URL/text from payload
+        if (submissionType === "voice") {
+          suggestionData.audioUrl = payload.audioUrl || payload.content;
+          if (payload.audioDuration != null) {
+            suggestionData.audioDuration = payload.audioDuration;
+          }
+          suggestionData.audioTranscription = payload.audioTranscription;
+        } else {
+          suggestionData.content = payload.content;
+        }
       }
 
       // Create the suggestion using the submission system

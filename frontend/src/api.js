@@ -594,9 +594,22 @@ export const getActiveWtfPins = async (params = {}) => {
 
 export const createCoachSuggestion = async (suggestionData) => {
   try {
-    const formData = new FormData();
+    // If no file is present, send JSON so backend validators can read body
+    if (!suggestionData.file) {
+      const response = await api.post("/api/v1/wtf/coach-suggestions", {
+        title: suggestionData.title,
+        content: suggestionData.content || "",
+        type: suggestionData.type,
+        studentName: suggestionData.studentName,
+        studentId: suggestionData.studentId,
+        balagruha: suggestionData.balagruha || "",
+        reason: suggestionData.reason,
+      });
+      return response.data;
+    }
 
-    // Add all the suggestion data
+    // Fallback to multipart when a file is attached
+    const formData = new FormData();
     formData.append("title", suggestionData.title);
     formData.append("content", suggestionData.content || "");
     formData.append("type", suggestionData.type);
@@ -604,11 +617,7 @@ export const createCoachSuggestion = async (suggestionData) => {
     formData.append("studentId", suggestionData.studentId);
     formData.append("balagruha", suggestionData.balagruha || "");
     formData.append("reason", suggestionData.reason);
-
-    // Add file if present
-    if (suggestionData.file) {
-      formData.append("file", suggestionData.file);
-    }
+    formData.append("file", suggestionData.file);
 
     const response = await api.post("/api/v1/wtf/coach-suggestions", formData, {
       headers: {
@@ -788,7 +797,8 @@ export const getSubmissionsForReview = async (params = {}) => {
 
 export const reviewSubmission = async (submissionId, data) => {
   try {
-    const response = await api.post(
+    // Backend route expects PUT
+    const response = await api.put(
       `/api/v1/wtf/submissions/${submissionId}/review`,
       data
     );

@@ -72,11 +72,11 @@ const wtfRateLimiters = {
 
 // Content sanitization and validation for WTF submissions
 const wtfContentValidation = [
-  // Title validation
+  // Title validation (presence only)
   body("title")
     .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage("Title must be between 1 and 200 characters")
+    .notEmpty()
+    .withMessage("Title is required")
     .escape()
     .customSanitizer((value) => {
       // Remove potentially dangerous HTML/script tags
@@ -152,11 +152,11 @@ const wtfContentValidation = [
 
 // Validation for WTF submissions
 const wtfSubmissionValidation = [
-  // Title validation
+  // Title validation (presence only)
   body("title")
     .trim()
-    .isLength({ min: 1, max: 200 })
-    .withMessage("Title must be between 1 and 200 characters")
+    .notEmpty()
+    .withMessage("Title is required")
     .escape()
     .customSanitizer((value) => {
       return value.replace(
@@ -288,10 +288,7 @@ const checkContentSizeLimits = (type) => {
 
     const violations = [];
 
-    // Check title length
-    if (req.body.title && req.body.title.length > limits.title) {
-      violations.push(`Title exceeds ${limits.title} character limit`);
-    }
+    // Title length is not limited (presence checked in validators only)
 
     // Check content length
     if (req.body.content && req.body.content.length > limits.content) {

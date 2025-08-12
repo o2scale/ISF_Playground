@@ -558,7 +558,18 @@ const CreateNewPinModal = ({
             "image/webp",
           ],
           video: ["video/mp4", "video/mov", "video/avi", "video/webm"],
-          audio: ["audio/mp3", "audio/wav", "audio/m4a", "audio/aac"],
+          // Note: browsers commonly report MP3 mime type as audio/mpeg
+          // Include common variants for WAV and M4A as well
+          audio: [
+            "audio/mp3",
+            "audio/mpeg",
+            "audio/wav",
+            "audio/wave",
+            "audio/x-wav",
+            "audio/m4a",
+            "audio/mp4",
+            "audio/aac",
+          ],
         };
 
         if (!allowedTypes[formData.contentType].includes(formData.file.type)) {
@@ -579,11 +590,19 @@ const CreateNewPinModal = ({
         title: formData.title,
         content: formData.content,
         type: formData.contentType, // Backend expects 'type' not 'contentType'
+        contentType: formData.contentType, // Keep original for frontend flow branching
         author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
         isOfficial: formData.isOfficial,
         status: isDraft ? "archived" : "active", // Backend expects lowercase enum values
         language: "english", // Default language
         tags: [], // Default empty tags
+        // Coach suggestion specific fields needed by parent handler to route correctly
+        ...(isCoachMode && {
+          studentName: formData.studentName,
+          studentId: formData.studentId,
+          balagruha: formData.balagruha,
+          reason: formData.reason,
+        }),
         // For text and link types, content is sufficient
         ...(formData.contentType === "link" && {
           linkUrl: formData.content,

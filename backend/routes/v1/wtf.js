@@ -169,6 +169,7 @@ router.post(
   "/submissions/voice",
   authenticate,
   authorize(WtfPermissions.WTF_SUBMISSION_CREATE, "Create"),
+  wtfUploadWithErrorHandling,
   wtfSecurityHeaders,
   wtfRateLimiters.submissions,
   wtfSubmissionValidation,
@@ -288,6 +289,8 @@ router.post(
   "/coach-suggestions",
   authenticate,
   authorize(WtfPermissions.WTF_COACH_SUGGESTION_CREATE, "Create"),
+  // Parse multipart form-data if the client sends FormData (even without a file)
+  wtfUploadWithErrorHandling,
   wtfSecurityHeaders,
   wtfRateLimiters.submissions,
   wtfContentValidation,
