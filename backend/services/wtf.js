@@ -1643,7 +1643,7 @@ class WtfService {
             ? submission.audioUrl
             : submission.content;
         return {
-          id: submission._id,
+          _id: submission._id, // Use _id to match frontend expectations
           studentName: meta.studentName || "Unknown Student",
           coachName: meta.suggestedBy || "Coach",
           workType:
@@ -1655,8 +1655,8 @@ class WtfService {
           content: contentUrl,
           suggestedDate: submission.createdAt,
           status: submission.status
-            ? submission.status.toUpperCase()
-            : "PENDING",
+            ? submission.status.toLowerCase() // Use lowercase to match frontend expectations
+            : "pending",
           balagruha: meta.balagruha || "Unknown House",
         };
       });

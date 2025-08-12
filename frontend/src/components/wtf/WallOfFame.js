@@ -121,7 +121,6 @@ const WallOfFameContent = ({ onToggleView }) => {
 
         if (dashboardCountsResponse.success) {
           const counts = dashboardCountsResponse.data;
-          console.log("Admin counts from dashboard:", counts);
 
           setAdminCounts({
             pendingSuggestions: counts.coachSuggestions || 0,
@@ -138,14 +137,6 @@ const WallOfFameContent = ({ onToggleView }) => {
 
           const coachPending = coachCountResp?.data?.pendingCount || 0;
           const studentPending = studentPendingResp || 0;
-
-          console.log("Admin counts fallback calculation:", {
-            coachCountResp,
-            studentPendingResp,
-            coachPending,
-            studentPending,
-            reviewQueue: coachPending + studentPending,
-          });
 
           setAdminCounts({
             pendingSuggestions: coachPending,
@@ -186,15 +177,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   }, [isAdmin]);
 
   const handlePinClick = (item) => {
-    console.log("Pin clicked:", {
-      id: item._id,
-      type: item.type,
-      title: item.title,
-      content: item.content,
-      mediaUrl: item.mediaUrl,
-      thumbnailUrl: item.thumbnailUrl,
-    });
-
     setSelectedContent(item);
 
     // Smart type detection: if type is "text" but content looks like an image URL, treat it as photo
@@ -209,7 +191,6 @@ const WallOfFameContent = ({ onToggleView }) => {
         item.content.includes(".gif"))
     ) {
       effectiveType = "image";
-      console.log("Detected image content in text pin, treating as image");
     }
 
     // Map backend types to frontend modal types
@@ -260,10 +241,8 @@ const WallOfFameContent = ({ onToggleView }) => {
     try {
       setIsSaving(true);
       setBgError("");
-      console.log("Saving background settings:", previewBgSettings);
 
       const response = await updateWtfSettings(previewBgSettings);
-      console.log("Save response:", response);
 
       // Update the context with saved settings
       updateBackgroundSettings(previewBgSettings);
@@ -351,8 +330,6 @@ const WallOfFameContent = ({ onToggleView }) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log("Selected file:", file.name, file.size, file.type);
-
     // Validate file
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
@@ -374,12 +351,9 @@ const WallOfFameContent = ({ onToggleView }) => {
       setIsUploadingBg(true);
       setBgError("");
 
-      console.log("Starting image upload...");
       const uploadResponse = await uploadWtfBackgroundImage(file);
-      console.log("Upload response:", uploadResponse);
 
       const imageUrl = uploadResponse.data?.imageUrl || uploadResponse.imageUrl;
-      console.log("Image URL:", imageUrl);
 
       if (!imageUrl) {
         throw new Error("No image URL returned from upload");
@@ -411,8 +385,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   };
 
   const handleCreatePin = async (newPin) => {
-    console.log("Creating new pin:", newPin);
-
     if (isCoach && newPin.studentId) {
       // This is a coach suggestion
       const suggestionData = {
@@ -460,13 +432,6 @@ const WallOfFameContent = ({ onToggleView }) => {
           throw new Error(`Please upload a ${newPin.contentType} file`);
         }
 
-        console.log("Submitting media file:", {
-          contentType: newPin.contentType,
-          fileName: submissionData.file.name,
-          fileSize: submissionData.file.size,
-          fileType: submissionData.file.type,
-        });
-
         const fd = new FormData();
         fd.append("file", submissionData.file);
         fd.append("title", submissionData.title);
@@ -477,14 +442,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           submissionData.tags.forEach((tag) => fd.append("tags[]", tag));
         }
 
-        console.log("FormData contents:", {
-          title: fd.get("title"),
-          type: fd.get("type"),
-          file: fd.get("file"),
-        });
-
         response = await submitWtfMedia(fd);
-        console.log("Media submission response:", response);
       } else {
         response = await submitArticle(submissionData);
       }
@@ -568,16 +526,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       case "image":
         // Use thumbnail first, then mediaUrl, or default to gray background
         const imageUrl = thumbnail || mediaUrl;
-        console.log(
-          "Card background - Type:",
-          type,
-          "Thumbnail:",
-          thumbnail,
-          "MediaUrl:",
-          mediaUrl,
-          "Using:",
-          imageUrl
-        );
+
         return imageUrl
           ? {
               backgroundImage: `url(${imageUrl})`,
@@ -1150,12 +1099,6 @@ const WallOfFameContent = ({ onToggleView }) => {
               src = selectedContent.content;
             }
 
-            console.log("ImageViewer imageSrc:", {
-              mediaUrl: selectedContent.mediaUrl,
-              content: selectedContent.content,
-              finalSrc: src,
-              pinType: selectedContent.type,
-            });
             return src;
           })()}
           title={selectedContent.title}

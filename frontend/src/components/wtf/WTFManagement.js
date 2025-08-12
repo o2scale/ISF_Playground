@@ -509,12 +509,18 @@ const WTFManagementContent = ({ onToggleView }) => {
           }
         }
 
-        // Refresh dashboard counts using the unified counts API
+        // Refresh dashboard counts and coach suggestions list
         try {
-          const countsResp = await getWtfDashboardCounts();
+          const [countsResp, suggestionsResp] = await Promise.all([
+            getWtfDashboardCounts(),
+            getCoachSuggestions({ page: 1, limit: 20 }),
+          ]);
+
           if (countsResp.success) setDashboardMetrics(countsResp.data);
+          if (suggestionsResp.success)
+            setCoachSuggestions(suggestionsResp.data || []);
         } catch (e) {
-          // Fallback update if counts API fails
+          // Fallback update if APIs fail
           setDashboardMetrics((prev) => ({
             ...prev,
             activePins: (prev.activePins || 0) + 1,
@@ -532,22 +538,38 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handleArchiveCoachSuggestion = async (suggestionId) => {
     try {
+      console.log("handleArchiveCoachSuggestion called with ID:", suggestionId);
+
       // Use the existing review API to reject (archive) the suggestion
       const response = await reviewSubmission(suggestionId, {
         action: "reject",
         notes: "Archived by admin",
       });
 
+      console.log("Archive API response:", response);
+
       if (response && response.success) {
-        // Remove from pending queue
-        setCoachSuggestions((prev) =>
-          prev.filter((s) => s._id !== suggestionId)
-        );
-        // Update badge metric locally
-        setDashboardMetrics((prev) => ({
-          ...prev,
-          coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
-        }));
+        console.log("Archive successful, refreshing data...");
+        // Refresh dashboard counts and coach suggestions list
+        try {
+          const [countsResp, suggestionsResp] = await Promise.all([
+            getWtfDashboardCounts(),
+            getCoachSuggestions({ page: 1, limit: 20 }),
+          ]);
+
+          if (countsResp.success) setDashboardMetrics(countsResp.data);
+          if (suggestionsResp.success)
+            setCoachSuggestions(suggestionsResp.data || []);
+        } catch (e) {
+          console.error("Error refreshing data after archive:", e);
+          // Fallback update if APIs fail
+          setDashboardMetrics((prev) => ({
+            ...prev,
+            coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
+          }));
+        }
+      } else {
+        console.error("Archive API returned success: false");
       }
     } catch (error) {
       console.error("Error archiving coach suggestion:", error);
@@ -590,7 +612,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const paginatedCoachSuggestions = useMemo(() => {
     if (!Array.isArray(coachSuggestions)) return [];
     const pendingSuggestions = coachSuggestions.filter(
-      (s) => s.status === "PENDING"
+      (s) => s.status === "pending" // Changed from "PENDING" to "pending"
     );
     const startIndex = (coachSuggestionsPage - 1) * coachSuggestionsPerPage;
     const endIndex = startIndex + coachSuggestionsPerPage;
@@ -599,7 +621,7 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const totalCoachSuggestionsPages = Math.ceil(
     (Array.isArray(coachSuggestions)
-      ? coachSuggestions.filter((s) => s.status === "PENDING").length
+      ? coachSuggestions.filter((s) => s.status === "pending").length // Changed from "PENDING" to "pending"
       : 0) / coachSuggestionsPerPage
   );
 
@@ -633,7 +655,7 @@ const WTFManagementContent = ({ onToggleView }) => {
       ).length
     : 0;
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
-    ? coachSuggestions.filter((s) => s.status === "PENDING").length
+    ? coachSuggestions.filter((s) => s.status === "pending").length // Changed from "PENDING" to "pending"
     : 0; // Real data from API
 
   return (
@@ -1100,7 +1122,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                     <h3 className="text-lg font-semibold">
                       Coach Suggestions for WTF (
                       {
-                        coachSuggestions.filter((s) => s.status === "PENDING")
+                        coachSuggestions.filter((s) => s.status === "pending")
                           .length
                       }{" "}
                       Pending)

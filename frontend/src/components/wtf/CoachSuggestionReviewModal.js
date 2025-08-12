@@ -112,7 +112,17 @@ const CoachSuggestionReviewModal = ({
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button variant="outline" onClick={() => onArchive(suggestion.id)}>
+            <Button
+              variant="outline"
+              onClick={() => {
+                console.log(
+                  "Archive button clicked for suggestion:",
+                  suggestion
+                );
+                console.log("Calling onArchive with ID:", suggestion._id);
+                onArchive(suggestion._id);
+              }}
+            >
               <Archive className="w-4 h-4 mr-2" />
               Archive
             </Button>
