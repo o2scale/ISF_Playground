@@ -397,6 +397,35 @@ const WTFManagementContent = ({ onToggleView }) => {
           );
           setShowReviewModal(false);
           setSelectedSubmission(null);
+
+          // Refresh dashboard counts after pinning
+          try {
+            const countsResp = await getWtfDashboardCounts();
+            if (countsResp.success) {
+              setDashboardMetrics(countsResp.data);
+            } else {
+              // Fallback optimistic update
+              setDashboardMetrics((prev) => ({
+                ...prev,
+                activePins: (prev.activePins || 0) + 1,
+                studentSubmissions: Math.max(
+                  0,
+                  (prev.studentSubmissions || 1) - 1
+                ),
+              }));
+            }
+          } catch (e) {
+            console.error("Failed to refresh dashboard counts:", e);
+            // Fallback optimistic update
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              activePins: (prev.activePins || 0) + 1,
+              studentSubmissions: Math.max(
+                0,
+                (prev.studentSubmissions || 1) - 1
+              ),
+            }));
+          }
         }
       }
     } catch (error) {
@@ -418,6 +447,30 @@ const WTFManagementContent = ({ onToggleView }) => {
         );
         setShowReviewModal(false);
         setSelectedSubmission(null);
+
+        // Refresh dashboard counts after archiving
+        try {
+          const countsResp = await getWtfDashboardCounts();
+          if (countsResp.success) {
+            setDashboardMetrics(countsResp.data);
+          } else {
+            // Fallback optimistic update
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              studentSubmissions: Math.max(
+                0,
+                (prev.studentSubmissions || 1) - 1
+              ),
+            }));
+          }
+        } catch (e) {
+          console.error("Failed to refresh dashboard counts:", e);
+          // Fallback optimistic update
+          setDashboardMetrics((prev) => ({
+            ...prev,
+            studentSubmissions: Math.max(0, (prev.studentSubmissions || 1) - 1),
+          }));
+        }
       }
     } catch (error) {
       console.error("Error archiving submission:", error);
