@@ -1,16 +1,21 @@
 import React, { useEffect, useRef, useState } from "react";
 import { addUsers, getBalagruha, getMachines, updateUsers } from "../../api";
 import "./UserForm.css";
+import { Modal } from "./modal";
+import FaceCapture from "./FaceCapture";
 
 const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
   console.log("usdsds", user);
   const [machines, setMachines] = useState([]);
   const role = localStorage.getItem("role");
   const [machineDropdownOpen, setMachineDropdownOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+  const faceCaptureRef = useRef();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     password: "",
+    userId: "",
     role: "student",
     status: "active",
     age: "",
@@ -38,6 +43,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
         },
         prescriptions: [],
         otherAttachments: [],
+        _id: ""
       },
     ],
   });
@@ -78,11 +84,11 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
   useEffect(() => {
     if (mode === "edit" && user) {
-      console.log("edit user data", user);
       // Set basic user data
       setFormData({
         name: user.name || "",
         email: user.email || "",
+        userId: user?.userId || "",
         role: user.role || "student",
         status: user.status || "active",
         age: user.age || "",
@@ -112,6 +118,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                 },
                 prescriptions: history.prescriptions || [],
                 otherAttachments: history.otherAttachments || [],
+                _id: history._id
               }))
             : [
                 {
@@ -128,6 +135,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                   },
                   prescriptions: [],
                   otherAttachments: [],
+                  _id: ''
                 },
               ],
       });
@@ -184,8 +192,26 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
   const fetchBalagruhaOptions = async () => {
     try {
-      const response = await getBalagruha();
-      setBalagruhaOptions(response?.data?.balagruhas || []);
+
+      if(localStorage.getItem('role') === 'coach') {
+        const response = await getBalagruha();
+        const allBalagruhas = response?.data?.balagruhas || [];
+
+        const storedIds = localStorage.getItem("balagruhaIds");
+        const allowedIds = storedIds ? storedIds.split(",") : [];
+
+        // Filter based on allowed IDs
+        const filteredBalagruhas = allBalagruhas.filter(bg =>
+          allowedIds.includes(bg._id)
+        );
+
+        console.log(filteredBalagruhas, "Filtered balagruha options");
+        setBalagruhaOptions(filteredBalagruhas);
+      } else {
+        const response = await getBalagruha();
+        setBalagruhaOptions(response?.data?.balagruhas || []);
+      }
+      
     } catch (error) {
       console.error("Error fetching balagruha options:", error);
     }
@@ -210,6 +236,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           },
           prescriptions: [],
           otherAttachments: [],
+          _id: ''
         },
       ],
     }));
@@ -377,6 +404,12 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       newErrors.name = "Name is required";
     }
 
+    if (formData.role !== "admin") {
+      if (!formData.balagruhaIds || formData.balagruhaIds.length === 0) {
+        newErrors.balagruhaIds = "Please select at least one Balagruha";
+      }
+    }
+
     if (formData.role === "student") {
       if (!formData.age) {
         newErrors.age = "Age is required";
@@ -526,7 +559,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     try {
       const formDataToSend = new FormData();
 
-      // Add basic fields
+    //   Add basic fields
       formDataToSend.append("name", formData.name);
       formDataToSend.append("email", formData.email);
       formDataToSend.append("role", formData.role);
@@ -547,6 +580,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       // Add student-specific fields if role is student
       if (formData.role === "student") {
         formDataToSend.append("age", formData.age);
+        formDataToSend.append("userId", formData.userId);
         formDataToSend.append("gender", formData.gender);
         formDataToSend.append("parentalStatus", formData.parentalStatus);
         formDataToSend.append("nextActionDate", formData.nextActionDate);
@@ -618,6 +652,11 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
             history.currentStatus.date
           );
 
+          formDataToSend.append(
+            `medicalHistory[${index}]._id`,
+            history._id
+          )
+
           // Add files if available
           if (files.medicalHistoryFiles[index]?.prescriptions) {
             files.medicalHistoryFiles[index].prescriptions.forEach((file) => {
@@ -649,7 +688,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
             //         formDataToSend.append(`medicalHistory[${index}].existingPrescriptions`, prescriptionId);
             //     });
             // }
-            // For other attachments that weren't changed
+            // // For other attachments that weren't changed
             // if (user.medicalHistory[index].otherAttachments?.length > 0 &&
             //     (!files.medicalHistoryFiles[index]?.otherAttachments ||
             //         files.medicalHistoryFiles[index]?.otherAttachments.length === 0)) {
@@ -657,6 +696,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
             //         formDataToSend.append(`medicalHistory[${index}].existingOtherAttachments`, attachmentId);
             //     });
             // }
+            
           }
         });
       }
@@ -669,6 +709,9 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       }
 
       // Use the API functions with FormData
+      console.log(
+        files.facialData,
+      );
       const response =
         mode === "add"
           ? await addUsers(formDataToSend)
@@ -679,15 +722,37 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       console.error("Error submitting form:", error);
       setErrors((prev) => ({
         ...prev,
-        submit: error.message || "An error occurred while saving the user",
+        submit: error.response.data.message || "An error occurred while saving the user",
       }));
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  const handleCloseModal = () => {
+    if (faceCaptureRef.current) {
+      faceCaptureRef.current.stopCamera(); // Ensures camera is stopped
+    }
+    setIsOpen(false);
+  };
+
   return (
     <div className="user-form-container">
+      <Modal
+        isOpen={isOpen}
+        title={"Capture Photo"}
+        onClose={handleCloseModal}
+        children={
+          <FaceCapture
+            ref={faceCaptureRef}
+            onCapture={(file, previewUrl) => {
+              setFiles((prev) => ({ ...prev, facialData: file }));
+              setPreviews((prev) => ({ ...prev, facialData: previewUrl }));
+              handleCloseModal();
+            }}
+          />
+        }
+      />
       <div className="form-header">
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span
@@ -727,14 +792,17 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
               onChange={handleInputChange}
               className={errors.name ? "error" : ""}
               placeholder="Enter full name"
+              disabled={localStorage.getItem('role') === 'medical-incharge'}
             />
             {errors.name && (
               <span className="error-message">{errors.name}</span>
             )}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="email">Email *</label>
+          {localStorage.getItem('role') !== 'medical-incharge' && (
+          <>
+            <div className="form-group">
+            <label htmlFor="email">Email</label>
             <input
               type="email"
               id="email"
@@ -747,7 +815,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
           {localStorage.getItem("role") === "admin" && (
             <div className="form-group">
-              <label htmlFor="password">Password *</label>
+              <label htmlFor="password">Password</label>
               <div className="password-input-group">
                 <input
                   type="text"
@@ -789,13 +857,15 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
               value={formData.role}
               onChange={handleInputChange}
               className={errors.role ? "error" : ""}
+              selected={localStorage?.getItem('role') === "coach" ? "student" : ""}
+              disabled={localStorage?.getItem('role') === "coach" ? true : false}
             >
               <option value="student">Student</option>
               <option value="admin">Admin</option>
               <option value="coach">Coach</option>
               <option value="balagruha-incharge">Balagruha In-charge</option>
               <option value="purchase-manager">Purchase Manager</option>
-              <option value="medical-incharge">Medical Manager</option>
+              <option value="medical-incharge">Medical Incharge</option>
               <option value="sports-coach">Sports Coach</option>
               <option value="music-coach">Music Coach</option>
               <option value="amma">Amma</option>
@@ -839,7 +909,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
               <div className="form-balagruha-selector">
                 <div
                   className={`form-dropdown-header ${
-                    errors.balagruhaIds ? "form-error" : ""
+                    errors.balagruhaIds ? "form-error redbtndiv" : ""
                   }`}
                   onClick={() => setDropdownOpen((prev) => !prev)}
                 >
@@ -906,12 +976,14 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                 )}
               </div>
               {errors.balagruhaIds && (
-                <span className="form-error-message">
+                <span className="form-error-message redbtn">
                   {errors.balagruhaIds}
                 </span>
               )}
             </div>
           )}
+          </>
+         )}
         </div>
 
         {/* Student Specific Fields */}
@@ -920,6 +992,21 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
             <h3>Student Information</h3>
 
             <div className="form-group">
+              <label htmlFor="userId">User ID *</label>
+              <input
+                type="text"
+                id="userId"
+                name="userId"
+                value={formData.userId}
+                onChange={handleInputChange}
+                placeholder="Enter User ID"
+                disabled={localStorage.getItem('role') === 'medical-incharge'}
+              />
+            </div>
+
+            {localStorage.getItem('role') !== 'medical-incharge' && (
+              <>
+              <div className="form-group">
               <label>Assigned Machines</label>
               <div className="form-machine-selector">
                 <div
@@ -1225,9 +1312,15 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                   className="file-upload-btn"
                   onClick={() => fileInputRefs.facialData.current.click()}
                 >
-                  {files.facialData || previews.facialData
-                    ? "Change Photo"
-                    : "Upload Photo"}
+                  {/* {files.facialData || previews.facialData ? 'Change Photo' : 'Upload Photo'} */}
+                  Upload Photo
+                </button>
+                <button
+                  type="button"
+                  className="file-upload-btn"
+                  onClick={() => setIsOpen(true)}
+                >
+                  Capture Photo
                 </button>
                 {(files.facialData || previews.facialData) && (
                   <div className="file-preview">
@@ -1243,6 +1336,8 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                 <span className="error-message">{errors.facialData}</span>
               )}
             </div>
+              </>
+            ) }
           </div>
         )}
 

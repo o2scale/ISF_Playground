@@ -17,7 +17,7 @@
   --border-radius: 12px;
   --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
-  --font-family: "Nunito", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  --font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* Reset and Base Styles */
@@ -483,6 +483,7 @@ select {
 .user-table td {
   padding: 16px;
   border-bottom: 1px solid var(--gray-light);
+  word-wrap: break-word;
 }
 
 .user-table tr:last-child td {
@@ -927,7 +928,7 @@ select {
 }
 
 .timeline-item:not(:last-child)::after {
-  content: "";
+  content: '';
   position: absolute;
   top: 40px;
   left: 20px;
@@ -1362,4 +1363,9 @@ select {
 
 .user-balagruha-checkbox {
   width: auto !important;
+}
+
+.search-box-input {
+  display: flex;
+  gap: 40px;
 }

@@ -117,21 +117,13 @@ const WTFManagementContent = ({ onToggleView }) => {
         const submissionsResponse = await getSubmissionsForReview({
           page: 1,
           limit: 20,
-          type: null, // Fetch all types, we'll filter on frontend
-          isCoachSuggestion: false, // Only fetch student submissions, not coach suggestions
+          type: submissionTab,
         });
         if (submissionsResponse.success) {
           fetchedSubmissions =
-            (submissionsResponse.data &&
-              submissionsResponse.data.submissions) ||
-            [];
-
-          console.log("Submissions response:", submissionsResponse);
-          console.log("Fetched submissions:", fetchedSubmissions);
-
+            (submissionsResponse.data && submissionsResponse.data.submissions) || [];
           setStudentSubmissions(fetchedSubmissions);
         } else {
-          console.error("Submissions API failed:", submissionsResponse);
           setStudentSubmissions([]);
         }
       } catch (error) {
@@ -176,11 +168,7 @@ const WTFManagementContent = ({ onToggleView }) => {
             : 0,
           coachSuggestions: Array.isArray(suggestions) ? suggestions.length : 0,
           studentSubmissions: Array.isArray(submissions)
-            ? submissions.filter(
-                (s) =>
-                  s.status === "pending" &&
-                  !(s.metadata && s.metadata.isCoachSuggestion)
-              ).length
+            ? submissions.filter((s) => s.status === "pending").length
             : 0,
           totalEngagement: Array.isArray(pins)
             ? pins.reduce(
@@ -191,13 +179,12 @@ const WTFManagementContent = ({ onToggleView }) => {
         };
       };
 
-      // Try to fetch unified dashboard counts from the new API FIRST
+      // Try to fetch unified dashboard counts from the new API
       try {
         const dashboardCountsResponse = await getWtfDashboardCounts();
 
         if (dashboardCountsResponse.success) {
           const counts = dashboardCountsResponse.data;
-
           setDashboardMetrics({
             activePins: counts.activePins || 0,
             coachSuggestions: counts.coachSuggestions || 0,
@@ -209,17 +196,15 @@ const WTFManagementContent = ({ onToggleView }) => {
         }
       } catch (metricsError) {
         console.error("Error fetching dashboard counts:", metricsError);
-
-        // Only fallback if we have the data, otherwise keep existing metrics
-        if (fetchedSubmissions.length > 0 || fetchedPins.length > 0) {
-          setDashboardMetrics(
-            calculateDashboardMetrics(
-              fetchedPins,
-              fetchedSuggestions,
-              fetchedSubmissions
-            )
-          );
-        }
+        console.log("Using fallback calculations...");
+        // Fallback to local calculations using the fetched data
+        setDashboardMetrics(
+          calculateDashboardMetrics(
+            fetchedPins,
+            fetchedSuggestions,
+            fetchedSubmissions
+          )
+        );
       }
     } catch (error) {
       console.error("Error fetching WTF data:", error);
@@ -374,49 +359,39 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handlePinToWTF = async (submission) => {
     try {
-      console.log("handlePinToWTF called with submission:", submission);
-
       // First approve the submission
       const reviewResponse = await reviewSubmission(submission._id, {
         action: "approve",
         notes: "Approved and pinned to WTF",
       });
 
-      console.log("Review submission response:", reviewResponse);
-
       if (reviewResponse.success) {
-        // The backend automatically creates a WTF pin when approving submissions
-        // No need to manually create another pin
+        // Create a new pin from the approved submission
+        const pinType = submission.type === "voice" ? "audio" : "text";
+        const newPin = {
+          title: submission.title,
+          content: submission.content,
+          type: pinType, // Backend expects 'type' not 'contentType'
+          author: user?.name || "Unknown User", // Backend expects 'author'
+          isOfficial: false,
+          status: "active", // Backend expects lowercase enum values
+          language: "english", // Default language
+          tags: [], // Default empty tags
+          // For audio submissions, include the file/audioUrl if available
+          ...(pinType === "audio" &&
+            submission.audioUrl && {
+              content: submission.audioUrl, // Let backend handle proper S3 upload
+            }),
+        };
 
-        // Remove the submission from the pending list
-        setStudentSubmissions((prev) =>
-          prev.filter((s) => s._id !== submission._id)
-        );
-        setShowReviewModal(false);
-        setSelectedSubmission(null);
-
-        // Refresh dashboard counts and active pins after approval
-        try {
-          const [countsResp, pinsResp] = await Promise.all([
-            getWtfDashboardCounts(),
-            getActiveWtfPins(),
-          ]);
-
-          if (countsResp.success) {
-            setDashboardMetrics(countsResp.data);
-          }
-
-          if (pinsResp.success && pinsResp.data?.pins) {
-            setActivePins(pinsResp.data.pins);
-          }
-        } catch (e) {
-          console.error("Failed to refresh data after approval:", e);
-          // Fallback optimistic update
-          setDashboardMetrics((prev) => ({
-            ...prev,
-            activePins: (prev.activePins || 0) + 1,
-            studentSubmissions: Math.max(0, (prev.studentSubmissions || 1) - 1),
-          }));
+        const pinResponse = await createWtfPin(newPin);
+        if (pinResponse.success) {
+          setActivePins((prev) => [pinResponse.data, ...prev]);
+          setStudentSubmissions((prev) =>
+            prev.filter((s) => s._id !== submission._id)
+          );
+          setShowReviewModal(false);
+          setSelectedSubmission(null);
         }
       }
     } catch (error) {
@@ -427,49 +402,17 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handleArchiveSubmission = async (submissionId) => {
     try {
-      console.log("Archiving submission with ID:", submissionId);
-
       const response = await reviewSubmission(submissionId, {
         action: "reject",
         notes: "Archived by admin",
       });
 
-      console.log("Archive response:", response);
-
       if (response.success) {
-        console.log("Successfully archived submission, updating UI...");
         setStudentSubmissions((prev) =>
           prev.filter((s) => s._id !== submissionId)
         );
         setShowReviewModal(false);
         setSelectedSubmission(null);
-
-        // Refresh dashboard counts after archiving
-        try {
-          const countsResp = await getWtfDashboardCounts();
-          if (countsResp.success) {
-            setDashboardMetrics(countsResp.data);
-          } else {
-            // Fallback optimistic update
-            setDashboardMetrics((prev) => ({
-              ...prev,
-              studentSubmissions: Math.max(
-                0,
-                (prev.studentSubmissions || 1) - 1
-              ),
-            }));
-          }
-        } catch (e) {
-          console.error("Failed to refresh dashboard counts:", e);
-          // Fallback optimistic update
-          setDashboardMetrics((prev) => ({
-            ...prev,
-            studentSubmissions: Math.max(0, (prev.studentSubmissions || 1) - 1),
-          }));
-        }
-      } else {
-        console.error("Archive failed:", response.message);
-        setError(response.message || "Failed to archive submission");
       }
     } catch (error) {
       console.error("Error archiving submission:", error);
@@ -491,7 +434,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const handlePinCoachSuggestion = async (suggestion) => {
     try {
       // Approve (pin) via backend; this also creates the WTF pin server-side
-      const response = await reviewSubmission(suggestion._id, {
+      const response = await reviewSubmission(suggestion.id, {
         action: "approve",
         notes: "Approved and pinned to WTF",
       });
@@ -499,7 +442,7 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (response && response.success) {
         // Remove the suggestion from the pending list
         setCoachSuggestions((prev) =>
-          prev.filter((s) => s._id !== suggestion._id)
+          prev.filter((s) => s.id !== suggestion.id)
         );
 
         // If backend returned the created pin, prepend it; else refetch active pins
@@ -517,18 +460,12 @@ const WTFManagementContent = ({ onToggleView }) => {
           }
         }
 
-        // Refresh dashboard counts and coach suggestions list
+        // Refresh dashboard counts using the unified counts API
         try {
-          const [countsResp, suggestionsResp] = await Promise.all([
-            getWtfDashboardCounts(),
-            getCoachSuggestions({ page: 1, limit: 20 }),
-          ]);
-
+          const countsResp = await getWtfDashboardCounts();
           if (countsResp.success) setDashboardMetrics(countsResp.data);
-          if (suggestionsResp.success)
-            setCoachSuggestions(suggestionsResp.data || []);
         } catch (e) {
-          // Fallback update if APIs fail
+          // Fallback update if counts API fails
           setDashboardMetrics((prev) => ({
             ...prev,
             activePins: (prev.activePins || 0) + 1,
@@ -546,38 +483,22 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handleArchiveCoachSuggestion = async (suggestionId) => {
     try {
-      console.log("handleArchiveCoachSuggestion called with ID:", suggestionId);
-
       // Use the existing review API to reject (archive) the suggestion
       const response = await reviewSubmission(suggestionId, {
         action: "reject",
         notes: "Archived by admin",
       });
 
-      console.log("Archive API response:", response);
-
       if (response && response.success) {
-        console.log("Archive successful, refreshing data...");
-        // Refresh dashboard counts and coach suggestions list
-        try {
-          const [countsResp, suggestionsResp] = await Promise.all([
-            getWtfDashboardCounts(),
-            getCoachSuggestions({ page: 1, limit: 20 }),
-          ]);
-
-          if (countsResp.success) setDashboardMetrics(countsResp.data);
-          if (suggestionsResp.success)
-            setCoachSuggestions(suggestionsResp.data || []);
-        } catch (e) {
-          console.error("Error refreshing data after archive:", e);
-          // Fallback update if APIs fail
-          setDashboardMetrics((prev) => ({
-            ...prev,
-            coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
-          }));
-        }
-      } else {
-        console.error("Archive API returned success: false");
+        // Remove from pending queue
+        setCoachSuggestions((prev) =>
+          prev.filter((s) => s.id !== suggestionId)
+        );
+        // Update badge metric locally
+        setDashboardMetrics((prev) => ({
+          ...prev,
+          coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
+        }));
       }
     } catch (error) {
       console.error("Error archiving coach suggestion:", error);
@@ -620,7 +541,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const paginatedCoachSuggestions = useMemo(() => {
     if (!Array.isArray(coachSuggestions)) return [];
     const pendingSuggestions = coachSuggestions.filter(
-      (s) => s.status === "pending" // Changed from "PENDING" to "pending"
+      (s) => s.status === "PENDING"
     );
     const startIndex = (coachSuggestionsPage - 1) * coachSuggestionsPerPage;
     const endIndex = startIndex + coachSuggestionsPerPage;
@@ -629,57 +550,28 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const totalCoachSuggestionsPages = Math.ceil(
     (Array.isArray(coachSuggestions)
-      ? coachSuggestions.filter((s) => s.status === "pending").length // Changed from "PENDING" to "pending"
+      ? coachSuggestions.filter((s) => s.status === "PENDING").length
       : 0) / coachSuggestionsPerPage
   );
 
   // Student submissions pagination logic
   const paginatedStudentSubmissions = useMemo(() => {
     if (!Array.isArray(studentSubmissions)) return [];
-
-    console.log("Filtering student submissions:", studentSubmissions);
-
-    const filteredSubmissions = studentSubmissions.filter(
-      (s) =>
-        s.status === "pending" && !(s.metadata && s.metadata.isCoachSuggestion)
-    );
-
-    console.log("Filtered submissions:", filteredSubmissions);
-    console.log(
-      "Filter criteria - status pending:",
-      studentSubmissions.filter((s) => s.status === "pending")
-    );
-    console.log(
-      "Filter criteria - not coach suggestion:",
-      studentSubmissions.filter(
-        (s) => !(s.metadata && s.metadata.isCoachSuggestion)
-      )
-    );
-
     const startIndex = (submissionsPage - 1) * submissionsPerPage;
     const endIndex = startIndex + submissionsPerPage;
-    return filteredSubmissions.slice(startIndex, endIndex);
+    return studentSubmissions.slice(startIndex, endIndex);
   }, [studentSubmissions, submissionsPage, submissionsPerPage]);
 
   const totalSubmissionsPages = Math.ceil(
-    (Array.isArray(studentSubmissions)
-      ? studentSubmissions.filter(
-          (s) =>
-            s.status === "pending" &&
-            !(s.metadata && s.metadata.isCoachSuggestion)
-        ).length
-      : 0) / submissionsPerPage
+    (Array.isArray(studentSubmissions) ? studentSubmissions.length : 0) /
+      submissionsPerPage
   );
 
   const newSubmissionsCount = Array.isArray(studentSubmissions)
-    ? studentSubmissions.filter(
-        (s) =>
-          s.status === "pending" &&
-          !(s.metadata && s.metadata.isCoachSuggestion)
-      ).length
+    ? studentSubmissions.filter((s) => s.status === "pending").length
     : 0;
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
-    ? coachSuggestions.filter((s) => s.status === "pending").length // Changed from "PENDING" to "pending"
+    ? coachSuggestions.filter((s) => s.status === "PENDING").length
     : 0; // Real data from API
 
   return (
@@ -805,17 +697,14 @@ const WTFManagementContent = ({ onToggleView }) => {
                   id: "coach-suggestions",
                   label: "Coach Suggestions",
                   count:
-                    dashboardMetrics.coachSuggestions > 0
-                      ? dashboardMetrics.coachSuggestions
+                    pendingCoachSuggestionsCount > 0
+                      ? pendingCoachSuggestionsCount
                       : null,
                 },
                 {
                   id: "submissions",
                   label: "Student Submissions",
-                  count:
-                    dashboardMetrics.studentSubmissions > 0
-                      ? dashboardMetrics.studentSubmissions
-                      : null,
+                  count: newSubmissionsCount > 0 ? newSubmissionsCount : null,
                 },
                 {
                   id: "background-settings",
@@ -1146,7 +1035,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                     <h3 className="text-lg font-semibold">
                       Coach Suggestions for WTF (
                       {
-                        coachSuggestions.filter((s) => s.status === "pending")
+                        coachSuggestions.filter((s) => s.status === "PENDING")
                           .length
                       }{" "}
                       Pending)
@@ -1184,7 +1073,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <tbody>
                         {paginatedCoachSuggestions.map((suggestion) => (
                           <tr
-                            key={suggestion._id}
+                            key={suggestion.id}
                             className="border-b border-gray-100 hover:bg-gray-50"
                           >
                             <td className="py-4 px-4">
@@ -1260,7 +1149,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    handleArchiveCoachSuggestion(suggestion._id)
+                                    handleArchiveCoachSuggestion(suggestion.id)
                                   }
                                 >
                                   <Archive className="w-4 h-4 mr-1" />
@@ -1428,7 +1317,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                         .slice(0, 5)
                         .map((suggestion) => (
                           <div
-                            key={suggestion._id}
+                            key={suggestion.id}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                           >
                             <div className="flex items-center gap-3">
@@ -1526,13 +1415,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       ▷ Voice Notes
                       {(() => {
-                        const voiceCount = studentSubmissions.filter(
-                          (s) =>
-                            s.type === "voice" &&
-                            s.status === "pending" &&
-                            !(s.metadata && s.metadata.isCoachSuggestion)
-                        ).length;
-
+                        const voiceCount = Array.isArray(studentSubmissions)
+                          ? studentSubmissions.filter(
+                              (s) => s.status === "pending" && s.type === "voice"
+                            ).length
+                          : 0;
                         return voiceCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {voiceCount}
@@ -1550,13 +1437,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       Articles
                       {(() => {
-                        const articleCount = studentSubmissions.filter(
-                          (s) =>
-                            s.type === "article" &&
-                            s.status === "pending" &&
-                            !(s.metadata && s.metadata.isCoachSuggestion)
-                        ).length;
-
+                        const articleCount = Array.isArray(studentSubmissions)
+                          ? studentSubmissions.filter(
+                              (s) => s.status === "pending" && s.type === "article"
+                            ).length
+                          : 0;
                         return articleCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {articleCount}
@@ -1589,89 +1474,70 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {paginatedStudentSubmissions
-                            .filter((s) => s.type === "voice")
-                            .map((submission) => (
-                              <tr
-                                key={submission._id}
-                                className="border-b border-gray-100 hover:bg-gray-50"
-                                onClick={() =>
-                                  console.log("Submission object:", submission)
-                                }
-                              >
-                                <td className="py-4 px-4">
-                                  <div>
-                                    <div className="font-medium">
-                                      {submission.title}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                      {submission.studentName}
-                                    </div>
+                          {(Array.isArray(studentSubmissions)
+                           ? studentSubmissions.filter(
+                               (s) => s.status === "pending" && s.type === "voice"
+                              )
+                            : []
+                          ).map((submission) => (
+                            <tr
+                              key={submission.id}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-4 px-4">
+                                <div>
+                                  <div className="font-medium">
+                                    {submission.title}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="text-sm">
-                                    {submission.balagruha}
+                                  <div className="text-sm text-gray-500">
+                                    {submission.studentName}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4" />
-                                    {new Date(
-                                      submission.createdAt
-                                    ).toLocaleDateString()}
-                                  </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <Badge className="bg-green-100 text-green-800">
-                                    {submission.status}
-                                  </Badge>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      onClick={() =>
-                                        handleReviewSubmission(submission)
-                                      }
-                                    >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      Review
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        console.log(
-                                          "Archive button clicked for submission:",
-                                          submission
-                                        );
-                                        handleArchiveSubmission(submission._id);
-                                      }}
-                                    >
-                                      <Archive className="w-4 h-4 mr-1" />
-                                      Archive
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() => {
-                                        console.log(
-                                          "Test button clicked for submission:",
-                                          submission
-                                        );
-                                        alert(
-                                          `Testing archive for submission: ${submission._id}`
-                                        );
-                                      }}
-                                    >
-                                      Test
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.balagruha}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(
+                                    submission.createdAt
+                                  ).toLocaleDateString()}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <Badge className="bg-green-100 text-green-800">
+                                  {submission.status}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() =>
+                                      handleReviewSubmission(submission)
+                                    }
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Review
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleArchiveSubmission(submission.id)
+                                    }
+                                  >
+                                    <Archive className="w-4 h-4 mr-1" />
+                                    Archive
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     ) : (
@@ -1696,78 +1562,78 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {paginatedStudentSubmissions
-                            .filter((s) => s.type === "article")
-                            .map((submission) => (
-                              <tr
-                                key={submission._id}
-                                className="border-b border-gray-100 hover:bg-gray-50"
-                              >
-                                <td className="py-4 px-4">
-                                  <div>
-                                    <div className="font-medium">
-                                      {submission.title}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                      {submission.studentName}
-                                    </div>
+                          {(Array.isArray(studentSubmissions)
+                           ? studentSubmissions.filter(
+                                (s) =>
+                                  s.status === "pending" && s.type === "article"
+                              )
+                            : []
+                          ).map((submission) => (
+                            <tr
+                              key={submission.id}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-4 px-4">
+                                <div>
+                                  <div className="font-medium">
+                                    {submission.title}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="text-sm">
-                                    {submission.balagruha}
+                                  <div className="text-sm text-gray-500">
+                                    {submission.studentName}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4" />
-                                    {new Date(
-                                      submission.createdAt
-                                    ).toLocaleDateString()}
-                                  </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <Badge className="bg-green-100 text-green-800">
-                                    {submission.status}
-                                  </Badge>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      onClick={() =>
-                                        handleReviewSubmission(submission)
-                                      }
-                                    >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      Review
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        handleArchiveSubmission(submission._id)
-                                      }
-                                    >
-                                      <Archive className="w-4 h-4 mr-1" />
-                                      Archive
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.balagruha}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(
+                                    submission.createdAt
+                                  ).toLocaleDateString()}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <Badge className="bg-green-100 text-green-800">
+                                  {submission.status}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() =>
+                                      handleReviewSubmission(submission)
+                                    }
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Review
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleArchiveSubmission(submission.id)
+                                    }
+                                  >
+                                    <Archive className="w-4 h-4 mr-1" />
+                                    Archive
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     )}
 
                     {/* Student Submissions Pagination Controls */}
                     {Array.isArray(studentSubmissions) &&
-                      studentSubmissions.filter(
-                        (s) =>
-                          s.status === "pending" &&
-                          !(s.metadata && s.metadata.isCoachSuggestion)
-                      ).length > 0 && (
+                      studentSubmissions.length > 0 && (
                         <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50">
                           <div className="flex items-center gap-4">
                             <div className="text-sm text-gray-700">
@@ -1776,25 +1642,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                               to{" "}
                               {Math.min(
                                 submissionsPage * submissionsPerPage,
-                                studentSubmissions.filter(
-                                  (s) =>
-                                    s.status === "pending" &&
-                                    !(
-                                      s.metadata && s.metadata.isCoachSuggestion
-                                    )
-                                ).length
+                                studentSubmissions.length
                               )}{" "}
-                              of{" "}
-                              {
-                                studentSubmissions.filter(
-                                  (s) =>
-                                    s.status === "pending" &&
-                                    !(
-                                      s.metadata && s.metadata.isCoachSuggestion
-                                    )
-                                ).length
-                              }{" "}
-                              results
+                              of {studentSubmissions.length} results
                             </div>
                             <select
                               value={submissionsPerPage}

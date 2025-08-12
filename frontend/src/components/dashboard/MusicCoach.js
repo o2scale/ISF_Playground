@@ -23,6 +23,7 @@ import {
 import jsPDF from "jspdf";
 import "jspdf-autotable";
 import { CSVLink } from "react-csv";
+import UserManagement from "../usermanagement/usermanagement";
 
 const TrainingSessionModal = ({
   isOpen,
@@ -1772,7 +1773,8 @@ const MusicCoachDashboard = () => {
     { id: 3, name: "Training", activeTab: "training" },
     { id: 4, name: "Tasks", activeTab: "tasks", link: "/task" },
     // { id: 5, name: "Performance", activeTab: "performance" },
-    { id: 6, name: "Reports", activeTab: "reports" },
+    // { id: 6, name: "Reports", activeTab: "reports" },
+    { id: 7, name: "Users", activeTab: "users" },
   ];
 
   return (
@@ -2291,6 +2293,8 @@ const MusicCoachDashboard = () => {
 
           {/* Tasks Tab */}
           {activeTab === "tasks" && <TaskManagement />}
+
+          {activeTab === "users" && <UserManagement />}
 
           {/* Performance Tab */}
           {activeTab === "performance" && (

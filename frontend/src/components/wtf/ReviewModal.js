@@ -1,16 +1,10 @@
-import React from "react";
-import { X, Star, Archive, Play, User } from "lucide-react";
-import { Dialog, DialogContent } from "../ui/dialog.jsx";
-import { Button } from "../ui/button.jsx";
-import { Badge } from "../ui/badge.jsx";
+import React from 'react';
+import { X, Star, Archive, Play, User } from 'lucide-react';
+import { Dialog, DialogContent } from '../ui/dialog.jsx';
+import { Button } from '../ui/button.jsx';
+import { Badge } from '../ui/badge.jsx';
 
-const ReviewModal = ({
-  isOpen,
-  onClose,
-  submission,
-  onPinToWTF,
-  onArchive,
-}) => {
+const ReviewModal = ({ isOpen, onClose, submission, onPinToWTF, onArchive }) => {
   if (!submission) return null;
 
   return (
@@ -26,60 +20,18 @@ const ReviewModal = ({
               </p>
             </div>
             <Badge className="text-sm">
-              {submission.type === "voice"
-                ? "Voice Note"
-                : submission.metadata?.originalType === "video"
-                ? "Video"
-                : submission.metadata?.originalType === "image"
-                ? "Image"
-                : "Article"}
+              {submission.type === 'voice' ? 'Voice Note' : 'Article'}
             </Badge>
           </div>
 
           <div className="border-t pt-6">
-            {submission.type === "voice" ? (
+            {submission.type === 'voice' ? (
               <div className="bg-gray-50 rounded-lg p-6 text-center">
                 <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
                 <p className="text-gray-600 mb-4">Audio Player</p>
-                {(() => {
-                  let audioSrc = submission.audioUrl || submission.content;
-                  if (audioSrc && audioSrc.startsWith("file://")) {
-                    try {
-                      const fileName = audioSrc.split("/").pop();
-                      audioSrc = `${window.location.origin}/uploads/${fileName}`;
-                    } catch {}
-                  }
-                  return (
-                    <audio controls src={audioSrc} className="w-full">
-                      Your browser does not support the audio element.
-                    </audio>
-                  );
-                })()}
-              </div>
-            ) : submission.metadata?.originalType === "video" ? (
-              <div className="bg-gray-50 rounded-lg p-6 text-center">
-                <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
-                <p className="text-gray-600 mb-4">Video Player</p>
-                <video
-                  controls
-                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg"
-                  preload="metadata"
-                >
-                  <source src={submission.content} type="video/mp4" />
-                  <source src={submission.content} type="video/webm" />
-                  <source src={submission.content} type="video/ogg" />
-                  Your browser does not support the video element.
-                </video>
-              </div>
-            ) : submission.metadata?.originalType === "image" ? (
-              <div className="bg-gray-50 rounded-lg p-6 text-center">
-                <div className="text-gray-600 mb-4">Image Preview</div>
-                <img
-                  src={submission.content}
-                  alt={submission.title}
-                  className="w-full max-w-2xl mx-auto rounded-lg shadow-lg object-contain"
-                  style={{ maxHeight: "400px" }}
-                />
+                <div className="bg-white rounded p-4 text-sm text-gray-500">
+                  Audio player would be embedded here to play: {submission.content}
+                </div>
               </div>
             ) : (
               <div className="prose max-w-none bg-white rounded-lg p-6 border">
@@ -98,11 +50,17 @@ const ReviewModal = ({
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button variant="outline" onClick={() => onArchive(submission._id)}>
+            <Button
+              variant="outline"
+              onClick={() => onArchive(submission.id)}
+            >
               <Archive className="w-4 h-4 mr-2" />
               Archive
             </Button>
-            <Button variant="outline" onClick={onClose}>
+            <Button
+              variant="outline"
+              onClick={onClose}
+            >
               Close
             </Button>
           </div>
@@ -112,4 +70,4 @@ const ReviewModal = ({
   );
 };
 
-export default ReviewModal;
+export default ReviewModal; 

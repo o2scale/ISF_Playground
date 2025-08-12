@@ -9,10 +9,22 @@ import {
   deleteRepair,
   getAllPurchases,
   getAllRepairs,
+  getBalagruha,
   getPurchaseOverView,
   updatePurchaseOrder,
   updateRepairRequest,
 } from "../../api";
+import TaskManagement from "../TaskManagement/taskmanagement";
+import showToast from "../../utils/toast";
+
+import dayjs from "dayjs";
+import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
+import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
 
 const PurchaseDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -24,7 +36,23 @@ const PurchaseDashboard = () => {
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [repairRequests, setRepairRequests] = useState([]);
+  const [selectedBalagruha, setSelectedBalagruha] = useState();
+  const [balagruhas, setBalagruhas] = useState([]);
+  const [selectDate, setSelectDate] = useState(null);
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [selectDatePurchase, setSelectDatePurchase] = useState(null);
+  const [fromDatePurchase, setFromDatePurchase] = useState("");
+  const [toDatePurchase, setToDatePurchase] = useState("");
+  const [purchaseSearch, setPurchaseSearch] = useState()
+  const [filterBalagruha, setFilterBalagruha] = useState("all");
+  const [repairSearch, setRepairSearch] = useState();
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [filterStatusPurchase, setFilterStatusPurchase] = useState('all');
+  const [selectedPurchaseStatus, setSelectedPurchaseStatus] = useState();
+  const [filterBalagruhaPurchase, setFilterBalagruhaPurchase] = useState("all");
   const [repairForm, setRepairForm] = useState({
+    balagruhaId: "",
     issueName: "",
     description: "",
     dateReported: new Date().toISOString(),
@@ -43,6 +71,8 @@ const PurchaseDashboard = () => {
 
   // Update purchaseForm state
   const [purchaseForm, setPurchaseForm] = useState({
+    balagruhaId: "",
+    status: "",
     machineDetails: "",
     vendorDetails: "",
     costEstimate: "",
@@ -133,13 +163,24 @@ const PurchaseDashboard = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const sportCoachMenu = [
-    { id: 1, name: "Dashboard", activeTab: "dashboard" },
-    // { id: 4, name: "Machines", activeTab: "machines" },
-    { id: 2, name: "Repairs", activeTab: "repairs" },
-    { id: 3, name: "Purchases", activeTab: "purchases" },
-    { id: 6, name: "Reports", activeTab: "reports" },
-  ];
+  const sportCoachMenu =
+    localStorage.getItem("role") === "balagruha-incharge"
+      ? [
+          { id: 1, name: "Dashboard", activeTab: "dashboard" },
+          { id: 4, name: "Machines", activeTab: "machines" },
+          { id: 2, name: "Repairs", activeTab: "repairs" },
+          { id: 3, name: "Purchases", activeTab: "purchases" },
+          { id: 4, name: "Tasks", activeTab: "tasks", link: "/task" },
+          // { id: 6, name: "Reports", activeTab: "reports" },
+        ]
+      : [
+          { id: 1, name: "Dashboard", activeTab: "dashboard" },
+          // { id: 4, name: "Machines", activeTab: "machines" },
+          { id: 2, name: "Repairs", activeTab: "repairs" },
+          { id: 3, name: "Purchases", activeTab: "purchases" },
+          { id: 4, name: "Tasks", activeTab: "tasks", link: "/task" },
+          // { id: 6, name: "Reports", activeTab: "reports" },
+        ];
 
   const [dashboardData, setDashboardData] = useState({
     activeRepairs: 0,
@@ -165,6 +206,7 @@ const PurchaseDashboard = () => {
     fetchDashboardData();
     fetchRepairRequests();
     fetchPurchaseOrders();
+    fetchBalagruha();
   }, []);
 
   useEffect(() => {
@@ -188,6 +230,7 @@ const PurchaseDashboard = () => {
   const openRepairModal = (repair = null) => {
     if (repair) {
       setRepairForm({
+        balagruhaId: repair.balagruhaId,
         issueName: repair.issueName,
         description: repair.description,
         dateReported: repair.dateReported,
@@ -201,6 +244,7 @@ const PurchaseDashboard = () => {
       setEditingItem(repair);
     } else {
       setRepairForm({
+        balagruhaId: "",
         issueName: "",
         description: "",
         dateReported: new Date().toISOString(),
@@ -255,6 +299,8 @@ const PurchaseDashboard = () => {
   const openPurchaseModal = (purchase = null) => {
     if (purchase) {
       setPurchaseForm({
+        balagruhaId: purchase.balagruhaId,
+        status: purchase.status,
         machineDetails: purchase.machineDetails,
         vendorDetails: purchase.vendorDetails,
         costEstimate: purchase.costEstimate,
@@ -265,6 +311,8 @@ const PurchaseDashboard = () => {
       setEditingItem(purchase);
     } else {
       setPurchaseForm({
+        balagruhaId: "",
+        status: "",
         machineDetails: "",
         vendorDetails: "",
         costEstimate: "",
@@ -327,9 +375,12 @@ const PurchaseDashboard = () => {
   const handlePurchaseSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setSelectedBalagruha();
 
     try {
       const formData = new FormData();
+      formData.append("balagruhaId", purchaseForm.balagruhaId);
+      formData.append("status", purchaseForm.status);
       formData.append("machineDetails", purchaseForm.machineDetails);
       formData.append("vendorDetails", purchaseForm.vendorDetails);
       formData.append("costEstimate", purchaseForm.costEstimate);
@@ -435,6 +486,7 @@ const PurchaseDashboard = () => {
 
     try {
       const formData = new FormData();
+      formData.append("balagruhaId", repairForm.balagruhaId);
       formData.append("issueName", repairForm.issueName);
       formData.append("description", repairForm.description);
       formData.append("dateReported", repairForm.dateReported);
@@ -464,6 +516,274 @@ const PurchaseDashboard = () => {
       setLoading(false);
     }
   };
+
+  const fetchBalagruha = async () => {
+    const response = await getBalagruha();
+    if (response.success) {
+      const balagruhaIdsFromStorage = localStorage
+        .getItem("balagruhaIds")
+        ?.split(",");
+
+      const filteredBalagruhas = response.data.balagruhas.filter((balagruha) =>
+        balagruhaIdsFromStorage.includes(balagruha._id)
+      );
+      console.log("User Balagruha Data: ", filteredBalagruhas);
+      setBalagruhas(filteredBalagruhas);
+    } else {
+      showToast("Error fetching balagruha", "error");
+    }
+  };
+
+  const balagruhaIdsFromStorage =
+    localStorage.getItem("balagruhaIds")?.split(",") || [];
+
+  const filteredRepairRequests = repairRequests.filter((bal) => {
+    const reportedDate = dayjs(bal.dateReported);
+
+    let passesDateFilter = true;
+
+    if (selectDate === "today") {
+      passesDateFilter = reportedDate.isSame(dayjs(), "day");
+    } else if (selectDate === "thisWeek") {
+      const startOfWeek = dayjs().startOf("week");
+      const endOfWeek = dayjs().endOf("week");
+      passesDateFilter =
+        reportedDate.isSameOrAfter(startOfWeek) &&
+        reportedDate.isSameOrBefore(endOfWeek);
+    } else if (selectDate === "thisMonth") {
+      passesDateFilter = reportedDate.isSame(dayjs(), "month");
+    } else if (selectDate === "lastMonth") {
+      const lastMonth = dayjs().subtract(1, "month");
+      passesDateFilter = reportedDate.isSame(lastMonth, "month");
+    } else if (selectDate === "custom" && fromDate && toDate) {
+      passesDateFilter =
+        reportedDate.isSameOrAfter(dayjs(fromDate)) &&
+        reportedDate.isSameOrBefore(dayjs(toDate).endOf("day"));
+    }
+
+    let passesBalagruhaFilter =
+      filterBalagruha === "all"
+        ? balagruhaIdsFromStorage.includes(bal.balagruhaId)
+        : bal.balagruhaId === filterBalagruha;
+
+        
+    const searchFilter = !repairSearch || repairSearch && bal?.issueName?.toLowerCase().includes(repairSearch?.toLowerCase())
+
+    const statusFilter = filterStatus === "all" || bal.status === filterStatus;
+
+    return passesDateFilter && passesBalagruhaFilter && searchFilter && statusFilter;
+  });
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+
+    // --- 1. Add Title & Date Filter Info ---
+    doc.setFontSize(14);
+    doc.text("Repair Requests Report", 14, 15);
+
+    // Format filter info
+    let filterInfo = "";
+    const today = dayjs();
+
+    if (selectDate === "custom" && fromDate && toDate) {
+      filterInfo = `Date Range: ${dayjs(fromDate).format(
+        "DD-MM-YYYY"
+      )} to ${dayjs(toDate).format("DD-MM-YYYY")}`;
+    } else if (selectDate === "today") {
+      filterInfo = `Date: ${today.format("DD-MM-YYYY")}`;
+    } else if (selectDate === "thisWeek") {
+      const startOfWeek = today.startOf("week");
+      // Adjust the end of the week: if today is before the week's Sunday, use today as the end date.
+      const endOfWeek = today.isBefore(today.endOf("week"))
+        ? today
+        : today.endOf("week");
+      filterInfo = `Date Range: ${startOfWeek.format(
+        "DD-MM-YYYY"
+      )} to ${endOfWeek.format("DD-MM-YYYY")}`;
+    } else if (selectDate === "thisMonth") {
+      const startOfMonth = today.startOf("month");
+      const endOfMonth = today.endOf("month");
+      filterInfo = `Date Range: ${startOfMonth.format(
+        "DD-MM-YYYY"
+      )} to ${endOfMonth.format("DD-MM-YYYY")}`;
+    } else if (selectDate === "lastMonth") {
+      const startOfLastMonth = today.subtract(1, "month").startOf("month");
+      const endOfLastMonth = today.subtract(1, "month").endOf("month");
+      filterInfo = `Date Range: ${startOfLastMonth.format(
+        "DD-MM-YYYY"
+      )} to ${endOfLastMonth.format("DD-MM-YYYY")}`;
+    } else {
+      filterInfo = "Date Filter: All";
+    }
+
+    doc.setFontSize(10);
+    doc.text(filterInfo, 14, 25);
+
+    // --- 2. Table Data ---
+    const tableColumn = [
+      "Issue Name",
+      "Description",
+      "Date Reported",
+      "Urgency",
+      "Balagruha",
+      "Status",
+      "Estimated Cost",
+    ];
+
+    const tableRows = filteredRepairRequests.map((req) => [
+      req.issueName,
+      req.description,
+      dayjs(req.dateReported).format("DD-MM-YYYY"),
+      req.urgency,
+      req.balagruhaName,
+      req.status,
+      `₹${req.estimatedCost}`,
+    ]);
+
+    // Add table below date info
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [120, 153, 248] },
+    });
+
+    // --- 3. Total Cost Summary ---
+    const totalCost = filteredRepairRequests.reduce(
+      (acc, curr) => acc + (curr.estimatedCost || 0),
+      0
+    );
+    const finalY = doc.lastAutoTable.finalY || 30;
+
+    doc.setFontSize(11);
+    doc.text(`Total Estimated Cost: ₹${totalCost}`, 14, finalY + 10);
+
+    // --- 4. Save ---
+    doc.save("RepairRequests.pdf");
+  };
+
+  // const filteredPurchaseOrders = purchaseOrders.filter((bal) => {
+  //   console.log(filterBalagruhaPurchase, bal);
+  //   if (filterBalagruhaPurchase !== "all") {
+  //     return bal.balagruhaId === filterBalagruhaPurchase;
+  //   } else {
+  //     return balagruhaIdsFromStorage.includes(bal.balagruhaId);
+  //   }
+  // });
+
+  const filteredPurchaseOrders = purchaseOrders.filter((bal) => {
+    const createdDate = dayjs(bal.createdAt);
+  
+    let passesDateFilter = true;
+  
+    if (selectDatePurchase === 'today') {
+      passesDateFilter = createdDate.isSame(dayjs(), 'day');
+    } else if (selectDatePurchase === 'thisWeek') {
+      const startOfWeek = dayjs().startOf('week');
+      const endOfWeek = dayjs().endOf('week');
+      passesDateFilter = createdDate.isSameOrAfter(startOfWeek) && createdDate.isSameOrBefore(endOfWeek);
+    } else if (selectDatePurchase === 'thisMonth') {
+      passesDateFilter = createdDate.isSame(dayjs(), 'month');
+    } else if (selectDatePurchase === 'lastMonth') {
+      const lastMonth = dayjs().subtract(1, 'month');
+      passesDateFilter = createdDate.isSame(lastMonth, 'month');
+    } else if (selectDatePurchase === 'custom' && fromDatePurchase && toDatePurchase) {
+      passesDateFilter =
+        createdDate.isSameOrAfter(dayjs(fromDatePurchase)) &&
+        createdDate.isSameOrBefore(dayjs(toDatePurchase).endOf('day'));
+    }
+  
+    let passesBalagruhaFilter =
+      filterBalagruha === "all"
+        ? balagruhaIdsFromStorage.includes(bal.balagruhaId)
+        : bal.balagruhaId === filterBalagruha;
+
+        const searchFilter = !purchaseSearch || purchaseSearch && bal?.machineDetails?.toLowerCase().includes(purchaseSearch?.toLowerCase()) ||  purchaseSearch && bal?.vendorDetails?.toLowerCase().includes(purchaseSearch?.toLowerCase()) ||  purchaseSearch && bal?.requiredParts?.toLowerCase().includes(purchaseSearch?.toLowerCase())
+
+        const searchStatus = filterStatusPurchase === 'all' || bal.status === filterStatusPurchase
+  
+    return passesDateFilter && passesBalagruhaFilter && searchFilter && searchStatus;
+  });
+
+  const exportPurchaseOrdersToPDF = () => {
+    const doc = new jsPDF();
+  
+    // --- 1. Add Title & Date Filter Info ---
+    doc.setFontSize(14);
+    doc.text("Purchase Order Report", 14, 15);
+  
+  // Format filter info
+  let filterInfo = "";
+  const today = dayjs();
+  
+  if (selectDatePurchase === 'custom' && fromDatePurchase && toDatePurchase) {
+    filterInfo = `Date Range: ${dayjs(fromDatePurchase).format('DD-MM-YYYY')} to ${dayjs(toDatePurchase).format('DD-MM-YYYY')}`;
+  } else if (selectDatePurchase === 'today') {
+    filterInfo = `Date: ${today.format('DD-MM-YYYY')}`;
+  } else if (selectDatePurchase === 'thisWeek') {
+    const startOfWeek = today.startOf('week');
+    // Adjust the end of the week: if today is before the week's Sunday, use today as the end date.
+    const endOfWeek = today.isBefore(today.endOf('week')) ? today : today.endOf('week');
+    filterInfo = `Date Range: ${startOfWeek.format('DD-MM-YYYY')} to ${endOfWeek.format('DD-MM-YYYY')}`;
+  } else if (selectDatePurchase === 'thisMonth') {
+    const startOfMonth = today.startOf('month');
+    const endOfMonth = today.endOf('month');
+    filterInfo = `Date Range: ${startOfMonth.format('DD-MM-YYYY')} to ${endOfMonth.format('DD-MM-YYYY')}`;
+  } else if (selectDatePurchase === 'lastMonth') {
+    const startOfLastMonth = today.subtract(1, 'month').startOf('month');
+    const endOfLastMonth = today.subtract(1, 'month').endOf('month');
+    filterInfo = `Date Range: ${startOfLastMonth.format('DD-MM-YYYY')} to ${endOfLastMonth.format('DD-MM-YYYY')}`;
+  } else {
+    filterInfo = "Date Filter: All";
+  }
+  
+  doc.setFontSize(10);
+  doc.text(filterInfo, 14, 25);
+  
+  
+  
+    // --- 2. Table Data ---
+    const tableColumn = [
+      "Machine Details",
+      "Vendor Details",
+      "Required Materials",
+      "Balagruha",
+      "Cost Estimate",
+      "Date",
+      "Status"
+    ];
+  
+    const tableRows = filteredPurchaseOrders.map((req) => [
+      req.machineDetails,
+      req.vendorDetails,
+      req.requiredParts,
+      req.balagruhaName,
+      `₹${req.costEstimate}`,
+      dayjs(req.createdAt).format('DD-MM-YYYY'),
+      req.status,
+    ]);
+  
+    // Add table below date info
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 30,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [120, 153, 248] }
+    });
+  
+    // --- 3. Total Cost Summary ---
+    const totalCost = filteredPurchaseOrders.reduce((acc, curr) => acc + (curr.costEstimate || 0), 0);
+    const finalY = doc.lastAutoTable.finalY || 30;
+  
+    doc.setFontSize(11);
+    doc.text(`Total Estimated Cost: ₹${totalCost}`, 14, finalY + 10);
+  
+    // --- 4. Save ---
+    doc.save('PurchaseOrders.pdf');
+  };
+  
 
   return (
     <div className="purchase-dashboard">
@@ -639,18 +959,141 @@ const PurchaseDashboard = () => {
 
           {activeTab === "machines" && <MachineManagement />}
 
+          {activeTab === "tasks" && <TaskManagement />}
+
           {/* Repairs Tab */}
           {activeTab === "repairs" && (
             <div className="purchase-repairs-section">
+              <div className="date-container">
+                <div className="date-picker">
+                  <div>
+                    <button
+                      onClick={() => setSelectDate(null)}
+                      className={`date-picker-button ${
+                        selectDate === null ? "selected" : ""
+                      }`}
+                    >
+                      All
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => setSelectDate("today")}
+                      className={`date-picker-button ${
+                        selectDate === "today" ? "selected" : ""
+                      }`}
+                    >
+                      Today
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => setSelectDate("thisWeek")}
+                      className={`date-picker-button ${
+                        selectDate === "thisWeek" ? "selected" : ""
+                      }`}
+                    >
+                      This week
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => setSelectDate("thisMonth")}
+                      className={`date-picker-button ${
+                        selectDate === "thisMonth" ? "selected" : ""
+                      }`}
+                    >
+                      This month
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => setSelectDate("lastMonth")}
+                      className={`date-picker-button ${
+                        selectDate === "lastMonth" ? "selected" : ""
+                      }`}
+                    >
+                      Last Month
+                    </button>
+                  </div>
+                  <div>
+                    <button
+                      onClick={() => setSelectDate("custom")}
+                      className={`date-picker-button ${
+                        selectDate === "custom" ? "selected" : ""
+                      }`}
+                    >
+                      Custom
+                    </button>
+                  </div>
+                </div>
+                {selectDate === "custom" && (
+                  <div className="custom-date-container">
+                    <div className="from-to-container">
+                      <div>
+                        <label htmlFor="from">From date</label>
+                        <input
+                          type="date"
+                          className="from-to-date-input"
+                          value={fromDate}
+                          onChange={(e) => setFromDate(e.target.value)}
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="to">To date</label>
+                        <input
+                          type="date"
+                          className="from-to-date-input"
+                          value={toDate}
+                          onChange={(e) => setToDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
               <div className="purchase-section-header">
                 <h2>Repair Requests</h2>
-                <button
-                  className="purchase-action-button"
-                  onClick={() => openRepairModal()}
-                  disabled={loading}
+                <div>
+                  <button
+                    className="purchase-action-button"
+                    onClick={() => openRepairModal()}
+                    disabled={loading}
+                  >
+                    + New Repair Request
+                  </button>
+                  <button
+                    className="purchase-action-button"
+                    style={{ marginLeft: "20px" }}
+                    onClick={exportToPDF}
+                  >
+                    Export Data
+                  </button>
+                </div>
+              </div>
+              <div style={{ maxWidth: "700px", marginBottom: "20px", display: "flex", gap: "10px" }}>
+                <input type="text" placeholder="Search Issue Name" onChange={(e) => setRepairSearch(e.target.value)} style={{ borderRadius: "30px", border: "2px solid #7ed6df", fontWeight: "500", fontFamily: "'Patrick Hand', cursive", color: "black" }} />
+                <select
+                  value={filterBalagruha}
+                  onChange={(e) => setFilterBalagruha(e.target.value)}
+                  className="filter-select"
                 >
-                  + New Repair Request
-                </button>
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map((bg, index) => (
+                    <option key={index} value={bg._id}>
+                      {bg.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Status</option>
+                  <option value="in-progress">In progress</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                </select>
               </div>
 
               <div className="purchase-data-table">
@@ -665,13 +1108,14 @@ const PurchaseDashboard = () => {
                         <th>Description</th>
                         <th>Date</th>
                         <th>Urgency</th>
+                        <th>Balagruha</th>
                         <th>Status</th>
                         <th>Est. Cost</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {repairRequests?.map((request) => (
+                      {filteredRepairRequests?.map((request) => (
                         <tr key={request._id}>
                           <td>{request._id}</td>
                           <td>{request.issueName}</td>
@@ -688,6 +1132,7 @@ const PurchaseDashboard = () => {
                               {request.urgency}
                             </span>
                           </td>
+                          <td>{request.balagruhaName}</td>
                           <td>
                             <span
                               className={`purchase-tag purchase-status-${request.status.toLowerCase()}`}
@@ -764,15 +1209,84 @@ const PurchaseDashboard = () => {
 
           {activeTab === "purchases" && (
             <div className="purchase-purchases-section">
-              <div className="purchase-section-header">
-                <h2>Purchase Orders</h2>
-                <button
-                  className="purchase-action-button"
-                  onClick={() => openPurchaseModal()}
-                  disabled={loading}
+             <div className="date-container">
+          <div className="date-picker">
+          <div>
+              <button onClick={() => setSelectDatePurchase(null)} className={`date-picker-button ${selectDatePurchase === null ? 'selected' : ''}`}>All</button>
+            </div>
+            <div>
+              <button onClick={() => setSelectDatePurchase('today')} className={`date-picker-button ${selectDatePurchase === 'today' ? 'selected' : ''}`}>Today</button>
+            </div>
+            <div>
+              <button onClick={() => setSelectDatePurchase('thisWeek')} className={`date-picker-button ${selectDatePurchase === 'thisWeek' ? 'selected' : ''}`}>This week</button>
+            </div>
+            <div>
+              <button onClick={() => setSelectDatePurchase('thisMonth')} className={`date-picker-button ${selectDatePurchase === 'thisMonth' ? 'selected' : ''}`}>This month</button>
+            </div>
+            <div>
+              <button onClick={() => setSelectDatePurchase('lastMonth')} className={`date-picker-button ${selectDatePurchase === 'lastMonth' ? 'selected' : ''}`}>Last Month</button>
+            </div>
+            <div>
+              <button onClick={() => setSelectDatePurchase('custom')} className={`date-picker-button ${selectDatePurchase === 'custom' ? 'selected' : ''}`}>Custom</button>
+            </div>
+          </div>
+          {selectDate === 'custom' && (
+             <div className="custom-date-container">
+             <div className="from-to-container">
+               <div>
+                 <label htmlFor="from">From date</label>
+                 <input type="date" className="from-to-date-input" value={fromDatePurchase} onChange={(e) => setFromDatePurchase(e.target.value)} />
+               </div>
+               <div>
+                 <label htmlFor="to">To date</label>
+                 <input type="date" className="from-to-date-input"  value={toDatePurchase} onChange={(e) => setToDatePurchase(e.target.value)} />
+               </div>
+             </div>
+           </div>
+          )}
+        </div>
+        <div className="purchase-section-header">
+          <h2>Purchase Orders</h2>
+         <div>
+         <button
+            className="purchase-action-button"
+            onClick={() => openPurchaseModal()}
+            disabled={loading}
+          >
+            + New Purchase Request
+          </button>
+          <button
+            className="purchase-action-button"
+            style={{marginLeft: "20px"}}
+            onClick={exportPurchaseOrdersToPDF}
+          >
+            Export Data
+          </button>
+         </div>
+        </div>
+              <div style={{ maxWidth: "700px", marginBottom: "20px", display: "flex", gap: "10px" }}>
+                <input type="text" placeholder="Search Machine Details, Vendor Details, Required Materials" onChange={(e) => setPurchaseSearch(e.target.value)} style={{ borderRadius: "30px", border: "2px solid #7ed6df", fontWeight: "500", fontFamily: "'Patrick Hand', cursive", color: "black" }} />
+                <select
+                  value={filterBalagruhaPurchase}
+                  onChange={(e) => setFilterBalagruhaPurchase(e.target.value)}
+                  className="filter-select"
                 >
-                  + New Purchase Order
-                </button>
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map((bg, index) => (
+                    <option key={index} value={bg._id}>
+                      {bg.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  onChange={(e) => setFilterStatusPurchase(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Status</option>
+                  <option value="in-progress">In progress</option>
+                  <option value="pending">Pending</option>
+                  <option value="completed">Completed</option>
+                </select>
               </div>
 
               <div className="purchase-data-table">
@@ -785,18 +1299,22 @@ const PurchaseDashboard = () => {
                         <th>Order ID</th>
                         <th>Machine Details</th>
                         <th>Vendor Details</th>
-                        <th>Required Parts</th>
+                        <th>Required Materials</th>
+                        <th>Balagruha</th>
+                        <th>Status</th>
                         <th>Cost Estimate</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {purchaseOrders.map((order) => (
+                      {filteredPurchaseOrders.map((order) => (
                         <tr key={order._id}>
                           <td>{order._id}</td>
                           <td>{order.machineDetails}</td>
                           <td>{order.vendorDetails}</td>
                           <td>{order.requiredParts}</td>
+                          <td>{order.balagruhaName}</td>
+                          <td>{order.status}</td>
                           <td>₹{order.costEstimate}</td>
                           <td className="action-buttons">
                             <button
@@ -935,6 +1453,27 @@ const PurchaseDashboard = () => {
             </div>
             <form onSubmit={handleRepairSubmit}>
               <div className="modal-body">
+                <div className="form-group">
+                  <label>Balagruha</label>
+                  <select
+                    value={repairForm.balagruhaId}
+                    onChange={(e) => {
+                      setSelectedBalagruha(e.target.value);
+                      setRepairForm((prev) => ({
+                        ...prev,
+                        balagruhaId: e.target.value,
+                      }));
+                    }}
+                    required
+                  >
+                    <option value="">Select Balagruha</option>
+                    {balagruhas.map((bal) => (
+                      <option key={bal.id} value={bal._id}>
+                        {bal.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
                 <div className="form-group">
                   <label>Issue Name</label>
                   <input
@@ -1147,6 +1686,46 @@ const PurchaseDashboard = () => {
             <form onSubmit={handlePurchaseSubmit}>
               <div className="modal-body">
                 <div className="form-group">
+                  <label>Balagruha</label>
+                  <select
+                    value={purchaseForm.balagruhaId}
+                    onChange={(e) => {
+                      setSelectedBalagruha(e.target.value);
+                      setPurchaseForm((prev) => ({
+                        ...prev,
+                        balagruhaId: e.target.value,
+                      }));
+                    }}
+                    required
+                  >
+                    <option value="">Select Balagruha</option>
+                    {balagruhas.map((bal) => (
+                      <option key={bal.id} value={bal._id}>
+                        {bal.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label>Status</label>
+                  <select
+                    value={purchaseForm.status}
+                    onChange={(e) => {
+                      setSelectedPurchaseStatus(e.target.value);
+                      setPurchaseForm((prev) => ({
+                        ...prev,
+                        status: e.target.value,
+                      }));
+                    }}
+                    required
+                  >
+                    <option value="">Select Status</option>
+                    <option value="in-progress">In progress</option>
+                    <option value="pending">Pending</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+                <div className="form-group">
                   <label>Machine Details</label>
                   <input
                     type="text"
@@ -1189,7 +1768,7 @@ const PurchaseDashboard = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Required Parts:</label>
+                  <label>Required Materials:</label>
                   <textarea
                     value={purchaseForm.requiredParts}
                     onChange={(e) =>

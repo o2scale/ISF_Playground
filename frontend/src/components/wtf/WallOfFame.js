@@ -40,10 +40,8 @@ import {
   getCoachSuggestionsCount,
   submitVoiceNote,
   submitArticle,
-  submitWtfMedia,
   updateWtfSettings,
   uploadWtfBackgroundImage,
-  getWtfDashboardCounts,
 } from "../../api";
 
 const WallOfFameContent = ({ onToggleView }) => {
@@ -113,43 +111,6 @@ const WallOfFameContent = ({ onToggleView }) => {
     }
   }, [contextBgSettings]);
 
-  const fetchAdminCounts = async () => {
-    if (isAdmin) {
-      try {
-        // Use the same data source as the dashboard for consistency
-        const dashboardCountsResponse = await getWtfDashboardCounts();
-
-        if (dashboardCountsResponse.success) {
-          const counts = dashboardCountsResponse.data;
-
-          setAdminCounts({
-            pendingSuggestions: counts.coachSuggestions || 0,
-            newSubmissions: counts.studentSubmissions || 0,
-            reviewQueue:
-              (counts.coachSuggestions || 0) + (counts.studentSubmissions || 0),
-          });
-        } else {
-          // Fallback to individual API calls if dashboard fails
-          const [coachCountResp, studentPendingResp] = await Promise.all([
-            getCoachSuggestionsCount(),
-            getPendingSubmissionsCount(),
-          ]);
-
-          const coachPending = coachCountResp?.data?.pendingCount || 0;
-          const studentPending = studentPendingResp || 0;
-
-          setAdminCounts({
-            pendingSuggestions: coachPending,
-            newSubmissions: studentPending,
-            reviewQueue: coachPending + studentPending,
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching admin counts:", error);
-      }
-    }
-  };
-
   useEffect(() => {
     const fetchPins = async () => {
       try {
@@ -162,6 +123,29 @@ const WallOfFameContent = ({ onToggleView }) => {
       } catch (error) {
         console.error("Error fetching pins:", error);
         setContent([]);
+      }
+    };
+
+    const fetchAdminCounts = async () => {
+      if (isAdmin) {
+        try {
+          const [coachCountResp, studentPendingResp] = await Promise.all([
+            getCoachSuggestionsCount(),
+            getPendingSubmissionsCount(),
+          ]);
+
+          const coachPending = coachCountResp?.data?.pendingCount || 0;
+          const studentPending = studentPendingResp || 0;
+
+          setAdminCounts({
+            // As per requirement: show combined totals everywhere
+            pendingSuggestions: coachPending + studentPending,
+            newSubmissions: coachPending + studentPending,
+            reviewQueue: coachPending + studentPending,
+          });
+        } catch (error) {
+          console.error("Error fetching admin counts:", error);
+        }
       }
     };
 
@@ -178,21 +162,6 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const handlePinClick = (item) => {
     setSelectedContent(item);
-
-    // Smart type detection: if type is "text" but content looks like an image URL, treat it as photo
-    let effectiveType = item.type;
-    if (
-      item.type === "text" &&
-      item.content &&
-      (item.content.includes(".png") ||
-        item.content.includes(".jpg") ||
-        item.content.includes(".jpeg") ||
-        item.content.includes(".webp") ||
-        item.content.includes(".gif"))
-    ) {
-      effectiveType = "image";
-    }
-
     // Map backend types to frontend modal types
     const modalTypeMap = {
       image: "photo",
@@ -201,7 +170,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       text: "text",
       link: "text", // Links can be displayed in text modal
     };
-    setModalType(modalTypeMap[effectiveType] || "text");
+    setModalType(modalTypeMap[item.type] || "text");
   };
 
   const closeModal = () => {
@@ -241,8 +210,10 @@ const WallOfFameContent = ({ onToggleView }) => {
     try {
       setIsSaving(true);
       setBgError("");
+      console.log("Saving background settings:", previewBgSettings);
 
       const response = await updateWtfSettings(previewBgSettings);
+      console.log("Save response:", response);
 
       // Update the context with saved settings
       updateBackgroundSettings(previewBgSettings);
@@ -330,6 +301,8 @@ const WallOfFameContent = ({ onToggleView }) => {
     const file = event.target.files[0];
     if (!file) return;
 
+    console.log("Selected file:", file.name, file.size, file.type);
+
     // Validate file
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
@@ -351,9 +324,12 @@ const WallOfFameContent = ({ onToggleView }) => {
       setIsUploadingBg(true);
       setBgError("");
 
+      console.log("Starting image upload...");
       const uploadResponse = await uploadWtfBackgroundImage(file);
+      console.log("Upload response:", uploadResponse);
 
       const imageUrl = uploadResponse.data?.imageUrl || uploadResponse.imageUrl;
+      console.log("Image URL:", imageUrl);
 
       if (!imageUrl) {
         throw new Error("No image URL returned from upload");
@@ -385,6 +361,8 @@ const WallOfFameContent = ({ onToggleView }) => {
   };
 
   const handleCreatePin = async (newPin) => {
+    console.log("Creating new pin:", newPin);
+
     if (isCoach && newPin.studentId) {
       // This is a coach suggestion
       const suggestionData = {
@@ -417,32 +395,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       // Call appropriate submission API based on content type
       let response;
       if (newPin.contentType === "audio") {
-        // Always send multipart so backend receives the file
-        const fd = new FormData();
-        if (submissionData.file) fd.append("file", submissionData.file);
-        if (submissionData.title) fd.append("title", submissionData.title);
-        fd.append("type", "voice");
-        response = await submitVoiceNote(fd);
-      } else if (
-        newPin.contentType === "image" ||
-        newPin.contentType === "video"
-      ) {
-        // Handle image and video uploads
-        if (!submissionData.file) {
-          throw new Error(`Please upload a ${newPin.contentType} file`);
-        }
-
-        const fd = new FormData();
-        fd.append("file", submissionData.file);
-        fd.append("title", submissionData.title);
-        fd.append("type", newPin.contentType);
-        if (submissionData.language)
-          fd.append("language", submissionData.language);
-        if (submissionData.tags && submissionData.tags.length > 0) {
-          submissionData.tags.forEach((tag) => fd.append("tags[]", tag));
-        }
-
-        response = await submitWtfMedia(fd);
+        response = await submitVoiceNote(submissionData);
       } else {
         response = await submitArticle(submissionData);
       }
@@ -526,7 +479,16 @@ const WallOfFameContent = ({ onToggleView }) => {
       case "image":
         // Use thumbnail first, then mediaUrl, or default to gray background
         const imageUrl = thumbnail || mediaUrl;
-
+        console.log(
+          "Card background - Type:",
+          type,
+          "Thumbnail:",
+          thumbnail,
+          "MediaUrl:",
+          mediaUrl,
+          "Using:",
+          imageUrl
+        );
         return imageUrl
           ? {
               backgroundImage: `url(${imageUrl})`,
@@ -655,12 +617,6 @@ const WallOfFameContent = ({ onToggleView }) => {
             <div className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
               <Settings className="w-5 h-5" />
               Admin Controls
-              <button
-                onClick={fetchAdminCounts}
-                className="ml-auto text-xs text-purple-600 hover:text-purple-800 underline"
-              >
-                Refresh
-              </button>
             </div>
 
             <div className="space-y-3">
@@ -1084,23 +1040,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         <ImageViewer
           isOpen={true}
           onClose={closeModal}
-          imageSrc={(() => {
-            // For image pins, prefer mediaUrl, but fall back to content if it looks like an image URL
-            let src = selectedContent.mediaUrl;
-            if (
-              !src &&
-              selectedContent.content &&
-              (selectedContent.content.includes(".png") ||
-                selectedContent.content.includes(".jpg") ||
-                selectedContent.content.includes(".jpeg") ||
-                selectedContent.content.includes(".webp") ||
-                selectedContent.content.includes(".gif"))
-            ) {
-              src = selectedContent.content;
-            }
-
-            return src;
-          })()}
+          imageSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
           likes={selectedContent.engagementMetrics?.likes || 0}

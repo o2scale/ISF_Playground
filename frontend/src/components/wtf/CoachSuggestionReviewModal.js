@@ -41,22 +41,6 @@ const CoachSuggestionReviewModal = ({
       );
     }
 
-    // Explicit image handling when we only have the URL (no thumbnail)
-    if (workType.includes("image") || workType.includes("photo")) {
-      return (
-        <div className="bg-gray-50 rounded-lg p-6 text-center">
-          <img
-            src={suggestion.content}
-            alt={suggestion.title}
-            className="w-full max-h-[420px] object-contain rounded mb-3"
-          />
-          <p className="text-xs text-gray-500 break-all">
-            {suggestion.content}
-          </p>
-        </div>
-      );
-    }
-
     if (workType.includes("video")) {
       return (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
@@ -128,17 +112,7 @@ const CoachSuggestionReviewModal = ({
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => {
-                console.log(
-                  "Archive button clicked for suggestion:",
-                  suggestion
-                );
-                console.log("Calling onArchive with ID:", suggestion._id);
-                onArchive(suggestion._id);
-              }}
-            >
+            <Button variant="outline" onClick={() => onArchive(suggestion.id)}>
               <Archive className="w-4 h-4 mr-2" />
               Archive
             </Button>
