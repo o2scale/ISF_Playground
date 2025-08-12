@@ -124,6 +124,9 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5001;
 const server = app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Backend URL: http://localhost:${PORT}`);
+  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+  console.log(`🔗 Health Check: http://localhost:${PORT}/`);
 });
 
 // Initialize WTF WebSocket server

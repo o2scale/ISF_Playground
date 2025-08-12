@@ -1,21 +1,25 @@
 import axios from "axios";
+import config from "./config";
+
 const macAddress = localStorage.getItem("macAddress");
 
 export const api = axios.create({
-  baseURL: "https://playground.initiativesewafoundation.com/server",
+  baseURL: config.API_BASE_URL,
   headers: {
     "Content-Type": "application/json",
     "MAC-Address": `${macAddress}`,
     mode: "no-cors",
   },
+  timeout: config.API_TIMEOUT,
 });
 
 export const apiWithoutContentType = axios.create({
-  baseURL: "https://playground.initiativesewafoundation.com/server",
+  baseURL: config.API_BASE_URL,
   headers: {
     "MAC-Address": `${macAddress}`,
     mode: "no-cors",
   },
+  timeout: config.API_TIMEOUT,
 });
 
 export const headers = {
