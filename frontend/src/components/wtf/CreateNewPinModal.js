@@ -83,6 +83,11 @@ const CreateNewPinModal = ({
           const studentUsers = users.filter(
             (user) => user.role === "student" || user.userType === "student"
           );
+
+          console.log("🔍 Fetched users:", users);
+          console.log("👨‍🎓 Filtered students:", studentUsers);
+          console.log("📚 Sample student data:", studentUsers[0]);
+
           setStudents(studentUsers);
           setFilteredStudents(studentUsers);
 
@@ -92,6 +97,10 @@ const CreateNewPinModal = ({
             : balagruhaResponse?.data?.balagruhas ||
               balagruhaResponse?.data ||
               [];
+
+          console.log("🏛️ Fetched balagruhas:", balagruhaResponse);
+          console.log("🏛️ Processed balagruhas:", balagruhas);
+
           setBalagruhas(balagruhas);
         } catch (error) {
           console.error("Error fetching data:", error);
@@ -116,11 +125,32 @@ const CreateNewPinModal = ({
 
   // Filter students by balagruha
   useEffect(() => {
+    console.log("🔄 Filtering students - Balagruha:", formData.balagruha);
+    console.log("🔄 Available students:", students);
+
     if (formData.balagruha) {
-      const filtered = students.filter(
-        (student) => student.balagruha === formData.balagruha
-      );
+      const filtered = students.filter((student) => {
+        // Check if student has balagruhaIds array and if it contains the selected balagruha
+        if (Array.isArray(student.balagruhaIds)) {
+          console.log("🏛️ Student balagruhaIds:", student.balagruhaIds);
+          // Find the balagruha object that matches the selected name
+          const matchingBalagruha = student.balagruhaIds.find(
+            (bg) => bg.name === formData.balagruha
+          );
+          console.log("🎯 Matching balagruha:", matchingBalagruha);
+          return !!matchingBalagruha;
+        }
+        // Fallback: check if student.balagruha (string) matches (for backward compatibility)
+        console.log(
+          "🔄 Fallback check - student.balagruha:",
+          student.balagruha
+        );
+        return student.balagruha === formData.balagruha;
+      });
+
+      console.log("✅ Filtered students:", filtered);
       setFilteredStudents(filtered);
+
       if (
         formData.studentId &&
         !filtered.find((s) => s._id === formData.studentId)
@@ -133,6 +163,7 @@ const CreateNewPinModal = ({
         setError(""); // Clear errors when student is filtered out
       }
     } else {
+      console.log("🔄 No balagruha filter - showing all students");
       setFilteredStudents(students);
     }
   }, [formData.balagruha, formData.studentId, students]);
@@ -964,6 +995,7 @@ const CreateNewPinModal = ({
                     <select
                       value={formData.balagruha}
                       onChange={(e) => {
+                        console.log("🏛️ Balagruha selected:", e.target.value);
                         setError(""); // Clear errors when selection changes
                         setFormData((prev) => ({
                           ...prev,
@@ -1000,18 +1032,31 @@ const CreateNewPinModal = ({
                     >
                       <option value="">Select a student</option>
                       {Array.isArray(filteredStudents) &&
-                        filteredStudents.map((student) => (
-                          <option
-                            key={student._id || student.id}
-                            value={student._id || student.id}
-                          >
-                            {student.name ||
-                              `${student.firstName || ""} ${
-                                student.lastName || ""
-                              }`.trim()}{" "}
-                            {student.balagruha && `(${student.balagruha})`}
-                          </option>
-                        ))}
+                        filteredStudents.map((student) => {
+                          // Get balagruha name from balagruhaIds array or fallback to balagruha string
+                          let balagruhaName = "";
+                          if (
+                            Array.isArray(student.balagruhaIds) &&
+                            student.balagruhaIds.length > 0
+                          ) {
+                            balagruhaName = student.balagruhaIds[0]?.name || "";
+                          } else if (student.balagruha) {
+                            balagruhaName = student.balagruha;
+                          }
+
+                          return (
+                            <option
+                              key={student._id || student.id}
+                              value={student._id || student.id}
+                            >
+                              {student.name ||
+                                `${student.firstName || ""} ${
+                                  student.lastName || ""
+                                }`.trim()}{" "}
+                              {balagruhaName && `(${balagruhaName})`}
+                            </option>
+                          );
+                        })}
                     </select>
                   </div>
                 </div>
