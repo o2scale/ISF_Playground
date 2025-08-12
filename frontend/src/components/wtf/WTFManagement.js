@@ -240,6 +240,25 @@ const WTFManagementContent = ({ onToggleView }) => {
               pin._id === pinId ? { ...pin, status: "unpinned" } : pin
             )
           );
+
+          // Refresh dashboard counts so the Active Pins card updates immediately
+          try {
+            const countsResp = await getWtfDashboardCounts();
+            if (countsResp.success) {
+              setDashboardMetrics(countsResp.data);
+            } else {
+              // Fallback optimistic update
+              setDashboardMetrics((prev) => ({
+                ...prev,
+                activePins: Math.max(0, (prev.activePins || 1) - 1),
+              }));
+            }
+          } catch (e) {
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              activePins: Math.max(0, (prev.activePins || 1) - 1),
+            }));
+          }
         }
       } catch (error) {
         console.error("Error unpinning pin:", error);
