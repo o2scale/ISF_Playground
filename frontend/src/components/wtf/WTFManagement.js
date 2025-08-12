@@ -181,12 +181,13 @@ const WTFManagementContent = ({ onToggleView }) => {
         };
       };
 
-      // Try to fetch unified dashboard counts from the new API
+      // Try to fetch unified dashboard counts from the new API FIRST
       try {
         const dashboardCountsResponse = await getWtfDashboardCounts();
 
         if (dashboardCountsResponse.success) {
           const counts = dashboardCountsResponse.data;
+          console.log("Dashboard counts API response:", counts);
           setDashboardMetrics({
             activePins: counts.activePins || 0,
             coachSuggestions: counts.coachSuggestions || 0,
@@ -199,14 +200,16 @@ const WTFManagementContent = ({ onToggleView }) => {
       } catch (metricsError) {
         console.error("Error fetching dashboard counts:", metricsError);
         console.log("Using fallback calculations...");
-        // Fallback to local calculations using the fetched data
-        setDashboardMetrics(
-          calculateDashboardMetrics(
-            fetchedPins,
-            fetchedSuggestions,
-            fetchedSubmissions
-          )
-        );
+        // Only fallback if we have the data, otherwise keep existing metrics
+        if (fetchedSubmissions.length > 0 || fetchedPins.length > 0) {
+          setDashboardMetrics(
+            calculateDashboardMetrics(
+              fetchedPins,
+              fetchedSuggestions,
+              fetchedSubmissions
+            )
+          );
+        }
       }
     } catch (error) {
       console.error("Error fetching WTF data:", error);
@@ -572,13 +575,6 @@ const WTFManagementContent = ({ onToggleView }) => {
   const newSubmissionsCount = Array.isArray(studentSubmissions)
     ? studentSubmissions.filter((s) => s.status === "pending").length
     : 0;
-  // Update dashboard metric for student submissions (awaiting review)
-  useEffect(() => {
-    setDashboardMetrics((prev) => ({
-      ...prev,
-      studentSubmissions: newSubmissionsCount,
-    }));
-  }, [newSubmissionsCount]);
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter((s) => s.status === "PENDING").length
     : 0; // Real data from API

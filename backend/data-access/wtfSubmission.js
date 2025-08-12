@@ -40,20 +40,27 @@ exports.getWtfSubmissionById = async (submissionId) => {
       message: "WTF Submission fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getWtfSubmissionById");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getWtfSubmissionById"
+    );
     throw error;
   }
 };
 
 // Get pending submissions for review
-exports.getPendingSubmissions = async ({ page = 1, limit = 20, type = null }) => {
+exports.getPendingSubmissions = async ({
+  page = 1,
+  limit = 20,
+  type = null,
+}) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
       status: "pending",
-      isDraft: false
+      isDraft: false,
     };
-    
+
     if (type) query.type = type;
 
     const submissions = await WtfSubmission.find(query)
@@ -76,23 +83,29 @@ exports.getPendingSubmissions = async ({ page = 1, limit = 20, type = null }) =>
           total,
           totalPages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       },
       message: "Pending submissions fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getPendingSubmissions");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getPendingSubmissions"
+    );
     throw error;
   }
 };
 
 // Get student's submissions
-exports.getStudentSubmissions = async (studentId, { page = 1, limit = 20, status = null, type = null }) => {
+exports.getStudentSubmissions = async (
+  studentId,
+  { page = 1, limit = 20, status = null, type = null }
+) => {
   try {
     const skip = (page - 1) * limit;
     const query = { studentId: mongoose.Types.ObjectId(studentId) };
-    
+
     if (status) query.status = status;
     if (type) query.type = type;
 
@@ -116,13 +129,16 @@ exports.getStudentSubmissions = async (studentId, { page = 1, limit = 20, status
           total,
           totalPages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       },
       message: "Student submissions fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getStudentSubmissions");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getStudentSubmissions"
+    );
     throw error;
   }
 };
@@ -135,9 +151,9 @@ exports.updateWtfSubmission = async (submissionId, updateData) => {
       updateData,
       { new: true, runValidators: true }
     )
-    .populate("studentId", "name role")
-    .populate("reviewedBy", "name role")
-    .populate("approvedPinId", "title type author");
+      .populate("studentId", "name role")
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
 
     if (!submission) {
       return {
@@ -162,7 +178,7 @@ exports.updateWtfSubmission = async (submissionId, updateData) => {
 exports.deleteWtfSubmission = async (submissionId) => {
   try {
     const submission = await WtfSubmission.findByIdAndDelete(submissionId);
-    
+
     if (!submission) {
       return {
         success: false,
@@ -186,7 +202,7 @@ exports.deleteWtfSubmission = async (submissionId) => {
 exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
   try {
     const submission = await WtfSubmission.findById(submissionId);
-    
+
     if (!submission) {
       return {
         success: false,
@@ -208,7 +224,7 @@ exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
     submission.reviewedBy = reviewerId;
     submission.reviewNotes = notes;
     submission.reviewedAt = new Date();
-    
+
     await submission.save();
 
     const populatedSubmission = await WtfSubmission.findById(submissionId)
@@ -231,7 +247,7 @@ exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
 exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
   try {
     const submission = await WtfSubmission.findById(submissionId);
-    
+
     if (!submission) {
       return {
         success: false,
@@ -253,7 +269,7 @@ exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
     submission.reviewedBy = reviewerId;
     submission.reviewNotes = notes;
     submission.reviewedAt = new Date();
-    
+
     await submission.save();
 
     const populatedSubmission = await WtfSubmission.findById(submissionId)
@@ -280,9 +296,9 @@ exports.archiveSubmission = async (submissionId) => {
       { status: "archived" },
       { new: true, runValidators: true }
     )
-    .populate("studentId", "name role")
-    .populate("reviewedBy", "name role")
-    .populate("approvedPinId", "title type author");
+      .populate("studentId", "name role")
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
 
     if (!submission) {
       return {
@@ -304,11 +320,14 @@ exports.archiveSubmission = async (submissionId) => {
 };
 
 // Get submissions by type
-exports.getSubmissionsByType = async (type, { page = 1, limit = 20, status = null }) => {
+exports.getSubmissionsByType = async (
+  type,
+  { page = 1, limit = 20, status = null }
+) => {
   try {
     const skip = (page - 1) * limit;
     const query = { type };
-    
+
     if (status) query.status = status;
 
     const submissions = await WtfSubmission.find(query)
@@ -331,13 +350,16 @@ exports.getSubmissionsByType = async (type, { page = 1, limit = 20, status = nul
           total,
           totalPages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       },
       message: `${type} submissions fetched successfully`,
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getSubmissionsByType");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getSubmissionsByType"
+    );
     throw error;
   }
 };
@@ -346,13 +368,18 @@ exports.getSubmissionsByType = async (type, { page = 1, limit = 20, status = nul
 exports.getSubmissionStats = async () => {
   try {
     const stats = await WtfSubmission.getSubmissionStats();
-    
+    console.log("Raw submission stats from model:", stats);
+
     // Calculate additional metrics
     const totalSubmissions = stats.reduce((sum, item) => sum + item.count, 0);
-    const pendingCount = stats.find(item => item._id === "pending")?.count || 0;
-    const approvedCount = stats.find(item => item._id === "approved")?.count || 0;
-    const rejectedCount = stats.find(item => item._id === "rejected")?.count || 0;
-    const archivedCount = stats.find(item => item._id === "archived")?.count || 0;
+    const pendingCount =
+      stats.find((item) => item._id === "pending")?.count || 0;
+    const approvedCount =
+      stats.find((item) => item._id === "approved")?.count || 0;
+    const rejectedCount =
+      stats.find((item) => item._id === "rejected")?.count || 0;
+    const archivedCount =
+      stats.find((item) => item._id === "archived")?.count || 0;
 
     const result = {
       totalSubmissions,
@@ -360,9 +387,11 @@ exports.getSubmissionStats = async () => {
       approvedCount,
       rejectedCount,
       archivedCount,
-      approvalRate: totalSubmissions > 0 ? (approvedCount / totalSubmissions) * 100 : 0,
-      rejectionRate: totalSubmissions > 0 ? (rejectedCount / totalSubmissions) * 100 : 0,
-      breakdown: stats
+      approvalRate:
+        totalSubmissions > 0 ? (approvedCount / totalSubmissions) * 100 : 0,
+      rejectionRate:
+        totalSubmissions > 0 ? (rejectedCount / totalSubmissions) * 100 : 0,
+      breakdown: stats,
     };
 
     return {
@@ -377,11 +406,15 @@ exports.getSubmissionStats = async () => {
 };
 
 // Get recent submissions for analytics
-exports.getRecentSubmissions = async ({ days = 7, type = null, status = null }) => {
+exports.getRecentSubmissions = async ({
+  days = 7,
+  type = null,
+  status = null,
+}) => {
   try {
     const date = new Date();
     date.setDate(date.getDate() - days);
-    
+
     const query = { createdAt: { $gte: date } };
     if (type) query.type = type;
     if (status) query.status = status;
@@ -398,7 +431,10 @@ exports.getRecentSubmissions = async ({ days = 7, type = null, status = null }) 
       message: "Recent submissions fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getRecentSubmissions");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getRecentSubmissions"
+    );
     throw error;
   }
 };
@@ -408,7 +444,7 @@ exports.getSubmissionAnalytics = async ({ days = 30, type = null }) => {
   try {
     const date = new Date();
     date.setDate(date.getDate() - days);
-    
+
     const matchStage = { createdAt: { $gte: date } };
     if (type) matchStage.type = type;
 
@@ -418,11 +454,11 @@ exports.getSubmissionAnalytics = async ({ days = 30, type = null }) => {
         $group: {
           _id: {
             status: "$status",
-            type: "$type"
+            type: "$type",
           },
           count: { $sum: 1 },
-          uniqueStudents: { $addToSet: "$studentId" }
-        }
+          uniqueStudents: { $addToSet: "$studentId" },
+        },
       },
       {
         $group: {
@@ -431,19 +467,22 @@ exports.getSubmissionAnalytics = async ({ days = 30, type = null }) => {
             $push: {
               type: "$_id.type",
               count: "$count",
-              uniqueStudents: { $size: "$uniqueStudents" }
-            }
+              uniqueStudents: { $size: "$uniqueStudents" },
+            },
           },
           totalCount: { $sum: "$count" },
-          totalUniqueStudents: { $addToSet: "$uniqueStudents" }
-        }
-      }
+          totalUniqueStudents: { $addToSet: "$uniqueStudents" },
+        },
+      },
     ]);
 
     // Calculate additional metrics
-    const totalSubmissions = analytics.reduce((sum, item) => sum + item.totalCount, 0);
+    const totalSubmissions = analytics.reduce(
+      (sum, item) => sum + item.totalCount,
+      0
+    );
     const uniqueStudentsCount = new Set(
-      analytics.flatMap(item => item.totalUniqueStudents.flat())
+      analytics.flatMap((item) => item.totalUniqueStudents.flat())
     ).size;
 
     const result = {
@@ -451,7 +490,8 @@ exports.getSubmissionAnalytics = async ({ days = 30, type = null }) => {
       totalSubmissions,
       uniqueStudents: uniqueStudentsCount,
       breakdown: analytics,
-      averageSubmissionsPerStudent: uniqueStudentsCount > 0 ? totalSubmissions / uniqueStudentsCount : 0
+      averageSubmissionsPerStudent:
+        uniqueStudentsCount > 0 ? totalSubmissions / uniqueStudentsCount : 0,
     };
 
     return {
@@ -460,13 +500,20 @@ exports.getSubmissionAnalytics = async ({ days = 30, type = null }) => {
       message: "Submission analytics fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getSubmissionAnalytics");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getSubmissionAnalytics"
+    );
     throw error;
   }
 };
 
 // Bulk update submission statuses
-exports.bulkUpdateSubmissionStatus = async (submissionIds, status, reviewerId = null) => {
+exports.bulkUpdateSubmissionStatus = async (
+  submissionIds,
+  status,
+  reviewerId = null
+) => {
   try {
     const updateData = { status };
     if (reviewerId) {
@@ -483,25 +530,32 @@ exports.bulkUpdateSubmissionStatus = async (submissionIds, status, reviewerId = 
       success: true,
       data: {
         matchedCount: result.matchedCount,
-        modifiedCount: result.modifiedCount
+        modifiedCount: result.modifiedCount,
       },
       message: `Bulk updated ${result.modifiedCount} submissions to ${status}`,
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in bulkUpdateSubmissionStatus");
+    errorLogger.error(
+      { error: error.message },
+      "Error in bulkUpdateSubmissionStatus"
+    );
     throw error;
   }
 };
 
 // Get submissions that need review (pending and not drafts)
-exports.getSubmissionsNeedingReview = async ({ page = 1, limit = 20, type = null }) => {
+exports.getSubmissionsNeedingReview = async ({
+  page = 1,
+  limit = 20,
+  type = null,
+}) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
       status: "pending",
-      isDraft: false
+      isDraft: false,
     };
-    
+
     if (type) query.type = type;
 
     const submissions = await WtfSubmission.find(query)
@@ -523,13 +577,16 @@ exports.getSubmissionsNeedingReview = async ({ page = 1, limit = 20, type = null
           total,
           totalPages: Math.ceil(total / limit),
           hasNext: page * limit < total,
-          hasPrev: page > 1
-        }
+          hasPrev: page > 1,
+        },
       },
       message: "Submissions needing review fetched successfully",
     };
   } catch (error) {
-    errorLogger.error({ error: error.message }, "Error in getSubmissionsNeedingReview");
+    errorLogger.error(
+      { error: error.message },
+      "Error in getSubmissionsNeedingReview"
+    );
     throw error;
   }
-}; 
+};

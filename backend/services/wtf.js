@@ -1476,10 +1476,11 @@ class WtfService {
         : {};
       const analytics = analyticsResult?.success ? analyticsResult.data : {};
 
+      console.log("Submission stats result:", submissionStats);
       const dashboardCounts = {
         activePins: activePinsCount,
         coachSuggestions: submissionStats?.pendingCount || 0,
-        studentSubmissions: submissionStats?.newCount || 0,
+        studentSubmissions: submissionStats?.pendingCount || 0,
         totalEngagement: analytics?.totalSeen || analytics?.totalViews || 0,
         // Additional useful metrics
         totalPins: analytics?.totalPins || 0,
