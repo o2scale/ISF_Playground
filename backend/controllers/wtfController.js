@@ -693,7 +693,7 @@ exports.getPinInteractions = async (req, res) => {
 exports.submitVoiceNote = async (req, res) => {
   try {
     const studentId = req.user?.id;
-    const submissionData = req.body;
+    const submissionData = { ...req.body, file: req.file || null };
 
     if (!studentId) {
       return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
@@ -754,6 +754,53 @@ exports.submitVoiceNote = async (req, res) => {
         error: error.message,
       },
       `Error occurred while submitting voice note`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Submit media (image/video) as a student submission
+exports.submitMedia = async (req, res) => {
+  try {
+    const studentId = req.user?.id;
+    const submissionData = { ...req.body, file: req.file || null };
+
+    if (!studentId) {
+      return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
+        success: false,
+        message: "User authentication required",
+      });
+    }
+
+    // Basic validation
+    const allowedTypes = ["image", "video"];
+    const type = (submissionData.type || "").toLowerCase();
+    if (!allowedTypes.includes(type)) {
+      return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid media type. Must be 'image' or 'video'",
+      });
+    }
+
+    const result = await WtfService.submitMedia(studentId, submissionData);
+
+    if (result.success) {
+      res.status(HTTP_STATUS_CODE.CREATED).json(result);
+    } else {
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        studentId: req.user?.id,
+        error: error.message,
+      },
+      `Error occurred while submitting media`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)

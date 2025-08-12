@@ -773,6 +773,19 @@ export const submitVoiceNote = async (data) => {
   }
 };
 
+export const submitWtfMedia = async (formData) => {
+  try {
+    const response = await apiWithoutContentType.post(
+      `/api/v1/wtf/submissions/media`,
+      formData
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting WTF media:", error);
+    throw error;
+  }
+};
+
 export const submitArticle = async (data) => {
   try {
     const response = await api.post(`/api/v1/wtf/submissions/article`, data);

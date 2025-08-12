@@ -878,7 +878,7 @@ class WtfService {
         },
       };
 
-      // If a file was uploaded, store it in S3 and cleanup local temp
+      // If a file was uploaded, validate duration metadata if provided and store it in S3
       if (payload.file && payload.file.path) {
         try {
           const s3Url = await uploadWtfVoiceNote(
@@ -922,6 +922,95 @@ class WtfService {
         { error: error.message },
         "Error in submitVoiceNote service"
       );
+      throw error;
+    }
+  }
+
+  static async submitMedia(studentId, payload) {
+    try {
+      if (!studentId) {
+        return {
+          success: false,
+          data: null,
+          message: "Student ID is required",
+        };
+      }
+
+      const type = (payload.type || "").toLowerCase();
+      if (!["image", "video"].includes(type)) {
+        return {
+          success: false,
+          data: null,
+          message: "Invalid media type. Must be 'image' or 'video'",
+        };
+      }
+
+      if (!payload.file || !payload.file.path) {
+        return {
+          success: false,
+          data: null,
+          message: "Media file is required",
+        };
+      }
+
+      // Upload media to S3
+      let mediaUrl = null;
+      try {
+        const s3Url = await uploadWtfMedia(
+          payload.file.path,
+          type,
+          `submission_${Date.now()}`
+        );
+        mediaUrl = s3Url;
+        // Cleanup local temp file
+        try {
+          if (fs.existsSync(payload.file.path)) {
+            fs.unlinkSync(payload.file.path);
+          }
+        } catch {}
+      } catch (e) {
+        errorLogger.error({ error: e.message }, "Failed to upload media to S3");
+        return {
+          success: false,
+          data: null,
+          message: `Failed to upload media: ${e.message}`,
+        };
+      }
+
+      // Persist as an article submission with content URL and type in metadata
+      const submissionData = {
+        studentId: new mongoose.Types.ObjectId(studentId),
+        type: "article",
+        title: payload.title,
+        content: mediaUrl,
+        language: payload.language || "english",
+        tags: payload.tags || [],
+        isDraft: payload.isDraft || false,
+        metadata: {
+          originalType: type,
+          fileSize: payload.file.size,
+          userAgent: payload.userAgent,
+          ipAddress: payload.ipAddress,
+        },
+      };
+
+      const result = await createWtfSubmission(submissionData);
+
+      // Trigger real-time event
+      if (result.success) {
+        try {
+          wtfWebSocketService.handleSubmissionCreated(result.data);
+        } catch (wsError) {
+          errorLogger.error(
+            { submissionId: result.data._id, error: wsError.message },
+            "Error triggering WebSocket submission created event"
+          );
+        }
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error({ error: error.message }, "Error in submitMedia service");
       throw error;
     }
   }

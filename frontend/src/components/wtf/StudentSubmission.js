@@ -8,7 +8,7 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { Button } from "../ui/button.jsx";
-import { submitVoiceNote, submitArticle } from "../../api";
+import { submitVoiceNote, submitArticle, submitWtfMedia } from "../../api";
 
 const StudentSubmission = () => {
   const [submissionType, setSubmissionType] = useState("voice");
@@ -18,6 +18,7 @@ const StudentSubmission = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaRecorder, setMediaRecorder] = useState(null);
   const [audioChunks, setAudioChunks] = useState([]);
+  const [recordingStartTs, setRecordingStartTs] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState({ type: "", text: "" });
 
@@ -40,6 +41,7 @@ const StudentSubmission = () => {
       setMediaRecorder(recorder);
       setAudioChunks(chunks);
       recorder.start();
+      setRecordingStartTs(Date.now());
       setIsRecording(true);
     } catch (error) {
       console.error("Error accessing microphone:", error);
@@ -55,6 +57,7 @@ const StudentSubmission = () => {
       mediaRecorder.stop();
       mediaRecorder.stream.getTracks().forEach((track) => track.stop());
       setIsRecording(false);
+      setRecordingStartTs(null);
     }
   };
 
@@ -106,16 +109,29 @@ const StudentSubmission = () => {
       if (submissionType === "voice") {
         const formData = new FormData();
         formData.append("title", title);
-        formData.append("audioFile", audioFile);
+        // backend expects field name "file" via multer single("file")
+        formData.append("file", audioFile);
         formData.append("type", "voice");
-        
+
+        // If we have a measured duration, include it
+        if (recordingStartTs) {
+          const durationSec = Math.round((Date.now() - recordingStartTs) / 1000);
+          formData.append("audioDuration", String(durationSec));
+        }
+
         response = await submitVoiceNote(formData);
-      } else {
+      } else if (submissionType === "article") {
         response = await submitArticle({
           title,
           content,
           type: "article",
         });
+      } else if (submissionType === "media") {
+        const formData = new FormData();
+        formData.append("title", title);
+        formData.append("type", selectedMediaType);
+        formData.append("file", uploadedMedia);
+        response = await submitWtfMedia(formData);
       }
 
       if (response.success) {
@@ -129,6 +145,7 @@ const StudentSubmission = () => {
         setContent("");
         setAudioFile(null);
         setAudioChunks([]);
+        setUploadedMedia(null);
       } else {
         setMessage({
           type: "error",
@@ -148,6 +165,22 @@ const StudentSubmission = () => {
 
   const clearMessage = () => {
     setMessage({ type: "", text: "" });
+  };
+
+  // New: support media (image/video) uploads like coach flow
+  const [selectedMediaType, setSelectedMediaType] = useState("image");
+  const [uploadedMedia, setUploadedMedia] = useState(null);
+  const onMediaFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isImage = file.type.startsWith("image/");
+    const isVideo = file.type.startsWith("video/");
+    if (!isImage && !isVideo) {
+      setMessage({ type: "error", text: "Only image or video files are allowed." });
+      return;
+    }
+    setSelectedMediaType(isVideo ? "video" : "image");
+    setUploadedMedia(file);
   };
 
   return (
@@ -204,6 +237,17 @@ const StudentSubmission = () => {
           >
             <FileText className="w-4 h-4 mr-2" />
             Article
+          </button>
+          <button
+            onClick={() => setSubmissionType("media")}
+            className={`flex items-center px-4 py-2 rounded-md transition-colors ${
+              submissionType === "media"
+                ? "bg-blue-500 text-white"
+                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+            }`}
+          >
+            <Upload className="w-4 h-4 mr-2" />
+            Image/Video
           </button>
         </div>
       </div>
@@ -286,7 +330,7 @@ const StudentSubmission = () => {
               )}
             </div>
           </div>
-        ) : (
+        ) : submissionType === "article" ? (
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Article Content *
@@ -299,6 +343,35 @@ const StudentSubmission = () => {
               placeholder="Write your article here..."
               required
             />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Image or Video *
+              </label>
+              {!uploadedMedia ? (
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={onMediaFileChange}
+                  className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                />
+              ) : (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-md flex items-center justify-between">
+                  <div className="text-green-700">
+                    {uploadedMedia.name}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setUploadedMedia(null)}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         )}
 

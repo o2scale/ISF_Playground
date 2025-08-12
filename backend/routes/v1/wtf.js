@@ -30,6 +30,7 @@ const {
 
   // Submission Controllers
   submitVoiceNote,
+  submitMedia,
   submitArticle,
   getSubmissionsForReview,
   reviewSubmission,
@@ -177,6 +178,21 @@ router.post(
   wtfFileUploadSecurity,
   handleValidationErrors,
   submitVoiceNote
+);
+
+// Submit media (image/video) (Students only)
+router.post(
+  "/submissions/media",
+  authenticate,
+  authorize(WtfPermissions.WTF_SUBMISSION_CREATE, "Create"),
+  wtfUploadWithErrorHandling,
+  wtfSecurityHeaders,
+  wtfRateLimiters.submissions,
+  wtfSubmissionValidation,
+  checkContentSizeLimits("submission"),
+  wtfFileUploadSecurity,
+  handleValidationErrors,
+  submitMedia
 );
 
 // Submit article (Students only)
