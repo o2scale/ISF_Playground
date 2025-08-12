@@ -10,6 +10,7 @@ const {
 } = require("../data-access/balagruha");
 const { updateMachinesByIds } = require("../data-access/machines");
 const { getBalagruhaDetailsByUserId } = require("../data-access/User");
+const BalagruhaDA = require("../data-access/balagruha");
 
 class Balagruha {
   constructor(obj = {}) {
@@ -242,6 +243,37 @@ class Balagruha {
       errorLogger.error(
         { error: error.message },
         "Error in getBalagruhaListByUserId service"
+      );
+      throw error;
+    }
+  }
+
+  // Fetch balagruhas by assigned user id (coaches etc.)
+  static async getByAssignedUserId(userId) {
+    try {
+      const result = await BalagruhaDA.getAllBalagruha({
+        assignedUser: userId,
+      });
+      // If the above DA does not support filter, fallback to getAll and filter in memory
+      let balagruhas = [];
+      if (result && result.success && Array.isArray(result.data)) {
+        balagruhas = result.data.filter((b) =>
+          Array.isArray(b.assignedUsers)
+            ? b.assignedUsers.includes(userId)
+            : false
+        );
+      } else if (result && result.success && result.data) {
+        balagruhas = result.data;
+      }
+      return {
+        success: true,
+        data: { balagruhas },
+        message: "Assigned balagruha fetched successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getByAssignedUserId balagruha service"
       );
       throw error;
     }

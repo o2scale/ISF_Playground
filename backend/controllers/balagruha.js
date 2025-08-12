@@ -309,3 +309,56 @@ exports.getBalagruhaListByUserId = async (req, res) => {
       .json({ success: false, message: error.message });
   }
 };
+
+// Get balagruha list by assigned user ID
+exports.getBalagruhaListByAssignedID = async (req, res) => {
+  try {
+    const id = req.params.id || req.params.userId;
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        assignedUserId: id,
+      },
+      `Request received to fetch balagruha list by assigned user ID`
+    );
+    const result = await Balagruha.getByAssignedUserId(id);
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          assignedUserId: id,
+        },
+        `Successfully fetched balagruha list by assigned user ID`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          assignedUserId: id,
+        },
+        `Failed to fetch balagruha list by assigned user ID`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+      },
+      `Error occurred while fetching balagruha list by assigned user ID`
+    );
+    res
+      .status(HTTP_STATUS_CODE.BAD_REQUEST)
+      .json({ success: false, message: error.message });
+  }
+};

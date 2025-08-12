@@ -47,6 +47,22 @@ exports.createOrUpdateMoodEntry = async (moodData) => {
   }
 };
 
+// Get latest mood entry by balagruha list
+exports.getLatestMoodEntry = async (balagruhaIds) => {
+  try {
+    if (!balagruhaIds || balagruhaIds.length === 0) {
+      return { success: false, message: "balagruhaIds are required" };
+    }
+    const result = await moodTrackerDA.getLatestMoodEntryByBalagruhaIds(
+      balagruhaIds
+    );
+    return result;
+  } catch (error) {
+    errorLogger.error(`Error in getLatestMoodEntry service: ${error.message}`);
+    return { success: false, message: error.message };
+  }
+};
+
 // Get mood entries by userId
 exports.getMoodEntriesByUserId = async (userId) => {
   try {

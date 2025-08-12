@@ -1,4 +1,7 @@
 const StudentMoodTracker = require("../models/studentMoodTracker");
+const {
+  getStudentMoodTrackerDetailsByBalagruhaIds,
+} = require("../data-access/User");
 
 // Create or update mood tracker entry
 exports.createOrUpdateMoodEntry = async (moodData) => {
@@ -20,6 +23,30 @@ exports.createOrUpdateMoodEntry = async (moodData) => {
       // Create new entry
       const newMoodEntry = new StudentMoodTracker(moodData);
       return await newMoodEntry.save();
+    }
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get latest mood entries for students under given balagruha Ids
+exports.getLatestMoodEntryByBalagruhaIds = async (balagruhaIds) => {
+  try {
+    const result = await getStudentMoodTrackerDetailsByBalagruhaIds({
+      balagruhaIds,
+    });
+    if (result.success) {
+      const moodInfo = [];
+      result.data.forEach((item) => {
+        moodInfo.push({ ...item.latestMoodTracker });
+      });
+      return {
+        success: true,
+        data: { moodInfo },
+        message: "Latest mood entry fetched successfully",
+      };
+    } else {
+      throw new Error(result.message || "Failed to fetch latest mood entry");
     }
   } catch (error) {
     throw error;
