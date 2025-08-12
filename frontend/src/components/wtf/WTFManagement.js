@@ -296,6 +296,24 @@ const WTFManagementContent = ({ onToggleView }) => {
     }
     setActivePins((prev) => [response.data, ...prev]);
     setShowCreateModal(false);
+
+    // Refresh dashboard counts so the Active Pins card updates immediately
+    try {
+      const countsResp = await getWtfDashboardCounts();
+      if (countsResp.success) {
+        setDashboardMetrics(countsResp.data);
+      } else {
+        setDashboardMetrics((prev) => ({
+          ...prev,
+          activePins: (prev.activePins || 0) + 1,
+        }));
+      }
+    } catch (e) {
+      setDashboardMetrics((prev) => ({
+        ...prev,
+        activePins: (prev.activePins || 0) + 1,
+      }));
+    }
   };
 
   const handleUpdatePin = async (updatedPin) => {
