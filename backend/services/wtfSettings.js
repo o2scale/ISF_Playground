@@ -13,8 +13,8 @@ class WtfSettingsService {
   async getCurrentSettings() {
     try {
       const settings = await WtfSettings.findOne({ isActive: true })
-        .populate("createdBy", "firstName lastName")
-        .populate("updatedBy", "firstName lastName");
+        .populate("createdBy", "name")
+        .populate("updatedBy", "name");
 
       if (!settings) {
         // Return default settings if none exist
@@ -68,8 +68,8 @@ class WtfSettingsService {
       });
 
       const savedSettings = await newSettings.save();
-      await savedSettings.populate("createdBy", "firstName lastName");
-      await savedSettings.populate("updatedBy", "firstName lastName");
+      await savedSettings.populate("createdBy", "name");
+      await savedSettings.populate("updatedBy", "name");
 
       logger.info(`WTF settings updated by user ${userId}`, {
         settingsId: savedSettings._id,
@@ -161,8 +161,8 @@ class WtfSettingsService {
       const skip = (page - 1) * limit;
 
       const settings = await WtfSettings.find()
-        .populate("createdBy", "firstName lastName")
-        .populate("updatedBy", "firstName lastName")
+        .populate("createdBy", "name")
+        .populate("updatedBy", "name")
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit);

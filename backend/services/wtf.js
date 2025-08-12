@@ -22,7 +22,7 @@ const {
   bulkUpdatePinStatus,
 } = require("../data-access/wtfPin");
 
-const { getSubmissionsForReview } = require("../data-access/wtfSubmission");
+// getSubmissionsForReview is implemented as a static method in this service
 
 const {
   createInteraction,
@@ -1183,7 +1183,7 @@ class WtfService {
     try {
       // For now, we'll use the submissions data as coach suggestions
       // In a real implementation, you might have a separate coach suggestions table
-      const result = await getSubmissionsForReview({ page, limit, type: null });
+      const result = await WtfService.getSubmissionsForReview({ page, limit, type: null });
 
       if (!result.success) {
         return {

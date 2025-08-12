@@ -103,22 +103,36 @@ const WTFManagementContent = ({ onToggleView }) => {
       }
 
       // Fetch submissions for review
-      const submissionsResponse = await getSubmissionsForReview({
-        page: 1,
-        limit: 20,
-        type: submissionTab,
-      });
-      if (submissionsResponse.success) {
-        setStudentSubmissions(submissionsResponse.data || []);
+      try {
+        const submissionsResponse = await getSubmissionsForReview({
+          page: 1,
+          limit: 20,
+          type: submissionTab,
+        });
+        if (submissionsResponse.success) {
+          setStudentSubmissions(submissionsResponse.data || []);
+        } else {
+          setStudentSubmissions([]);
+        }
+      } catch (error) {
+        console.error("Error fetching submissions:", error);
+        setStudentSubmissions([]);
       }
 
       // Fetch coach suggestions
-      const coachSuggestionsResponse = await getCoachSuggestions({
-        page: 1,
-        limit: 20,
-      });
-      if (coachSuggestionsResponse.success) {
-        setCoachSuggestions(coachSuggestionsResponse.data || []);
+      try {
+        const coachSuggestionsResponse = await getCoachSuggestions({
+          page: 1,
+          limit: 20,
+        });
+        if (coachSuggestionsResponse.success) {
+          setPendingSuggestions(coachSuggestionsResponse.data || []);
+        } else {
+          setPendingSuggestions([]);
+        }
+      } catch (error) {
+        console.error("Error fetching coach suggestions:", error);
+        setPendingSuggestions([]);
       }
 
       // Fetch analytics
@@ -142,9 +156,9 @@ const WTFManagementContent = ({ onToggleView }) => {
         setDashboardMetrics({
           activePins: activePinsCount,
           coachSuggestions: coachSuggestionsCount,
-          studentSubmissions: studentSubmissions.filter(
-            (s) => s.status === "NEW"
-          ).length,
+          studentSubmissions: Array.isArray(studentSubmissions)
+            ? studentSubmissions.filter((s) => s.status === "NEW").length
+            : 0,
           totalEngagement:
             totalEngagementResponse?.data?.totalViews ||
             totalEngagementResponse?.data?.totalSeen ||
@@ -154,15 +168,18 @@ const WTFManagementContent = ({ onToggleView }) => {
         console.error("Error fetching dashboard metrics:", metricsError);
         // Fallback to local calculations
         setDashboardMetrics({
-          activePins: activePins.filter((p) => p.status === "ACTIVE").length,
-          coachSuggestions: pendingSuggestions.length,
-          studentSubmissions: studentSubmissions.filter(
-            (s) => s.status === "NEW"
-          ).length,
-          totalEngagement: activePins.reduce(
-            (acc, pin) => acc + (pin.views || 0),
-            0
-          ),
+          activePins: Array.isArray(activePins)
+            ? activePins.filter((p) => p.status === "ACTIVE").length
+            : 0,
+          coachSuggestions: Array.isArray(pendingSuggestions)
+            ? pendingSuggestions.length
+            : 0,
+          studentSubmissions: Array.isArray(studentSubmissions)
+            ? studentSubmissions.filter((s) => s.status === "NEW").length
+            : 0,
+          totalEngagement: Array.isArray(activePins)
+            ? activePins.reduce((acc, pin) => acc + (pin.views || 0), 0)
+            : 0,
         });
       }
     } catch (error) {
@@ -384,21 +401,23 @@ const WTFManagementContent = ({ onToggleView }) => {
     setSelectedCoachSuggestion(null);
   };
 
-  const filteredPins = activePins.filter((pin) => {
-    const matchesSearch =
-      pin.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      pin.caption?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesFilter =
-      filterType === "all" || pin.contentType === filterType;
-    return matchesSearch && matchesFilter && pin.status === "ACTIVE";
-  });
+  const filteredPins = Array.isArray(activePins)
+    ? activePins.filter((pin) => {
+        const matchesSearch =
+          pin.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          pin.caption?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesFilter =
+          filterType === "all" || pin.contentType === filterType;
+        return matchesSearch && matchesFilter && pin.status === "ACTIVE";
+      })
+    : [];
 
-  const newSubmissionsCount = studentSubmissions.filter(
-    (s) => s.status === "NEW"
-  ).length;
-  const pendingCoachSuggestionsCount = coachSuggestions.filter(
-    (s) => s.status === "PENDING"
-  ).length; // Real data from API
+  const newSubmissionsCount = Array.isArray(studentSubmissions)
+    ? studentSubmissions.filter((s) => s.status === "NEW").length
+    : 0;
+  const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
+    ? coachSuggestions.filter((s) => s.status === "PENDING").length
+    : 0; // Real data from API
 
   return (
     <div
@@ -1080,9 +1099,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       ▷ Voice Notes
                       {(() => {
-                        const voiceCount = studentSubmissions.filter(
-                          (s) => s.status === "NEW" && s.type === "voice"
-                        ).length;
+                        const voiceCount = Array.isArray(studentSubmissions)
+                          ? studentSubmissions.filter(
+                              (s) => s.status === "NEW" && s.type === "voice"
+                            ).length
+                          : 0;
                         return voiceCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {voiceCount}
@@ -1100,9 +1121,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                     >
                       Articles
                       {(() => {
-                        const articleCount = studentSubmissions.filter(
-                          (s) => s.status === "NEW" && s.type === "article"
-                        ).length;
+                        const articleCount = Array.isArray(studentSubmissions)
+                          ? studentSubmissions.filter(
+                              (s) => s.status === "NEW" && s.type === "article"
+                            ).length
+                          : 0;
                         return articleCount > 0 ? (
                           <Badge className="ml-2 bg-red-500 text-white text-xs">
                             {articleCount}
@@ -1135,69 +1158,70 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {studentSubmissions
-                            .filter(
-                              (s) => s.status === "NEW" && s.type === "voice"
-                            )
-                            .map((submission) => (
-                              <tr
-                                key={submission.id}
-                                className="border-b border-gray-100 hover:bg-gray-50"
-                              >
-                                <td className="py-4 px-4">
-                                  <div>
-                                    <div className="font-medium">
-                                      {submission.title}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                      {submission.studentName}
-                                    </div>
+                          {(Array.isArray(studentSubmissions)
+                            ? studentSubmissions.filter(
+                                (s) => s.status === "NEW" && s.type === "voice"
+                              )
+                            : []
+                          ).map((submission) => (
+                            <tr
+                              key={submission.id}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-4 px-4">
+                                <div>
+                                  <div className="font-medium">
+                                    {submission.title}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="text-sm">
-                                    {submission.balagruha}
+                                  <div className="text-sm text-gray-500">
+                                    {submission.studentName}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4" />
-                                    {new Date(
-                                      submission.createdAt
-                                    ).toLocaleDateString()}
-                                  </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <Badge className="bg-green-100 text-green-800">
-                                    {submission.status}
-                                  </Badge>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      onClick={() =>
-                                        handleReviewSubmission(submission)
-                                      }
-                                    >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      Review
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        handleArchiveSubmission(submission.id)
-                                      }
-                                    >
-                                      <Archive className="w-4 h-4 mr-1" />
-                                      Archive
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.balagruha}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(
+                                    submission.createdAt
+                                  ).toLocaleDateString()}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <Badge className="bg-green-100 text-green-800">
+                                  {submission.status}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() =>
+                                      handleReviewSubmission(submission)
+                                    }
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Review
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleArchiveSubmission(submission.id)
+                                    }
+                                  >
+                                    <Archive className="w-4 h-4 mr-1" />
+                                    Archive
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     ) : (
@@ -1222,76 +1246,80 @@ const WTFManagementContent = ({ onToggleView }) => {
                           </tr>
                         </thead>
                         <tbody>
-                          {studentSubmissions
-                            .filter(
-                              (s) => s.status === "NEW" && s.type === "article"
-                            )
-                            .map((submission) => (
-                              <tr
-                                key={submission.id}
-                                className="border-b border-gray-100 hover:bg-gray-50"
-                              >
-                                <td className="py-4 px-4">
-                                  <div>
-                                    <div className="font-medium">
-                                      {submission.title}
-                                    </div>
-                                    <div className="text-sm text-gray-500">
-                                      {submission.studentName}
-                                    </div>
+                          {(Array.isArray(studentSubmissions)
+                            ? studentSubmissions.filter(
+                                (s) =>
+                                  s.status === "NEW" && s.type === "article"
+                              )
+                            : []
+                          ).map((submission) => (
+                            <tr
+                              key={submission.id}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-4 px-4">
+                                <div>
+                                  <div className="font-medium">
+                                    {submission.title}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="text-sm">
-                                    {submission.balagruha}
+                                  <div className="text-sm text-gray-500">
+                                    {submission.studentName}
                                   </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-1 text-sm text-gray-600">
-                                    <Calendar className="w-4 h-4" />
-                                    {new Date(
-                                      submission.createdAt
-                                    ).toLocaleDateString()}
-                                  </div>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <Badge className="bg-green-100 text-green-800">
-                                    {submission.status}
-                                  </Badge>
-                                </td>
-                                <td className="py-4 px-4">
-                                  <div className="flex items-center gap-2">
-                                    <Button
-                                      size="sm"
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                      onClick={() =>
-                                        handleReviewSubmission(submission)
-                                      }
-                                    >
-                                      <Eye className="w-4 h-4 mr-1" />
-                                      Review
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={() =>
-                                        handleArchiveSubmission(submission.id)
-                                      }
-                                    >
-                                      <Archive className="w-4 h-4 mr-1" />
-                                      Archive
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.balagruha}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-1 text-sm text-gray-600">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(
+                                    submission.createdAt
+                                  ).toLocaleDateString()}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <Badge className="bg-green-100 text-green-800">
+                                  {submission.status}
+                                </Badge>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={() =>
+                                      handleReviewSubmission(submission)
+                                    }
+                                  >
+                                    <Eye className="w-4 h-4 mr-1" />
+                                    Review
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() =>
+                                      handleArchiveSubmission(submission.id)
+                                    }
+                                  >
+                                    <Archive className="w-4 h-4 mr-1" />
+                                    Archive
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     )}
 
                     {/* No Student Submissions State */}
-                    {studentSubmissions.filter((s) => s.status === "NEW")
-                      .length === 0 && (
+                    {(Array.isArray(studentSubmissions)
+                      ? studentSubmissions.filter((s) => s.status === "NEW")
+                          .length
+                      : 0) === 0 && (
                       <div className="text-center py-12">
                         <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
                           <div className="text-6xl mb-4">📝</div>
