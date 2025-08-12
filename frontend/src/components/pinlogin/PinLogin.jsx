@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { pinLogin } from "../../api";
 import { useAuth } from "../../contexts/AuthContext"; // Import the auth context
 import showToast from "../../utils/toast";
@@ -13,6 +13,8 @@ const PinLogin = ({ onToggle }) => {
   const [error, setError] = useState("");
   const navigate = useNavigate();
   const { login: authLogin } = useAuth(); // Use the login function from auth context
+  const location = useLocation();
+  const isStudentLogin = location.pathname === "/login";
   const headers = {
     "Content-Type": "application/json",
     "MAC-Address": `${macAddress}`,
@@ -146,9 +148,15 @@ const PinLogin = ({ onToggle }) => {
         Login with Face ID
       </a>
 
-      <Link to={"/login"}>
-        <p className="toggle-link admin-btn">Student Login</p>
-      </Link>
+      {isStudentLogin ? (
+        <Link to={"/admin/login"}>
+          <p className="toggle-link admin-btn">Admin Login</p>
+        </Link>
+      ) : (
+        <Link to={"/login"}>
+          <p className="toggle-link admin-btn">Student Login</p>
+        </Link>
+      )}
     </div>
   );
 };
