@@ -13,7 +13,8 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "setup:roles": "node scripts/setupDefaultRoles.js",
-    "debug:roles": "node scripts/debugRoles.js"
+    "debug:roles": "node scripts/debugRoles.js",
+    "force:roles": "node scripts/forceSetupRoles.js"
   },
   "keywords": [],
   "author": "",
