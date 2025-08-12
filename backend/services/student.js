@@ -557,7 +557,11 @@ class Student {
         .withFaceDescriptor();
 
       if (!detection)
-        return res.status(400).json({ error: "No face detected" });
+        return {
+          success: false,
+          data: {},
+          message: "No face detected",
+        };
 
       const queryDescriptor = detection.descriptor;
       let users = await findUsersByRole({ role: UserTypes.STUDENT });
@@ -610,10 +614,12 @@ class Student {
             }
             // Check if user is active
             if (userInfo.status === "inactive") {
-              return res.status(401).json({
+              return {
                 success: false,
+                data: {},
+                code: 401,
                 message: "Account is inactive. Please contact administrator",
-              });
+              };
             }
             await userInfo.resetLoginAttempts();
             // get the machines details from the users assigned machines
@@ -647,12 +653,13 @@ class Student {
                 };
               }
             } else {
-              return res.status(400).json({
+              return {
                 success: false,
                 data: {},
+                code: 400,
                 message:
                   "This machine is not assigned for this student. Contact Admin",
-              });
+              };
             }
 
             // generate token
