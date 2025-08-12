@@ -78,7 +78,7 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Real data from API
   const [activePins, setActivePins] = useState([]);
-  const [pendingSuggestions, setPendingSuggestions] = useState([]);
+  const [pendingSuggestions, setPendingSuggestions] = useState([]); // legacy; kept for metrics fallback only
   const [studentSubmissions, setStudentSubmissions] = useState([]);
   const [analytics, setAnalytics] = useState({});
   const [dashboardMetrics, setDashboardMetrics] = useState({
@@ -139,12 +139,17 @@ const WTFManagementContent = ({ onToggleView }) => {
         });
         if (coachSuggestionsResponse.success) {
           fetchedSuggestions = coachSuggestionsResponse.data || [];
+          // Use the real coach suggestions for the table
+          setCoachSuggestions(fetchedSuggestions);
+          // Keep legacy state for fallback metrics (optional)
           setPendingSuggestions(fetchedSuggestions);
         } else {
+          setCoachSuggestions([]);
           setPendingSuggestions([]);
         }
       } catch (error) {
         console.error("Error fetching coach suggestions:", error);
+        setCoachSuggestions([]);
         setPendingSuggestions([]);
       }
 
