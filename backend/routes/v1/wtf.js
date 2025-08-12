@@ -3,6 +3,7 @@ const { authorize, authenticate } = require("../../middleware/auth");
 const { WtfPermissions } = require("../../constants/users");
 const wtfSettingsRoutes = require("./wtfSettings");
 const { wtfUploadWithErrorHandling } = require("../../middleware/upload");
+const { cleanupOrphanedFiles } = require("../../middleware/upload");
 const {
   wtfRateLimiters,
   wtfContentValidation,
@@ -393,6 +394,30 @@ router.get(
   wtfSecurityHeaders,
   wtfRateLimiters.general,
   getSchedulerStatus
+);
+
+// ==================== ADMIN UTILITY ROUTES ====================
+
+// Clean up orphaned files (Admin only)
+router.post(
+  "/admin/cleanup-files",
+  authenticate,
+  authorize(WtfPermissions.WTF_ADMIN, "Admin"),
+  (req, res) => {
+    try {
+      cleanupOrphanedFiles();
+      res.json({
+        success: true,
+        message: "File cleanup completed successfully",
+      });
+    } catch (error) {
+      res.status(500).json({
+        success: false,
+        message: "File cleanup failed",
+        error: error.message,
+      });
+    }
+  }
 );
 
 // WTF Settings Routes

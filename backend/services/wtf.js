@@ -187,7 +187,12 @@ class WtfService {
       ) {
         try {
           logger.info(
-            { type: mappedPayload.type, fileName: mappedPayload.file.filename },
+            {
+              type: mappedPayload.type,
+              fileName: mappedPayload.file.filename,
+              filePath: mappedPayload.file.path,
+              fileSize: mappedPayload.file.size,
+            },
             "Uploading media file to S3"
           );
 
@@ -203,16 +208,30 @@ class WtfService {
 
           // Clean up temporary file after successful S3 upload
           try {
-            fs.unlinkSync(mappedPayload.file.path);
             logger.info(
               { filePath: mappedPayload.file.path },
-              "Temporary file cleaned up"
+              "Attempting to clean up temporary file"
             );
+
+            if (fs.existsSync(mappedPayload.file.path)) {
+              fs.unlinkSync(mappedPayload.file.path);
+              logger.info(
+                { filePath: mappedPayload.file.path },
+                "Temporary file cleaned up successfully"
+              );
+            } else {
+              logger.warn(
+                { filePath: mappedPayload.file.path },
+                "Temporary file not found for cleanup"
+              );
+            }
           } catch (cleanupError) {
-            logger.warn(
+            logger.error(
               {
                 error: cleanupError.message,
                 filePath: mappedPayload.file.path,
+                errorCode: cleanupError.code,
+                errorStack: cleanupError.stack,
               },
               "Failed to delete temporary file"
             );

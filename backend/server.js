@@ -25,6 +25,9 @@ const fs = require("fs"); // For file system operations
 const path = require("path");
 const faceapi = require("face-api.js");
 
+// Import cleanup function
+const { cleanupOrphanedFiles } = require("./middleware/upload");
+
 // if (!process.env.JWT_SECRET) {
 //     console.error('JWT_SECRET is not defined in environment variables');
 //     process.exit(1);
@@ -128,6 +131,14 @@ const server = app.listen(PORT, () => {
   console.log(`🌐 Backend URL: http://localhost:${PORT}`);
   console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
   console.log(`🔗 Health Check: http://localhost:${PORT}/`);
+
+  // Run initial cleanup of orphaned files
+  try {
+    cleanupOrphanedFiles();
+    console.log("🧹 Initial file cleanup completed");
+  } catch (error) {
+    console.error("❌ Initial file cleanup failed:", error.message);
+  }
 });
 
 // Initialize WTF WebSocket server

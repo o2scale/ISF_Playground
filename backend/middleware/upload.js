@@ -1,5 +1,6 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -82,11 +83,11 @@ const wtfUpload = multer({
     fieldSize: 10 * 1024 * 1024, // 10MB for field data
   },
   fileFilter: wtfFileFilter,
-}).single("file");
+});
 
 // Wrap the multer middleware to add error handling
 const wtfUploadWithErrorHandling = (req, res, next) => {
-  wtfUpload(req, res, (err) => {
+  wtfUpload.single("file")(req, res, (err) => {
     if (err) {
       console.error("🚨 Multer Error:", {
         message: err.message,
@@ -129,13 +130,64 @@ const wtfUploadWithErrorHandling = (req, res, next) => {
       });
     }
 
+    // Log successful file upload for debugging
+    if (req.file) {
+      console.log("✅ File uploaded successfully:", {
+        originalname: req.file.originalname,
+        filename: req.file.filename,
+        path: req.file.path,
+        size: req.file.size,
+        mimetype: req.file.mimetype,
+      });
+    }
+
     // No error, continue
     next();
   });
 };
 
+// Cleanup function to remove orphaned files
+const cleanupOrphanedFiles = () => {
+  const uploadsDir = "uploads/";
+
+  try {
+    if (fs.existsSync(uploadsDir)) {
+      const files = fs.readdirSync(uploadsDir);
+      const now = Date.now();
+      const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
+      files.forEach((file) => {
+        if (file === "uploaded_files_here.txt") return; // Skip the placeholder file
+
+        const filePath = path.join(uploadsDir, file);
+        const stats = fs.statSync(filePath);
+        const age = now - stats.mtime.getTime();
+
+        // Remove files older than 24 hours
+        if (age > maxAge) {
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`🧹 Cleaned up orphaned file: ${file}`);
+          } catch (error) {
+            console.error(`❌ Failed to clean up file ${file}:`, error.message);
+          }
+        }
+      });
+    }
+  } catch (error) {
+    console.error("❌ Error during cleanup:", error.message);
+  }
+};
+
+// Run cleanup every hour
+setInterval(cleanupOrphanedFiles, 60 * 60 * 1000);
+
+// Run initial cleanup
+cleanupOrphanedFiles();
+
 module.exports = {
   upload,
   wtfUpload,
   wtfUploadWithErrorHandling,
+  cleanupOrphanedFiles,
 };
