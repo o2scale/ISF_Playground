@@ -15,11 +15,15 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RBACProvider } from "./contexts/RBACContext";
 import LoginCard from "./components/login/logincard";
+import StudentLogin from "./components/login/StudentLogin";
 import UserManagement from "./components/usermanagement/usermanagement";
 import RBACManagement from "./components/RBAC/RBACManagement";
 import MachineManagement from "./components/machineManagement/machineManagement";
 import Dashboard from "./components/dashboard/dashboard";
 import PermissionDebugger from "./PermissionDebugger";
+import CourseManagement from "./components/courseManagement/CourseManagement";
+import RepairManagement from "./components/repairManagement/RepairManagement";
+import PurchaseManagement from "./components/purchaseManagement/PurchaseManagement";
 import BalagruhaDashboard from "./components/dashboard/balagruha";
 import AttendanceComponent from "./components/Attendance/attendance";
 import BalagruhaManagement from "./components/balagruhaManagement/balagruhamanagement";
@@ -35,7 +39,8 @@ const App = () => {
             <Toaster position="top-right" />
             <Routes>
               {/* Public route for login */}
-              <Route path="/login" element={<LoginCard />} />
+              <Route path="/login" element={<StudentLogin />} />
+              <Route path="/admin/login" element={<LoginCard />} />
 
               {/* Routes inside the layout */}
               <Route element={<Layout />}>
@@ -108,6 +113,9 @@ const App = () => {
                     // </ProtectedRoute>
                   }
                 />
+                <Route path="/course" element={<CourseManagement />} />
+                <Route path="/repair" element={<RepairManagement />} />
+                <Route path="/purchase" element={<PurchaseManagement />} />
 
                 {/* WTF (Wall of Fame) Route */}
                 <Route

@@ -57,6 +57,7 @@ exports.getFileContentType = (fileName) => {
 // get the upload directory and full file name
 exports.getUploadedFilesFullPath = (fileName) => {
   let fileFullPath = "";
+  const path = require("path");
   let filePath = path.join(process.cwd(), "uploads", path.basename(fileName));
   fileName = filePath.replace(/\\/g, "/");
   if (!fileName.startsWith("file://")) {

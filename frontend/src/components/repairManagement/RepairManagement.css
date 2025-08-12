@@ -1,0 +1,30 @@
+.date-picker {
+  display: flex;
+  gap: 10px;
+}
+.date-picker-button {
+  padding: 15px 40px;
+  border-radius: 10px;
+  border: 2px solid #b0c2f2;
+  font-weight: 600;
+  font-size: 16px;
+  background: #fff;
+  margin-bottom: 20px;
+}
+.date-picker-button.selected {
+  background: #7699f8;
+  border: none;
+}
+.date-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: end;
+  margin-bottom: 20px;
+}
+.custom-date-container {
+  background: #fff;
+  padding: 30px;
+  box-shadow: 0 0 10px #c5c5c5;
+  border-radius: 20px;
+}
