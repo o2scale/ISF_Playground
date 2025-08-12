@@ -1152,19 +1152,27 @@ class WtfService {
         if (result.success && result.data) {
           try {
             const approvedSubmission = result.data;
-            const pinType =
-              approvedSubmission.type === "voice" ? "audio" : "text";
+
+            // Determine pin type based on submission type and metadata
+            let pinType = "text";
+            let mediaUrl = null;
+
+            if (approvedSubmission.type === "voice") {
+              pinType = "audio";
+              mediaUrl = approvedSubmission.audioUrl;
+            } else if (approvedSubmission.metadata?.originalType === "image") {
+              pinType = "image";
+              mediaUrl = approvedSubmission.content; // content contains the S3 URL for images
+            } else if (approvedSubmission.metadata?.originalType === "video") {
+              pinType = "video";
+              mediaUrl = approvedSubmission.content; // content contains the S3 URL for videos
+            }
+
             const pinPayload = {
               title: approvedSubmission.title,
-              // For text pins, the backend reads `content`; for audio we pass media via `mediaUrl`
-              content:
-                pinType === "text"
-                  ? approvedSubmission.content
-                  : approvedSubmission.audioUrl,
+              content: approvedSubmission.content, // Always use the original content
               type: pinType,
-              ...(pinType === "audio" && {
-                mediaUrl: approvedSubmission.audioUrl,
-              }),
+              mediaUrl: mediaUrl, // Set mediaUrl for all media types
               author: approvedSubmission.studentId, // Use the original student as author, not the reviewer
               status: "active",
               isOfficial: false,

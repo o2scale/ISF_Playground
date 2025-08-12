@@ -377,69 +377,38 @@ const WTFManagementContent = ({ onToggleView }) => {
       });
 
       if (reviewResponse.success) {
-        // Create a new pin from the approved submission
-        let pinType = "text";
-        if (submission.type === "voice") {
-          pinType = "audio";
-        } else if (submission.metadata?.originalType === "video") {
-          pinType = "video";
-        } else if (submission.metadata?.originalType === "image") {
-          pinType = "image";
-        }
+        // The backend automatically creates a WTF pin when approving submissions
+        // No need to manually create another pin
 
-        const newPin = {
-          title: submission.title,
-          content: submission.content,
-          type: pinType, // Backend expects 'type' not 'contentType'
-          author: user?.name || "Unknown User", // Backend expects 'author'
-          isOfficial: false,
-          status: "active", // Backend expects lowercase enum values
-          language: "english", // Default language
-          tags: [], // Default empty tags
-          // For audio submissions, include the file/audioUrl if available
-          ...(pinType === "audio" &&
-            submission.audioUrl && {
-              content: submission.audioUrl, // Let backend handle proper S3 upload
-            }),
-        };
+        // Remove the submission from the pending list
+        setStudentSubmissions((prev) =>
+          prev.filter((s) => s._id !== submission._id)
+        );
+        setShowReviewModal(false);
+        setSelectedSubmission(null);
 
-        const pinResponse = await createWtfPin(newPin);
-        if (pinResponse.success) {
-          setActivePins((prev) => [pinResponse.data, ...prev]);
-          setStudentSubmissions((prev) =>
-            prev.filter((s) => s._id !== submission._id)
-          );
-          setShowReviewModal(false);
-          setSelectedSubmission(null);
+        // Refresh dashboard counts and active pins after approval
+        try {
+          const [countsResp, pinsResp] = await Promise.all([
+            getWtfDashboardCounts(),
+            getActiveWtfPins(),
+          ]);
 
-          // Refresh dashboard counts after pinning
-          try {
-            const countsResp = await getWtfDashboardCounts();
-            if (countsResp.success) {
-              setDashboardMetrics(countsResp.data);
-            } else {
-              // Fallback optimistic update
-              setDashboardMetrics((prev) => ({
-                ...prev,
-                activePins: (prev.activePins || 0) + 1,
-                studentSubmissions: Math.max(
-                  0,
-                  (prev.studentSubmissions || 1) - 1
-                ),
-              }));
-            }
-          } catch (e) {
-            console.error("Failed to refresh dashboard counts:", e);
-            // Fallback optimistic update
-            setDashboardMetrics((prev) => ({
-              ...prev,
-              activePins: (prev.activePins || 0) + 1,
-              studentSubmissions: Math.max(
-                0,
-                (prev.studentSubmissions || 1) - 1
-              ),
-            }));
+          if (countsResp.success) {
+            setDashboardMetrics(countsResp.data);
           }
+
+          if (pinsResp.success && pinsResp.data?.pins) {
+            setActivePins(pinsResp.data.pins);
+          }
+        } catch (e) {
+          console.error("Failed to refresh data after approval:", e);
+          // Fallback optimistic update
+          setDashboardMetrics((prev) => ({
+            ...prev,
+            activePins: (prev.activePins || 0) + 1,
+            studentSubmissions: Math.max(0, (prev.studentSubmissions || 1) - 1),
+          }));
         }
       }
     } catch (error) {

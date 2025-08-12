@@ -186,7 +186,32 @@ const WallOfFameContent = ({ onToggleView }) => {
   }, [isAdmin]);
 
   const handlePinClick = (item) => {
+    console.log("Pin clicked:", {
+      id: item._id,
+      type: item.type,
+      title: item.title,
+      content: item.content,
+      mediaUrl: item.mediaUrl,
+      thumbnailUrl: item.thumbnailUrl,
+    });
+
     setSelectedContent(item);
+
+    // Smart type detection: if type is "text" but content looks like an image URL, treat it as photo
+    let effectiveType = item.type;
+    if (
+      item.type === "text" &&
+      item.content &&
+      (item.content.includes(".png") ||
+        item.content.includes(".jpg") ||
+        item.content.includes(".jpeg") ||
+        item.content.includes(".webp") ||
+        item.content.includes(".gif"))
+    ) {
+      effectiveType = "image";
+      console.log("Detected image content in text pin, treating as image");
+    }
+
     // Map backend types to frontend modal types
     const modalTypeMap = {
       image: "photo",
@@ -195,7 +220,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       text: "text",
       link: "text", // Links can be displayed in text modal
     };
-    setModalType(modalTypeMap[item.type] || "text");
+    setModalType(modalTypeMap[effectiveType] || "text");
   };
 
   const closeModal = () => {
@@ -1110,7 +1135,29 @@ const WallOfFameContent = ({ onToggleView }) => {
         <ImageViewer
           isOpen={true}
           onClose={closeModal}
-          imageSrc={selectedContent.mediaUrl || selectedContent.content}
+          imageSrc={(() => {
+            // For image pins, prefer mediaUrl, but fall back to content if it looks like an image URL
+            let src = selectedContent.mediaUrl;
+            if (
+              !src &&
+              selectedContent.content &&
+              (selectedContent.content.includes(".png") ||
+                selectedContent.content.includes(".jpg") ||
+                selectedContent.content.includes(".jpeg") ||
+                selectedContent.content.includes(".webp") ||
+                selectedContent.content.includes(".gif"))
+            ) {
+              src = selectedContent.content;
+            }
+
+            console.log("ImageViewer imageSrc:", {
+              mediaUrl: selectedContent.mediaUrl,
+              content: selectedContent.content,
+              finalSrc: src,
+              pinType: selectedContent.type,
+            });
+            return src;
+          })()}
           title={selectedContent.title}
           author={selectedContent.author}
           likes={selectedContent.engagementMetrics?.likes || 0}
