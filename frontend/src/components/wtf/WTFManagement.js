@@ -45,6 +45,11 @@ import {
   getWtfAnalytics,
   getWtfDashboardCounts,
   getCoachSuggestions,
+  getWtfPinInteractions,
+  getStudentSubmissions,
+  getWtfSubmissionStats,
+  getCoachSuggestionsCount,
+  getPendingSubmissionsCount,
 } from "../../api";
 
 const WTFManagementContent = ({ onToggleView }) => {
@@ -105,11 +110,14 @@ const WTFManagementContent = ({ onToggleView }) => {
         limit: 20,
         type: filterType === "all" ? null : filterType,
       });
-      const fetchedPins =
-        pinsResponse.success && pinsResponse.data && pinsResponse.data.pins
-          ? pinsResponse.data.pins
-          : [];
-      setActivePins(fetchedPins);
+      if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
+        const pins = pinsResponse.data.pins;
+        setActivePins(pins);
+        setTotalItems(pinsResponse.data.pagination?.total || pins.length);
+      } else {
+        setActivePins([]);
+        setTotalItems(0);
+      }
 
       // Fetch submissions for review
       let fetchedSubmissions = [];
@@ -121,7 +129,9 @@ const WTFManagementContent = ({ onToggleView }) => {
         });
         if (submissionsResponse.success) {
           fetchedSubmissions =
-            (submissionsResponse.data && submissionsResponse.data.submissions) || [];
+            (submissionsResponse.data &&
+              submissionsResponse.data.submissions) ||
+            [];
           setStudentSubmissions(fetchedSubmissions);
         } else {
           setStudentSubmissions([]);
@@ -200,7 +210,7 @@ const WTFManagementContent = ({ onToggleView }) => {
         // Fallback to local calculations using the fetched data
         setDashboardMetrics(
           calculateDashboardMetrics(
-            fetchedPins,
+            activePins,
             fetchedSuggestions,
             fetchedSubmissions
           )
@@ -876,13 +886,13 @@ const WTFManagementContent = ({ onToggleView }) => {
                               <div className="flex items-center gap-1">
                                 <Heart className="w-4 h-4 text-red-500" />
                                 <span className="text-gray-700">
-                                  {pin.engagementMetrics?.shares || 0}
+                                  {pin.engagementMetrics?.loves ?? 0}
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <ThumbsUp className="w-4 h-4 text-blue-500" />
                                 <span className="text-gray-700">
-                                  {pin.engagementMetrics?.likes || 0}
+                                  {pin.engagementMetrics?.likes ?? 0}
                                 </span>
                               </div>
                             </div>
@@ -1417,7 +1427,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                       {(() => {
                         const voiceCount = Array.isArray(studentSubmissions)
                           ? studentSubmissions.filter(
-                              (s) => s.status === "pending" && s.type === "voice"
+                              (s) =>
+                                s.status === "pending" && s.type === "voice"
                             ).length
                           : 0;
                         return voiceCount > 0 ? (
@@ -1439,7 +1450,8 @@ const WTFManagementContent = ({ onToggleView }) => {
                       {(() => {
                         const articleCount = Array.isArray(studentSubmissions)
                           ? studentSubmissions.filter(
-                              (s) => s.status === "pending" && s.type === "article"
+                              (s) =>
+                                s.status === "pending" && s.type === "article"
                             ).length
                           : 0;
                         return articleCount > 0 ? (
@@ -1475,8 +1487,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {(Array.isArray(studentSubmissions)
-                           ? studentSubmissions.filter(
-                               (s) => s.status === "pending" && s.type === "voice"
+                            ? studentSubmissions.filter(
+                                (s) =>
+                                  s.status === "pending" && s.type === "voice"
                               )
                             : []
                           ).map((submission) => (
@@ -1563,7 +1576,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                         </thead>
                         <tbody>
                           {(Array.isArray(studentSubmissions)
-                           ? studentSubmissions.filter(
+                            ? studentSubmissions.filter(
                                 (s) =>
                                   s.status === "pending" && s.type === "article"
                               )

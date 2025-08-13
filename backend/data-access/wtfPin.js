@@ -34,7 +34,7 @@ exports.getActivePins = async ({
 
     // Add filters
     if (type) query.type = type;
-    if (author) query.author = mongoose.Types.ObjectId(author);
+    if (author) query.author = new mongoose.Types.ObjectId(author);
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)
@@ -282,11 +282,30 @@ exports.getPinsForFifoManagement = async () => {
 // Update engagement metrics
 exports.updateEngagementMetrics = async (pinId, metrics) => {
   try {
+    console.log("🔧 updateEngagementMetrics called with:", { pinId, metrics });
+
+    // Check if pin exists first
+    const existingPin = await WtfPin.findById(pinId);
+    if (!existingPin) {
+      console.log("❌ Pin not found:", pinId);
+      return {
+        success: false,
+        data: null,
+        message: "WTF Pin not found",
+      };
+    }
+
+    console.log(
+      "🔧 Existing pin engagement metrics:",
+      existingPin.engagementMetrics
+    );
+
     const pin = await WtfPin.findByIdAndUpdate(
       pinId,
       {
         $inc: {
           "engagementMetrics.likes": metrics.likes || 0,
+          "engagementMetrics.loves": metrics.loves || 0,
           "engagementMetrics.seen": metrics.seen || 0,
           "engagementMetrics.shares": metrics.shares || 0,
         },
@@ -295,12 +314,18 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
     );
 
     if (!pin) {
+      console.log("❌ Pin not found after update:", pinId);
       return {
         success: false,
         data: null,
-        message: "WTF Pin not found",
+        message: "WTF Pin not found after update",
       };
     }
+
+    console.log(
+      "✅ Engagement metrics updated successfully:",
+      pin.engagementMetrics
+    );
 
     return {
       success: true,
@@ -308,6 +333,8 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
       message: "Engagement metrics updated successfully",
     };
   } catch (error) {
+    console.error("❌ Error in updateEngagementMetrics:", error);
+    console.error("❌ Error stack:", error.stack);
     errorLogger.error(
       { error: error.message },
       "Error in updateEngagementMetrics"
@@ -463,7 +490,7 @@ exports.getActivePinsForAdmin = async ({
 
     // Add filters
     if (type) query.type = type;
-    if (author) query.author = mongoose.Types.ObjectId(author);
+    if (author) query.author = new mongoose.Types.ObjectId(author);
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)

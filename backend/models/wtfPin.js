@@ -63,6 +63,7 @@ const wtfPinSchema = new mongoose.Schema(
     },
     engagementMetrics: {
       likes: { type: Number, default: 0 },
+      loves: { type: Number, default: 0 },
       seen: { type: Number, default: 0 },
       shares: { type: Number, default: 0 },
     },

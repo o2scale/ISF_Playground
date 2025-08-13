@@ -25,6 +25,7 @@ const {
 
   // Interaction Controllers
   likePin,
+  lovePin,
   markPinAsSeen,
   getPinInteractions,
 
@@ -146,6 +147,17 @@ router.post(
   wtfInteractionValidation,
   handleValidationErrors,
   likePin
+);
+
+// Love/unlove pin (Students only)
+router.post(
+  "/pins/:pinId/love",
+  authenticate,
+  authorize(WtfPermissions.WTF_INTERACTION_CREATE, "Create"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.pinInteractions,
+  handleValidationErrors,
+  lovePin
 );
 
 // Mark pin as seen (Students only)

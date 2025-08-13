@@ -905,12 +905,24 @@ export const changeWtfPinStatus = async (pinId, status) => {
 };
 
 // Interaction APIs
-export const likeWtfPin = async (pinId) => {
+export const likeWtfPin = async (pinId, likeType = "thumbs_up") => {
   try {
-    const response = await api.post(`/api/v1/wtf/pins/${pinId}/like`);
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/like`, {
+      likeType,
+    });
     return response.data;
   } catch (error) {
     console.error("Error liking WTF pin:", error);
+    throw error;
+  }
+};
+
+export const loveWtfPin = async (pinId) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/love`);
+    return response.data;
+  } catch (error) {
+    console.error("Error loving WTF pin:", error);
     throw error;
   }
 };

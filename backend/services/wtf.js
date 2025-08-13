@@ -296,9 +296,10 @@ class WtfService {
       if (result.success) {
         // Update engagement metrics for the new pin
         await updateEngagementMetrics(result.data._id, {
-          "engagementMetrics.likes": 0,
-          "engagementMetrics.seen": 0,
-          "engagementMetrics.shares": 0,
+          likes: 0,
+          loves: 0,
+          seen: 0,
+          shares: 0,
         });
 
         // Award coins for pin creation
@@ -663,16 +664,43 @@ class WtfService {
         };
       }
 
-      // Check if student already liked this pin
-      const hasLiked = await hasStudentInteracted(studentId, pinId, "like");
+      // Check if student already liked this pin with this specific likeType
+      const hasLiked = await hasStudentInteracted(
+        studentId,
+        pinId,
+        "like",
+        likeType
+      );
+
+      console.log("🔍 Interaction check:", {
+        studentId,
+        pinId,
+        likeType,
+        hasLiked: hasLiked.data.hasInteracted,
+        hasLikedData: hasLiked.data,
+      });
+
       if (hasLiked.data.hasInteracted) {
-        // Unlike: delete the interaction
-        const deleteResult = await deleteInteraction(studentId, pinId, "like");
+        // Unlike: delete the specific interaction
+        console.log("🗑️  Attempting to delete interaction:", {
+          studentId,
+          pinId,
+          type: "like",
+          likeType,
+        });
+
+        const deleteResult = await deleteInteraction(
+          studentId,
+          pinId,
+          "like",
+          likeType
+        );
+
+        console.log("🗑️  Delete result:", deleteResult);
+
         if (deleteResult.success) {
           // Update engagement metrics
-          await updateEngagementMetrics(pinId, {
-            "engagementMetrics.likes": -1,
-          });
+          await updateEngagementMetrics(pinId, { likes: -1 });
           return {
             success: true,
             data: { action: "unliked", likeType: null },
@@ -693,7 +721,8 @@ class WtfService {
       const result = await createInteraction(interactionData);
       if (result.success) {
         // Update engagement metrics
-        await updateEngagementMetrics(pinId, { "engagementMetrics.likes": 1 });
+        console.log("🔧 likePin: Updating engagement metrics for pin:", pinId);
+        await updateEngagementMetrics(pinId, { likes: 1 });
 
         // Award coins for interaction (with daily limit)
         try {
@@ -743,6 +772,125 @@ class WtfService {
       return result;
     } catch (error) {
       errorLogger.error({ error: error.message }, "Error in likePin service");
+      throw error;
+    }
+  }
+
+  static async lovePin(studentId, pinId) {
+    try {
+      if (!studentId || !pinId) {
+        return {
+          success: false,
+          data: null,
+          message: "Student ID and Pin ID are required",
+        };
+      }
+
+      // Validate ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(studentId)) {
+        return {
+          success: false,
+          data: null,
+          message: "Invalid student ID format",
+        };
+      }
+
+      if (!mongoose.Types.ObjectId.isValid(pinId)) {
+        return {
+          success: false,
+          data: null,
+          message: "Invalid pin ID format",
+        };
+      }
+
+      // Check if pin exists and is active
+      const pinResult = await getWtfPinById(pinId);
+      if (!pinResult.success) {
+        return {
+          success: false,
+          data: null,
+          message: "Pin not found or not active",
+        };
+      }
+
+      // Check if student already loved this pin
+      const hasLoved = await hasStudentInteracted(studentId, pinId, "love");
+      if (hasLoved.data.hasInteracted) {
+        // Unlove: delete the interaction
+        const deleteResult = await deleteInteraction(studentId, pinId, "love");
+        if (deleteResult.success) {
+          // Update engagement metrics
+          await updateEngagementMetrics(pinId, { loves: -1 });
+          return {
+            success: true,
+            data: { action: "unloved" },
+            message: "Pin unloved successfully",
+          };
+        }
+        return deleteResult;
+      }
+
+      // Love: create new interaction
+      const interactionData = {
+        studentId: new mongoose.Types.ObjectId(studentId),
+        pinId: new mongoose.Types.ObjectId(pinId),
+        type: "love",
+      };
+
+      const result = await createInteraction(interactionData);
+      if (result.success) {
+        // Update engagement metrics
+        console.log("🔧 lovePin: Updating engagement metrics for pin:", pinId);
+        await updateEngagementMetrics(pinId, { loves: 1 });
+
+        // Award coins for interaction (with daily limit)
+        try {
+          const coinResult = await CoinService.awardInteractionCoins(
+            studentId,
+            result.data._id,
+            {
+              pinId: pinId,
+              likeType: "love",
+              userAgent: metadata?.userAgent,
+              ipAddress: metadata?.ipAddress,
+            }
+          );
+
+          // Add coin information to response if coins were awarded
+          if (coinResult.success) {
+            result.data.coinAward = coinResult.data;
+          }
+        } catch (coinError) {
+          errorLogger.error(
+            { studentId, pinId, error: coinError.message },
+            "Error awarding coins for interaction"
+          );
+          // Don't fail the interaction if coin awarding fails
+        }
+
+        // Trigger real-time event
+        try {
+          wtfWebSocketService.handlePinLiked(pinId, studentId, {
+            likeType: "love",
+            interactionId: result.data._id,
+          });
+        } catch (wsError) {
+          errorLogger.error(
+            { pinId, studentId, error: wsError.message },
+            "Error triggering WebSocket pin loved event"
+          );
+        }
+
+        return {
+          success: true,
+          data: { action: "loved", ...result.data },
+          message: "Pin loved successfully",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error({ error: error.message }, "Error in lovePin service");
       throw error;
     }
   }
@@ -801,7 +949,7 @@ class WtfService {
       const result = await createInteraction(interactionData);
       if (result.success) {
         // Update engagement metrics
-        await updateEngagementMetrics(pinId, { "engagementMetrics.seen": 1 });
+        await updateEngagementMetrics(pinId, { seen: 1 });
         // Trigger real-time event
         try {
           wtfWebSocketService.handlePinSeen(pinId, studentId, {
