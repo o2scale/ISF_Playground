@@ -534,6 +534,84 @@ exports.likePin = async (req, res) => {
   }
 };
 
+// Love/unlove pin
+exports.lovePin = async (req, res) => {
+  try {
+    const { pinId } = req.params;
+    const studentId = req.user?.id;
+
+    if (!mongoose.Types.ObjectId.isValid(pinId)) {
+      return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid pin ID format",
+      });
+    }
+
+    if (!studentId) {
+      return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
+        success: false,
+        message: "User authentication required",
+      });
+    }
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        pinId,
+        studentId,
+      },
+      `Request received to love/unlove WTF pin`
+    );
+
+    const result = await WtfService.lovePin(studentId, pinId);
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          pinId,
+          studentId,
+          action: result.data.action,
+        },
+        `Successfully processed pin love interaction`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          pinId,
+          studentId,
+          error: result.message,
+        },
+        `Failed to process pin love interaction`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        pinId: req.params.pinId,
+        studentId: req.user?.id,
+        error: error.message,
+      },
+      `Error occurred while processing pin love interaction`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
 // Mark pin as seen
 exports.markPinAsSeen = async (req, res) => {
   try {

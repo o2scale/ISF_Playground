@@ -32,7 +32,9 @@ import TextReader from "./modals/TextReader";
 import {
   getActiveWtfPins,
   likeWtfPin,
+  loveWtfPin,
   markWtfPinAsSeen,
+  getWtfPinInteractions,
   createWtfPin,
   createCoachSuggestion,
   getWtfSubmissionStats,
@@ -114,10 +116,23 @@ const WallOfFameContent = ({ onToggleView }) => {
   useEffect(() => {
     const fetchPins = async () => {
       try {
+        console.log("🔧 Frontend: Fetching pins...");
         const response = await getActiveWtfPins();
+        console.log("🔧 Frontend: getActiveWtfPins response:", response);
+
         if (response.success && response.data && response.data.pins) {
-          setContent(response.data.pins);
+          const pins = response.data.pins;
+          console.log(
+            "🔧 Frontend: Setting content with pins:",
+            pins.map((p) => ({
+              id: p._id || p.id,
+              title: p.title,
+              engagementMetrics: p.engagementMetrics,
+            }))
+          );
+          setContent(pins);
         } else {
+          console.log("🔧 Frontend: No pins found or error response");
           setContent([]);
         }
       } catch (error) {
@@ -160,8 +175,18 @@ const WallOfFameContent = ({ onToggleView }) => {
     return () => clearInterval(interval);
   }, [isAdmin]);
 
-  const handlePinClick = (item) => {
-    setSelectedContent(item);
+  const handlePinClick = async (item) => {
+    // Find the most up-to-date version of this pin from the current content state
+    const currentPin = content.find(
+      (pin) => (pin._id || pin.id) === (item._id || item.id)
+    );
+
+    if (currentPin) {
+      setSelectedContent(currentPin);
+    } else {
+      setSelectedContent(item);
+    }
+
     // Map backend types to frontend modal types
     const modalTypeMap = {
       image: "photo",
@@ -421,12 +446,35 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const handleLikePin = async (pinId) => {
     try {
-      await likeWtfPin(pinId);
-      setContent((prev) =>
-        prev.map((pin) =>
-          pin.id === pinId ? { ...pin, likes: pin.likes + 1 } : pin
-        )
-      );
+      console.log("🔧 Frontend: handleLikePin called for pin:", pinId);
+      const resp = await likeWtfPin(pinId, "thumbs_up");
+      console.log("🔧 Frontend: likeWtfPin response:", resp);
+
+      setContent((prev) => {
+        console.log("🔧 Frontend: Updating content state, prev:", prev);
+        return prev.map((pin) => {
+          const currentId = pin.id || pin._id;
+          if (currentId !== pinId) return pin;
+          const currentLikes = pin.engagementMetrics?.likes ?? 0;
+          const delta = resp?.data?.action === "unliked" ? -1 : 1;
+          const newLikes = Math.max(0, currentLikes + delta);
+          console.log(
+            "🔧 Frontend: Pin",
+            currentId,
+            "likes:",
+            currentLikes,
+            "->",
+            newLikes
+          );
+          return {
+            ...pin,
+            engagementMetrics: {
+              ...pin.engagementMetrics,
+              likes: newLikes,
+            },
+          };
+        });
+      });
     } catch (error) {
       console.error("Error liking pin:", error);
     }
@@ -434,12 +482,38 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const handleHeartPin = async (pinId) => {
     try {
-      await likeWtfPin(pinId); // Assuming likeWtfPin handles hearts too
-      setContent((prev) =>
-        prev.map((pin) =>
-          pin.id === pinId ? { ...pin, hearts: pin.hearts + 1 } : pin
-        )
-      );
+      console.log("🔧 Frontend: handleHeartPin called for pin:", pinId);
+      const resp = await loveWtfPin(pinId);
+      console.log("🔧 Frontend: loveWtfPin response:", resp);
+
+      setContent((prev) => {
+        console.log(
+          "🔧 Frontend: Updating content state for heart, prev:",
+          prev
+        );
+        return prev.map((pin) => {
+          const currentId = pin.id || pin._id;
+          if (currentId !== pinId) return pin;
+          const currentLoves = pin.engagementMetrics?.loves ?? 0;
+          const delta = resp?.data?.action === "unloved" ? -1 : 1;
+          const newLoves = Math.max(0, currentLoves + delta);
+          console.log(
+            "🔧 Frontend: Pin",
+            currentId,
+            "loves:",
+            currentLoves,
+            "->",
+            newLoves
+          );
+          return {
+            ...pin,
+            engagementMetrics: {
+              ...pin.engagementMetrics,
+              loves: newLoves,
+            },
+          };
+        });
+      });
     } catch (error) {
       console.error("Error hearting pin:", error);
     }
@@ -449,7 +523,21 @@ const WallOfFameContent = ({ onToggleView }) => {
     try {
       await markWtfPinAsSeen(pinId);
       setContent((prev) =>
-        prev.map((pin) => (pin.id === pinId ? { ...pin, isSeen: true } : pin))
+        prev.map((pin) => {
+          const currentId = pin.id || pin._id;
+          if (currentId !== pinId) return pin;
+          if (pin.engagementMetrics) {
+            const currentSeen = pin.engagementMetrics.seen ?? 0;
+            return {
+              ...pin,
+              engagementMetrics: {
+                ...pin.engagementMetrics,
+                seen: currentSeen + 1,
+              },
+            };
+          }
+          return { ...pin, isSeen: true };
+        })
       );
     } catch (error) {
       console.error("Error marking pin as seen:", error);
@@ -523,7 +611,7 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const renderCard = (item) => (
     <div
-      key={item.id}
+      key={item._id || item.id}
       className="bg-yellow-50 p-4 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl relative"
       onClick={(e) => {
         e.preventDefault();
@@ -553,18 +641,50 @@ const WallOfFameContent = ({ onToggleView }) => {
       </div>
 
       <div className="flex items-center justify-center gap-3 mb-2 text-xs">
-        <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="flex items-center gap-1 hover:opacity-80"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleMarkAsSeen(item.id || item._id);
+          }}
+        >
           <Eye className="w-3 h-3 text-gray-600" />
-          <span className="text-gray-700 font-medium">{item.views}</span>
-        </div>
-        <div className="flex items-center gap-1">
+          <span className="text-gray-700 font-medium">
+            {item.engagementMetrics?.seen ?? item.views ?? 0}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1 hover:opacity-80"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleHeartPin(item.id || item._id);
+          }}
+          aria-label="Love"
+        >
           <Heart className="w-3 h-3 text-red-500" />
-          <span className="text-gray-700 font-medium">{item.hearts}</span>
-        </div>
-        <div className="flex items-center gap-1">
+          <span className="text-gray-700 font-medium">
+            {item.engagementMetrics?.loves ?? 0}
+          </span>
+        </button>
+        <button
+          type="button"
+          className="flex items-center gap-1 hover:opacity-80"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleLikePin(item.id || item._id);
+          }}
+          aria-label="Like"
+        >
           <ThumbsUp className="w-3 h-3 text-pink-500" />
-          <span className="text-gray-700 font-medium">{item.likes}</span>
-        </div>
+          <span className="text-gray-700 font-medium">
+            {item.engagementMetrics?.likes ?? 0}
+          </span>
+        </button>
       </div>
 
       {item.type === "photo" && (
@@ -1044,7 +1164,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           title={selectedContent.title}
           author={selectedContent.author}
           likes={selectedContent.engagementMetrics?.likes || 0}
-          hearts={selectedContent.engagementMetrics?.shares || 0}
+          hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
@@ -1057,7 +1177,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           title={selectedContent.title}
           author={selectedContent.author}
           likes={selectedContent.engagementMetrics?.likes || 0}
-          hearts={selectedContent.engagementMetrics?.shares || 0}
+          hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
@@ -1070,7 +1190,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           title={selectedContent.title}
           author={selectedContent.author}
           likes={selectedContent.engagementMetrics?.likes || 0}
-          hearts={selectedContent.engagementMetrics?.shares || 0}
+          hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}
@@ -1083,7 +1203,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           content={selectedContent.content}
           author={selectedContent.author}
           likes={selectedContent.engagementMetrics?.likes || 0}
-          hearts={selectedContent.engagementMetrics?.shares || 0}
+          hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
         />
       )}

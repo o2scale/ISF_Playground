@@ -116,7 +116,7 @@ exports.getStudentSubmissions = async (
 ) => {
   try {
     const skip = (page - 1) * limit;
-    const query = { studentId: mongoose.Types.ObjectId(studentId) };
+    const query = { studentId: new mongoose.Types.ObjectId(studentId) };
 
     if (status) query.status = status;
     if (type) query.type = type;

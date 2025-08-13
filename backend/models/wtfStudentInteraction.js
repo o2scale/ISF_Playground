@@ -14,7 +14,7 @@ const wtfStudentInteractionSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["like", "seen"],
+      enum: ["like", "seen", "love"],
       required: [true, "Interaction type is required"],
     },
     // For like interactions, we can track additional data
@@ -64,9 +64,16 @@ const wtfStudentInteractionSchema = new mongoose.Schema(
 );
 
 // Compound unique index to prevent duplicate interactions
+// For likes, we need to include likeType to allow both thumbs_up and green_heart
+wtfStudentInteractionSchema.index(
+  { studentId: 1, pinId: 1, type: 1, likeType: 1 },
+  { unique: true, partialFilterExpression: { type: "like" } }
+);
+
+// For love interactions, use the original constraint
 wtfStudentInteractionSchema.index(
   { studentId: 1, pinId: 1, type: 1 },
-  { unique: true }
+  { unique: true, partialFilterExpression: { type: { $in: ["seen", "love"] } } }
 );
 
 // Pre-save middleware to validate interaction data
@@ -81,6 +88,14 @@ wtfStudentInteractionSchema.pre("save", function (next) {
     return next(
       new Error("Valid view duration is required for seen interactions")
     );
+  }
+
+  // Love interactions don't need additional validation
+  if (this.type === "love") {
+    // Ensure likeType is not set for love interactions
+    if (this.likeType) {
+      this.likeType = undefined;
+    }
   }
 
   next();
@@ -129,16 +144,30 @@ wtfStudentInteractionSchema.statics.getStudentPinInteractions = function (
 };
 
 // Static method to check if student has interacted with a pin
+// For likes, we need to check both type and likeType
 wtfStudentInteractionSchema.statics.hasStudentInteracted = function (
   studentId,
   pinId,
-  type
+  type,
+  likeType = null
 ) {
-  return this.exists({
+  const query = {
     studentId: new mongoose.Types.ObjectId(studentId),
     pinId: new mongoose.Types.ObjectId(pinId),
     type: type,
-  });
+  };
+
+  // For likes, also check the likeType
+  if (type === "like" && likeType) {
+    query.likeType = likeType;
+  }
+
+  // For love and seen interactions, no additional fields needed
+  // likeType should not be included for these types
+
+  console.log("🔍 hasStudentInteracted query:", JSON.stringify(query, null, 2));
+
+  return this.exists(query);
 };
 
 // Static method to get student's interaction history
