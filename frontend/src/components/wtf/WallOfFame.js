@@ -32,6 +32,7 @@ import ImageViewer from "./modals/ImageViewer";
 import VideoPlayer from "./modals/VideoPlayer";
 import AudioPlayer from "./modals/AudioPlayer";
 import TextReader from "./modals/TextReader";
+import ArticleEditor from "./modals/ArticleEditor";
 import {
   getActiveWtfPins,
   likeWtfPin,
@@ -286,6 +287,7 @@ const WallOfFameContent = ({ onToggleView }) => {
   // Voice modal state
   const [showVoiceModal, setShowVoiceModal] = useState(false);
   const [voiceAutoStart, setVoiceAutoStart] = useState(false);
+  const [showArticleEditor, setShowArticleEditor] = useState(false);
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
@@ -1276,17 +1278,27 @@ const WallOfFameContent = ({ onToggleView }) => {
                 <CategoryButtons />
               </div>
               {isStudent && (
-                <button
-                  id="btn-wtf-share-voice"
-                  onMouseDown={() => {
-                    setShowVoiceModal(true);
-                    setVoiceAutoStart(true);
-                  }}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                  title="Share Your Voice!"
-                >
-                  <Mic className="w-4 h-4" /> Share Your Voice!
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    id="btn-wtf-share-voice"
+                    onMouseDown={() => {
+                      setShowVoiceModal(true);
+                      setVoiceAutoStart(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                    title="Share Your Voice!"
+                  >
+                    <Mic className="w-4 h-4" /> Share Your Voice!
+                  </button>
+                  <button
+                    id="btn-wtf-write-story"
+                    onClick={() => setShowArticleEditor(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    title="Write a Story"
+                  >
+                    <FileText className="w-4 h-4" /> Write a Story
+                  </button>
+                </div>
               )}
             </div>
             <div className="overflow-hidden">
@@ -1470,6 +1482,12 @@ const WallOfFameContent = ({ onToggleView }) => {
               setShowVoiceModal(false);
               setVoiceAutoStart(false);
             }}
+          />
+
+          {/* Article editor modal */}
+          <ArticleEditor
+            isOpen={showArticleEditor}
+            onClose={() => setShowArticleEditor(false)}
           />
         </div>
       </div>
