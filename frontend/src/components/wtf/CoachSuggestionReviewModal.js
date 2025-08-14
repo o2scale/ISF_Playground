@@ -28,6 +28,12 @@ const CoachSuggestionReviewModal = ({
       suggestion.type ||
       ""
     ).toLowerCase();
+    const contentUrl =
+      typeof suggestion.content === "string" ? suggestion.content : "";
+    const isImageWorkType =
+      workType.includes("image") ||
+      /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(contentUrl) ||
+      contentUrl.includes("/image/");
     if (suggestion.thumbnail) {
       return (
         <div className="bg-gray-50 rounded-lg p-6 text-center">
@@ -36,7 +42,32 @@ const CoachSuggestionReviewModal = ({
             alt={suggestion.title}
             className="max-w-full h-64 object-cover rounded mx-auto"
           />
-          <p className="text-sm text-gray-600 mt-2">{suggestion.content}</p>
+          {contentUrl && (
+            <p className="text-xs text-gray-500 mt-2 break-all">
+              <a href={contentUrl} target="_blank" rel="noreferrer">
+                Open original
+              </a>
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    if (isImageWorkType) {
+      return (
+        <div className="bg-gray-50 rounded-lg p-6 text-center">
+          <img
+            src={contentUrl}
+            alt={suggestion.title}
+            className="max-w-full max-h-[420px] object-contain rounded mx-auto bg-white"
+          />
+          {contentUrl && (
+            <p className="text-xs text-gray-500 mt-2 break-all">
+              <a href={contentUrl} target="_blank" rel="noreferrer">
+                Open original
+              </a>
+            </p>
+          )}
         </div>
       );
     }

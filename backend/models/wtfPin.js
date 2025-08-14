@@ -62,10 +62,14 @@ const wtfPinSchema = new mongoose.Schema(
       },
     },
     engagementMetrics: {
-      likes: { type: Number, default: 0 },
-      loves: { type: Number, default: 0 },
-      seen: { type: Number, default: 0 },
-      shares: { type: Number, default: 0 },
+      likes: { type: Number, default: 0, min: [0, "Likes cannot be negative"] },
+      loves: { type: Number, default: 0, min: [0, "Loves cannot be negative"] },
+      seen: { type: Number, default: 0, min: [0, "Seen cannot be negative"] },
+      shares: {
+        type: Number,
+        default: 0,
+        min: [0, "Shares cannot be negative"],
+      },
     },
     // For link type pins
     linkUrl: {
@@ -147,7 +151,13 @@ wtfPinSchema.methods.isActive = function () {
 
 // Instance method to update engagement metrics
 wtfPinSchema.methods.updateEngagementMetrics = function (metrics) {
-  Object.assign(this.engagementMetrics, metrics);
+  const nextMetrics = { ...this.engagementMetrics, ...metrics };
+  // Clamp to zero to avoid negatives
+  nextMetrics.likes = Math.max(0, nextMetrics.likes || 0);
+  nextMetrics.loves = Math.max(0, nextMetrics.loves || 0);
+  nextMetrics.seen = Math.max(0, nextMetrics.seen || 0);
+  nextMetrics.shares = Math.max(0, nextMetrics.shares || 0);
+  this.engagementMetrics = nextMetrics;
   return this.save();
 };
 

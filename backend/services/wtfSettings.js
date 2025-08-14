@@ -38,7 +38,13 @@ class WtfSettingsService {
    */
   async updateSettings(settingsData, userId) {
     try {
-      const { backgroundType, backgroundColor, backgroundImage } = settingsData;
+      const {
+        backgroundType,
+        backgroundColor,
+        backgroundImage,
+        fontFamily,
+        fontUrl,
+      } = settingsData;
 
       // Validate required fields
       if (!backgroundType || !["color", "image"].includes(backgroundType)) {
@@ -62,6 +68,8 @@ class WtfSettingsService {
         backgroundColor:
           backgroundType === "color" ? backgroundColor : "#f8fafc",
         backgroundImage: backgroundType === "image" ? backgroundImage : null,
+        fontFamily: fontFamily || null,
+        fontUrl: fontUrl || null,
         isActive: true,
         createdBy: userId,
         updatedBy: userId,
@@ -76,11 +84,75 @@ class WtfSettingsService {
         backgroundType,
         backgroundColor: backgroundType === "color" ? backgroundColor : null,
         backgroundImage: backgroundType === "image" ? backgroundImage : null,
+        fontFamily: fontFamily || null,
+        fontUrl: fontUrl || null,
       });
 
       return savedSettings;
     } catch (error) {
       errorLogger.error("Error updating WTF settings:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Upload font file (woff2/ttf/otf)
+   */
+  async uploadFont(file, userId) {
+    try {
+      if (!file) {
+        throw new Error("No file provided");
+      }
+
+      const allowedTypes = [
+        "font/woff2",
+        "font/woff",
+        "application/x-font-ttf",
+        "font/ttf",
+        "application/x-font-otf",
+        "font/otf",
+      ];
+      if (!allowedTypes.includes(file.mimetype)) {
+        throw new Error(
+          "Invalid font type. Only WOFF2/WOFF/TTF/OTF are allowed"
+        );
+      }
+
+      // 1MB limit for fonts
+      const maxSize = 1 * 1024 * 1024;
+      if (file.size > maxSize) {
+        throw new Error("Font file too large. Maximum size is 1MB");
+      }
+
+      const ext = file.originalname.split(".").pop();
+      const fileName = `fonts/wtf-font-${Date.now()}-${Math.random()
+        .toString(36)
+        .substring(7)}.${ext}`;
+
+      const fontUrl = await uploadWtfMediaBuffer(
+        file.buffer,
+        fileName,
+        file.mimetype
+      );
+
+      // Clean up uploaded temp file on disk if exists (multer disk storage)
+      try {
+        if (file.path) {
+          const fs = require("fs");
+          fs.unlink(file.path, () => {});
+        }
+      } catch (e) {
+        // non-blocking cleanup
+      }
+
+      logger.info(`WTF font uploaded by user ${userId}`, {
+        fileName,
+        fontUrl,
+      });
+
+      return fontUrl;
+    } catch (error) {
+      errorLogger.error("Error uploading WTF font:", error);
       throw error;
     }
   }
@@ -113,12 +185,24 @@ class WtfSettingsService {
         throw new Error("File size too large. Maximum size is 5MB");
       }
 
-      // Upload to S3
-      const fileName = `backgrounds/wtf-bg-${Date.now()}-${Math.random()
+      // Upload to S3 in settings folder
+      const path = require("path");
+      const originalExt =
+        path.extname(file.originalname) || `.${file.mimetype.split("/")[1]}`;
+      const fileName = `settings/backgrounds/wtf-bg-${Date.now()}-${Math.random()
         .toString(36)
-        .substring(7)}.${file.mimetype.split("/")[1]}`;
+        .substring(7)}${originalExt}`;
+
+      // Some multer configs provide buffer, others write to disk
+      const fs = require("fs");
+      const buffer =
+        file.buffer || (file.path ? fs.readFileSync(file.path) : null);
+      if (!buffer) {
+        throw new Error("Failed to read uploaded image data");
+      }
+
       const imageUrl = await uploadWtfMediaBuffer(
-        file.buffer,
+        buffer,
         fileName,
         file.mimetype
       );
@@ -128,6 +212,15 @@ class WtfSettingsService {
         imageUrl,
         fileSize: file.size,
       });
+
+      // Clean up temporary file if written to disk
+      try {
+        if (file.path) {
+          fs.unlink(file.path, () => {});
+        }
+      } catch (e) {
+        // Non-blocking cleanup
+      }
 
       return imageUrl;
     } catch (error) {

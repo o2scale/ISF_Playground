@@ -65,6 +65,18 @@ const Layout = () => {
     { id: 7, name: "Access", link: "/rbac", roles: ["admin"] },
     {
       id: 8,
+      name: "Repairs",
+      link: "/repair",
+      roles: ["admin", "purchase-manager"],
+    },
+    {
+      id: 9,
+      name: "Purchases",
+      link: "/purchase",
+      roles: ["admin", "purchase-manager"],
+    },
+    {
+      id: 10,
       name: "WTF",
       link: "/wtf",
       roles: [

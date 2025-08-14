@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { Palette, Image, Upload, Check, X, Loader } from "lucide-react";
+import { Palette, Image, Upload, Check, X, Loader, Trash2 } from "lucide-react";
 import {
   getWtfSettings,
   updateWtfSettings,
   uploadWtfBackgroundImage,
+  deleteWtfBackgroundImage,
 } from "../../api";
 
 const BackgroundSettings = ({ onSettingsChange }) => {
@@ -18,6 +19,7 @@ const BackgroundSettings = ({ onSettingsChange }) => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [deletingImage, setDeletingImage] = useState(false);
 
   // Predefined color palette
   const colorPalette = [
@@ -122,6 +124,22 @@ const BackgroundSettings = ({ onSettingsChange }) => {
       setError(error.response?.data?.message || "Failed to save settings");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleDeleteImage = async () => {
+    try {
+      setDeletingImage(true);
+      setError("");
+      await deleteWtfBackgroundImage(settings.backgroundImage);
+      setSettings((prev) => ({ ...prev, backgroundImage: null }));
+      setSuccess("Background image deleted");
+      if (onSettingsChange)
+        onSettingsChange({ ...settings, backgroundImage: null });
+    } catch (error) {
+      setError(error.response?.data?.message || "Failed to delete image");
+    } finally {
+      setDeletingImage(false);
     }
   };
 
@@ -263,7 +281,7 @@ const BackgroundSettings = ({ onSettingsChange }) => {
             Upload Background Image
           </label>
 
-          {/* Current Image Preview */}
+          {/* Current/Saved Image Preview */}
           {settings.backgroundImage && (
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">Current Background:</p>
@@ -271,6 +289,21 @@ const BackgroundSettings = ({ onSettingsChange }) => {
                 className="w-full h-32 rounded-lg border-2 border-gray-300 bg-cover bg-center"
                 style={{ backgroundImage: `url(${settings.backgroundImage})` }}
               />
+              <div className="mt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleDeleteImage}
+                  disabled={deletingImage}
+                  className={`inline-flex items-center gap-1 text-xs px-3 py-1 rounded ${
+                    deletingImage
+                      ? "bg-gray-200 text-gray-400"
+                      : "bg-red-50 text-red-600 hover:bg-red-100"
+                  }`}
+                >
+                  <Trash2 className="w-3 h-3" />
+                  {deletingImage ? "Deleting..." : "Remove Image"}
+                </button>
+              </div>
             </div>
           )}
 
@@ -303,6 +336,20 @@ const BackgroundSettings = ({ onSettingsChange }) => {
               </span>
             </label>
           </div>
+
+          {/* Unsaved preview when picking a new image */}
+          {settings.backgroundType === "image" && settings.backgroundImage && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Preview</span>
+                <span className="text-xs text-amber-600">Unsaved</span>
+              </div>
+              <div
+                className="w-full h-24 rounded border bg-cover bg-center"
+                style={{ backgroundImage: `url(${settings.backgroundImage})` }}
+              />
+            </div>
+          )}
         </div>
       )}
 

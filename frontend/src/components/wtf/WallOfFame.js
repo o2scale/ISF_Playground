@@ -13,6 +13,9 @@ import {
   Upload,
   Check,
   Loader,
+  Mic,
+  StopCircle,
+  Send,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useSidebar } from "../Layout";
@@ -29,6 +32,7 @@ import ImageViewer from "./modals/ImageViewer";
 import VideoPlayer from "./modals/VideoPlayer";
 import AudioPlayer from "./modals/AudioPlayer";
 import TextReader from "./modals/TextReader";
+import ArticleEditor from "./modals/ArticleEditor";
 import {
   getActiveWtfPins,
   likeWtfPin,
@@ -44,7 +48,190 @@ import {
   submitArticle,
   updateWtfSettings,
   uploadWtfBackgroundImage,
+  uploadWtfFont,
 } from "../../api";
+import showToast from "../../utils/toast";
+
+// Inline voice suggestion modal (see spec)
+const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
+  const [recording, setRecording] = React.useState(false);
+  const [permissionError, setPermissionError] = React.useState("");
+  const [mediaRecorder, setMediaRecorder] = React.useState(null);
+  const [chunks, setChunks] = React.useState([]);
+  const [stream, setStream] = React.useState(null);
+  const [timer, setTimer] = React.useState(0);
+  const [timerId, setTimerId] = React.useState(null);
+  const [audioUrl, setAudioUrl] = React.useState("");
+  const [hasReviewed, setHasReviewed] = React.useState(false);
+
+  const chunksRef = React.useRef([]);
+  const startRecording = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setStream(s);
+      const mr = new MediaRecorder(s);
+      chunksRef.current = [];
+      setChunks([]);
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          setChunks((p) => [...p, e.data]);
+        }
+      };
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setAudioUrl(URL.createObjectURL(blob));
+      };
+      mr.start();
+      setMediaRecorder(mr);
+      setRecording(true);
+      setTimer(0);
+      const id = setInterval(() => setTimer((t) => t + 1), 1000);
+      setTimerId(id);
+      // Auto stop at 60s
+      setTimeout(() => stopRecording(), 60000);
+      // We avoid mouseup here because the button lives outside modal scope sometimes.
+    } catch (err) {
+      setPermissionError("Microphone permission denied or unavailable.");
+    }
+  };
+  const stopRecording = () => {
+    if (!recording) return;
+    try {
+      mediaRecorder?.stop();
+    } catch (_) {}
+    stream?.getTracks()?.forEach((t) => t.stop());
+    if (timerId) clearInterval(timerId);
+    setRecording(false);
+  };
+  const resetRecording = () => {
+    setAudioUrl("");
+    setHasReviewed(false);
+    setTimer(0);
+    setChunks([]);
+    chunksRef.current = [];
+  };
+  React.useEffect(() => {
+    if (open && autoStart) startRecording();
+    return () => {
+      try {
+        if (timerId) clearInterval(timerId);
+        stream?.getTracks()?.forEach((t) => t.stop());
+        mediaRecorder?.stop?.();
+      } catch (_) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  const [submitting, setSubmitting] = React.useState(false);
+  const handleSubmit = async () => {
+    try {
+      if (!audioUrl) return;
+      setSubmitting(true);
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const file = new File([blob], `voice_suggestion_${Date.now()}.webm`, {
+        type: "audio/webm",
+      });
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", "Voice Suggestion");
+      form.append("type", "audio");
+      await submitVoiceNote(form);
+      showToast("Thanks for sharing! We'll take a look.", "success");
+      onClose();
+    } catch (_) {
+      showToast("Failed to submit your suggestion.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div className="flex items-center gap-2 mb-3">
+          <Mic className="w-5 h-5 text-purple-600" />
+          <h3 className="text-lg font-semibold">Share Your Voice</h3>
+          <button className="ml-auto" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        {permissionError && (
+          <div className="mb-3 text-sm text-red-600">{permissionError}</div>
+        )}
+        {recording ? (
+          <div className="text-center py-6">
+            <button
+              className="mx-auto mb-3 w-16 h-16 rounded-full bg-red-100 flex items-center justify-center hover:bg-red-200 transition-colors"
+              onClick={stopRecording}
+              aria-label="Stop recording"
+            >
+              <StopCircle className="w-8 h-8 text-red-500" />
+            </button>
+            <div className="font-medium">Recording... Click stop to finish</div>
+            <div className="text-sm text-gray-600 mt-1">
+              {`${String(Math.floor(timer / 60)).padStart(2, "0")}:${String(
+                timer % 60
+              ).padStart(2, "0")}`}
+            </div>
+          </div>
+        ) : (
+          <div>
+            {!audioUrl ? (
+              <div className="text-center py-6">
+                <button
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                  onMouseDown={startRecording}
+                >
+                  <Mic className="w-4 h-4" /> Hold to Record
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <audio
+                  controls
+                  className="w-full"
+                  src={audioUrl}
+                  onPlay={() => setHasReviewed(true)}
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
+                    onClick={resetRecording}
+                  >
+                    <Mic className="w-4 h-4" /> Re-record
+                  </button>
+                  <button
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded text-white ${
+                      hasReviewed && !submitting
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "bg-gray-300 cursor-not-allowed"
+                    }`}
+                    disabled={!hasReviewed || submitting}
+                    onClick={handleSubmit}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />{" "}
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" /> Submit Suggestion
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Please listen to your recording before submitting.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const WallOfFameContent = ({ onToggleView }) => {
   const { isSidebarCollapsed } = useSidebar();
@@ -93,9 +280,14 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isUploadingFont, setIsUploadingFont] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [bgSuccess, setBgSuccess] = useState("");
   const [bgError, setBgError] = useState("");
+  // Voice modal state
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voiceAutoStart, setVoiceAutoStart] = useState(false);
+  const [showArticleEditor, setShowArticleEditor] = useState(false);
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
@@ -643,7 +835,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       <div className="flex items-center justify-center gap-3 mb-2 text-xs">
         <button
           type="button"
-          className="flex items-center gap-1 hover:opacity-80"
+          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -657,7 +849,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         </button>
         <button
           type="button"
-          className="flex items-center gap-1 hover:opacity-80"
+          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -672,7 +864,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         </button>
         <button
           type="button"
-          className="flex items-center gap-1 hover:opacity-80"
+          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -848,6 +1040,94 @@ const WallOfFameContent = ({ onToggleView }) => {
                 </div>
               </div>
 
+              {/* Font Controls */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">
+                  Font
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Font family (e.g., 'Patrick Hand', cursive)"
+                    value={previewBgSettings.fontFamily || ""}
+                    onChange={(e) => {
+                      const s = {
+                        ...previewBgSettings,
+                        fontFamily: e.target.value,
+                      };
+                      setPreviewBgSettings(s);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="flex-1 text-xs px-2 py-1 border rounded"
+                  />
+                </div>
+                <div className="mt-2 border border-dashed border-gray-300 rounded p-3 text-center">
+                  <input
+                    type="file"
+                    accept=".woff2,.woff,.ttf,.otf"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        setIsUploadingFont(true);
+                        const resp = await uploadWtfFont(file);
+                        const s = {
+                          ...previewBgSettings,
+                          fontUrl: resp.data.fontUrl,
+                        };
+                        setPreviewBgSettings(s);
+                        setHasUnsavedChanges(true);
+                        setBgSuccess(
+                          "Font uploaded! Remember to set font family and Save."
+                        );
+                        setTimeout(() => setBgSuccess(""), 3000);
+                      } catch (err) {
+                        setBgError("Failed to upload font");
+                        setTimeout(() => setBgError(""), 3000);
+                      } finally {
+                        setIsUploadingFont(false);
+                      }
+                    }}
+                    className="hidden"
+                    id="bg-font-upload-compact"
+                    disabled={isUploadingBg}
+                  />
+                  <label
+                    htmlFor="bg-font-upload-compact"
+                    className={`cursor-pointer flex flex-col items-center ${
+                      isUploadingFont ? "pointer-events-none opacity-50" : ""
+                    }`}
+                  >
+                    {isUploadingFont ? (
+                      <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                    )}
+                    <span className="text-xs text-gray-600">
+                      {isUploadingFont
+                        ? "Uploading..."
+                        : "Upload Font (.woff2/.ttf/.otf)"}
+                    </span>
+                  </label>
+                </div>
+                {/* Show chosen font file (URL) */}
+                {previewBgSettings.fontUrl && (
+                  <div className="mt-2 text-xs text-gray-600 break-all">
+                    Selected font file:
+                    <div className="truncate">
+                      <a
+                        href={previewBgSettings.fontUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        {previewBgSettings.fontUrl}
+                      </a>
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Image Upload */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-2">
@@ -878,6 +1158,25 @@ const WallOfFameContent = ({ onToggleView }) => {
                     </span>
                   </label>
                 </div>
+
+                {/* Inline Preview of selected (unsaved) background image */}
+                {previewBgSettings.backgroundType === "image" &&
+                  previewBgSettings.backgroundImage && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-600">Preview</span>
+                        <span className="text-[10px] text-amber-600">
+                          Unsaved
+                        </span>
+                      </div>
+                      <div
+                        className="w-full h-24 rounded border bg-cover bg-center"
+                        style={{
+                          backgroundImage: `url(${previewBgSettings.backgroundImage})`,
+                        }}
+                      />
+                    </div>
+                  )}
 
                 {/* Image Controls */}
                 <div className="mt-2 space-y-1">
@@ -978,6 +1277,29 @@ const WallOfFameContent = ({ onToggleView }) => {
               <div className="flex-1 overflow-hidden">
                 <CategoryButtons />
               </div>
+              {isStudent && (
+                <div className="flex items-center gap-3">
+                  <button
+                    id="btn-wtf-share-voice"
+                    onMouseDown={() => {
+                      setShowVoiceModal(true);
+                      setVoiceAutoStart(true);
+                    }}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                    title="Share Your Voice!"
+                  >
+                    <Mic className="w-4 h-4" /> Share Your Voice!
+                  </button>
+                  <button
+                    id="btn-wtf-write-story"
+                    onClick={() => setShowArticleEditor(true)}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    title="Write a Story"
+                  >
+                    <FileText className="w-4 h-4" /> Write a Story
+                  </button>
+                </div>
+              )}
             </div>
             <div className="overflow-hidden">
               <LevelIndicators />
@@ -1152,6 +1474,21 @@ const WallOfFameContent = ({ onToggleView }) => {
               )}
             </div>
           </div>
+          {/* Voice suggestion modal */}
+          <VoiceSuggestionModal
+            open={showVoiceModal}
+            autoStart={voiceAutoStart}
+            onClose={() => {
+              setShowVoiceModal(false);
+              setVoiceAutoStart(false);
+            }}
+          />
+
+          {/* Article editor modal */}
+          <ArticleEditor
+            isOpen={showArticleEditor}
+            onClose={() => setShowArticleEditor(false)}
+          />
         </div>
       </div>
 

@@ -18,7 +18,9 @@ const storage = multer.diskStorage({
 const fileFilter = (req, file, cb) => {
   const allowedTypes = [
     "image/jpeg",
+    "image/jpg",
     "image/png",
+    "image/webp",
     "application/pdf",
     "application/msword",
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
@@ -32,7 +34,11 @@ const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid file type. Only JPEG, PNG, and PDF are allowed."));
+    cb(
+      new Error(
+        "Invalid file type. Allowed: JPEG, JPG, PNG, WEBP, PDF, DOCX, XLSX, PPTX, TXT, CSV."
+      )
+    );
   }
 };
 
@@ -65,6 +71,7 @@ const wtfFileFilter = (req, file, cb) => {
     "audio/ogg",
     "audio/aac", // AAC audio support
     "audio/m4a", // M4A audio support
+    "audio/webm", // Browser MediaRecorder default for many setups
   ];
 
   console.log("📋 Allowed MIME types:", allowedTypes);
@@ -95,6 +102,29 @@ const wtfUpload = multer({
     fieldSize: 10 * 1024 * 1024, // 10MB for field data
   },
   fileFilter: wtfFileFilter,
+});
+
+// Font-specific upload configuration
+const fontFileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    "font/woff2",
+    "font/woff",
+    "application/x-font-ttf",
+    "font/ttf",
+    "application/x-font-otf",
+    "font/otf",
+  ];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid font type. Only WOFF2/WOFF/TTF/OTF are allowed."));
+  }
+};
+
+const fontUpload = multer({
+  storage,
+  limits: { fileSize: 1 * 1024 * 1024 }, // 1MB max font size
+  fileFilter: fontFileFilter,
 });
 
 // Wrap the multer middleware to add error handling
@@ -201,5 +231,6 @@ module.exports = {
   upload,
   wtfUpload,
   wtfUploadWithErrorHandling,
+  fontUpload,
   cleanupOrphanedFiles,
 };
