@@ -293,6 +293,45 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [voiceAutoStart, setVoiceAutoStart] = useState(false);
   const [showArticleEditor, setShowArticleEditor] = useState(false);
 
+  // Pin type filter and grouping state
+  const TYPE_OPTIONS = [
+    { key: "image", label: "Images" },
+    { key: "video", label: "Videos" },
+    { key: "audio", label: "Audio" },
+    { key: "text", label: "Text" },
+  ];
+
+  const canonicalizeType = (type) => (type === "photo" ? "image" : type);
+
+  const [activeTypeFilters, setActiveTypeFilters] = useState([]); // empty => all
+  const [groupByType, setGroupByType] = useState(false);
+
+  const toggleTypeFilter = (key) => {
+    setActiveTypeFilters((prev) => {
+      const exists = prev.includes(key);
+      if (exists) {
+        return prev.filter((k) => k !== key);
+      }
+      return [...prev, key];
+    });
+  };
+
+  const filteredContent = content.filter((item) => {
+    if (!activeTypeFilters.length) return true;
+    const canonical = canonicalizeType(item.type);
+    return activeTypeFilters.includes(canonical);
+  });
+
+  const groupedByType = TYPE_OPTIONS.reduce((acc, opt) => {
+    acc[opt.key] = [];
+    return acc;
+  }, {});
+
+  filteredContent.forEach((item) => {
+    const canonical = canonicalizeType(item.type);
+    if (groupedByType[canonical]) groupedByType[canonical].push(item);
+  });
+
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
@@ -1432,21 +1471,107 @@ const WallOfFameContent = ({ onToggleView }) => {
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">
-              {content.length > 0 ? (
+              {filteredContent.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
-                    {content.map((item, index) => (
-                      <div
-                        key={item.id}
-                        className="w-[180px]"
-                        style={{
-                          marginTop: `${(index % 4) * 10}px`,
-                        }}
+                  {/* Filter Bar */}
+                  <div className="flex flex-wrap items-center gap-2 mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setActiveTypeFilters([])}
+                      className={`px-3 py-1 rounded-full border text-sm ${
+                        activeTypeFilters.length === 0
+                          ? "bg-blue-600 text-white border-blue-600"
+                          : "bg-white text-gray-700 border-gray-300"
+                      }`}
+                    >
+                      All
+                    </button>
+                    {TYPE_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.key}
+                        type="button"
+                        onClick={() => toggleTypeFilter(opt.key)}
+                        className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
+                          activeTypeFilters.includes(opt.key)
+                            ? "bg-blue-600 text-white border-blue-600"
+                            : "bg-white text-gray-700 border-gray-300"
+                        }`}
                       >
-                        {renderCard(item)}
-                      </div>
+                        {renderTypeIcon(
+                          opt.key === "image" ? "photo" : opt.key
+                        )}
+                        {opt.label}
+                      </button>
                     ))}
+                    <div className="ml-auto flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setGroupByType((v) => !v)}
+                        className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
+                          groupByType
+                            ? "bg-purple-600 text-white border-purple-600"
+                            : "bg-white text-gray-700 border-gray-300"
+                        }`}
+                        title="Group pins by type"
+                      >
+                        {groupByType ? (
+                          <ChevronUp className="w-4 h-4" />
+                        ) : (
+                          <ChevronDown className="w-4 h-4" />
+                        )}
+                        {groupByType ? "Grouped by type" : "Group by type"}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Content Grid (grouped or flat) */}
+                  {!groupByType ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
+                      {filteredContent.map((item, index) => (
+                        <div
+                          key={item._id || item.id}
+                          className="w-[180px]"
+                          style={{
+                            marginTop: `${(index % 4) * 10}px`,
+                          }}
+                        >
+                          {renderCard(item)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-10 pb-8">
+                      {TYPE_OPTIONS.map((opt) => {
+                        const items = groupedByType[opt.key] || [];
+                        if (!items.length) return null;
+                        return (
+                          <div key={opt.key}>
+                            <div className="flex items-center gap-2 mb-3">
+                              {renderTypeIcon(
+                                opt.key === "image" ? "photo" : opt.key
+                              )}
+                              <h3 className="text-xl font-semibold">
+                                {opt.label} ({items.length})
+                              </h3>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
+                              {items.map((item, index) => (
+                                <div
+                                  key={item._id || item.id}
+                                  className="w-[180px]"
+                                  style={{
+                                    marginTop: `${(index % 4) * 10}px`,
+                                  }}
+                                >
+                                  {renderCard(item)}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
 
                   {/* Floating Action Button for Coaches */}
                   {isCoach && (
@@ -1479,10 +1604,14 @@ const WallOfFameContent = ({ onToggleView }) => {
                   <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
                     <div className="text-6xl mb-4">📌</div>
                     <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                      No Pins Yet
+                      {activeTypeFilters.length
+                        ? "No pins for selected filters"
+                        : "No Pins Yet"}
                     </h3>
                     <p className="text-gray-600 mb-6">
-                      The Wall of Fame is waiting for amazing content!
+                      {activeTypeFilters.length
+                        ? "Try clearing or changing the filters at the top."
+                        : "The Wall of Fame is waiting for amazing content!"}
                       {isAdmin || forceShowAdminControls ? (
                         <span>
                           Create the first pin to get started, or review pending
