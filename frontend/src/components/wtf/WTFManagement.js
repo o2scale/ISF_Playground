@@ -100,6 +100,11 @@ const WTFManagementContent = ({ onToggleView }) => {
     fetchWtfData();
   }, []);
 
+  // Refetch submissions when switching between Voice and Articles
+  useEffect(() => {
+    fetchWtfData();
+  }, [submissionTab]);
+
   const fetchWtfData = async () => {
     setLoading(true);
     setError(null);
