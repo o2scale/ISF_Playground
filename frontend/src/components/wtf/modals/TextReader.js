@@ -99,9 +99,24 @@ const TextReader = ({
               </div>
 
               <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border-2 border-gray-200">
-                <div className="text-gray-800 leading-relaxed whitespace-pre-wrap text-sm">
-                  {content}
-                </div>
+                <div
+                  className="text-gray-800 leading-relaxed whitespace-pre-wrap text-sm break-words"
+                  dangerouslySetInnerHTML={{
+                    __html: (content || "")
+                      .replace(/&/g, "&amp;")
+                      .replace(/</g, "&lt;")
+                      .replace(/>/g, "&gt;")
+                      // clickable URLs
+                      .replace(
+                        /\b((?:https?:\/\/)?(?:[\w-]+\.)+[\w-]+(?:\/[\w\-._~:/?#[\]@!$&'()*+,;=%]*)?)/gi,
+                        (m) => {
+                          const hasProtocol = /^https?:\/\//i.test(m);
+                          const url = hasProtocol ? m : `https://${m}`;
+                          return `<a href="${url}" target="_blank" rel="noreferrer" class="text-blue-600 underline">${m}</a>`;
+                        }
+                      ),
+                  }}
+                />
               </div>
             </div>
           </div>
