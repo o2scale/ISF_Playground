@@ -377,32 +377,37 @@ const WTFManagementContent = ({ onToggleView }) => {
       });
 
       if (reviewResponse.success) {
-        // Create a new pin from the approved submission
-        const pinType = submission.type === "voice" ? "audio" : "text";
-        const newPin = {
-          title: submission.title,
-          content: submission.content,
-          type: pinType, // Backend expects 'type' not 'contentType'
-          author: user?.name || "Unknown User", // Backend expects 'author'
-          isOfficial: false,
-          status: "active", // Backend expects lowercase enum values
-          language: "english", // Default language
-          tags: [], // Default empty tags
-          // For audio submissions, include the file/audioUrl if available
-          ...(pinType === "audio" &&
-            submission.audioUrl && {
-              content: submission.audioUrl, // Let backend handle proper S3 upload
-            }),
-        };
+        // Backend already auto-creates a pin on approval and returns it as approvedPin
+        const approvedPin = reviewResponse?.data?.approvedPin;
+        if (approvedPin) {
+          setActivePins((prev) => [approvedPin, ...prev]);
+        }
 
-        const pinResponse = await createWtfPin(newPin);
-        if (pinResponse.success) {
-          setActivePins((prev) => [pinResponse.data, ...prev]);
-          setStudentSubmissions((prev) =>
-            prev.filter((s) => s._id !== submission._id)
-          );
-          setShowReviewModal(false);
-          setSelectedSubmission(null);
+        // Remove from submissions list and close modal
+        setStudentSubmissions((prev) =>
+          prev.filter((s) => s._id !== submission._id)
+        );
+        setShowReviewModal(false);
+        setSelectedSubmission(null);
+
+        // Refresh dashboard counts
+        try {
+          const countsResp = await getWtfDashboardCounts();
+          if (countsResp.success) {
+            setDashboardMetrics(countsResp.data);
+          } else if (approvedPin) {
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              activePins: (prev.activePins || 0) + 1,
+            }));
+          }
+        } catch (e) {
+          if (approvedPin) {
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              activePins: (prev.activePins || 0) + 1,
+            }));
+          }
         }
       }
     } catch (error) {
