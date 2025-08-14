@@ -1177,8 +1177,7 @@ const CreateNewPinModal = ({
                   <label className="block text-sm font-medium mb-2">
                     Pin Caption (Optional)
                   </label>
-                  <Input
-                    type="text"
+                  <textarea
                     value={formData.caption}
                     onChange={(e) => {
                       setError(""); // Clear errors when user types
@@ -1188,6 +1187,7 @@ const CreateNewPinModal = ({
                       }));
                     }}
                     placeholder="Short description or caption"
+                    className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                   />
                 </div>
 

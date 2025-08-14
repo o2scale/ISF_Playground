@@ -84,6 +84,8 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       mr.onstop = () => {
         const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         setAudioUrl(URL.createObjectURL(blob));
+        // Enable submit by default once recording is ready
+        setHasReviewed(true);
       };
       mr.start();
       setMediaRecorder(mr);
