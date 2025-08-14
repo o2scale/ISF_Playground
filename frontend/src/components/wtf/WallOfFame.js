@@ -339,6 +339,20 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
   const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
 
+  // Admin controls dragging state
+  const [isAdminDragging, setIsAdminDragging] = useState(false);
+  const [adminDragPosition, setAdminDragPosition] = useState({
+    x: null,
+    y: null,
+  });
+  const [adminInitialPosition, setAdminInitialPosition] = useState({
+    x: 0,
+    y: 0,
+  });
+
+  // Admin controls minimize state
+  const [isAdminPanelMinimized, setIsAdminPanelMinimized] = useState(false);
+
   // Background settings panel minimize state
   const [isBgPanelMinimized, setIsBgPanelMinimized] = useState(false);
 
@@ -537,6 +551,38 @@ const WallOfFameContent = ({ onToggleView }) => {
     setIsDragging(false);
   }, []);
 
+  // Dragging functions for Admin Controls panel
+  const handleAdminMouseDown = (e) => {
+    setIsAdminDragging(true);
+
+    const currentX =
+      adminDragPosition.x !== null
+        ? adminDragPosition.x
+        : window.innerWidth - 320 - 24; // default aligns with right-6
+    const currentY = adminDragPosition.y !== null ? adminDragPosition.y : 96; // top-24 => 96px
+
+    setAdminInitialPosition({
+      x: e.clientX - currentX,
+      y: e.clientY - currentY,
+    });
+  };
+
+  const handleAdminMouseMove = useCallback(
+    (e) => {
+      if (isAdminDragging) {
+        setAdminDragPosition({
+          x: e.clientX - adminInitialPosition.x,
+          y: e.clientY - adminInitialPosition.y,
+        });
+      }
+    },
+    [isAdminDragging, adminInitialPosition.x, adminInitialPosition.y]
+  );
+
+  const handleAdminMouseUp = useCallback(() => {
+    setIsAdminDragging(false);
+  }, []);
+
   // Add global mouse event listeners for dragging
   useEffect(() => {
     if (isDragging) {
@@ -548,6 +594,18 @@ const WallOfFameContent = ({ onToggleView }) => {
       };
     }
   }, [isDragging, handleMouseMove, handleMouseUp]);
+
+  // Add global mouse event listeners for admin dragging
+  useEffect(() => {
+    if (isAdminDragging) {
+      document.addEventListener("mousemove", handleAdminMouseMove);
+      document.addEventListener("mouseup", handleAdminMouseUp);
+      return () => {
+        document.removeEventListener("mousemove", handleAdminMouseMove);
+        document.removeEventListener("mouseup", handleAdminMouseUp);
+      };
+    }
+  }, [isAdminDragging, handleAdminMouseMove, handleAdminMouseUp]);
 
   // Custom background style that uses preview settings
   const getPreviewBackgroundStyle = () => {
@@ -987,55 +1045,88 @@ const WallOfFameContent = ({ onToggleView }) => {
       <div className="flex-1 relative">
         {/* Admin Controls - Only show for admins */}
         {(isAdmin || forceShowAdminControls) && (
-          <div className="fixed top-24 right-6 z-40 bg-white rounded-lg shadow-xl border-2 border-purple-200 p-6 w-80">
-            <div className="text-lg font-semibold text-purple-800 mb-4 flex items-center gap-2">
+          <div
+            className={`fixed z-40 bg-white rounded-lg shadow-xl border-2 border-purple-200 p-4 w-80 ${
+              isAdminDragging ? "cursor-grabbing" : "cursor-grab"
+            }`}
+            style={{
+              top: adminDragPosition.y !== null ? adminDragPosition.y : 96, // top-24
+              left:
+                adminDragPosition.x !== null
+                  ? adminDragPosition.x
+                  : window.innerWidth - 320 - 24, // right-6
+              transition: isAdminDragging ? "none" : "all 0.2s ease",
+            }}
+          >
+            <div
+              className="text-lg font-semibold text-purple-800 mb-3 flex items-center gap-2 cursor-grab active:cursor-grabbing"
+              onMouseDown={handleAdminMouseDown}
+            >
               <Settings className="w-5 h-5" />
               Admin Controls
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => setIsAdminPanelMinimized((v) => !v)}
+                  className="p-1 rounded hover:bg-purple-50 text-purple-800"
+                  title={isAdminPanelMinimized ? "Expand" : "Minimize"}
+                >
+                  {isAdminPanelMinimized ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4" />
+                  )}
+                </button>
+                <div className="text-xs text-gray-500">Drag me!</div>
+              </div>
             </div>
 
-            <div className="space-y-3">
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
-              >
-                <Plus className="w-5 h-5" />
-                Create New Pin
-              </button>
-
-              {onToggleView && (
+            {!isAdminPanelMinimized && (
+              <div className="space-y-3">
                 <button
-                  onClick={onToggleView}
-                  className="w-full bg-gray-600 hover:bg-gray-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
+                  onClick={() => setShowCreateModal(true)}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
                 >
-                  <Settings className="w-5 h-5" />
-                  Full Management
+                  <Plus className="w-5 h-5" />
+                  Create New Pin
                 </button>
-              )}
 
-              <div className="pt-3 border-t border-gray-200">
-                <div className="text-sm text-gray-600 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span>Pending Suggestions:</span>
-                    <span className="bg-orange-100 text-orange-700 text-sm px-3 py-1 rounded font-medium">
-                      {adminCounts.pendingSuggestions}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <span>New Submissions:</span>
-                    <span className="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded font-medium">
-                      {adminCounts.newSubmissions}
-                    </span>
-                  </div>
-                </div>
+                {onToggleView && (
+                  <button
+                    onClick={onToggleView}
+                    className="w-full bg-gray-600 hover:bg-gray-700 text-white text-base px-4 py-3 rounded-md flex items-center gap-2 font-medium"
+                  >
+                    <Settings className="w-5 h-5" />
+                    Full Management
+                  </button>
+                )}
 
-                <div className="mt-3">
-                  <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded flex items-center gap-2">
-                    <Eye className="w-4 h-4" />
-                    Review Queue ({adminCounts.reviewQueue})
+                <div className="pt-3 border-t border-gray-200">
+                  <div className="text-sm text-gray-600 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span>Pending Suggestions:</span>
+                      <span className="bg-orange-100 text-orange-700 text-sm px-3 py-1 rounded font-medium">
+                        {adminCounts.pendingSuggestions}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>New Submissions:</span>
+                      <span className="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded font-medium">
+                        {adminCounts.newSubmissions}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="bg-red-50 text-red-700 text-sm px-3 py-2 rounded flex items-center gap-2">
+                      <Eye className="w-4 h-4" />
+                      Review Queue ({adminCounts.reviewQueue})
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
