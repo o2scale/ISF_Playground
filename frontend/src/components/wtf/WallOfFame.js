@@ -1681,134 +1681,103 @@ const WallOfFameContent = ({ onToggleView }) => {
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">
+              {/* Filter Bar (always visible) */}
+              <div className="flex flex-wrap items-center gap-2 mb-6">
+                <button
+                  type="button"
+                  onClick={() => setActiveTypeFilters([])}
+                  className={`px-3 py-1 rounded-full border text-sm ${
+                    activeTypeFilters.length === 0
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-700 border-gray-300"
+                  }`}
+                >
+                  All
+                </button>
+                {TYPE_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => toggleTypeFilter(opt.key)}
+                    className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
+                      activeTypeFilters.includes(opt.key)
+                        ? "bg-blue-600 text-white border-blue-600"
+                        : "bg-white text-gray-700 border-gray-300"
+                    }`}
+                  >
+                    {renderTypeIcon(opt.key === "image" ? "photo" : opt.key)}
+                    {opt.label}
+                  </button>
+                ))}
+                <div className="ml-auto flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGroupByType((v) => !v)}
+                    className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
+                      groupByType
+                        ? "bg-purple-600 text-white border-purple-600"
+                        : "bg-white text-gray-700 border-gray-300"
+                    }`}
+                    title="Group pins by type"
+                  >
+                    {groupByType ? (
+                      <ChevronUp className="w-4 h-4" />
+                    ) : (
+                      <ChevronDown className="w-4 h-4" />
+                    )}
+                    {groupByType ? "Grouped by type" : "Group by type"}
+                  </button>
+                </div>
+              </div>
+
               {filteredContent.length > 0 ? (
-                <>
-                  {/* Filter Bar */}
-                  <div className="flex flex-wrap items-center gap-2 mb-6">
-                    <button
-                      type="button"
-                      onClick={() => setActiveTypeFilters([])}
-                      className={`px-3 py-1 rounded-full border text-sm ${
-                        activeTypeFilters.length === 0
-                          ? "bg-blue-600 text-white border-blue-600"
-                          : "bg-white text-gray-700 border-gray-300"
-                      }`}
-                    >
-                      All
-                    </button>
-                    {TYPE_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.key}
-                        type="button"
-                        onClick={() => toggleTypeFilter(opt.key)}
-                        className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
-                          activeTypeFilters.includes(opt.key)
-                            ? "bg-blue-600 text-white border-blue-600"
-                            : "bg-white text-gray-700 border-gray-300"
-                        }`}
+                !groupByType ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
+                    {filteredContent.map((item, index) => (
+                      <div
+                        key={item._id || item.id}
+                        className="w-[180px]"
+                        style={{
+                          marginTop: `${(index % 4) * 10}px`,
+                        }}
                       >
-                        {renderTypeIcon(
-                          opt.key === "image" ? "photo" : opt.key
-                        )}
-                        {opt.label}
-                      </button>
+                        {renderCard(item)}
+                      </div>
                     ))}
-                    <div className="ml-auto flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setGroupByType((v) => !v)}
-                        className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
-                          groupByType
-                            ? "bg-purple-600 text-white border-purple-600"
-                            : "bg-white text-gray-700 border-gray-300"
-                        }`}
-                        title="Group pins by type"
-                      >
-                        {groupByType ? (
-                          <ChevronUp className="w-4 h-4" />
-                        ) : (
-                          <ChevronDown className="w-4 h-4" />
-                        )}
-                        {groupByType ? "Grouped by type" : "Group by type"}
-                      </button>
-                    </div>
                   </div>
-
-                  {/* Content Grid (grouped or flat) */}
-                  {!groupByType ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
-                      {filteredContent.map((item, index) => (
-                        <div
-                          key={item._id || item.id}
-                          className="w-[180px]"
-                          style={{
-                            marginTop: `${(index % 4) * 10}px`,
-                          }}
-                        >
-                          {renderCard(item)}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-10 pb-8">
-                      {TYPE_OPTIONS.map((opt) => {
-                        const items = groupedByType[opt.key] || [];
-                        if (!items.length) return null;
-                        return (
-                          <div key={opt.key}>
-                            <div className="flex items-center gap-2 mb-3">
-                              {renderTypeIcon(
-                                opt.key === "image" ? "photo" : opt.key
-                              )}
-                              <h3 className="text-xl font-semibold">
-                                {opt.label} ({items.length})
-                              </h3>
-                            </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
-                              {items.map((item, index) => (
-                                <div
-                                  key={item._id || item.id}
-                                  className="w-[180px]"
-                                  style={{
-                                    marginTop: `${(index % 4) * 10}px`,
-                                  }}
-                                >
-                                  {renderCard(item)}
-                                </div>
-                              ))}
-                            </div>
+                ) : (
+                  <div className="flex flex-col gap-10 pb-8">
+                    {TYPE_OPTIONS.map((opt) => {
+                      const items = groupedByType[opt.key] || [];
+                      if (!items.length) return null;
+                      return (
+                        <div key={opt.key}>
+                          <div className="flex items-center gap-2 mb-3">
+                            {renderTypeIcon(
+                              opt.key === "image" ? "photo" : opt.key
+                            )}
+                            <h3 className="text-xl font-semibold">
+                              {opt.label} ({items.length})
+                            </h3>
                           </div>
-                        );
-                      })}
-                    </div>
-                  )}
-
-                  {/* Floating Action Button for Coaches */}
-                  {isCoach && (
-                    <div className="fixed bottom-8 right-8 z-50">
-                      <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                        title="Suggest student work for the Wall of Fame"
-                      >
-                        <Plus className="w-6 h-6" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Floating Action Button for Students */}
-                  {isStudent && (
-                    <div className="fixed bottom-8 right-8 z-50">
-                      <button
-                        onClick={() => setShowCreateModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
-                        title="Create your own pin for the Wall of Fame"
-                      >
-                        <Plus className="w-6 h-6" />
-                      </button>
-                    </div>
-                  )}
-                </>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center">
+                            {items.map((item, index) => (
+                              <div
+                                key={item._id || item.id}
+                                className="w-[180px]"
+                                style={{
+                                  marginTop: `${(index % 4) * 10}px`,
+                                }}
+                              >
+                                {renderCard(item)}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )
               ) : (
                 <div className="text-center py-12">
                   <div className="bg-white rounded-lg shadow-lg p-8 max-w-md mx-auto">
@@ -1883,6 +1852,30 @@ const WallOfFameContent = ({ onToggleView }) => {
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* Floating Action Buttons remain visible */}
+              {isCoach && (
+                <div className="fixed bottom-8 right-8 z-50">
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-purple-600 hover:bg-purple-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                    title="Suggest student work for the Wall of Fame"
+                  >
+                    <Plus className="w-6 h-6" />
+                  </button>
+                </div>
+              )}
+              {isStudent && (
+                <div className="fixed bottom-8 right-8 z-50">
+                  <button
+                    onClick={() => setShowCreateModal(true)}
+                    className="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all transform hover:scale-105"
+                    title="Create your own pin for the Wall of Fame"
+                  >
+                    <Plus className="w-6 h-6" />
+                  </button>
                 </div>
               )}
             </div>

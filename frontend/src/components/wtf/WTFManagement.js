@@ -742,7 +742,9 @@ const WTFManagementContent = ({ onToggleView }) => {
   );
 
   const newSubmissionsCount =
-    (pendingVoiceCount || 0) + (pendingArticleCount || 0);
+    (dashboardMetrics?.studentSubmissions ?? 0) > 0
+      ? dashboardMetrics.studentSubmissions
+      : (pendingVoiceCount || 0) + (pendingArticleCount || 0);
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter(
         (s) => (s?.status ?? "").toString().toLowerCase() === "pending"
