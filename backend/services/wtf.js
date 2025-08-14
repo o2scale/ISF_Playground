@@ -1024,7 +1024,10 @@ class WtfService {
         tags: payload.tags || [],
         isDraft: payload.isDraft || false,
         metadata: {
-          fileSize: payload.fileSize,
+          fileSize:
+            payload.fileSize ||
+            (payload.file && payload.file.size) ||
+            undefined,
           recordingQuality: payload.recordingQuality,
           userAgent: payload.userAgent,
           ipAddress: payload.ipAddress,

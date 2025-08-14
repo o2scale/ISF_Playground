@@ -1,10 +1,16 @@
-import React from 'react';
-import { X, Star, Archive, Play, User } from 'lucide-react';
-import { Dialog, DialogContent } from '../ui/dialog.jsx';
-import { Button } from '../ui/button.jsx';
-import { Badge } from '../ui/badge.jsx';
+import React from "react";
+import { X, Star, Archive, Play, User } from "lucide-react";
+import { Dialog, DialogContent } from "../ui/dialog.jsx";
+import { Button } from "../ui/button.jsx";
+import { Badge } from "../ui/badge.jsx";
 
-const ReviewModal = ({ isOpen, onClose, submission, onPinToWTF, onArchive }) => {
+const ReviewModal = ({
+  isOpen,
+  onClose,
+  submission,
+  onPinToWTF,
+  onArchive,
+}) => {
   if (!submission) return null;
 
   return (
@@ -20,17 +26,34 @@ const ReviewModal = ({ isOpen, onClose, submission, onPinToWTF, onArchive }) => 
               </p>
             </div>
             <Badge className="text-sm">
-              {submission.type === 'voice' ? 'Voice Note' : 'Article'}
+              {submission.type === "voice" ? "Voice Note" : "Article"}
             </Badge>
           </div>
 
           <div className="border-t pt-6">
-            {submission.type === 'voice' ? (
+            {submission.type === "voice" ? (
               <div className="bg-gray-50 rounded-lg p-6 text-center">
                 <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
                 <p className="text-gray-600 mb-4">Audio Player</p>
-                <div className="bg-white rounded p-4 text-sm text-gray-500">
-                  Audio player would be embedded here to play: {submission.content}
+                <div className="bg-white rounded p-4">
+                  {submission.audioUrl || submission.content ? (
+                    <audio
+                      className="w-full"
+                      controls
+                      src={submission.audioUrl || submission.content}
+                    >
+                      Your browser does not support the audio element.
+                    </audio>
+                  ) : (
+                    <div className="text-sm text-gray-500">
+                      No audio file available for this submission.
+                    </div>
+                  )}
+                  {submission.audioDuration ? (
+                    <div className="mt-2 text-xs text-gray-500 text-right">
+                      Duration: {submission.audioDuration}s
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ) : (
@@ -50,17 +73,11 @@ const ReviewModal = ({ isOpen, onClose, submission, onPinToWTF, onArchive }) => 
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => onArchive(submission.id)}
-            >
+            <Button variant="outline" onClick={() => onArchive(submission.id)}>
               <Archive className="w-4 h-4 mr-2" />
               Archive
             </Button>
-            <Button
-              variant="outline"
-              onClick={onClose}
-            >
+            <Button variant="outline" onClick={onClose}>
               Close
             </Button>
           </div>
@@ -70,4 +87,4 @@ const ReviewModal = ({ isOpen, onClose, submission, onPinToWTF, onArchive }) => 
   );
 };
 
-export default ReviewModal; 
+export default ReviewModal;
