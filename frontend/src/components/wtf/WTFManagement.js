@@ -476,7 +476,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const handlePinCoachSuggestion = async (suggestion) => {
     try {
       // Approve (pin) via backend; this also creates the WTF pin server-side
-      const response = await reviewSubmission(suggestion.id, {
+      const response = await reviewSubmission(suggestion._id || suggestion.id, {
         action: "approve",
         notes: "Approved and pinned to WTF",
       });
@@ -484,7 +484,9 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (response && response.success) {
         // Remove the suggestion from the pending list
         setCoachSuggestions((prev) =>
-          prev.filter((s) => s.id !== suggestion.id)
+          prev.filter(
+            (s) => (s._id || s.id) !== (suggestion._id || suggestion.id)
+          )
         );
 
         // If backend returned the created pin, prepend it; else refetch active pins
