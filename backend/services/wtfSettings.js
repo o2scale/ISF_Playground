@@ -189,8 +189,17 @@ class WtfSettingsService {
       const fileName = `backgrounds/wtf-bg-${Date.now()}-${Math.random()
         .toString(36)
         .substring(7)}.${file.mimetype.split("/")[1]}`;
+
+      // Some multer configs provide buffer, others write to disk
+      const fs = require("fs");
+      const buffer =
+        file.buffer || (file.path ? fs.readFileSync(file.path) : null);
+      if (!buffer) {
+        throw new Error("Failed to read uploaded image data");
+      }
+
       const imageUrl = await uploadWtfMediaBuffer(
-        file.buffer,
+        buffer,
         fileName,
         file.mimetype
       );
@@ -200,6 +209,15 @@ class WtfSettingsService {
         imageUrl,
         fileSize: file.size,
       });
+
+      // Clean up temporary file if written to disk
+      try {
+        if (file.path) {
+          fs.unlink(file.path, () => {});
+        }
+      } catch (e) {
+        // Non-blocking cleanup
+      }
 
       return imageUrl;
     } catch (error) {
