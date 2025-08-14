@@ -126,6 +126,7 @@ const WTFManagementContent = ({ onToggleView }) => {
           page: 1,
           limit: 20,
           type: submissionTab,
+          isCoachSuggestion: false,
         });
         if (submissionsResponse.success) {
           fetchedSubmissions =
@@ -433,7 +434,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   // Coach Suggestions Data
   const [coachSuggestions, setCoachSuggestions] = useState([]);
   const archivedCoachSuggestions = coachSuggestions.filter(
-    (s) => s.status && s.status !== "PENDING"
+    (s) => (s?.status ?? "").toString().toLowerCase() !== "pending"
   );
 
   const handleReviewCoachSuggestion = (suggestion) => {
@@ -551,7 +552,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const paginatedCoachSuggestions = useMemo(() => {
     if (!Array.isArray(coachSuggestions)) return [];
     const pendingSuggestions = coachSuggestions.filter(
-      (s) => s.status === "PENDING"
+      (s) => (s?.status ?? "").toString().toLowerCase() === "pending"
     );
     const startIndex = (coachSuggestionsPage - 1) * coachSuggestionsPerPage;
     const endIndex = startIndex + coachSuggestionsPerPage;
@@ -560,7 +561,9 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const totalCoachSuggestionsPages = Math.ceil(
     (Array.isArray(coachSuggestions)
-      ? coachSuggestions.filter((s) => s.status === "PENDING").length
+      ? coachSuggestions.filter(
+          (s) => (s?.status ?? "").toString().toLowerCase() === "pending"
+        ).length
       : 0) / coachSuggestionsPerPage
   );
 
@@ -581,7 +584,9 @@ const WTFManagementContent = ({ onToggleView }) => {
     ? studentSubmissions.filter((s) => s.status === "pending").length
     : 0;
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
-    ? coachSuggestions.filter((s) => s.status === "PENDING").length
+    ? coachSuggestions.filter(
+        (s) => (s?.status ?? "").toString().toLowerCase() === "pending"
+      ).length
     : 0; // Real data from API
 
   return (
@@ -1045,8 +1050,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                     <h3 className="text-lg font-semibold">
                       Coach Suggestions for WTF (
                       {
-                        coachSuggestions.filter((s) => s.status === "PENDING")
-                          .length
+                        coachSuggestions.filter(
+                          (s) =>
+                            (s?.status ?? "").toString().toLowerCase() ===
+                            "pending"
+                        ).length
                       }{" "}
                       Pending)
                     </h3>
@@ -1159,7 +1167,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                                   size="sm"
                                   variant="outline"
                                   onClick={() =>
-                                    handleArchiveCoachSuggestion(suggestion.id)
+                                    handleArchiveCoachSuggestion(
+                                      suggestion._id || suggestion.id
+                                    )
                                   }
                                 >
                                   <Archive className="w-4 h-4 mr-1" />
@@ -1187,13 +1197,19 @@ const WTFManagementContent = ({ onToggleView }) => {
                               {Math.min(
                                 coachSuggestionsPage * coachSuggestionsPerPage,
                                 coachSuggestions.filter(
-                                  (s) => s.status === "PENDING"
+                                  (s) =>
+                                    (s?.status ?? "")
+                                      .toString()
+                                      .toLowerCase() === "pending"
                                 ).length
                               )}{" "}
                               of{" "}
                               {
                                 coachSuggestions.filter(
-                                  (s) => s.status === "PENDING"
+                                  (s) =>
+                                    (s?.status ?? "")
+                                      .toString()
+                                      .toLowerCase() === "pending"
                                 ).length
                               }{" "}
                               results
@@ -1274,8 +1290,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                       )}
 
                     {/* No Coach Suggestions State */}
-                    {coachSuggestions.filter((s) => s.status === "PENDING")
-                      .length === 0 && (
+                    {coachSuggestions.filter(
+                      (s) =>
+                        (s?.status ?? "").toString().toLowerCase() === "pending"
+                    ).length === 0 && (
                       <div className="text-center py-12">
                         <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
                           <div className="text-6xl mb-4">🎯</div>
@@ -1327,7 +1345,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                         .slice(0, 5)
                         .map((suggestion) => (
                           <div
-                            key={suggestion.id}
+                            key={suggestion._id || suggestion.id}
                             className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                           >
                             <div className="flex items-center gap-3">
@@ -1350,12 +1368,16 @@ const WTFManagementContent = ({ onToggleView }) => {
                             </div>
                             <Badge
                               className={
-                                suggestion.status === "PINNED"
+                                (suggestion?.status ?? "")
+                                  .toString()
+                                  .toLowerCase() === "approved"
                                   ? "bg-blue-100 text-blue-800"
                                   : "bg-gray-100 text-gray-800"
                               }
                             >
-                              {suggestion.status === "PINNED"
+                              {(suggestion?.status ?? "")
+                                .toString()
+                                .toLowerCase() === "approved"
                                 ? "Pinned"
                                 : "Archived"}
                             </Badge>
