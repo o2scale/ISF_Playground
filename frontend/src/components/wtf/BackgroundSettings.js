@@ -12,8 +12,10 @@ const BackgroundSettings = ({ onSettingsChange }) => {
     backgroundType: "color",
     backgroundColor: "#f8fafc",
     backgroundImage: null,
+    fontColor: "#0f172a",
   });
   const [tempColor, setTempColor] = useState("#f8fafc");
+  const [tempFontColor, setTempFontColor] = useState("#0f172a");
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState("");
@@ -48,6 +50,7 @@ const BackgroundSettings = ({ onSettingsChange }) => {
       const currentSettings = response.data;
       setSettings(currentSettings);
       setTempColor(currentSettings.backgroundColor);
+      setTempFontColor(currentSettings.fontColor || "#0f172a");
     } catch (error) {
       setError("Failed to load current settings");
       console.error("Error fetching settings:", error);
@@ -63,6 +66,14 @@ const BackgroundSettings = ({ onSettingsChange }) => {
       backgroundType: "color",
       backgroundColor: color,
       backgroundImage: null,
+    }));
+  };
+
+  const handleFontColorChange = (color) => {
+    setTempFontColor(color);
+    setSettings((prev) => ({
+      ...prev,
+      fontColor: color,
     }));
   };
 
@@ -270,6 +281,20 @@ const BackgroundSettings = ({ onSettingsChange }) => {
               className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
             />
             <span className="text-sm font-mono text-gray-500">{tempColor}</span>
+          </div>
+          {/* Font Color Input */}
+          <div className="flex items-center gap-3 mt-4">
+            <label className="text-sm text-gray-600">Font Color:</label>
+            <input
+              type="color"
+              value={tempFontColor}
+              onChange={(e) => handleFontColorChange(e.target.value)}
+              className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
+              title="Choose text color to ensure readability"
+            />
+            <span className="text-sm font-mono text-gray-500">
+              {tempFontColor}
+            </span>
           </div>
         </div>
       )}

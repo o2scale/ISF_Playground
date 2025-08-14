@@ -22,6 +22,17 @@ const wtfSettingsSchema = new mongoose.Schema(
       type: String,
       default: null, // S3 URL for background image
     },
+    // Global font color to ensure readability against customizable backgrounds
+    fontColor: {
+      type: String,
+      default: "#0f172a", // Slate-900 as sensible default
+      validate: {
+        validator: function (v) {
+          return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v);
+        },
+        message: "Font color must be a valid hex color",
+      },
+    },
     // Optional font customization for Wall of Fame
     fontFamily: {
       type: String,

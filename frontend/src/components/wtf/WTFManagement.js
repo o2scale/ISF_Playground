@@ -670,11 +670,14 @@ const WTFManagementContent = ({ onToggleView }) => {
       <div className="max-w-screen-xl mx-auto pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
+            <h1
+              className="text-3xl font-bold flex items-center gap-3"
+              style={{ color: getBackgroundStyle()?.color }}
+            >
               <Star className="w-8 h-8 text-yellow-500" />
               WTF Management Dashboard
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="mt-2" style={{ color: getBackgroundStyle()?.color }}>
               Curate and manage Wall of Fame content
             </p>
           </div>

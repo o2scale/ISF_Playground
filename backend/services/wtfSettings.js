@@ -22,6 +22,7 @@ class WtfSettingsService {
           backgroundType: "color",
           backgroundColor: "#f8fafc",
           backgroundImage: null,
+          fontColor: "#0f172a",
           wtfCoinReward: 25,
           isActive: true,
         };
@@ -45,6 +46,7 @@ class WtfSettingsService {
         backgroundImage,
         fontFamily,
         fontUrl,
+        fontColor,
       } = settingsData;
       // Preserve existing coin reward value when background-only updates happen
       const current = await WtfSettings.findOne({ isActive: true });
@@ -73,6 +75,7 @@ class WtfSettingsService {
         backgroundImage: backgroundType === "image" ? backgroundImage : null,
         fontFamily: fontFamily || null,
         fontUrl: fontUrl || null,
+        fontColor: fontColor || current?.fontColor || "#0f172a",
         wtfCoinReward: current?.wtfCoinReward ?? 25,
         isActive: true,
         createdBy: userId,
@@ -90,6 +93,7 @@ class WtfSettingsService {
         backgroundImage: backgroundType === "image" ? backgroundImage : null,
         fontFamily: fontFamily || null,
         fontUrl: fontUrl || null,
+        fontColor: fontColor || current?.fontColor || "#0f172a",
       });
 
       return savedSettings;

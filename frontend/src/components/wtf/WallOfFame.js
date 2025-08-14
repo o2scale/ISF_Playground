@@ -278,6 +278,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     backgroundType: "color",
     backgroundColor: "#f8fafc",
     backgroundImage: null,
+    fontColor: "#0f172a",
   });
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -306,6 +307,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         backgroundType: contextBgSettings.backgroundType || "color",
         backgroundColor: contextBgSettings.backgroundColor || "#f8fafc",
         backgroundImage: contextBgSettings.backgroundImage || null,
+        fontColor: contextBgSettings.fontColor || "#0f172a",
       });
     }
   }, [contextBgSettings]);
@@ -422,10 +424,16 @@ const WallOfFameContent = ({ onToggleView }) => {
       backgroundType: "color",
       backgroundColor: color,
       backgroundImage: null,
+      fontColor: previewBgSettings.fontColor,
     };
     setPreviewBgSettings(settings);
     setHasUnsavedChanges(true);
     setBgError(""); // Clear any previous errors
+  };
+
+  const handleFontColorChange = (color) => {
+    setPreviewBgSettings((prev) => ({ ...prev, fontColor: color }));
+    setHasUnsavedChanges(true);
   };
 
   const handleSaveSettings = async () => {
@@ -511,10 +519,12 @@ const WallOfFameContent = ({ onToggleView }) => {
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundAttachment: "fixed",
+        color: previewBgSettings.fontColor || undefined,
       };
     } else {
       return {
         backgroundColor: previewBgSettings.backgroundColor,
+        color: previewBgSettings.fontColor || undefined,
       };
     }
   };
@@ -1060,6 +1070,22 @@ const WallOfFameContent = ({ onToggleView }) => {
                         </button>
                       ))}
                     </div>
+                    {/* Font Color */}
+                    <div className="flex items-center gap-2 mt-3">
+                      <label className="text-xs text-gray-600">
+                        Font Color:
+                      </label>
+                      <input
+                        type="color"
+                        value={previewBgSettings.fontColor || "#0f172a"}
+                        onChange={(e) => handleFontColorChange(e.target.value)}
+                        className="w-10 h-6 border border-gray-300 rounded cursor-pointer"
+                        title="Choose text color"
+                      />
+                      <span className="text-[10px] font-mono text-gray-500">
+                        {previewBgSettings.fontColor || "#0f172a"}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Font Controls */}
@@ -1369,7 +1395,10 @@ const WallOfFameContent = ({ onToggleView }) => {
                 </p>
               </div>
 
-              <h2 className="text-green-800 text-4xl font-bold mb-2 relative z-10">
+              <h2
+                className="text-4xl font-bold mb-2 relative z-10"
+                style={{ color: previewBgSettings.fontColor || undefined }}
+              >
                 {isAdmin ? "Admin " : isCoach ? "Coach " : ""}Wall of{" "}
                 <span
                   className="text-pink-600 bg-pink-200 px-2 py-1 rounded transform -rotate-1 inline-block border-4 border-purple-600 shadow-lg"
@@ -1378,7 +1407,10 @@ const WallOfFameContent = ({ onToggleView }) => {
                   FAME
                 </span>
               </h2>
-              <p className="text-green-100 text-lg">
+              <p
+                className="text-lg"
+                style={{ color: previewBgSettings.fontColor || undefined }}
+              >
                 {isAdmin
                   ? "Manage and curate amazing content from our community"
                   : isCoach
