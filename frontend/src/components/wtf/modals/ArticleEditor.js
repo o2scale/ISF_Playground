@@ -34,6 +34,11 @@ const ArticleEditor = ({ isOpen, onClose }) => {
     if (!isOpen) return;
     // Reset state when opened
     setIsSubmitting(false);
+    // Ensure the editor DOM is focused and seeded once when opening
+    if (editorRef.current) {
+      editorRef.current.innerHTML = bodyHtml || "";
+      editorRef.current.focus();
+    }
   }, [isOpen]);
 
   const applyCommand = (command, value = null) => {
@@ -190,10 +195,16 @@ const ArticleEditor = ({ isOpen, onClose }) => {
               ref={editorRef}
               contentEditable
               className="min-h-[300px] max-h-[60vh] overflow-y-auto p-3 focus:outline-none"
+              dir="ltr"
               onInput={(e) => setBodyHtml(e.currentTarget.innerHTML)}
-              dangerouslySetInnerHTML={{ __html: bodyHtml }}
               data-placeholder="Write your story here..."
-              style={{ whiteSpace: "pre-wrap" }}
+              style={{
+                whiteSpace: "pre-wrap",
+                unicodeBidi: "plaintext",
+                direction: "ltr",
+                textAlign: "left",
+              }}
+              suppressContentEditableWarning={true}
             />
           </div>
 
