@@ -194,20 +194,28 @@ const wtfSubmissionValidation = [
       );
     }),
 
-  // Tags validation
+  // Tags validation (tolerant: accept JSON string, empty string, or omit)
   body("tags")
     .optional()
-    .isArray({ max: 10 })
-    .withMessage("Tags must be an array with maximum 10 items")
     .customSanitizer((value) => {
-      if (Array.isArray(value)) {
-        return value
-          .slice(0, 10)
-          .map((tag) => tag.toString().trim().substring(0, 50))
-          .filter((tag) => tag.length > 0);
+      // Accept JSON string (e.g., "[]") coming from FormData
+      if (typeof value === "string") {
+        try {
+          value = JSON.parse(value);
+        } catch (_) {
+          return [];
+        }
       }
-      return [];
-    }),
+      if (!Array.isArray(value)) {
+        return [];
+      }
+      return value
+        .slice(0, 10)
+        .map((tag) => tag.toString().trim().substring(0, 50))
+        .filter((tag) => tag.length > 0);
+    })
+    .isArray({ max: 10 })
+    .withMessage("Tags must be an array with maximum 10 items"),
 
   // Language validation
   body("language")
