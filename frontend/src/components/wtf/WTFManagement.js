@@ -998,12 +998,16 @@ const WTFManagementContent = ({ onToggleView }) => {
                         >
                           <td className="py-4 px-4">
                             <div className="flex items-center gap-3">
-                              {pin.thumbnail && (
+                              {pin.thumbnail ? (
                                 <img
                                   src={pin.thumbnail}
                                   alt=""
                                   className="w-10 h-10 rounded object-cover"
                                 />
+                              ) : (
+                                <div className="w-10 h-10 rounded border border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400">
+                                  {getContentTypeIcon(pin.type)}
+                                </div>
                               )}
                               <div>
                                 <div className="font-medium text-gray-900">
@@ -1440,12 +1444,16 @@ const WTFManagementContent = ({ onToggleView }) => {
                           >
                             <td className="py-4 px-4">
                               <div className="flex items-start gap-3">
-                                {suggestion.thumbnail && (
+                                {suggestion.thumbnail ? (
                                   <img
                                     src={suggestion.thumbnail}
                                     alt=""
                                     className="w-12 h-12 rounded object-cover"
                                   />
+                                ) : (
+                                  <div className="w-12 h-12 rounded border border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400">
+                                    {getContentTypeIcon(suggestion.type)}
+                                  </div>
                                 )}
                                 <div>
                                   <div className="font-medium">
