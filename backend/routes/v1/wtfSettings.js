@@ -10,6 +10,8 @@ const {
   uploadFontFile,
   deleteBackgroundImage,
   getSettingsHistory,
+  getCoinReward,
+  updateCoinReward,
 } = require("../../controllers/wtfSettingsController");
 
 // Get current WTF settings (accessible to all WTF users)
@@ -64,6 +66,22 @@ router.get(
   authenticate,
   authorize([WtfPermissions.WTF_ADMIN]),
   getSettingsHistory
+);
+
+// Get coin reward value (admin only for now)
+router.get(
+  "/coin-reward",
+  authenticate,
+  authorize([WtfPermissions.WTF_ADMIN]),
+  getCoinReward
+);
+
+// Update coin reward value (admin only)
+router.put(
+  "/coin-reward",
+  authenticate,
+  authorize([WtfPermissions.WTF_ADMIN]),
+  updateCoinReward
 );
 
 module.exports = router;

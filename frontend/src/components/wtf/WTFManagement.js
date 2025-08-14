@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Calendar,
   CheckCircle,
+  Coins,
 } from "lucide-react";
 import { Button } from "../ui/button.jsx";
 import { Badge } from "../ui/badge.jsx";
@@ -30,6 +31,8 @@ import ReviewModal from "./ReviewModal";
 import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
 import { useAuth } from "../../contexts/AuthContext";
 import BackgroundSettings from "./BackgroundSettings";
+import showToast from "../../utils/toast";
+import { getWtfCoinReward, updateWtfCoinReward } from "../../api";
 import {
   useWtfBackground,
   WtfBackgroundProvider,
@@ -68,6 +71,10 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
+  // ISF Coin Rules - WTF Reward Configuration (UI only for now)
+  const [wtfCoinReward, setWtfCoinReward] = useState(25);
+  const [isSavingCoinReward, setIsSavingCoinReward] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -85,6 +92,8 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [activePins, setActivePins] = useState([]);
   const [pendingSuggestions, setPendingSuggestions] = useState([]); // legacy; kept for metrics fallback only
   const [studentSubmissions, setStudentSubmissions] = useState([]);
+  const [pendingVoiceCount, setPendingVoiceCount] = useState(0);
+  const [pendingArticleCount, setPendingArticleCount] = useState(0);
   const [analytics, setAnalytics] = useState({});
   const [dashboardMetrics, setDashboardMetrics] = useState({
     activePins: 0,
@@ -104,6 +113,59 @@ const WTFManagementContent = ({ onToggleView }) => {
   useEffect(() => {
     fetchWtfData();
   }, [submissionTab]);
+
+  // Fetch submission counts when landing on Student Submissions tab
+  useEffect(() => {
+    if (activeTab === "submissions") {
+      (async () => {
+        try {
+          const [voiceResp, articleResp] = await Promise.all([
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "voice",
+              isCoachSuggestion: false,
+            }),
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "article",
+              isCoachSuggestion: false,
+            }),
+          ]);
+
+          const voiceTotal = voiceResp?.success
+            ? voiceResp?.data?.pagination?.total || 0
+            : 0;
+          const articleTotal = articleResp?.success
+            ? articleResp?.data?.pagination?.total || 0
+            : 0;
+
+          setPendingVoiceCount(voiceTotal);
+          setPendingArticleCount(articleTotal);
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error("Failed to fetch submission counts:", e);
+          setPendingVoiceCount(0);
+          setPendingArticleCount(0);
+        }
+      })();
+    }
+  }, [activeTab]);
+
+  // Initialize coin reward from localStorage to persist admin's chosen value until backend is wired
+  useEffect(() => {
+    // Load from backend; fallback to default if not available
+    (async () => {
+      try {
+        const res = await getWtfCoinReward();
+        const value = res?.data?.wtfCoinReward;
+        if (typeof value === "number") setWtfCoinReward(value);
+      } catch (e) {
+        // silent fallback; UI keeps default 25
+      }
+    })();
+  }, []);
 
   const fetchWtfData = async () => {
     setLoading(true);
@@ -455,7 +517,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const handlePinCoachSuggestion = async (suggestion) => {
     try {
       // Approve (pin) via backend; this also creates the WTF pin server-side
-      const response = await reviewSubmission(suggestion.id, {
+      const response = await reviewSubmission(suggestion._id || suggestion.id, {
         action: "approve",
         notes: "Approved and pinned to WTF",
       });
@@ -463,7 +525,9 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (response && response.success) {
         // Remove the suggestion from the pending list
         setCoachSuggestions((prev) =>
-          prev.filter((s) => s.id !== suggestion.id)
+          prev.filter(
+            (s) => (s._id || s.id) !== (suggestion._id || suggestion.id)
+          )
         );
 
         // If backend returned the created pin, prepend it; else refetch active pins
@@ -590,9 +654,8 @@ const WTFManagementContent = ({ onToggleView }) => {
       submissionsPerPage
   );
 
-  const newSubmissionsCount = Array.isArray(studentSubmissions)
-    ? studentSubmissions.filter((s) => s.status === "pending").length
-    : 0;
+  const newSubmissionsCount =
+    (pendingVoiceCount || 0) + (pendingArticleCount || 0);
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter(
         (s) => (s?.status ?? "").toString().toLowerCase() === "pending"
@@ -607,11 +670,14 @@ const WTFManagementContent = ({ onToggleView }) => {
       <div className="max-w-screen-xl mx-auto pb-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-3xl font-bold flex items-center gap-3">
+            <h1
+              className="text-3xl font-bold flex items-center gap-3"
+              style={{ color: getBackgroundStyle()?.color }}
+            >
               <Star className="w-8 h-8 text-yellow-500" />
               WTF Management Dashboard
             </h1>
-            <p className="text-gray-600 mt-2">
+            <p className="mt-2" style={{ color: getBackgroundStyle()?.color }}>
               Curate and manage Wall of Fame content
             </p>
           </div>
@@ -734,6 +800,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                 {
                   id: "background-settings",
                   label: "Background Settings",
+                  count: null,
+                },
+                {
+                  id: "coin-rules",
+                  label: "ISF Coin Rules",
                   count: null,
                 },
                 { id: "analytics", label: "Analytics", count: null },
@@ -1456,19 +1527,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                       onClick={() => setSubmissionTab("voice")}
                     >
                       ▷ Voice Notes
-                      {(() => {
-                        const voiceCount = Array.isArray(studentSubmissions)
-                          ? studentSubmissions.filter(
-                              (s) =>
-                                s.status === "pending" && s.type === "voice"
-                            ).length
-                          : 0;
-                        return voiceCount > 0 ? (
-                          <Badge className="ml-2 bg-red-500 text-white text-xs">
-                            {voiceCount}
-                          </Badge>
-                        ) : null;
-                      })()}
+                      {pendingVoiceCount > 0 ? (
+                        <Badge className="ml-2 bg-red-500 text-white text-xs">
+                          {pendingVoiceCount}
+                        </Badge>
+                      ) : null}
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-md ${
@@ -1479,19 +1542,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                       onClick={() => setSubmissionTab("article")}
                     >
                       Articles
-                      {(() => {
-                        const articleCount = Array.isArray(studentSubmissions)
-                          ? studentSubmissions.filter(
-                              (s) =>
-                                s.status === "pending" && s.type === "article"
-                            ).length
-                          : 0;
-                        return articleCount > 0 ? (
-                          <Badge className="ml-2 bg-red-500 text-white text-xs">
-                            {articleCount}
-                          </Badge>
-                        ) : null;
-                      })()}
+                      {pendingArticleCount > 0 ? (
+                        <Badge className="ml-2 bg-red-500 text-white text-xs">
+                          {pendingArticleCount}
+                        </Badge>
+                      ) : null}
                     </button>
                   </div>
 
@@ -1838,6 +1893,67 @@ const WTFManagementContent = ({ onToggleView }) => {
                     refreshBackgroundSettings();
                   }}
                 />
+              </div>
+            )}
+
+            {activeTab === "coin-rules" && (
+              <div className="p-6">
+                <div className="bg-white rounded-lg shadow border p-6 max-w-xl">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Coins className="w-5 h-5 text-yellow-600" />
+                    <h3 className="text-lg font-semibold">
+                      WTF Reward Configuration
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Set how many ISF Coins a student earns automatically when
+                    their content is featured on the WTF.
+                  </p>
+                  <label
+                    htmlFor="num-wtf-coin-award"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    ISF Coins to award for any student content featured on WTF
+                  </label>
+                  <input
+                    id="num-wtf-coin-award"
+                    type="number"
+                    min={0}
+                    className="w-40 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    value={wtfCoinReward}
+                    onChange={(e) =>
+                      setWtfCoinReward(parseInt(e.target.value || "0", 10))
+                    }
+                  />
+                  <div className="mt-4">
+                    <Button
+                      onClick={async () => {
+                        setIsSavingCoinReward(true);
+                        try {
+                          await updateWtfCoinReward(
+                            Number.isFinite(wtfCoinReward) ? wtfCoinReward : 25
+                          );
+                          showToast("WTF Reward setting saved", "success");
+                        } catch (e) {
+                          // eslint-disable-next-line no-console
+                          console.error("Failed to save coin rule:", e);
+                          showToast("Failed to save reward setting", "error");
+                        } finally {
+                          setIsSavingCoinReward(false);
+                        }
+                      }}
+                      disabled={isSavingCoinReward}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      {isSavingCoinReward ? "Saving..." : "Save Setting"}
+                    </Button>
+                  </div>
+                  <div className="mt-6 text-xs text-gray-500">
+                    Backend hook will automatically credit coins to the
+                    student's balance when an Admin pins content. This UI only
+                    stores the value until API is connected.
+                  </div>
+                </div>
               </div>
             )}
 

@@ -1,6 +1,7 @@
 import React, { useRef } from "react";
 import { X, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import { Badge } from "../../ui/badge.jsx";
 
 const VideoPlayer = ({
   isOpen,
@@ -11,6 +12,7 @@ const VideoPlayer = ({
   likes,
   hearts,
   views,
+  isOfficial,
 }) => {
   const videoRef = useRef(null);
 
@@ -54,6 +56,11 @@ const VideoPlayer = ({
               ...getPostageStampStyle(),
             }}
           >
+            {isOfficial && (
+              <div className="absolute -top-3 -left-3">
+                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              </div>
+            )}
             <div className="w-full h-80 bg-black mb-4 overflow-hidden rounded">
               <video
                 ref={videoRef}
@@ -68,7 +75,10 @@ const VideoPlayer = ({
                 {title}
               </h3>
               {author && (
-                <p className="text-sm text-gray-600">Performance by {typeof author === 'object' ? author.name : author}</p>
+                <p className="text-sm text-gray-600">
+                  Performance by{" "}
+                  {typeof author === "object" ? author.name : author}
+                </p>
               )}
             </div>
           </div>
@@ -121,7 +131,7 @@ const VideoPlayer = ({
           </div>
 
           {/* Decorative tape strips */}
-          <div className="absolute top-32 left-96 w-24 h-6 bg-yellow-300 bg-opacity-70 transform rotate-12 shadow-sm"></div>
+
           <div className="absolute top-80 right-80 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-6 shadow-sm"></div>
         </div>
       </DialogContent>

@@ -906,6 +906,29 @@ export const getWtfSettingsHistory = async (page = 1, limit = 10) => {
   }
 };
 
+// WTF Coin Reward (Admin)
+export const getWtfCoinReward = async () => {
+  try {
+    const response = await api.get(`/api/v1/wtf/settings/coin-reward`);
+    return response.data;
+  } catch (error) {
+    console.error("Error getting WTF coin reward:", error);
+    throw error;
+  }
+};
+
+export const updateWtfCoinReward = async (wtfCoinReward) => {
+  try {
+    const response = await api.put(`/api/v1/wtf/settings/coin-reward`, {
+      wtfCoinReward,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating WTF coin reward:", error);
+    throw error;
+  }
+};
+
 export const deleteWtfBackgroundImage = async (imageUrl) => {
   try {
     const response = await api.delete("/api/v1/wtf/settings/background-image", {

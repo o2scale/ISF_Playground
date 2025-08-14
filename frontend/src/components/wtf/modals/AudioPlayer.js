@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { X, Play, Pause, Volume2, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import { Badge } from "../../ui/badge.jsx";
 
 const AudioPlayer = ({
   isOpen,
@@ -11,6 +12,7 @@ const AudioPlayer = ({
   likes,
   hearts,
   views,
+  isOfficial,
 }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -31,13 +33,19 @@ const AudioPlayer = ({
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      const time = audioRef.current.currentTime;
+      setCurrentTime(
+        Number.isFinite(time) && !Number.isNaN(time) && time >= 0 ? time : 0
+      );
     }
   };
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+      const dur = audioRef.current.duration;
+      setDuration(
+        Number.isFinite(dur) && !Number.isNaN(dur) && dur >= 0 ? dur : 0
+      );
     }
   };
 
@@ -57,6 +65,9 @@ const AudioPlayer = ({
   };
 
   const formatTime = (time) => {
+    if (!Number.isFinite(time) || Number.isNaN(time) || time <= 0) {
+      return "0:00";
+    }
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -96,6 +107,11 @@ const AudioPlayer = ({
               ...getPostageStampStyle(),
             }}
           >
+            {isOfficial && (
+              <div className="absolute -top-3 -left-3">
+                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              </div>
+            )}
             <div className="text-center mb-6">
               <div className="w-32 h-32 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Volume2 className="w-16 h-16 text-green-600" />
@@ -104,15 +120,22 @@ const AudioPlayer = ({
                 {title}
               </h3>
               {author && (
-                <p className="text-sm text-gray-600">Speaker: {typeof author === 'object' ? author.name : author}</p>
+                <p className="text-sm text-gray-600">
+                  Speaker: {typeof author === "object" ? author.name : author}
+                </p>
               )}
             </div>
 
             <audio
               ref={audioRef}
               src={audioSrc}
+              preload="metadata"
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
+              onError={() => {
+                setDuration(0);
+                setCurrentTime(0);
+              }}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             />
@@ -136,7 +159,7 @@ const AudioPlayer = ({
                   type="range"
                   min="0"
                   max={duration || 0}
-                  value={currentTime}
+                  value={Math.min(currentTime, duration || 0)}
                   onChange={handleSeek}
                   className="w-full"
                 />
@@ -213,7 +236,7 @@ const AudioPlayer = ({
           </div>
 
           {/* Decorative tape strips */}
-          <div className="absolute top-48 left-80 w-24 h-6 bg-yellow-300 bg-opacity-70 transform rotate-12 shadow-sm"></div>
+
           <div className="absolute bottom-32 right-96 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-6 shadow-sm"></div>
         </div>
       </DialogContent>

@@ -1,6 +1,7 @@
 import React from "react";
 import { X, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import { Badge } from "../../ui/badge.jsx";
 
 const ImageViewer = ({
   isOpen,
@@ -11,6 +12,7 @@ const ImageViewer = ({
   likes,
   hearts,
   views,
+  isOfficial,
 }) => {
   const getPostageStampStyle = () => ({
     backgroundImage: `
@@ -46,6 +48,11 @@ const ImageViewer = ({
               ...getPostageStampStyle(),
             }}
           >
+            {isOfficial && (
+              <div className="absolute -top-3 -left-3">
+                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              </div>
+            )}
             <div className="w-full h-80 bg-gray-200 mb-4 overflow-hidden">
               <img
                 src={imageSrc}
@@ -117,7 +124,6 @@ const ImageViewer = ({
           </div>
 
           {/* Decorative tape strips */}
-          <div className="absolute top-32 left-80 w-24 h-6 bg-yellow-300 bg-opacity-70 transform rotate-12 shadow-sm"></div>
           <div className="absolute top-96 right-96 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-6 shadow-sm"></div>
         </div>
       </DialogContent>

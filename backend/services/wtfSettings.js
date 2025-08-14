@@ -22,6 +22,8 @@ class WtfSettingsService {
           backgroundType: "color",
           backgroundColor: "#f8fafc",
           backgroundImage: null,
+          fontColor: "#0f172a",
+          wtfCoinReward: 25,
           isActive: true,
         };
       }
@@ -44,7 +46,10 @@ class WtfSettingsService {
         backgroundImage,
         fontFamily,
         fontUrl,
+        fontColor,
       } = settingsData;
+      // Preserve existing coin reward value when background-only updates happen
+      const current = await WtfSettings.findOne({ isActive: true });
 
       // Validate required fields
       if (!backgroundType || !["color", "image"].includes(backgroundType)) {
@@ -70,6 +75,8 @@ class WtfSettingsService {
         backgroundImage: backgroundType === "image" ? backgroundImage : null,
         fontFamily: fontFamily || null,
         fontUrl: fontUrl || null,
+        fontColor: fontColor || current?.fontColor || "#0f172a",
+        wtfCoinReward: current?.wtfCoinReward ?? 25,
         isActive: true,
         createdBy: userId,
         updatedBy: userId,
@@ -86,11 +93,64 @@ class WtfSettingsService {
         backgroundImage: backgroundType === "image" ? backgroundImage : null,
         fontFamily: fontFamily || null,
         fontUrl: fontUrl || null,
+        fontColor: fontColor || current?.fontColor || "#0f172a",
       });
 
       return savedSettings;
     } catch (error) {
       errorLogger.error("Error updating WTF settings:", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get only the coin reward value
+   */
+  async getCoinReward() {
+    try {
+      const settings = await WtfSettings.findOne({ isActive: true });
+      return typeof settings?.wtfCoinReward === "number"
+        ? settings.wtfCoinReward
+        : 25;
+    } catch (error) {
+      errorLogger.error("Error getting WTF coin reward:", error);
+      return 25;
+    }
+  }
+
+  /**
+   * Update the coin reward value while preserving other active settings
+   */
+  async updateCoinReward(newRewardValue, userId) {
+    try {
+      const reward = Number(newRewardValue);
+      if (!Number.isFinite(reward) || reward < 0) {
+        throw new Error("Invalid coin reward value");
+      }
+
+      const current = await WtfSettings.findOne({ isActive: true });
+
+      // Deactivate current active settings
+      await WtfSettings.updateMany({ isActive: true }, { isActive: false });
+
+      const newSettings = new WtfSettings({
+        backgroundType: current?.backgroundType || "color",
+        backgroundColor: current?.backgroundColor || "#f8fafc",
+        backgroundImage: current?.backgroundImage || null,
+        fontFamily: current?.fontFamily || null,
+        fontUrl: current?.fontUrl || null,
+        wtfCoinReward: reward,
+        isActive: true,
+        createdBy: userId,
+        updatedBy: userId,
+      });
+
+      const saved = await newSettings.save();
+      await saved.populate("createdBy", "name");
+      await saved.populate("updatedBy", "name");
+      return saved;
+    } catch (error) {
+      errorLogger.error("Error updating WTF coin reward:", error);
       throw error;
     }
   }

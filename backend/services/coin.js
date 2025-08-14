@@ -1,5 +1,6 @@
 const { errorLogger } = require("../config/pino-config");
 const Coin = require("../models/coin");
+const WtfSettingsService = require("./wtfSettings");
 const { default: mongoose } = require("mongoose");
 
 // WTF Coin Configuration
@@ -56,7 +57,20 @@ class CoinService {
   ) {
     try {
       const config = WTF_COIN_CONFIG.PIN_CREATION;
+      // Use configured reward if available; fallback to static config
       let amount = config.amount;
+      try {
+        const currentSettings = await WtfSettingsService.getCurrentSettings();
+        if (
+          currentSettings &&
+          typeof currentSettings.wtfCoinReward === "number" &&
+          currentSettings.wtfCoinReward >= 0
+        ) {
+          amount = currentSettings.wtfCoinReward;
+        }
+      } catch (e) {
+        // keep fallback amount
+      }
       let description = config.description;
 
       // Add bonus for first pin

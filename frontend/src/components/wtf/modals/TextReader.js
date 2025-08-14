@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { X, Volume2, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import { Badge } from "../../ui/badge.jsx";
 
 const TextReader = ({
   isOpen,
@@ -11,6 +12,7 @@ const TextReader = ({
   likes,
   hearts,
   views,
+  isOfficial,
 }) => {
   const [isReading, setIsReading] = useState(false);
 
@@ -63,6 +65,11 @@ const TextReader = ({
               ...getPostageStampStyle(),
             }}
           >
+            {isOfficial && (
+              <div className="absolute -top-3 -left-3">
+                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              </div>
+            )}
             <div className="h-full flex flex-col">
               <div className="flex items-center justify-between mb-4">
                 <div>
@@ -70,7 +77,10 @@ const TextReader = ({
                     {title}
                   </h3>
                   {author && (
-                    <p className="text-sm text-gray-600">Posted by {typeof author === 'object' ? author.name : author}</p>
+                    <p className="text-sm text-gray-600">
+                      Posted by{" "}
+                      {typeof author === "object" ? author.name : author}
+                    </p>
                   )}
                 </div>
                 <button
@@ -142,7 +152,7 @@ const TextReader = ({
           </div>
 
           {/* Decorative tape strips */}
-          <div className="absolute top-32 left-96 w-24 h-6 bg-yellow-300 bg-opacity-70 transform rotate-45 shadow-sm"></div>
+
           <div className="absolute bottom-48 right-80 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-12 shadow-sm"></div>
         </div>
       </DialogContent>

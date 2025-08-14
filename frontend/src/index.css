@@ -15,33 +15,3 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
     monospace;
 }
-
-/* Theme tokens for shadcn/radix components so popovers/selects are opaque */
-:root {
-  --background: 255 255 255; /* white */
-  --foreground: 17 24 39; /* gray-900 */
-  --popover: 255 255 255;
-  --popover-foreground: 17 24 39;
-  --accent: 243 244 246; /* gray-100 */
-  --accent-foreground: 17 24 39;
-  --muted: 243 244 246;
-  --muted-foreground: 107 114 128;
-  --ring: 59 130 246; /* blue-500 */
-}
-
-.bg-background {
-  background-color: rgb(var(--background));
-}
-.text-popover-foreground {
-  color: rgb(var(--popover-foreground));
-}
-.bg-popover {
-  background-color: rgb(var(--popover));
-}
-.focus\:ring-ring:focus {
-  --tw-ring-color: rgb(var(--ring));
-}
-.focus\:ring-offset-2:focus {
-  box-shadow: 0 0 0 2px var(--tw-ring-offset-color, #fff),
-    0 0 0 calc(2px + 2px) var(--tw-ring-color, transparent);
-}
