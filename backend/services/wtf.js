@@ -26,6 +26,7 @@ const {
   getPinAnalytics,
   getWtfAnalytics,
   bulkUpdatePinStatus,
+  getPinsByStatus,
 } = require("../data-access/wtfPin");
 
 // getSubmissionsForReview is implemented as a static method in this service
@@ -55,6 +56,8 @@ const {
   approveSubmission,
   rejectSubmission,
   archiveSubmission,
+  unarchiveSubmission,
+  getArchivedSubmissions,
   getSubmissionsByType,
   getSubmissionStats,
   getRecentSubmissions,
@@ -448,6 +451,34 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in getPinById service"
+      );
+      throw error;
+    }
+  }
+
+  static async getPinsByStatus({
+    status = "archived",
+    page = 1,
+    limit = 20,
+    type = null,
+    isOfficial = null,
+  }) {
+    try {
+      if (!status) {
+        return { success: false, data: null, message: "Status is required" };
+      }
+      const result = await getPinsByStatus({
+        status,
+        page,
+        limit,
+        type,
+        isOfficial,
+      });
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in getPinsByStatus service"
       );
       throw error;
     }
@@ -1304,7 +1335,7 @@ class WtfService {
         };
       }
 
-      const validActions = ["approve", "reject"];
+      const validActions = ["approve", "reject", "archive"];
       if (!validActions.includes(action)) {
         return {
           success: false,
@@ -1419,8 +1450,10 @@ class WtfService {
             // Don't fail the approval if coin awarding fails
           }
         }
-      } else {
+      } else if (action === "reject") {
         result = await rejectSubmission(submissionId, reviewerId, notes);
+      } else if (action === "archive") {
+        result = await archiveSubmission(submissionId);
       }
 
       // Trigger real-time event
@@ -1445,6 +1478,42 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in reviewSubmission service"
+      );
+      throw error;
+    }
+  }
+
+  // Archived submissions listing
+  static async listArchivedSubmissions({ page = 1, limit = 20, type = null }) {
+    try {
+      const result = await getArchivedSubmissions({ page, limit, type });
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in listArchivedSubmissions service"
+      );
+      throw error;
+    }
+  }
+
+  // Unarchive a submission
+  static async unarchiveSubmission(submissionId) {
+    try {
+      if (!submissionId) {
+        return {
+          success: false,
+          data: null,
+          message: "Submission ID is required",
+        };
+      }
+
+      const result = await unarchiveSubmission(submissionId);
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in unarchiveSubmission service"
       );
       throw error;
     }

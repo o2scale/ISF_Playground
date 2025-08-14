@@ -1095,6 +1095,32 @@ export const reviewSubmission = async (submissionId, data) => {
   }
 };
 
+// Archived submissions list (Admin only)
+export const getArchivedSubmissions = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/submissions/archived`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching archived submissions:", error);
+    throw error;
+  }
+};
+
+// Unarchive a submission (Admin only)
+export const unarchiveSubmission = async (submissionId) => {
+  try {
+    const response = await api.patch(
+      `/api/v1/wtf/submissions/${submissionId}/unarchive`
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error unarchiving submission:", error);
+    throw error;
+  }
+};
+
 // Analytics APIs
 export const getWtfAnalytics = async () => {
   try {

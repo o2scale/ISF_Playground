@@ -222,6 +222,53 @@ exports.getPinsByAuthor = async (
   }
 };
 
+// Get pins by status (admin utility)
+exports.getPinsByStatus = async ({
+  status = "active",
+  page = 1,
+  limit = 20,
+  type = null,
+  author = null,
+  isOfficial = null,
+}) => {
+  try {
+    const skip = (page - 1) * limit;
+    const query = { status };
+
+    if (type) query.type = type;
+    if (author) query.author = new mongoose.Types.ObjectId(author);
+    if (isOfficial !== null) query.isOfficial = isOfficial;
+
+    const pins = await WtfPin.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "name role")
+      .lean();
+
+    const total = await WtfPin.countDocuments(query);
+
+    return {
+      success: true,
+      data: {
+        pins,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      },
+      message: `Pins with status ${status} fetched successfully`,
+    };
+  } catch (error) {
+    errorLogger.error({ error: error.message }, "Error in getPinsByStatus");
+    throw error;
+  }
+};
+
 // Get expired pins for cleanup (pins older than 7 days)
 exports.getExpiredPins = async () => {
   try {

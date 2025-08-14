@@ -22,6 +22,7 @@ const {
   updatePin,
   deletePin,
   changePinStatus,
+  getPinsByStatus,
 
   // Interaction Controllers
   likePin,
@@ -35,6 +36,8 @@ const {
   submitArticle,
   getSubmissionsForReview,
   reviewSubmission,
+  getArchivedSubmissions,
+  unarchiveSubmission,
 
   // Analytics Controllers
   getWtfAnalytics,
@@ -104,6 +107,16 @@ router.get(
   wtfSecurityHeaders,
   wtfRateLimiters.general,
   getPinById
+);
+
+// Get pins by status (Admin only)
+router.get(
+  "/pins/status/list",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_READ, "Read"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.admin,
+  getPinsByStatus
 );
 
 // Update pin (Admin only)
@@ -234,6 +247,22 @@ router.put(
   authenticate,
   authorize(WtfPermissions.WTF_SUBMISSION_UPDATE, "Update"),
   reviewSubmission
+);
+
+// Archived submissions (Admin only)
+router.get(
+  "/submissions/archived",
+  authenticate,
+  authorize(WtfPermissions.WTF_SUBMISSION_READ, "Read"),
+  getArchivedSubmissions
+);
+
+// Unarchive a submission (Admin only)
+router.patch(
+  "/submissions/:submissionId/unarchive",
+  authenticate,
+  authorize(WtfPermissions.WTF_SUBMISSION_UPDATE, "Update"),
+  unarchiveSubmission
 );
 
 // ==================== ANALYTICS ROUTES ====================
