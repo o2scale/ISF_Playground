@@ -135,6 +135,16 @@ class WtfSettingsService {
         file.mimetype
       );
 
+      // Clean up uploaded temp file on disk if exists (multer disk storage)
+      try {
+        if (file.path) {
+          const fs = require("fs");
+          fs.unlink(file.path, () => {});
+        }
+      } catch (e) {
+        // non-blocking cleanup
+      }
+
       logger.info(`WTF font uploaded by user ${userId}`, {
         fileName,
         fontUrl,
