@@ -331,6 +331,83 @@ exports.archiveSubmission = async (submissionId) => {
   }
 };
 
+// Unarchive submission (move from archived back to pending)
+exports.unarchiveSubmission = async (submissionId) => {
+  try {
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      { status: "pending" },
+      { new: true, runValidators: true }
+    )
+      .populate("studentId", "name role")
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
+
+    if (!submission) {
+      return {
+        success: false,
+        data: null,
+        message: "WTF Submission not found",
+      };
+    }
+
+    return {
+      success: true,
+      data: submission,
+      message: "Submission unarchived successfully",
+    };
+  } catch (error) {
+    errorLogger.error({ error: error.message }, "Error in unarchiveSubmission");
+    throw error;
+  }
+};
+
+// List archived submissions (optionally filter by type)
+exports.getArchivedSubmissions = async ({
+  page = 1,
+  limit = 20,
+  type = null,
+} = {}) => {
+  try {
+    const skip = (page - 1) * limit;
+    const query = { status: "archived" };
+    if (type) query.type = type;
+
+    const submissions = await WtfSubmission.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("studentId", "name role")
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author")
+      .lean();
+
+    const total = await WtfSubmission.countDocuments(query);
+
+    return {
+      success: true,
+      data: {
+        submissions,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      },
+      message: "Archived submissions fetched successfully",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in getArchivedSubmissions"
+    );
+    throw error;
+  }
+};
+
 // Get submissions by type
 exports.getSubmissionsByType = async (
   type,

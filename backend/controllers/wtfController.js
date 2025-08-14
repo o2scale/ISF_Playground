@@ -163,6 +163,79 @@ exports.getActivePins = async (req, res) => {
   }
 };
 
+// Get pins by status (Admin only)
+exports.getPinsByStatus = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 20,
+      status = "archived",
+      type,
+      isOfficial,
+    } = req.query;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        query: req.query,
+        userId: req.user?.id,
+      },
+      `Request received to fetch pins by status`
+    );
+
+    const result = await WtfService.getPinsByStatus({
+      status,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      type: type || null,
+      isOfficial:
+        isOfficial === "true" ? true : isOfficial === "false" ? false : null,
+    });
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          pinsCount: result?.data?.pins?.length,
+          userId: req.user?.id,
+        },
+        `Successfully fetched pins by status`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to fetch pins by status`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while fetching pins by status`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
 // Get pin by ID
 exports.getPinById = async (req, res) => {
   try {
@@ -1049,10 +1122,10 @@ exports.reviewSubmission = async (req, res) => {
       });
     }
 
-    if (!action || !["approve", "reject"].includes(action)) {
+    if (!action || !["approve", "reject", "archive"].includes(action)) {
       return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
         success: false,
-        message: "Valid action (approve/reject) is required",
+        message: "Valid action (approve/reject/archive) is required",
       });
     }
 
@@ -1114,6 +1187,138 @@ exports.reviewSubmission = async (req, res) => {
         reviewerId: req.user?.id,
       },
       `Error occurred while reviewing submission`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// List archived submissions (Admin only)
+exports.getArchivedSubmissions = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, type } = req.query;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        query: req.query,
+        userId: req.user?.id,
+      },
+      `Request received to fetch archived submissions`
+    );
+
+    const result = await WtfService.listArchivedSubmissions({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      type: type || null,
+    });
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?.id,
+        },
+        `Successfully fetched archived submissions`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to fetch archived submissions`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while fetching archived submissions`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Unarchive a submission (Admin only)
+exports.unarchiveSubmission = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(submissionId)) {
+      return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+        success: false,
+        message: "Invalid submission ID format",
+      });
+    }
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        submissionId,
+        userId: req.user?.id,
+      },
+      `Request received to unarchive submission`
+    );
+
+    const result = await WtfService.unarchiveSubmission(submissionId);
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          submissionId,
+          userId: req.user?.id,
+        },
+        `Successfully unarchived submission`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          submissionId,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to unarchive submission`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        submissionId: req.params.submissionId,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while unarchiving submission`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)

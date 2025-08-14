@@ -9,11 +9,9 @@ import {
   User,
   Heart,
   ThumbsUp,
-  Filter,
   Search,
   Bell,
   Archive,
-  Play,
   FileText,
   Image as ImageIcon,
   Video,
@@ -48,15 +46,12 @@ import {
   getWtfAnalytics,
   getWtfDashboardCounts,
   getCoachSuggestions,
-  getWtfPinInteractions,
-  getStudentSubmissions,
-  getWtfSubmissionStats,
-  getCoachSuggestionsCount,
-  getPendingSubmissionsCount,
+  getArchivedSubmissions,
+  unarchiveSubmission,
 } from "../../api";
 
 const WTFManagementContent = ({ onToggleView }) => {
-  const { user } = useAuth();
+  const { user } = useAuth(); // reserved for role-based tweaks
   const { getBackgroundStyle, refreshBackgroundSettings } = useWtfBackground();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [submissionTab, setSubmissionTab] = useState("voice");
@@ -94,15 +89,20 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [studentSubmissions, setStudentSubmissions] = useState([]);
   const [pendingVoiceCount, setPendingVoiceCount] = useState(0);
   const [pendingArticleCount, setPendingArticleCount] = useState(0);
-  const [analytics, setAnalytics] = useState({});
+  const [analytics, setAnalytics] = useState({}); // reserved for analytics tab
   const [dashboardMetrics, setDashboardMetrics] = useState({
     activePins: 0,
     coachSuggestions: 0,
     studentSubmissions: 0,
     totalEngagement: 0,
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(false); // reserved for loading states
+  const [error, setError] = useState(null); // reserved for error toasts
+
+  // Archived lists
+  const [archivedSubmissions, setArchivedSubmissions] = useState([]);
+  const [archivedPage, setArchivedPage] = useState(1);
+  const [archivedPerPage, setArchivedPerPage] = useState(10);
 
   // Fetch data on component mount
   useEffect(() => {
@@ -112,6 +112,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   // Refetch submissions when switching between Voice and Articles
   useEffect(() => {
     fetchWtfData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [submissionTab]);
 
   // Fetch submission counts when landing on Student Submissions tab
@@ -151,6 +152,7 @@ const WTFManagementContent = ({ onToggleView }) => {
         }
       })();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Initialize coin reward from localStorage to persist admin's chosen value until backend is wired
@@ -236,6 +238,21 @@ const WTFManagementContent = ({ onToggleView }) => {
       const analyticsResponse = await getWtfAnalytics();
       if (analyticsResponse.success) {
         setAnalytics(analyticsResponse.data || {});
+      }
+
+      // Fetch archived submissions (for both student submissions and coach suggestions)
+      try {
+        const archivedResp = await getArchivedSubmissions({
+          page: 1,
+          limit: 50,
+        });
+        if (archivedResp?.success) {
+          setArchivedSubmissions(archivedResp.data?.submissions || []);
+        } else {
+          setArchivedSubmissions([]);
+        }
+      } catch (e) {
+        setArchivedSubmissions([]);
       }
 
       // Calculate dashboard metrics after all data is fetched
@@ -486,7 +503,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   const handleArchiveSubmission = async (submissionId) => {
     try {
       const response = await reviewSubmission(submissionId, {
-        action: "reject",
+        action: "archive",
         notes: "Archived by admin",
       });
 
@@ -511,9 +528,9 @@ const WTFManagementContent = ({ onToggleView }) => {
           }));
         }
 
-        // Refresh per-tab pending counts
+        // Refresh per-tab pending counts and archive list
         try {
-          const [voiceResp, articleResp] = await Promise.all([
+          const [voiceResp, articleResp, archivedResp] = await Promise.all([
             getSubmissionsForReview({
               page: 1,
               limit: 1,
@@ -526,6 +543,7 @@ const WTFManagementContent = ({ onToggleView }) => {
               type: "article",
               isCoachSuggestion: false,
             }),
+            getArchivedSubmissions({ page: 1, limit: 50 }),
           ]);
 
           const voiceTotal = voiceResp?.success
@@ -537,6 +555,9 @@ const WTFManagementContent = ({ onToggleView }) => {
 
           setPendingVoiceCount(voiceTotal);
           setPendingArticleCount(articleTotal);
+          if (archivedResp?.success) {
+            setArchivedSubmissions(archivedResp.data?.submissions || []);
+          }
         } catch (e) {
           // If refresh fails, adjust the count for the active tab optimistically
           setPendingVoiceCount((prev) =>
@@ -618,22 +639,37 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   const handleArchiveCoachSuggestion = async (suggestionId) => {
     try {
-      // Use the existing review API to reject (archive) the suggestion
       const response = await reviewSubmission(suggestionId, {
-        action: "reject",
+        action: "archive",
         notes: "Archived by admin",
       });
 
       if (response && response.success) {
-        // Remove from pending queue
         setCoachSuggestions((prev) =>
           prev.filter((s) => s.id !== suggestionId)
         );
-        // Update badge metric locally
         setDashboardMetrics((prev) => ({
           ...prev,
           coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
         }));
+        try {
+          const [archivedResp, suggestionsResp, countsResp] = await Promise.all(
+            [
+              getArchivedSubmissions({ page: 1, limit: 50 }),
+              getCoachSuggestions({ page: 1, limit: 20 }),
+              getWtfDashboardCounts(),
+            ]
+          );
+          if (archivedResp?.success) {
+            setArchivedSubmissions(archivedResp.data?.submissions || []);
+          }
+          if (suggestionsResp?.success) {
+            setCoachSuggestions(suggestionsResp.data || []);
+          }
+          if (countsResp?.success) {
+            setDashboardMetrics(countsResp.data);
+          }
+        } catch (_) {}
       }
     } catch (error) {
       console.error("Error archiving coach suggestion:", error);
@@ -692,6 +728,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   );
 
   // Student submissions pagination logic
+  // Keep for future use; currently not used directly in the UI
   const paginatedStudentSubmissions = useMemo(() => {
     if (!Array.isArray(studentSubmissions)) return [];
     const startIndex = (submissionsPage - 1) * submissionsPerPage;
@@ -847,6 +884,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                   label: "Student Submissions",
                   count: newSubmissionsCount > 0 ? newSubmissionsCount : null,
                 },
+                { id: "archive", label: "Archive", count: null },
                 {
                   id: "background-settings",
                   label: "Background Settings",
@@ -1172,6 +1210,179 @@ const WTFManagementContent = ({ onToggleView }) => {
               </div>
             )}
 
+            {activeTab === "archive" && (
+              <div className="space-y-6">
+                <div className="flex items-center gap-2 mb-4">
+                  <Archive className="w-5 h-5 text-gray-600" />
+                  <h3 className="text-lg font-semibold">Archived Items</h3>
+                </div>
+                <p className="text-gray-600 mb-4">
+                  Unarchive coach suggestions and student submissions to return
+                  them to the review queues.
+                </p>
+                <div className="overflow-x-auto bg-white rounded-lg border">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200">
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Title
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Type
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Source
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Archived On
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-900">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {archivedSubmissions
+                        .slice(
+                          (archivedPage - 1) * archivedPerPage,
+                          archivedPage * archivedPerPage
+                        )
+                        .map((item) => {
+                          const isCoachSuggestion =
+                            item?.metadata?.isCoachSuggestion === true;
+                          const typeLabel =
+                            item.type === "voice" ? "Voice" : "Article";
+                          const archivedAt =
+                            item.updatedAt || item.reviewedAt || item.createdAt;
+                          return (
+                            <tr
+                              key={item._id}
+                              className="border-b border-gray-100 hover:bg-gray-50"
+                            >
+                              <td className="py-3 px-4">
+                                <div className="font-medium text-gray-900">
+                                  {item.title}
+                                </div>
+                                {isCoachSuggestion && (
+                                  <Badge className="mt-1 bg-orange-100 text-orange-800">
+                                    Coach Suggestion
+                                  </Badge>
+                                )}
+                              </td>
+                              <td className="py-3 px-4">
+                                <div className="flex items-center gap-2">
+                                  {getContentTypeIcon(
+                                    item.type === "voice" ? "audio" : "text"
+                                  )}
+                                  <span className="text-gray-700">
+                                    {typeLabel}
+                                  </span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-gray-700">
+                                {isCoachSuggestion
+                                  ? item?.metadata?.suggestedBy || "Coach"
+                                  : "Student Submission"}
+                              </td>
+                              <td className="py-3 px-4 text-gray-700">
+                                {archivedAt
+                                  ? new Date(archivedAt).toLocaleDateString()
+                                  : "-"}
+                              </td>
+                              <td className="py-3 px-4">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={async () => {
+                                    try {
+                                      const resp = await unarchiveSubmission(
+                                        item._id
+                                      );
+                                      if (resp?.success) {
+                                        setArchivedSubmissions((prev) =>
+                                          prev.filter((s) => s._id !== item._id)
+                                        );
+                                        // Optionally, refresh queues
+                                        await fetchWtfData();
+                                      }
+                                    } catch (e) {
+                                      console.error("Failed to unarchive:", e);
+                                      setError(
+                                        "Failed to unarchive. Please try again."
+                                      );
+                                    }
+                                  }}
+                                >
+                                  Unarchive
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {archivedSubmissions.length === 0 && (
+                        <tr>
+                          <td
+                            colSpan={5}
+                            className="py-10 text-center text-gray-600"
+                          >
+                            No archived items.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                  {archivedSubmissions.length > 0 && (
+                    <div className="flex items-center justify-between px-4 py-4 border-t border-gray-200 bg-gray-50">
+                      <div className="text-sm text-gray-700">
+                        Showing {(archivedPage - 1) * archivedPerPage + 1} to{" "}
+                        {Math.min(
+                          archivedPage * archivedPerPage,
+                          archivedSubmissions.length
+                        )}{" "}
+                        of {archivedSubmissions.length} results
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            setArchivedPage(Math.max(1, archivedPage - 1))
+                          }
+                          disabled={archivedPage === 1}
+                          className="px-3 py-1"
+                        >
+                          Previous
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setArchivedPage(archivedPage + 1)}
+                          disabled={
+                            archivedPage * archivedPerPage >=
+                            archivedSubmissions.length
+                          }
+                          className="px-3 py-1"
+                        >
+                          Next
+                        </Button>
+                        <select
+                          value={archivedPerPage}
+                          onChange={(e) => {
+                            setArchivedPerPage(Number(e.target.value));
+                            setArchivedPage(1);
+                          }}
+                          className="px-2 py-1 border border-gray-300 rounded text-sm"
+                        >
+                          <option value={5}>5 per page</option>
+                          <option value={10}>10 per page</option>
+                          <option value={20}>20 per page</option>
+                        </select>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
             {activeTab === "coach-suggestions" && (
               <div className="space-y-6">
                 {/* Coach Suggestions Queue */}
