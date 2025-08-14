@@ -18,6 +18,8 @@ export const WtfBackgroundProvider = ({ children }) => {
     backgroundType: "color",
     backgroundColor: "#f8fafc",
     backgroundImage: null,
+    fontFamily: null,
+    fontUrl: null,
     isLoading: true,
     error: null,
   });
@@ -36,6 +38,8 @@ export const WtfBackgroundProvider = ({ children }) => {
         backgroundType: settings.backgroundType || "color",
         backgroundColor: settings.backgroundColor || "#f8fafc",
         backgroundImage: settings.backgroundImage || null,
+        fontFamily: settings.fontFamily || null,
+        fontUrl: settings.fontUrl || null,
         isLoading: false,
         error: null,
       });
@@ -55,6 +59,8 @@ export const WtfBackgroundProvider = ({ children }) => {
       backgroundType: newSettings.backgroundType,
       backgroundColor: newSettings.backgroundColor,
       backgroundImage: newSettings.backgroundImage,
+      fontFamily: newSettings.fontFamily || null,
+      fontUrl: newSettings.fontUrl || null,
     }));
   };
 
@@ -69,10 +75,12 @@ export const WtfBackgroundProvider = ({ children }) => {
         backgroundPosition: "center",
         backgroundRepeat: "no-repeat",
         backgroundAttachment: "fixed",
+        fontFamily: backgroundSettings.fontFamily || undefined,
       };
     } else {
       return {
         backgroundColor: backgroundSettings.backgroundColor,
+        fontFamily: backgroundSettings.fontFamily || undefined,
       };
     }
   };

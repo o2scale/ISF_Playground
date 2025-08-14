@@ -85,6 +85,38 @@ const uploadBackgroundImage = async (req, res) => {
 };
 
 /**
+ * Upload font
+ */
+const uploadFontFile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const file = req.file;
+    if (!file) {
+      return res
+        .status(400)
+        .json({ success: false, message: "No font file provided" });
+    }
+
+    const fontUrl = await WtfSettingsService.uploadFont(file, userId);
+    res
+      .status(200)
+      .json({
+        success: true,
+        message: "Font uploaded successfully",
+        data: { fontUrl },
+      });
+  } catch (error) {
+    errorLogger.error("Error in uploadFontFile controller:", error);
+    res
+      .status(400)
+      .json({
+        success: false,
+        message: error.message || "Failed to upload font",
+      });
+  }
+};
+
+/**
  * Get settings history
  */
 const getSettingsHistory = async (req, res) => {
@@ -112,5 +144,6 @@ module.exports = {
   getCurrentSettings,
   updateSettings,
   uploadBackgroundImage,
+  uploadFontFile,
   getSettingsHistory,
 };

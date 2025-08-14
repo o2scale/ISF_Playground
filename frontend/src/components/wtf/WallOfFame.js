@@ -44,6 +44,7 @@ import {
   submitArticle,
   updateWtfSettings,
   uploadWtfBackgroundImage,
+  uploadWtfFont,
 } from "../../api";
 
 const WallOfFameContent = ({ onToggleView }) => {
@@ -93,6 +94,7 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [isUploadingBg, setIsUploadingBg] = useState(false);
+  const [isUploadingFont, setIsUploadingFont] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [bgSuccess, setBgSuccess] = useState("");
   const [bgError, setBgError] = useState("");
@@ -846,6 +848,94 @@ const WallOfFameContent = ({ onToggleView }) => {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* Font Controls */}
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-2">
+                  Font
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    placeholder="Font family (e.g., 'Patrick Hand', cursive)"
+                    value={previewBgSettings.fontFamily || ""}
+                    onChange={(e) => {
+                      const s = {
+                        ...previewBgSettings,
+                        fontFamily: e.target.value,
+                      };
+                      setPreviewBgSettings(s);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="flex-1 text-xs px-2 py-1 border rounded"
+                  />
+                </div>
+                <div className="mt-2 border border-dashed border-gray-300 rounded p-3 text-center">
+                  <input
+                    type="file"
+                    accept=".woff2,.woff,.ttf,.otf"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        setIsUploadingFont(true);
+                        const resp = await uploadWtfFont(file);
+                        const s = {
+                          ...previewBgSettings,
+                          fontUrl: resp.data.fontUrl,
+                        };
+                        setPreviewBgSettings(s);
+                        setHasUnsavedChanges(true);
+                        setBgSuccess(
+                          "Font uploaded! Remember to set font family and Save."
+                        );
+                        setTimeout(() => setBgSuccess(""), 3000);
+                      } catch (err) {
+                        setBgError("Failed to upload font");
+                        setTimeout(() => setBgError(""), 3000);
+                      } finally {
+                        setIsUploadingFont(false);
+                      }
+                    }}
+                    className="hidden"
+                    id="bg-font-upload-compact"
+                    disabled={isUploadingBg}
+                  />
+                  <label
+                    htmlFor="bg-font-upload-compact"
+                    className={`cursor-pointer flex flex-col items-center ${
+                      isUploadingFont ? "pointer-events-none opacity-50" : ""
+                    }`}
+                  >
+                    {isUploadingFont ? (
+                      <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
+                    ) : (
+                      <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                    )}
+                    <span className="text-xs text-gray-600">
+                      {isUploadingFont
+                        ? "Uploading..."
+                        : "Upload Font (.woff2/.ttf/.otf)"}
+                    </span>
+                  </label>
+                </div>
+                {/* Show chosen font file (URL) */}
+                {previewBgSettings.fontUrl && (
+                  <div className="mt-2 text-xs text-gray-600 break-all">
+                    Selected font file:
+                    <div className="truncate">
+                      <a
+                        href={previewBgSettings.fontUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 underline"
+                      >
+                        {previewBgSettings.fontUrl}
+                      </a>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Image Upload */}

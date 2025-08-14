@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
 const { authorize, authenticate } = require("../../middleware/auth");
-const { upload } = require("../../middleware/upload");
+const { upload, fontUpload } = require("../../middleware/upload");
 const { WtfPermissions } = require("../../constants/users");
 const {
   getCurrentSettings,
   updateSettings,
   uploadBackgroundImage,
+  uploadFontFile,
   getSettingsHistory,
 } = require("../../controllers/wtfSettingsController");
 
@@ -37,6 +38,15 @@ router.post(
   authorize([WtfPermissions.WTF_ADMIN]),
   upload.single("backgroundImage"),
   uploadBackgroundImage
+);
+
+// Upload font file (admin only)
+router.post(
+  "/font",
+  authenticate,
+  authorize([WtfPermissions.WTF_ADMIN]),
+  fontUpload.single("font"),
+  uploadFontFile
 );
 
 // Get settings history (admin only)

@@ -880,6 +880,20 @@ export const uploadWtfBackgroundImage = async (file) => {
   }
 };
 
+export const uploadWtfFont = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append("font", file);
+    const response = await api.post("/api/v1/wtf/settings/font", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error uploading WTF font:", error);
+    throw error;
+  }
+};
+
 export const getWtfSettingsHistory = async (page = 1, limit = 10) => {
   try {
     const response = await api.get(

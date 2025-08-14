@@ -22,6 +22,16 @@ const wtfSettingsSchema = new mongoose.Schema(
       type: String,
       default: null, // S3 URL for background image
     },
+    // Optional font customization for Wall of Fame
+    fontFamily: {
+      type: String,
+      default: null,
+      trim: true,
+    },
+    fontUrl: {
+      type: String,
+      default: null, // S3 URL for uploaded font file (woff2/ttf/otf)
+    },
     isActive: {
       type: Boolean,
       default: true,

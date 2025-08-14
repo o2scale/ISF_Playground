@@ -97,6 +97,29 @@ const wtfUpload = multer({
   fileFilter: wtfFileFilter,
 });
 
+// Font-specific upload configuration
+const fontFileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    "font/woff2",
+    "font/woff",
+    "application/x-font-ttf",
+    "font/ttf",
+    "application/x-font-otf",
+    "font/otf",
+  ];
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error("Invalid font type. Only WOFF2/WOFF/TTF/OTF are allowed."));
+  }
+};
+
+const fontUpload = multer({
+  storage,
+  limits: { fileSize: 1 * 1024 * 1024 }, // 1MB max font size
+  fileFilter: fontFileFilter,
+});
+
 // Wrap the multer middleware to add error handling
 const wtfUploadWithErrorHandling = (req, res, next) => {
   wtfUpload.single("file")(req, res, (err) => {
@@ -201,5 +224,6 @@ module.exports = {
   upload,
   wtfUpload,
   wtfUploadWithErrorHandling,
+  fontUpload,
   cleanupOrphanedFiles,
 };
