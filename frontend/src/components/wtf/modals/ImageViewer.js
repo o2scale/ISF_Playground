@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { X, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
 import { Badge } from "../../ui/badge.jsx";
@@ -16,6 +16,15 @@ const ImageViewer = ({
   onLike,
   onHeart,
 }) => {
+  const [imgError, setImgError] = useState(false);
+
+  const isLikelyImageUrl = (url) => {
+    if (!url || typeof url !== "string") return false;
+    return (
+      /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(url) ||
+      /^(data:image\/.+;base64,|blob:)/i.test(url)
+    );
+  };
   const getPostageStampStyle = () => ({
     backgroundImage: `
       radial-gradient(circle at 0% 50%, transparent 4px, white 4px),
@@ -56,11 +65,35 @@ const ImageViewer = ({
               </div>
             )}
             <div className="w-full h-80 bg-gray-200 mb-4 overflow-hidden">
-              <img
-                src={imageSrc}
-                alt={title}
-                className="w-full h-full object-cover"
-              />
+              {isLikelyImageUrl(imageSrc) && !imgError ? (
+                <img
+                  src={imageSrc}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                  loading="lazy"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-white text-center p-4">
+                  <div>
+                    <div className="text-sm text-gray-600 mb-2">
+                      This URL does not look like a direct image file.
+                    </div>
+                    {imageSrc && (
+                      <a
+                        href={imageSrc}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-blue-600 underline break-all"
+                      >
+                        Open link in a new tab
+                      </a>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
             <div className="text-center">
               <h3 className="font-handwriting text-lg text-gray-800 mb-1">
