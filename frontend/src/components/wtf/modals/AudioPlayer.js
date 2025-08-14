@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { X, Play, Pause, Volume2, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import { Badge } from "../../ui/badge.jsx";
 
 const AudioPlayer = ({
   isOpen,
@@ -11,6 +12,7 @@ const AudioPlayer = ({
   likes,
   hearts,
   views,
+  isOfficial,
 }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -105,6 +107,11 @@ const AudioPlayer = ({
               ...getPostageStampStyle(),
             }}
           >
+            {isOfficial && (
+              <div className="absolute -top-3 -left-3">
+                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              </div>
+            )}
             <div className="text-center mb-6">
               <div className="w-32 h-32 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Volume2 className="w-16 h-16 text-green-600" />

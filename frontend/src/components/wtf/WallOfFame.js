@@ -35,6 +35,7 @@ import VideoPlayer from "./modals/VideoPlayer";
 import AudioPlayer from "./modals/AudioPlayer";
 import TextReader from "./modals/TextReader";
 import ArticleEditor from "./modals/ArticleEditor";
+import { Badge } from "../ui/badge.jsx";
 import {
   getActiveWtfPins,
   likeWtfPin,
@@ -830,6 +831,11 @@ const WallOfFameContent = ({ onToggleView }) => {
         ...getPostageStampStyle(),
       }}
     >
+      {item.isOfficial && (
+        <div className="absolute top-2 left-2 z-20">
+          <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+        </div>
+      )}
       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
 
       <div
@@ -1571,6 +1577,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
+          isOfficial={selectedContent.isOfficial}
         />
       )}
 
@@ -1584,6 +1591,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
+          isOfficial={selectedContent.isOfficial}
         />
       )}
 
@@ -1597,6 +1605,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
+          isOfficial={selectedContent.isOfficial}
         />
       )}
 
@@ -1610,6 +1619,7 @@ const WallOfFameContent = ({ onToggleView }) => {
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
+          isOfficial={selectedContent.isOfficial}
         />
       )}
 
