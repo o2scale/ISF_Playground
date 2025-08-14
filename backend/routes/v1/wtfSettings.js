@@ -8,6 +8,7 @@ const {
   updateSettings,
   uploadBackgroundImage,
   uploadFontFile,
+  deleteBackgroundImage,
   getSettingsHistory,
 } = require("../../controllers/wtfSettingsController");
 
@@ -47,6 +48,14 @@ router.post(
   authorize([WtfPermissions.WTF_ADMIN]),
   fontUpload.single("font"),
   uploadFontFile
+);
+
+// Delete background image (admin only)
+router.delete(
+  "/background-image",
+  authenticate,
+  authorize([WtfPermissions.WTF_ADMIN]),
+  deleteBackgroundImage
 );
 
 // Get settings history (admin only)

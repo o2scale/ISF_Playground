@@ -98,21 +98,49 @@ const uploadFontFile = async (req, res) => {
     }
 
     const fontUrl = await WtfSettingsService.uploadFont(file, userId);
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "Font uploaded successfully",
-        data: { fontUrl },
-      });
+    res.status(200).json({
+      success: true,
+      message: "Font uploaded successfully",
+      data: { fontUrl },
+    });
   } catch (error) {
     errorLogger.error("Error in uploadFontFile controller:", error);
-    res
-      .status(400)
-      .json({
+    res.status(400).json({
+      success: false,
+      message: error.message || "Failed to upload font",
+    });
+  }
+};
+
+/**
+ * Delete background image from S3
+ */
+const deleteBackgroundImage = async (req, res) => {
+  try {
+    const { imageUrl } = req.body || {};
+    // Prefer provided imageUrl; if missing, delete current active image
+    let urlToDelete = imageUrl;
+    if (!urlToDelete) {
+      const settings = await WtfSettingsService.getCurrentSettings();
+      urlToDelete = settings?.backgroundImage || null;
+    }
+    if (!urlToDelete) {
+      return res.status(400).json({
         success: false,
-        message: error.message || "Failed to upload font",
+        message: "No background image to delete",
       });
+    }
+    await WtfSettingsService.deleteBackgroundImage(urlToDelete);
+    return res.status(200).json({
+      success: true,
+      message: "Background image deleted",
+    });
+  } catch (error) {
+    errorLogger.error("Error in deleteBackgroundImage controller:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete background image",
+    });
   }
 };
 
@@ -145,5 +173,6 @@ module.exports = {
   updateSettings,
   uploadBackgroundImage,
   uploadFontFile,
+  deleteBackgroundImage,
   getSettingsHistory,
 };

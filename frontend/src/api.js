@@ -906,6 +906,18 @@ export const getWtfSettingsHistory = async (page = 1, limit = 10) => {
   }
 };
 
+export const deleteWtfBackgroundImage = async (imageUrl) => {
+  try {
+    const response = await api.delete("/api/v1/wtf/settings/background-image", {
+      data: { imageUrl },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting WTF background image:", error);
+    throw error;
+  }
+};
+
 export const changeWtfPinStatus = async (pinId, status) => {
   try {
     const response = await api.patch(`/api/v1/wtf/pins/${pinId}/status`, {
