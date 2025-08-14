@@ -1387,10 +1387,16 @@ const WallOfFameContent = ({ onToggleView }) => {
               {/* Monthly Theme Display */}
               <div className="mb-4">
                 <div className="text-6xl mb-2">{monthlyTheme.emoji}</div>
-                <h3 className="text-green-100 text-lg font-medium">
+                <h3
+                  className="text-lg font-medium"
+                  style={{ color: previewBgSettings.fontColor || undefined }}
+                >
                   {monthlyTheme.title}
                 </h3>
-                <p className="text-green-200 text-sm">
+                <p
+                  className="text-sm"
+                  style={{ color: previewBgSettings.fontColor || undefined }}
+                >
                   {monthlyTheme.subtitle}
                 </p>
               </div>
