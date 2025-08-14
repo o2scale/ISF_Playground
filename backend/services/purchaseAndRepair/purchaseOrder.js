@@ -9,6 +9,8 @@ const { getUploadedFilesFullPath } = require("../../utils/helper");
 
 class PurchaseOrder {
   constructor(obj) {
+    this.balagruhaId =
+      obj.balagruhaId || obj.balagruhaID || obj.balagruha || null;
     this.machineDetails = obj.machineDetails || "";
     this.vendorDetails = obj.vendorDetails || "";
     this.costEstimate = obj.costEstimate || 0;
@@ -19,6 +21,7 @@ class PurchaseOrder {
   }
   toJSON() {
     return {
+      balagruhaId: this.balagruhaId,
       machineDetails: this.machineDetails,
       vendorDetails: this.vendorDetails,
       costEstimate: this.costEstimate,
@@ -78,43 +81,47 @@ class PurchaseOrder {
   // Create purchase order
   static async createPurchaseOrder(purchaseOrderData) {
     let isOfflineReq = purchaseOrderData.isOfflineReq || false;
-    let attachments = purchaseOrderData.attachments;
-    // upload the attachment if existing
-    for (let i = 0; i < attachments.length; i++) {
-      let file = attachments[i];
-      let fileName = file.filename;
-      let fileFullPath = getUploadedFilesFullPath(fileName);
+    let attachments = purchaseOrderData.attachments || [];
 
-      if (!isOfflineReq) {
-        let result = await uploadFileToS3(
-          file.path,
-          process.env.AWS_S3_BUCKET_NAME_PURCHASE_ORDER_ATTACHMENTS,
-          fileName
-        );
-        if (result.success) {
-          // replace the /upload from the file name to empty string
+    // Only process attachments if they exist and have length
+    if (attachments && attachments.length > 0) {
+      // upload the attachment if existing
+      for (let i = 0; i < attachments.length; i++) {
+        let file = attachments[i];
+        let fileName = file.filename;
+        let fileFullPath = getUploadedFilesFullPath(fileName);
+
+        if (!isOfflineReq) {
+          let result = await uploadFileToS3(
+            file.path,
+            process.env.AWS_S3_BUCKET_NAME_PURCHASE_ORDER_ATTACHMENTS,
+            fileName
+          );
+          if (result.success) {
+            // replace the /upload from the file name to empty string
+            let attachmentObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              uploadedBy: purchaseOrderData.createdBy,
+            };
+            attachments[i] = attachmentObj;
+          } else {
+            return {
+              success: false,
+              data: {},
+              message: "Failed to upload attachments.",
+            };
+          }
+        } else {
           let attachmentObj = {
             fileName: fileName,
-            fileUrl: result.url,
-            fileType: result.contentType,
-            uploadedBy: purchaseOrderData.createdById,
+            fileUrl: fileFullPath,
+            fileType: file.mimetype,
+            uploadedBy: purchaseOrderData.createdBy,
           };
           attachments[i] = attachmentObj;
-        } else {
-          return {
-            success: false,
-            data: {},
-            message: "Failed to upload attachments.",
-          };
         }
-      } else {
-        let attachmentObj = {
-          fileName: fileName,
-          fileUrl: fileFullPath,
-          fileType: file.mimetype,
-          uploadedBy: purchaseOrderData.createdById,
-        };
-        attachments[i] = attachmentObj;
       }
     }
 

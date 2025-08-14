@@ -2,6 +2,11 @@ const { default: mongoose } = require("mongoose");
 
 const repairRequestSchema = new mongoose.Schema(
   {
+    balagruhaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Balagruha",
+      required: true,
+    },
     issueName: { type: String, default: "", required: true },
     description: { type: String, default: "" },
     dateReported: { type: Date },

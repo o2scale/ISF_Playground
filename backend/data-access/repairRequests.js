@@ -13,12 +13,14 @@ const repairRequestsDA = {
       .skip(skip)
       .limit(limit)
       .populate("createdBy", "name email")
+      .populate("balagruhaId", "name")
       .populate("attachments.uploadedBy", "name email");
   },
 
   findById: async (id) => {
     return await RepairRequests.findById(id)
       .populate("createdBy", "name email")
+      .populate("balagruhaId", "name")
       .populate("attachments.uploadedBy", "name email");
   },
 
@@ -66,6 +68,7 @@ const repairRequestsDA = {
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate("createdBy", "name email")
+      .populate("balagruhaId", "name")
       .populate("attachments.uploadedBy", "name email");
   },
 };

@@ -13,12 +13,14 @@ const purchaseOrdersDA = {
       .skip(skip)
       .limit(limit)
       .populate("createdBy", "name email")
+      .populate("balagruhaId", "name")
       .populate("attachments.uploadedBy", "name email");
   },
 
   findById: async (id) => {
     return await PurchaseOrder.findById(id)
       .populate("createdBy", "name email")
+      .populate("balagruhaId", "name")
       .populate("attachments.uploadedBy", "name email");
   },
 
@@ -45,6 +47,7 @@ const purchaseOrdersDA = {
       .sort({ createdAt: -1 })
       .limit(limit)
       .populate("createdBy", "name email")
+      .populate("balagruhaId", "name")
       .populate("attachments.uploadedBy", "name email");
   },
 };

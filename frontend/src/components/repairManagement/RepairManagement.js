@@ -46,25 +46,23 @@ export default function RepairManagement() {
   });
 
   useEffect(() => {
-    //   fetchDashboardData();
     fetchRepairRequests();
     fetchBalagruha();
-    //   fetchPurchaseOrders();
   }, []);
 
   const openRepairModal = (repair = null) => {
     if (repair) {
       setRepairForm({
-        balagruhaId: repair.balagruhaId,
-        issueName: repair.issueName,
-        description: repair.description,
-        dateReported: repair.dateReported,
-        urgency: repair.urgency,
-        estimatedCost: repair.estimatedCost,
-        attachments: [], // New attachments
+        balagruhaId: repair.balagruhaId || "",
+        issueName: repair.issueName || "",
+        description: repair.description || "",
+        dateReported: repair.dateReported || new Date().toISOString(),
+        urgency: repair.urgency || "medium",
+        estimatedCost: repair.estimatedCost || "",
+        attachments: [],
         existingAttachments: repair.attachments || [],
         repairDetails: repair.repairDetails || "",
-        status: repair.status,
+        status: repair.status || "pending",
       });
       setEditingItem(repair);
     } else {
@@ -75,7 +73,7 @@ export default function RepairManagement() {
         dateReported: new Date().toISOString(),
         urgency: "medium",
         estimatedCost: "",
-        attachments: [], // New attachments
+        attachments: [],
         existingAttachments: [],
         repairDetails: "",
         status: "pending",
@@ -89,9 +87,20 @@ export default function RepairManagement() {
     try {
       setLoading(true);
       const response = await getAllRepairs();
-      setRepairRequests(response.data.repairRequests);
+      if (response.success) {
+        setRepairRequests(response.data.repairRequests || []);
+      } else {
+        showToast(
+          "Error fetching repairs: " + (response.message || "Unknown error"),
+          "error"
+        );
+      }
     } catch (error) {
       console.error("Error fetching repairs:", error);
+      showToast(
+        "Error fetching repairs: " + (error.message || "Unknown error"),
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -102,16 +111,33 @@ export default function RepairManagement() {
 
     try {
       setLoading(true);
-      await deleteRepair(deleteId);
-      await fetchRepairRequests(); // Refresh the list
+      const response = await deleteRepair(deleteId);
+      if (response.success) {
+        showToast("Repair request deleted successfully", "success");
+        await fetchRepairRequests();
+      } else {
+        showToast(
+          "Error deleting repair request: " +
+            (response.message || "Unknown error"),
+          "error"
+        );
+      }
       setShowDeleteConfirmation(false);
       setDeleteId(null);
     } catch (error) {
       console.error("Error deleting repair request:", error);
-      // Optionally show error message to user
+      showToast(
+        "Error deleting repair request: " + (error.message || "Unknown error"),
+        "error"
+      );
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDeleteRepair = (id) => {
+    setDeleteId(id);
+    setShowDeleteConfirmation(true);
   };
 
   const handleFileUpload = (e) => {
@@ -132,9 +158,30 @@ export default function RepairManagement() {
   const handleRepairSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setSelectedBalagruha();
 
     try {
+      // Validate required fields
+      if (!repairForm.balagruhaId) {
+        showToast("Please select a Balagruha", "error");
+        setLoading(false);
+        return;
+      }
+      if (!repairForm.issueName) {
+        showToast("Please enter an issue name", "error");
+        setLoading(false);
+        return;
+      }
+      if (!repairForm.description) {
+        showToast("Please enter a description", "error");
+        setLoading(false);
+        return;
+      }
+      if (!repairForm.estimatedCost) {
+        showToast("Please enter an estimated cost", "error");
+        setLoading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("balagruhaId", repairForm.balagruhaId);
       formData.append("issueName", repairForm.issueName);
@@ -142,26 +189,59 @@ export default function RepairManagement() {
       formData.append("dateReported", repairForm.dateReported);
       formData.append("urgency", repairForm.urgency);
       formData.append("estimatedCost", repairForm.estimatedCost);
-      formData.append("repairDetails", repairForm.repairDetails);
+      formData.append("repairDetails", repairForm.repairDetails || "");
 
       if (editingItem) {
         formData.append("status", repairForm.status);
       }
 
-      repairForm.attachments.forEach((file) => {
-        formData.append("attachments", file);
-      });
-
-      if (editingItem) {
-        await updateRepairRequest(editingItem._id, formData);
-      } else {
-        await createRepair(formData);
+      // Only append attachments if there are any
+      if (repairForm.attachments && repairForm.attachments.length > 0) {
+        repairForm.attachments.forEach((file) => {
+          formData.append("attachments", file);
+        });
       }
 
-      setShowRepairModal(false);
-      fetchRepairRequests(); // Refresh the list
+      // Debug: Log what's being sent
+      console.log("Form data being sent:", {
+        balagruhaId: repairForm.balagruhaId,
+        issueName: repairForm.issueName,
+        description: repairForm.description,
+        dateReported: repairForm.dateReported,
+        urgency: repairForm.urgency,
+        estimatedCost: repairForm.estimatedCost,
+        repairDetails: repairForm.repairDetails,
+        status: editingItem ? repairForm.status : undefined,
+        attachments: repairForm.attachments.length,
+      });
+
+      // Debug: Log FormData contents
+      for (let [key, value] of formData.entries()) {
+        console.log(`FormData key: ${key}, value:`, value);
+      }
+
+      let response;
+      if (editingItem) {
+        response = await updateRepairRequest(editingItem._id, formData);
+      } else {
+        response = await createRepair(formData);
+      }
+
+      if (response.success) {
+        showToast(
+          editingItem
+            ? "Repair request updated successfully"
+            : "Repair request created successfully",
+          "success"
+        );
+        setShowRepairModal(false);
+        fetchRepairRequests();
+      } else {
+        showToast("Error: " + (response.message || "Unknown error"), "error");
+      }
     } catch (error) {
       console.error("Error submitting repair:", error);
+      showToast("Error: " + (error.message || "Unknown error"), "error");
     } finally {
       setLoading(false);
     }
@@ -209,68 +289,66 @@ export default function RepairManagement() {
   };
 
   const fetchBalagruha = async () => {
-    const response = await getBalagruha();
-    if (response.success) {
-      // const role = localStorage.getItem('role');
-      // if(role === 'admin') {
-      setBalagruhas(response.data.balagruhas);
-      // } else {
-      //   const balagruhaIdsFromStorage = localStorage.getItem('balagruhaIds')?.split(',');
-
-      //   const filteredBalagruhas = response.data.balagruhas.filter(balagruha =>
-      //     balagruhaIdsFromStorage.includes(balagruha._id)
-      //   );
-      //   console.log("User Balagruha Data: ", filteredBalagruhas);
-      //   setBalagruhas(filteredBalagruhas);
-      // }
-    } else {
-      showToast("Error fetching balagruha", "error");
+    try {
+      const response = await getBalagruha();
+      console.log("Balagruha API response:", response);
+      if (response.success) {
+        setBalagruhas(response.data.balagruhas || []);
+        console.log("Balagruhas set:", response.data.balagruhas || []);
+      } else {
+        showToast(
+          "Error fetching balagruha: " + (response.message || "Unknown error"),
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching balagruha:", error);
+      showToast(
+        "Error fetching balagruha: " + (error.message || "Unknown error"),
+        "error"
+      );
     }
   };
 
-  // const filteredRepairRequests = repairRequests.filter((bal) => {
-
-  //   if(selectDate === 'today') {
-
-  //   }
-
-  //   if (filterBalagruha !== "all") {
-  //     return bal.balagruhaId === filterBalagruha
-  //   }
-  //   return repairRequests;
-  // })
-
   const filteredRepairRequests = repairRequests.filter((bal) => {
-    const reportedDate = dayjs(bal.dateReported);
+    if (!bal) return false;
 
+    // Handle date filtering - check if dateReported exists
     let passesDateFilter = true;
+    if (bal.dateReported) {
+      const reportedDate = dayjs(bal.dateReported);
 
-    if (selectDate === "today") {
-      passesDateFilter = reportedDate.isSame(dayjs(), "day");
-    } else if (selectDate === "thisWeek") {
-      const startOfWeek = dayjs().startOf("week");
-      const endOfWeek = dayjs().endOf("week");
-      passesDateFilter =
-        reportedDate.isSameOrAfter(startOfWeek) &&
-        reportedDate.isSameOrBefore(endOfWeek);
-    } else if (selectDate === "thisMonth") {
-      passesDateFilter = reportedDate.isSame(dayjs(), "month");
-    } else if (selectDate === "lastMonth") {
-      const lastMonth = dayjs().subtract(1, "month");
-      passesDateFilter = reportedDate.isSame(lastMonth, "month");
-    } else if (selectDate === "custom" && fromDate && toDate) {
-      passesDateFilter =
-        reportedDate.isSameOrAfter(dayjs(fromDate)) &&
-        reportedDate.isSameOrBefore(dayjs(toDate).endOf("day"));
+      if (selectDate === "today") {
+        passesDateFilter = reportedDate.isSame(dayjs(), "day");
+      } else if (selectDate === "thisWeek") {
+        const startOfWeek = dayjs().startOf("week");
+        const endOfWeek = dayjs().endOf("week");
+        passesDateFilter =
+          reportedDate.isSameOrAfter(startOfWeek) &&
+          reportedDate.isSameOrBefore(endOfWeek);
+      } else if (selectDate === "thisMonth") {
+        passesDateFilter = reportedDate.isSame(dayjs(), "month");
+      } else if (selectDate === "lastMonth") {
+        const lastMonth = dayjs().subtract(1, "month");
+        passesDateFilter = reportedDate.isSame(lastMonth, "month");
+      } else if (selectDate === "custom" && fromDate && toDate) {
+        passesDateFilter =
+          reportedDate.isSameOrAfter(dayjs(fromDate)) &&
+          reportedDate.isSameOrBefore(dayjs(toDate).endOf("day"));
+      }
     }
 
-    let passesBalagruhaFilter =
-      filterBalagruha === "all" || bal.balagruhaId === filterBalagruha;
+    // Fix balagruha filtering - use the populated balagruha name
+    const passesBalagruhaFilter =
+      filterBalagruha === "all" ||
+      (bal.balagruhaId && bal.balagruhaId._id === filterBalagruha) ||
+      (typeof bal.balagruhaId === "string" &&
+        bal.balagruhaId === filterBalagruha);
 
     const searchFilter =
       !repairSearch ||
       (repairSearch &&
-        bal?.issueName?.toLowerCase().includes(repairSearch?.toLowerCase()));
+        bal?.issueName?.toLowerCase().includes(repairSearch.toLowerCase()));
 
     const statusFilter = filterStatus === "all" || bal.status === filterStatus;
 
@@ -278,41 +356,6 @@ export default function RepairManagement() {
       passesDateFilter && passesBalagruhaFilter && searchFilter && statusFilter
     );
   });
-
-  // const exportToPDF = () => {
-  //   const doc = new jsPDF();
-
-  //   // Define table column titles
-  //   const tableColumn = [
-  //     "Issue Name",
-  //     "Description",
-  //     "Date Reported",
-  //     "Urgency",
-  //     "Status",
-  //     "Estimated Cost"
-  //   ];
-
-  //   // Define rows from filteredRepairRequests
-  //   const tableRows = filteredRepairRequests.map((req) => [
-  //     req.issueName,
-  //     req.description,
-  //     new Date(req.dateReported).toLocaleDateString(),
-  //     req.urgency,
-  //     req.status,
-  //     req.estimatedCost
-  //   ]);
-
-  //   // Create table
-  //   autoTable(doc, {
-  //     head: [tableColumn],
-  //     body: tableRows,
-  //     styles: { fontSize: 9 },
-  //     headStyles: { fillColor: [120, 153, 248] }
-  //   });
-
-  //   // Save the PDF
-  //   doc.save('RepairRequests.pdf');
-  // };
 
   const exportToPDF = () => {
     const doc = new jsPDF();
@@ -333,7 +376,6 @@ export default function RepairManagement() {
       filterInfo = `Date: ${today.format("DD-MM-YYYY")}`;
     } else if (selectDate === "thisWeek") {
       const startOfWeek = today.startOf("week");
-      // Adjust the end of the week: if today is before the week's Sunday, use today as the end date.
       const endOfWeek = today.isBefore(today.endOf("week"))
         ? today
         : today.endOf("week");
@@ -371,13 +413,13 @@ export default function RepairManagement() {
     ];
 
     const tableRows = filteredRepairRequests.map((req) => [
-      req.issueName,
-      req.description,
+      req.issueName || "",
+      req.description || "",
       dayjs(req.dateReported).format("DD-MM-YYYY"),
-      req.urgency,
-      req.balagruhaName,
-      req.status,
-      `₹${req.estimatedCost}`,
+      req.urgency || "",
+      req.balagruhaId?.name || req.balagruhaName || "",
+      req.status || "",
+      `₹${req.estimatedCost || 0}`,
     ]);
 
     // Add table below date info
@@ -546,6 +588,7 @@ export default function RepairManagement() {
             ))}
           </select>
           <select
+            value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="filter-select"
           >
@@ -585,15 +628,19 @@ export default function RepairManagement() {
                     </td>
                     <td>
                       <span
-                        className={`purchase-tag purchase-${request.urgency.toLowerCase()}`}
+                        className={`purchase-tag purchase-${request.urgency?.toLowerCase()}`}
                       >
                         {request.urgency}
                       </span>
                     </td>
-                    <td>{request.balagruhaName}</td>
+                    <td>
+                      {request.balagruhaId?.name ||
+                        request.balagruhaName ||
+                        "N/A"}
+                    </td>
                     <td>
                       <span
-                        className={`purchase-tag purchase-status-${request.status.toLowerCase()}`}
+                        className={`purchase-tag purchase-status-${request.status?.toLowerCase()}`}
                       >
                         {request.status}
                       </span>
@@ -610,7 +657,7 @@ export default function RepairManagement() {
                       </button>
                       <button
                         className="purchase-icon-button delete"
-                        //   onClick={() => handleDeleteRepair(request._id)}
+                        onClick={() => handleDeleteRepair(request._id)}
                         disabled={loading}
                         title="Delete"
                       >
@@ -679,7 +726,7 @@ export default function RepairManagement() {
             <form onSubmit={handleRepairSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Balagruha</label>
+                  <label>Balagruha *</label>
                   <select
                     value={repairForm.balagruhaId}
                     onChange={(e) => {
@@ -693,14 +740,14 @@ export default function RepairManagement() {
                   >
                     <option value="">Select Balagruha</option>
                     {balagruhas.map((bal) => (
-                      <option key={bal.id} value={bal._id}>
+                      <option key={bal._id} value={bal._id}>
                         {bal.name}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Issue Name</label>
+                  <label>Issue Name *</label>
                   <input
                     type="text"
                     value={repairForm.issueName}
@@ -714,7 +761,7 @@ export default function RepairManagement() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Description:</label>
+                  <label>Description *</label>
                   <textarea
                     value={repairForm.description}
                     onChange={(e) =>
@@ -757,7 +804,7 @@ export default function RepairManagement() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Estimated Cost</label>
+                  <label>Estimated Cost *</label>
                   <input
                     type="number"
                     value={repairForm.estimatedCost}
@@ -808,10 +855,7 @@ export default function RepairManagement() {
                       <h4>Selected Files:</h4>
                       <ul>
                         {repairForm.attachments.map((file, index) => (
-                          <li
-                            key={index}
-                            onClick={() => window.open(file.fileUrl, "_blank")}
-                          >
+                          <li key={index}>
                             {file.name}
                             <button
                               type="button"

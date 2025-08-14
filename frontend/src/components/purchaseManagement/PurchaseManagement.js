@@ -143,12 +143,25 @@ export default function PurchaseManagement() {
 
     try {
       setLoading(true);
-      await deletePurchase(deletePurchaseId);
-      await fetchPurchaseOrders();
+      const response = await deletePurchase(deletePurchaseId);
+      if (response.success) {
+        showToast("Purchase order deleted successfully", "success");
+        await fetchPurchaseOrders();
+      } else {
+        showToast(
+          "Error deleting purchase order: " +
+            (response.message || "Unknown error"),
+          "error"
+        );
+      }
       setShowDeletePurchaseConfirmation(false);
       setDeletePurchaseId(null);
     } catch (error) {
       console.error("Error deleting purchase order:", error);
+      showToast(
+        "Error deleting purchase order: " + (error.message || "Unknown error"),
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -158,9 +171,21 @@ export default function PurchaseManagement() {
     try {
       setLoading(true);
       const response = await getAllPurchases();
-      setPurchaseOrders(response.data.purchaseOrders);
+      if (response.success) {
+        setPurchaseOrders(response.data.purchaseOrders || []);
+      } else {
+        showToast(
+          "Error fetching purchase orders: " +
+            (response.message || "Unknown error"),
+          "error"
+        );
+      }
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
+      showToast(
+        "Error fetching purchase orders: " + (error.message || "Unknown error"),
+        "error"
+      );
     } finally {
       setLoading(false);
     }
@@ -169,9 +194,40 @@ export default function PurchaseManagement() {
   const handlePurchaseSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setSelectedBalagruha();
 
     try {
+      // Validate required fields
+      if (!purchaseForm.balagruhaId) {
+        showToast("Please select a Balagruha", "error");
+        setLoading(false);
+        return;
+      }
+      if (!purchaseForm.status) {
+        showToast("Please select a status", "error");
+        setLoading(false);
+        return;
+      }
+      if (!purchaseForm.machineDetails) {
+        showToast("Please enter machine details", "error");
+        setLoading(false);
+        return;
+      }
+      if (!purchaseForm.vendorDetails) {
+        showToast("Please enter vendor details", "error");
+        setLoading(false);
+        return;
+      }
+      if (!purchaseForm.costEstimate) {
+        showToast("Please enter a cost estimate", "error");
+        setLoading(false);
+        return;
+      }
+      if (!purchaseForm.requiredParts) {
+        showToast("Please enter required parts", "error");
+        setLoading(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append("balagruhaId", purchaseForm.balagruhaId);
       formData.append("status", purchaseForm.status);
@@ -180,20 +236,35 @@ export default function PurchaseManagement() {
       formData.append("costEstimate", purchaseForm.costEstimate);
       formData.append("requiredParts", purchaseForm.requiredParts);
 
-      purchaseForm.attachments.forEach((file) => {
-        formData.append("attachments", file);
-      });
-
-      if (editingItem) {
-        await updatePurchaseOrder(editingItem._id, formData);
-      } else {
-        await createPurchase(formData);
+      // Only append attachments if there are any
+      if (purchaseForm.attachments && purchaseForm.attachments.length > 0) {
+        purchaseForm.attachments.forEach((file) => {
+          formData.append("attachments", file);
+        });
       }
 
-      setShowPurchaseModal(false);
-      fetchPurchaseOrders();
+      let response;
+      if (editingItem) {
+        response = await updatePurchaseOrder(editingItem._id, formData);
+      } else {
+        response = await createPurchase(formData);
+      }
+
+      if (response.success) {
+        showToast(
+          editingItem
+            ? "Purchase order updated successfully"
+            : "Purchase order created successfully",
+          "success"
+        );
+        setShowPurchaseModal(false);
+        fetchPurchaseOrders();
+      } else {
+        showToast("Error: " + (response.message || "Unknown error"), "error");
+      }
     } catch (error) {
       console.error("Error submitting purchase:", error);
+      showToast("Error: " + (error.message || "Unknown error"), "error");
     } finally {
       setLoading(false);
     }
@@ -207,22 +278,22 @@ export default function PurchaseManagement() {
   };
 
   const fetchBalagruha = async () => {
-    const response = await getBalagruha();
-    if (response.success) {
-      // const role = localStorage.getItem('role');
-      // if(role === 'admin') {
-      setBalagruhas(response.data.balagruhas);
-      // } else {
-      //   const balagruhaIdsFromStorage = localStorage.getItem('balagruhaIds')?.split(',');
-
-      //   const filteredBalagruhas = response.data.balagruhas.filter(balagruha =>
-      //     balagruhaIdsFromStorage.includes(balagruha._id)
-      //   );
-      //   console.log("User Balagruha Data: ", filteredBalagruhas);
-      //   setBalagruhas(filteredBalagruhas);
-      // }
-    } else {
-      showToast("Error fetching balagruha", "error");
+    try {
+      const response = await getBalagruha();
+      if (response.success) {
+        setBalagruhas(response.data.balagruhas || []);
+      } else {
+        showToast(
+          "Error fetching balagruha: " + (response.message || "Unknown error"),
+          "error"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching balagruha:", error);
+      showToast(
+        "Error fetching balagruha: " + (error.message || "Unknown error"),
+        "error"
+      );
     }
   };
 
@@ -236,46 +307,54 @@ export default function PurchaseManagement() {
   // })
 
   const filteredPurchaseOrders = purchaseOrders.filter((bal) => {
-    const createdDate = dayjs(bal.createdAt);
+    if (!bal) return false;
 
+    // Handle date filtering - check if createdAt exists
     let passesDateFilter = true;
+    if (bal.createdAt) {
+      const createdDate = dayjs(bal.createdAt);
 
-    if (selectDate === "today") {
-      passesDateFilter = createdDate.isSame(dayjs(), "day");
-    } else if (selectDate === "thisWeek") {
-      const startOfWeek = dayjs().startOf("week");
-      const endOfWeek = dayjs().endOf("week");
-      passesDateFilter =
-        createdDate.isSameOrAfter(startOfWeek) &&
-        createdDate.isSameOrBefore(endOfWeek);
-    } else if (selectDate === "thisMonth") {
-      passesDateFilter = createdDate.isSame(dayjs(), "month");
-    } else if (selectDate === "lastMonth") {
-      const lastMonth = dayjs().subtract(1, "month");
-      passesDateFilter = createdDate.isSame(lastMonth, "month");
-    } else if (selectDate === "custom" && fromDate && toDate) {
-      passesDateFilter =
-        createdDate.isSameOrAfter(dayjs(fromDate)) &&
-        createdDate.isSameOrBefore(dayjs(toDate).endOf("day"));
+      if (selectDate === "today") {
+        passesDateFilter = createdDate.isSame(dayjs(), "day");
+      } else if (selectDate === "thisWeek") {
+        const startOfWeek = dayjs().startOf("week");
+        const endOfWeek = dayjs().endOf("week");
+        passesDateFilter =
+          createdDate.isSameOrAfter(startOfWeek) &&
+          createdDate.isSameOrBefore(endOfWeek);
+      } else if (selectDate === "thisMonth") {
+        passesDateFilter = createdDate.isSame(dayjs(), "month");
+      } else if (selectDate === "lastMonth") {
+        const lastMonth = dayjs().subtract(1, "month");
+        passesDateFilter = createdDate.isSame(lastMonth, "month");
+      } else if (selectDate === "custom" && fromDate && toDate) {
+        passesDateFilter =
+          createdDate.isSameOrAfter(dayjs(fromDate)) &&
+          createdDate.isSameOrBefore(dayjs(toDate).endOf("day"));
+      }
     }
 
+    // Fix balagruha filtering - use the populated balagruha name
     const passesBalagruhaFilter =
-      filterBalagruha === "all" || bal.balagruhaId === filterBalagruha;
+      filterBalagruha === "all" ||
+      (bal.balagruhaId && bal.balagruhaId._id === filterBalagruha) ||
+      (typeof bal.balagruhaId === "string" &&
+        bal.balagruhaId === filterBalagruha);
 
     const searchFilter =
       !purchaseSearch ||
       (purchaseSearch &&
         bal?.machineDetails
           ?.toLowerCase()
-          .includes(purchaseSearch?.toLowerCase())) ||
+          .includes(purchaseSearch.toLowerCase())) ||
       (purchaseSearch &&
         bal?.vendorDetails
           ?.toLowerCase()
-          .includes(purchaseSearch?.toLowerCase())) ||
+          .includes(purchaseSearch.toLowerCase())) ||
       (purchaseSearch &&
         bal?.requiredParts
           ?.toLowerCase()
-          .includes(purchaseSearch?.toLowerCase()));
+          .includes(purchaseSearch.toLowerCase()));
 
     const searchStatus = filterStatus === "all" || bal.status === filterStatus;
 
@@ -341,13 +420,13 @@ export default function PurchaseManagement() {
     ];
 
     const tableRows = filteredPurchaseOrders.map((req) => [
-      req.machineDetails,
-      req.vendorDetails,
-      req.requiredParts,
-      req.balagruhaName,
-      `₹${req.costEstimate}`,
+      req.machineDetails || "",
+      req.vendorDetails || "",
+      req.requiredParts || "",
+      req.balagruhaId?.name || req.balagruhaName || "",
+      `₹${req.costEstimate || 0}`,
       dayjs(req.createdAt).format("DD-MM-YYYY"),
-      req.status,
+      req.status || "",
     ]);
 
     // Add table below date info
@@ -465,7 +544,7 @@ export default function PurchaseManagement() {
           )}
         </div>
         <div className="purchase-section-header">
-          <h2>Purchase Orders</h2>
+      <h2>Purchase Orders</h2>
           <div>
             <button
               className="purchase-action-button"
@@ -550,7 +629,9 @@ export default function PurchaseManagement() {
                     <td>{order.machineDetails}</td>
                     <td>{order.vendorDetails}</td>
                     <td>{order.requiredParts}</td>
-                    <td>{order?.balagruhaName}</td>
+                    <td>
+                      {order.balagruhaId?.name || order.balagruhaName || "N/A"}
+                    </td>
                     <td>{order?.status}</td>
                     <td>₹{order.costEstimate}</td>
                     <td className="action-buttons">
