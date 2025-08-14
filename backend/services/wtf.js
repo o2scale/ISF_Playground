@@ -271,6 +271,23 @@ class WtfService {
         }
       }
 
+      // Normalize link fields for 'link' type
+      if (mappedPayload.type === "link") {
+        // Accept linkUrl or content as the URL field
+        mappedPayload.linkUrl =
+          mappedPayload.linkUrl || mappedPayload.link || mappedPayload.content;
+        // Ensure basic protocol if missing (frontend input may allow without protocol)
+        if (
+          typeof mappedPayload.linkUrl === "string" &&
+          mappedPayload.linkUrl &&
+          !/^https?:\/\//i.test(mappedPayload.linkUrl)
+        ) {
+          mappedPayload.linkUrl = `https://${mappedPayload.linkUrl}`;
+        }
+        // For link pins, ensure content stores the URL as well for compatibility
+        mappedPayload.content = mappedPayload.linkUrl;
+      }
+
       // Set default values
       const pinData = {
         ...mappedPayload,

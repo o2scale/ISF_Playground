@@ -101,19 +101,28 @@ const wtfContentValidation = [
       );
     }),
 
-  // Link validation
-  body("link")
+  // Link validation (accepts linkUrl or content; avoids throwing 500s)
+  body("linkUrl")
     .if(body("type").equals("link"))
+    .customSanitizer(
+      (value, { req }) => value || req.body.link || req.body.content
+    )
     .trim()
-    .isURL()
+    .notEmpty()
+    .withMessage("Link URL is required")
+    .bail()
+    .isURL({ require_protocol: true })
     .withMessage("Link must be a valid URL")
-    .customSanitizer((value) => {
-      // Ensure URL is safe
-      const url = new URL(value);
-      if (!["http:", "https:"].includes(url.protocol)) {
-        throw new Error("Only HTTP and HTTPS URLs are allowed");
+    .custom((value) => {
+      try {
+        const parsed = new URL(value);
+        if (!["http:", "https:"].includes(parsed.protocol)) {
+          throw new Error("Only HTTP and HTTPS URLs are allowed");
+        }
+        return true;
+      } catch (_) {
+        throw new Error("Link must be a valid URL");
       }
-      return value;
     }),
 
   // Tags validation
