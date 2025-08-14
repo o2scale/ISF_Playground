@@ -16,6 +16,8 @@ import {
   Mic,
   StopCircle,
   Send,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useSidebar } from "../Layout";
@@ -293,6 +295,9 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
   const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
+
+  // Background settings panel minimize state
+  const [isBgPanelMinimized, setIsBgPanelMinimized] = useState(false);
 
   // Sync preview settings with context settings
   useEffect(() => {
@@ -998,275 +1003,300 @@ const WallOfFameContent = ({ onToggleView }) => {
             >
               <Palette className="w-4 h-4" />
               Quick Background Settings
-              <div className="ml-auto text-xs text-gray-500">Drag me!</div>
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={() => setIsBgPanelMinimized((v) => !v)}
+                  className="p-1 rounded hover:bg-blue-50 text-blue-800"
+                  title={isBgPanelMinimized ? "Expand" : "Minimize"}
+                >
+                  {isBgPanelMinimized ? (
+                    <ChevronDown className="w-4 h-4" />
+                  ) : (
+                    <ChevronUp className="w-4 h-4" />
+                  )}
+                </button>
+                <div className="text-xs text-gray-500">Drag me!</div>
+              </div>
             </div>
 
-            {/* Success/Error Messages */}
-            {bgSuccess && (
-              <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-xs">
-                {bgSuccess}
-              </div>
-            )}
-            {bgError && (
-              <div className="mb-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-xs">
-                {bgError}
-              </div>
-            )}
-
-            <div className="space-y-3">
-              {/* Color Picker */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Background Colors
-                </label>
-                <div className="grid grid-cols-6 gap-1">
-                  {predefinedColors.map((color) => (
-                    <button
-                      key={color}
-                      onClick={() => handleColorChange(color)}
-                      className={`w-8 h-8 rounded border-2 transition-all hover:scale-110 ${
-                        previewBgSettings.backgroundColor === color
-                          ? "border-blue-500 shadow-md"
-                          : "border-gray-300 hover:border-gray-400"
-                      }`}
-                      style={{ backgroundColor: color }}
-                      title={color}
-                    >
-                      {previewBgSettings.backgroundColor === color && (
-                        <Check className="w-3 h-3 text-white mx-auto" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Font Controls */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Font
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="text"
-                    placeholder="Font family (e.g., 'Patrick Hand', cursive)"
-                    value={previewBgSettings.fontFamily || ""}
-                    onChange={(e) => {
-                      const s = {
-                        ...previewBgSettings,
-                        fontFamily: e.target.value,
-                      };
-                      setPreviewBgSettings(s);
-                      setHasUnsavedChanges(true);
-                    }}
-                    className="flex-1 text-xs px-2 py-1 border rounded"
-                  />
-                </div>
-                <div className="mt-2 border border-dashed border-gray-300 rounded p-3 text-center">
-                  <input
-                    type="file"
-                    accept=".woff2,.woff,.ttf,.otf"
-                    onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      try {
-                        setIsUploadingFont(true);
-                        const resp = await uploadWtfFont(file);
-                        const s = {
-                          ...previewBgSettings,
-                          fontUrl: resp.data.fontUrl,
-                        };
-                        setPreviewBgSettings(s);
-                        setHasUnsavedChanges(true);
-                        setBgSuccess(
-                          "Font uploaded! Remember to set font family and Save."
-                        );
-                        setTimeout(() => setBgSuccess(""), 3000);
-                      } catch (err) {
-                        setBgError("Failed to upload font");
-                        setTimeout(() => setBgError(""), 3000);
-                      } finally {
-                        setIsUploadingFont(false);
-                      }
-                    }}
-                    className="hidden"
-                    id="bg-font-upload-compact"
-                    disabled={isUploadingBg}
-                  />
-                  <label
-                    htmlFor="bg-font-upload-compact"
-                    className={`cursor-pointer flex flex-col items-center ${
-                      isUploadingFont ? "pointer-events-none opacity-50" : ""
-                    }`}
-                  >
-                    {isUploadingFont ? (
-                      <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
-                    ) : (
-                      <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                    )}
-                    <span className="text-xs text-gray-600">
-                      {isUploadingFont
-                        ? "Uploading..."
-                        : "Upload Font (.woff2/.ttf/.otf)"}
-                    </span>
-                  </label>
-                </div>
-                {/* Show chosen font file (URL) */}
-                {previewBgSettings.fontUrl && (
-                  <div className="mt-2 text-xs text-gray-600 break-all">
-                    Selected font file:
-                    <div className="truncate">
-                      <a
-                        href={previewBgSettings.fontUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        {previewBgSettings.fontUrl}
-                      </a>
-                    </div>
+            {!isBgPanelMinimized && (
+              <>
+                {/* Success/Error Messages */}
+                {bgSuccess && (
+                  <div className="mb-2 p-2 bg-green-100 border border-green-300 rounded text-green-700 text-xs">
+                    {bgSuccess}
                   </div>
                 )}
-              </div>
+                {bgError && (
+                  <div className="mb-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-xs">
+                    {bgError}
+                  </div>
+                )}
 
-              {/* Image Upload */}
-              <div>
-                <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Background Image
-                </label>
-                <div className="border border-dashed border-gray-300 rounded p-3 text-center">
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/jpg,image/webp"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                    id="bg-image-upload-compact"
-                    disabled={isUploadingBg}
-                  />
-                  <label
-                    htmlFor="bg-image-upload-compact"
-                    className={`cursor-pointer flex flex-col items-center ${
-                      isUploadingBg ? "pointer-events-none opacity-50" : ""
-                    }`}
-                  >
-                    {isUploadingBg ? (
-                      <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
-                    ) : (
-                      <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                    )}
-                    <span className="text-xs text-gray-600">
-                      {isUploadingBg ? "Uploading..." : "Upload Image"}
-                    </span>
-                  </label>
-                </div>
+                <div className="space-y-3">
+                  {/* Color Picker */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Background Colors
+                    </label>
+                    <div className="grid grid-cols-6 gap-1">
+                      {predefinedColors.map((color) => (
+                        <button
+                          key={color}
+                          onClick={() => handleColorChange(color)}
+                          className={`w-8 h-8 rounded border-2 transition-all hover:scale-110 ${
+                            previewBgSettings.backgroundColor === color
+                              ? "border-blue-500 shadow-md"
+                              : "border-gray-300 hover:border-gray-400"
+                          }`}
+                          style={{ backgroundColor: color }}
+                          title={color}
+                        >
+                          {previewBgSettings.backgroundColor === color && (
+                            <Check className="w-3 h-3 text-white mx-auto" />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-                {/* Inline Preview of selected (unsaved) background image */}
-                {previewBgSettings.backgroundType === "image" &&
-                  previewBgSettings.backgroundImage && (
-                    <div className="mt-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-gray-600">Preview</span>
-                        <span className="text-[10px] text-amber-600">
-                          Unsaved
-                        </span>
-                      </div>
-                      <div
-                        className="w-full h-24 rounded border bg-cover bg-center"
-                        style={{
-                          backgroundImage: `url(${previewBgSettings.backgroundImage})`,
+                  {/* Font Controls */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Font
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        placeholder="Font family (e.g., 'Patrick Hand', cursive)"
+                        value={previewBgSettings.fontFamily || ""}
+                        onChange={(e) => {
+                          const s = {
+                            ...previewBgSettings,
+                            fontFamily: e.target.value,
+                          };
+                          setPreviewBgSettings(s);
+                          setHasUnsavedChanges(true);
                         }}
+                        className="flex-1 text-xs px-2 py-1 border rounded"
                       />
                     </div>
-                  )}
+                    <div className="mt-2 border border-dashed border-gray-300 rounded p-3 text-center">
+                      <input
+                        type="file"
+                        accept=".woff2,.woff,.ttf,.otf"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          try {
+                            setIsUploadingFont(true);
+                            const resp = await uploadWtfFont(file);
+                            const s = {
+                              ...previewBgSettings,
+                              fontUrl: resp.data.fontUrl,
+                            };
+                            setPreviewBgSettings(s);
+                            setHasUnsavedChanges(true);
+                            setBgSuccess(
+                              "Font uploaded! Remember to set font family and Save."
+                            );
+                            setTimeout(() => setBgSuccess(""), 3000);
+                          } catch (err) {
+                            setBgError("Failed to upload font");
+                            setTimeout(() => setBgError(""), 3000);
+                          } finally {
+                            setIsUploadingFont(false);
+                          }
+                        }}
+                        className="hidden"
+                        id="bg-font-upload-compact"
+                        disabled={isUploadingBg}
+                      />
+                      <label
+                        htmlFor="bg-font-upload-compact"
+                        className={`cursor-pointer flex flex-col items-center ${
+                          isUploadingFont
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }`}
+                      >
+                        {isUploadingFont ? (
+                          <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                        )}
+                        <span className="text-xs text-gray-600">
+                          {isUploadingFont
+                            ? "Uploading..."
+                            : "Upload Font (.woff2/.ttf/.otf)"}
+                        </span>
+                      </label>
+                    </div>
+                    {/* Show chosen font file (URL) */}
+                    {previewBgSettings.fontUrl && (
+                      <div className="mt-2 text-xs text-gray-600 break-all">
+                        Selected font file:
+                        <div className="truncate">
+                          <a
+                            href={previewBgSettings.fontUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="text-blue-600 underline"
+                          >
+                            {previewBgSettings.fontUrl}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
 
-                {/* Image Controls */}
-                <div className="mt-2 space-y-1">
-                  <button
-                    onClick={() => {
-                      const testImageUrl =
-                        "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=800&fit=crop";
-                      const settings = {
-                        backgroundType: "image",
-                        backgroundColor: "#f8fafc",
-                        backgroundImage: testImageUrl,
-                      };
-                      setPreviewBgSettings(settings);
-                      setHasUnsavedChanges(true);
-                      setBgSuccess("Test image applied! Click Save to apply.");
-                      setTimeout(() => setBgSuccess(""), 3000);
-                    }}
-                    className="w-full text-xs py-1 px-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-600 transition-colors"
-                  >
-                    Test with Sample Image
-                  </button>
+                  {/* Image Upload */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-2">
+                      Background Image
+                    </label>
+                    <div className="border border-dashed border-gray-300 rounded p-3 text-center">
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/jpg,image/webp"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="bg-image-upload-compact"
+                        disabled={isUploadingBg}
+                      />
+                      <label
+                        htmlFor="bg-image-upload-compact"
+                        className={`cursor-pointer flex flex-col items-center ${
+                          isUploadingBg ? "pointer-events-none opacity-50" : ""
+                        }`}
+                      >
+                        {isUploadingBg ? (
+                          <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
+                        ) : (
+                          <Upload className="w-5 h-5 text-gray-400 mb-1" />
+                        )}
+                        <span className="text-xs text-gray-600">
+                          {isUploadingBg ? "Uploading..." : "Upload Image"}
+                        </span>
+                      </label>
+                    </div>
 
-                  {/* Remove Image Button - only show if image is applied */}
-                  {previewBgSettings.backgroundType === "image" &&
-                    previewBgSettings.backgroundImage && (
+                    {/* Inline Preview of selected (unsaved) background image */}
+                    {previewBgSettings.backgroundType === "image" &&
+                      previewBgSettings.backgroundImage && (
+                        <div className="mt-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs text-gray-600">
+                              Preview
+                            </span>
+                            <span className="text-[10px] text-amber-600">
+                              Unsaved
+                            </span>
+                          </div>
+                          <div
+                            className="w-full h-24 rounded border bg-cover bg-center"
+                            style={{
+                              backgroundImage: `url(${previewBgSettings.backgroundImage})`,
+                            }}
+                          />
+                        </div>
+                      )}
+
+                    {/* Image Controls */}
+                    <div className="mt-2 space-y-1">
                       <button
                         onClick={() => {
+                          const testImageUrl =
+                            "https://images.unsplash.com/photo-1557804506-669a67965ba0?w=1200&h=800&fit=crop";
                           const settings = {
-                            backgroundType: "color",
-                            backgroundColor: "#f8fafc", // Default color
-                            backgroundImage: null,
+                            backgroundType: "image",
+                            backgroundColor: "#f8fafc",
+                            backgroundImage: testImageUrl,
                           };
                           setPreviewBgSettings(settings);
                           setHasUnsavedChanges(true);
-                          setBgSuccess("Background image removed!");
-                          setTimeout(() => setBgSuccess(""), 2000);
+                          setBgSuccess(
+                            "Test image applied! Click Save to apply."
+                          );
+                          setTimeout(() => setBgSuccess(""), 3000);
                         }}
-                        className="w-full text-xs py-1 px-2 bg-red-50 hover:bg-red-100 rounded text-red-600 transition-colors flex items-center justify-center gap-1"
+                        className="w-full text-xs py-1 px-2 bg-gray-100 hover:bg-gray-200 rounded text-gray-600 transition-colors"
                       >
-                        <svg
-                          className="w-3 h-3"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                          />
-                        </svg>
-                        Remove Image
+                        Test with Sample Image
                       </button>
-                    )}
-                </div>
-              </div>
 
-              {/* Save Button and Status */}
-              <div className="mt-4 pt-3 border-t border-gray-200">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    {hasUnsavedChanges && (
-                      <div className="flex items-center gap-1 text-xs text-amber-600">
-                        <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
-                        Unsaved changes
-                      </div>
-                    )}
+                      {/* Remove Image Button - only show if image is applied */}
+                      {previewBgSettings.backgroundType === "image" &&
+                        previewBgSettings.backgroundImage && (
+                          <button
+                            onClick={() => {
+                              const settings = {
+                                backgroundType: "color",
+                                backgroundColor: "#f8fafc", // Default color
+                                backgroundImage: null,
+                              };
+                              setPreviewBgSettings(settings);
+                              setHasUnsavedChanges(true);
+                              setBgSuccess("Background image removed!");
+                              setTimeout(() => setBgSuccess(""), 2000);
+                            }}
+                            className="w-full text-xs py-1 px-2 bg-red-50 hover:bg-red-100 rounded text-red-600 transition-colors flex items-center justify-center gap-1"
+                          >
+                            <svg
+                              className="w-3 h-3"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                              />
+                            </svg>
+                            Remove Image
+                          </button>
+                        )}
+                    </div>
                   </div>
-                  <button
-                    onClick={handleSaveSettings}
-                    disabled={!hasUnsavedChanges || isSaving}
-                    className={`px-4 py-2 rounded text-sm font-medium transition-all ${
-                      hasUnsavedChanges && !isSaving
-                        ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
-                        : "bg-gray-200 text-gray-400 cursor-not-allowed"
-                    }`}
-                  >
-                    {isSaving ? (
+
+                  {/* Save Button and Status */}
+                  <div className="mt-4 pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <Loader className="w-4 h-4 animate-spin" />
-                        Saving...
+                        {hasUnsavedChanges && (
+                          <div className="flex items-center gap-1 text-xs text-amber-600">
+                            <div className="w-2 h-2 bg-amber-400 rounded-full"></div>
+                            Unsaved changes
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      "Save Background"
-                    )}
-                  </button>
+                      <button
+                        onClick={handleSaveSettings}
+                        disabled={!hasUnsavedChanges || isSaving}
+                        className={`px-4 py-2 rounded text-sm font-medium transition-all ${
+                          hasUnsavedChanges && !isSaving
+                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                            : "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        }`}
+                      >
+                        {isSaving ? (
+                          <div className="flex items-center gap-2">
+                            <Loader className="w-4 h-4 animate-spin" />
+                            Saving...
+                          </div>
+                        ) : (
+                          "Save Background"
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
           </div>
         )}
 
