@@ -236,7 +236,7 @@ const AudioPlayer = ({
           </div>
 
           {/* Decorative tape strips */}
-          <div className="absolute top-48 left-80 w-24 h-6 bg-yellow-300 bg-opacity-70 transform rotate-12 shadow-sm"></div>
+
           <div className="absolute bottom-32 right-96 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-6 shadow-sm"></div>
         </div>
       </DialogContent>

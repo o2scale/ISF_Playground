@@ -152,7 +152,7 @@ const TextReader = ({
           </div>
 
           {/* Decorative tape strips */}
-          <div className="absolute top-32 left-96 w-24 h-6 bg-yellow-300 bg-opacity-70 transform rotate-45 shadow-sm"></div>
+
           <div className="absolute bottom-48 right-80 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-12 shadow-sm"></div>
         </div>
       </DialogContent>
