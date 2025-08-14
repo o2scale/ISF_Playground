@@ -399,6 +399,7 @@ const wtfFileUploadSecurity = (req, res, next) => {
       "audio/ogg",
       "audio/aac", // AAC audio support
       "audio/m4a", // M4A audio support
+      "audio/webm", // MediaRecorder default for many browsers
     ];
 
     if (!allowedTypes.includes(req.file.mimetype)) {

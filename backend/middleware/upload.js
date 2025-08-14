@@ -71,6 +71,7 @@ const wtfFileFilter = (req, file, cb) => {
     "audio/ogg",
     "audio/aac", // AAC audio support
     "audio/m4a", // M4A audio support
+    "audio/webm", // Browser MediaRecorder default for many setups
   ];
 
   console.log("📋 Allowed MIME types:", allowedTypes);

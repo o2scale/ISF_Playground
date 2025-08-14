@@ -13,6 +13,9 @@ import {
   Upload,
   Check,
   Loader,
+  Mic,
+  StopCircle,
+  Send,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useSidebar } from "../Layout";
@@ -46,6 +49,188 @@ import {
   uploadWtfBackgroundImage,
   uploadWtfFont,
 } from "../../api";
+import showToast from "../../utils/toast";
+
+// Inline voice suggestion modal (see spec)
+const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
+  const [recording, setRecording] = React.useState(false);
+  const [permissionError, setPermissionError] = React.useState("");
+  const [mediaRecorder, setMediaRecorder] = React.useState(null);
+  const [chunks, setChunks] = React.useState([]);
+  const [stream, setStream] = React.useState(null);
+  const [timer, setTimer] = React.useState(0);
+  const [timerId, setTimerId] = React.useState(null);
+  const [audioUrl, setAudioUrl] = React.useState("");
+  const [hasReviewed, setHasReviewed] = React.useState(false);
+
+  const chunksRef = React.useRef([]);
+  const startRecording = async () => {
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setStream(s);
+      const mr = new MediaRecorder(s);
+      chunksRef.current = [];
+      setChunks([]);
+      mr.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) {
+          chunksRef.current.push(e.data);
+          setChunks((p) => [...p, e.data]);
+        }
+      };
+      mr.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setAudioUrl(URL.createObjectURL(blob));
+      };
+      mr.start();
+      setMediaRecorder(mr);
+      setRecording(true);
+      setTimer(0);
+      const id = setInterval(() => setTimer((t) => t + 1), 1000);
+      setTimerId(id);
+      // Auto stop at 60s
+      setTimeout(() => stopRecording(), 60000);
+      // We avoid mouseup here because the button lives outside modal scope sometimes.
+    } catch (err) {
+      setPermissionError("Microphone permission denied or unavailable.");
+    }
+  };
+  const stopRecording = () => {
+    if (!recording) return;
+    try {
+      mediaRecorder?.stop();
+    } catch (_) {}
+    stream?.getTracks()?.forEach((t) => t.stop());
+    if (timerId) clearInterval(timerId);
+    setRecording(false);
+  };
+  const resetRecording = () => {
+    setAudioUrl("");
+    setHasReviewed(false);
+    setTimer(0);
+    setChunks([]);
+    chunksRef.current = [];
+  };
+  React.useEffect(() => {
+    if (open && autoStart) startRecording();
+    return () => {
+      try {
+        if (timerId) clearInterval(timerId);
+        stream?.getTracks()?.forEach((t) => t.stop());
+        mediaRecorder?.stop?.();
+      } catch (_) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+  const [submitting, setSubmitting] = React.useState(false);
+  const handleSubmit = async () => {
+    try {
+      if (!audioUrl) return;
+      setSubmitting(true);
+      const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+      const file = new File([blob], `voice_suggestion_${Date.now()}.webm`, {
+        type: "audio/webm",
+      });
+      const form = new FormData();
+      form.append("file", file);
+      form.append("title", "Voice Suggestion");
+      form.append("type", "audio");
+      await submitVoiceNote(form);
+      showToast("Thanks for sharing! We'll take a look.", "success");
+      onClose();
+    } catch (_) {
+      showToast("Failed to submit your suggestion.", "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
+        <div className="flex items-center gap-2 mb-3">
+          <Mic className="w-5 h-5 text-purple-600" />
+          <h3 className="text-lg font-semibold">Share Your Voice</h3>
+          <button className="ml-auto" onClick={onClose}>
+            ×
+          </button>
+        </div>
+        {permissionError && (
+          <div className="mb-3 text-sm text-red-600">{permissionError}</div>
+        )}
+        {recording ? (
+          <div className="text-center py-6">
+            <button
+              className="mx-auto mb-3 w-16 h-16 rounded-full bg-red-100 flex items-center justify-center hover:bg-red-200 transition-colors"
+              onClick={stopRecording}
+              aria-label="Stop recording"
+            >
+              <StopCircle className="w-8 h-8 text-red-500" />
+            </button>
+            <div className="font-medium">Recording... Click stop to finish</div>
+            <div className="text-sm text-gray-600 mt-1">
+              {`${String(Math.floor(timer / 60)).padStart(2, "0")}:${String(
+                timer % 60
+              ).padStart(2, "0")}`}
+            </div>
+          </div>
+        ) : (
+          <div>
+            {!audioUrl ? (
+              <div className="text-center py-6">
+                <button
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
+                  onMouseDown={startRecording}
+                >
+                  <Mic className="w-4 h-4" /> Hold to Record
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <audio
+                  controls
+                  className="w-full"
+                  src={audioUrl}
+                  onPlay={() => setHasReviewed(true)}
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    className="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
+                    onClick={resetRecording}
+                  >
+                    <Mic className="w-4 h-4" /> Re-record
+                  </button>
+                  <button
+                    className={`inline-flex items-center gap-2 px-3 py-2 rounded text-white ${
+                      hasReviewed && !submitting
+                        ? "bg-blue-600 hover:bg-blue-700"
+                        : "bg-gray-300 cursor-not-allowed"
+                    }`}
+                    disabled={!hasReviewed || submitting}
+                    onClick={handleSubmit}
+                  >
+                    {submitting ? (
+                      <>
+                        <Loader className="w-4 h-4 animate-spin" />{" "}
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <Send className="w-4 h-4" /> Submit Suggestion
+                      </>
+                    )}
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500">
+                  Please listen to your recording before submitting.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 const WallOfFameContent = ({ onToggleView }) => {
   const { isSidebarCollapsed } = useSidebar();
@@ -98,6 +283,9 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [bgSuccess, setBgSuccess] = useState("");
   const [bgError, setBgError] = useState("");
+  // Voice modal state
+  const [showVoiceModal, setShowVoiceModal] = useState(false);
+  const [voiceAutoStart, setVoiceAutoStart] = useState(false);
 
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
@@ -1087,6 +1275,19 @@ const WallOfFameContent = ({ onToggleView }) => {
               <div className="flex-1 overflow-hidden">
                 <CategoryButtons />
               </div>
+              {isStudent && (
+                <button
+                  id="btn-wtf-share-voice"
+                  onMouseDown={() => {
+                    setShowVoiceModal(true);
+                    setVoiceAutoStart(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                  title="Share Your Voice!"
+                >
+                  <Mic className="w-4 h-4" /> Share Your Voice!
+                </button>
+              )}
             </div>
             <div className="overflow-hidden">
               <LevelIndicators />
@@ -1261,6 +1462,15 @@ const WallOfFameContent = ({ onToggleView }) => {
               )}
             </div>
           </div>
+          {/* Voice suggestion modal */}
+          <VoiceSuggestionModal
+            open={showVoiceModal}
+            autoStart={voiceAutoStart}
+            onClose={() => {
+              setShowVoiceModal(false);
+              setVoiceAutoStart(false);
+            }}
+          />
         </div>
       </div>
 
