@@ -263,7 +263,7 @@ const BackgroundSettings = ({ onSettingsChange }) => {
             Upload Background Image
           </label>
 
-          {/* Current Image Preview */}
+          {/* Current/Saved Image Preview */}
           {settings.backgroundImage && (
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">Current Background:</p>
@@ -303,6 +303,20 @@ const BackgroundSettings = ({ onSettingsChange }) => {
               </span>
             </label>
           </div>
+
+          {/* Unsaved preview when picking a new image */}
+          {settings.backgroundType === "image" && settings.backgroundImage && (
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-sm text-gray-600">Preview</span>
+                <span className="text-xs text-amber-600">Unsaved</span>
+              </div>
+              <div
+                className="w-full h-24 rounded border bg-cover bg-center"
+                style={{ backgroundImage: `url(${settings.backgroundImage})` }}
+              />
+            </div>
+          )}
         </div>
       )}
 

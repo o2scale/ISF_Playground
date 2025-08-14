@@ -969,6 +969,25 @@ const WallOfFameContent = ({ onToggleView }) => {
                   </label>
                 </div>
 
+                {/* Inline Preview of selected (unsaved) background image */}
+                {previewBgSettings.backgroundType === "image" &&
+                  previewBgSettings.backgroundImage && (
+                    <div className="mt-2">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs text-gray-600">Preview</span>
+                        <span className="text-[10px] text-amber-600">
+                          Unsaved
+                        </span>
+                      </div>
+                      <div
+                        className="w-full h-24 rounded border bg-cover bg-center"
+                        style={{
+                          backgroundImage: `url(${previewBgSettings.backgroundImage})`,
+                        }}
+                      />
+                    </div>
+                  )}
+
                 {/* Image Controls */}
                 <div className="mt-2 space-y-1">
                   <button

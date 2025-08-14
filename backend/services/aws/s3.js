@@ -136,12 +136,22 @@ exports.uploadWtfMediaBuffer = async (buffer, fileName, contentType) => {
     await s3Client.send(command);
 
     const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
-    console.log(`WTF background image uploaded successfully: ${url}`);
+    console.log(`WTF media uploaded successfully: ${url}`);
     return url;
   } catch (error) {
-    console.error("Error uploading WTF background image:", error);
+    console.error("Error uploading WTF media buffer:", error);
     throw error;
   }
+};
+
+// Helper to generate settings file path for background image
+exports.buildSettingsFileKey = (originalExt) => {
+  const ext = originalExt.startsWith(".")
+    ? originalExt.substring(1)
+    : originalExt;
+  return `settings/backgrounds/wtf-bg-${Date.now()}-${Math.random()
+    .toString(36)
+    .substring(7)}.${ext}`;
 };
 
 // Upload WTF voice note

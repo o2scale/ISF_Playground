@@ -185,10 +185,13 @@ class WtfSettingsService {
         throw new Error("File size too large. Maximum size is 5MB");
       }
 
-      // Upload to S3
-      const fileName = `backgrounds/wtf-bg-${Date.now()}-${Math.random()
+      // Upload to S3 in settings folder
+      const path = require("path");
+      const originalExt =
+        path.extname(file.originalname) || `.${file.mimetype.split("/")[1]}`;
+      const fileName = `settings/backgrounds/wtf-bg-${Date.now()}-${Math.random()
         .toString(36)
-        .substring(7)}.${file.mimetype.split("/")[1]}`;
+        .substring(7)}${originalExt}`;
 
       // Some multer configs provide buffer, others write to disk
       const fs = require("fs");
