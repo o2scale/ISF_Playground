@@ -92,6 +92,8 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [activePins, setActivePins] = useState([]);
   const [pendingSuggestions, setPendingSuggestions] = useState([]); // legacy; kept for metrics fallback only
   const [studentSubmissions, setStudentSubmissions] = useState([]);
+  const [pendingVoiceCount, setPendingVoiceCount] = useState(0);
+  const [pendingArticleCount, setPendingArticleCount] = useState(0);
   const [analytics, setAnalytics] = useState({});
   const [dashboardMetrics, setDashboardMetrics] = useState({
     activePins: 0,
@@ -111,6 +113,45 @@ const WTFManagementContent = ({ onToggleView }) => {
   useEffect(() => {
     fetchWtfData();
   }, [submissionTab]);
+
+  // Fetch submission counts when landing on Student Submissions tab
+  useEffect(() => {
+    if (activeTab === "submissions") {
+      (async () => {
+        try {
+          const [voiceResp, articleResp] = await Promise.all([
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "voice",
+              isCoachSuggestion: false,
+            }),
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "article",
+              isCoachSuggestion: false,
+            }),
+          ]);
+
+          const voiceTotal = voiceResp?.success
+            ? voiceResp?.data?.pagination?.total || 0
+            : 0;
+          const articleTotal = articleResp?.success
+            ? articleResp?.data?.pagination?.total || 0
+            : 0;
+
+          setPendingVoiceCount(voiceTotal);
+          setPendingArticleCount(articleTotal);
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.error("Failed to fetch submission counts:", e);
+          setPendingVoiceCount(0);
+          setPendingArticleCount(0);
+        }
+      })();
+    }
+  }, [activeTab]);
 
   // Initialize coin reward from localStorage to persist admin's chosen value until backend is wired
   useEffect(() => {
@@ -613,9 +654,8 @@ const WTFManagementContent = ({ onToggleView }) => {
       submissionsPerPage
   );
 
-  const newSubmissionsCount = Array.isArray(studentSubmissions)
-    ? studentSubmissions.filter((s) => s.status === "pending").length
-    : 0;
+  const newSubmissionsCount =
+    (pendingVoiceCount || 0) + (pendingArticleCount || 0);
   const pendingCoachSuggestionsCount = Array.isArray(coachSuggestions)
     ? coachSuggestions.filter(
         (s) => (s?.status ?? "").toString().toLowerCase() === "pending"
@@ -1484,19 +1524,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                       onClick={() => setSubmissionTab("voice")}
                     >
                       ▷ Voice Notes
-                      {(() => {
-                        const voiceCount = Array.isArray(studentSubmissions)
-                          ? studentSubmissions.filter(
-                              (s) =>
-                                s.status === "pending" && s.type === "voice"
-                            ).length
-                          : 0;
-                        return voiceCount > 0 ? (
-                          <Badge className="ml-2 bg-red-500 text-white text-xs">
-                            {voiceCount}
-                          </Badge>
-                        ) : null;
-                      })()}
+                      {pendingVoiceCount > 0 ? (
+                        <Badge className="ml-2 bg-red-500 text-white text-xs">
+                          {pendingVoiceCount}
+                        </Badge>
+                      ) : null}
                     </button>
                     <button
                       className={`px-3 py-2 text-sm font-medium rounded-md ${
@@ -1507,19 +1539,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                       onClick={() => setSubmissionTab("article")}
                     >
                       Articles
-                      {(() => {
-                        const articleCount = Array.isArray(studentSubmissions)
-                          ? studentSubmissions.filter(
-                              (s) =>
-                                s.status === "pending" && s.type === "article"
-                            ).length
-                          : 0;
-                        return articleCount > 0 ? (
-                          <Badge className="ml-2 bg-red-500 text-white text-xs">
-                            {articleCount}
-                          </Badge>
-                        ) : null;
-                      })()}
+                      {pendingArticleCount > 0 ? (
+                        <Badge className="ml-2 bg-red-500 text-white text-xs">
+                          {pendingArticleCount}
+                        </Badge>
+                      ) : null}
                     </button>
                   </div>
 
