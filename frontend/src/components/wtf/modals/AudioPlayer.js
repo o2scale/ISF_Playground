@@ -31,13 +31,19 @@ const AudioPlayer = ({
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
+      const time = audioRef.current.currentTime;
+      setCurrentTime(
+        Number.isFinite(time) && !Number.isNaN(time) && time >= 0 ? time : 0
+      );
     }
   };
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+      const dur = audioRef.current.duration;
+      setDuration(
+        Number.isFinite(dur) && !Number.isNaN(dur) && dur >= 0 ? dur : 0
+      );
     }
   };
 
@@ -57,6 +63,9 @@ const AudioPlayer = ({
   };
 
   const formatTime = (time) => {
+    if (!Number.isFinite(time) || Number.isNaN(time) || time <= 0) {
+      return "0:00";
+    }
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -104,15 +113,22 @@ const AudioPlayer = ({
                 {title}
               </h3>
               {author && (
-                <p className="text-sm text-gray-600">Speaker: {typeof author === 'object' ? author.name : author}</p>
+                <p className="text-sm text-gray-600">
+                  Speaker: {typeof author === "object" ? author.name : author}
+                </p>
               )}
             </div>
 
             <audio
               ref={audioRef}
               src={audioSrc}
+              preload="metadata"
               onTimeUpdate={handleTimeUpdate}
               onLoadedMetadata={handleLoadedMetadata}
+              onError={() => {
+                setDuration(0);
+                setCurrentTime(0);
+              }}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             />
@@ -136,7 +152,7 @@ const AudioPlayer = ({
                   type="range"
                   min="0"
                   max={duration || 0}
-                  value={currentTime}
+                  value={Math.min(currentTime, duration || 0)}
                   onChange={handleSeek}
                   className="w-full"
                 />
