@@ -61,15 +61,21 @@ const ArticleEditor = ({ isOpen, onClose }) => {
       showToast("Please enter a title.", "error");
       return;
     }
-    if (!getPlainText()) {
+    const plain = getPlainText();
+    if (!plain) {
       showToast("Please write your story.", "error");
+      return;
+    }
+    if (plain.length < 10) {
+      showToast("Please write at least 10 characters.", "error");
       return;
     }
     try {
       setIsSubmitting(true);
       const payload = {
         title: title.trim(),
-        content: bodyHtml,
+        // Send the HTML body captured from the editor
+        content: editorRef.current?.innerHTML || bodyHtml,
         language,
         isDraft,
         type: "article",
@@ -83,6 +89,10 @@ const ArticleEditor = ({ isOpen, onClose }) => {
         }
         setTitle("");
         setBodyHtml("");
+        // Clear the contentEditable area explicitly since it's now uncontrolled
+        if (editorRef.current) {
+          editorRef.current.innerHTML = "";
+        }
         setLanguage("english");
         onClose?.();
       } else {
@@ -191,7 +201,6 @@ const ArticleEditor = ({ isOpen, onClose }) => {
               contentEditable
               className="min-h-[300px] max-h-[60vh] overflow-y-auto p-3 focus:outline-none"
               onInput={(e) => setBodyHtml(e.currentTarget.innerHTML)}
-              dangerouslySetInnerHTML={{ __html: bodyHtml }}
               data-placeholder="Write your story here..."
               style={{ whiteSpace: "pre-wrap" }}
             />

@@ -13,6 +13,8 @@ const ImageViewer = ({
   hearts,
   views,
   isOfficial,
+  onLike,
+  onHeart,
 }) => {
   const getPostageStampStyle = () => ({
     backgroundImage: `
@@ -110,16 +112,26 @@ const ImageViewer = ({
                   {views.toLocaleString()}
                 </span>
               </div>
-              <div className="flex items-center justify-center gap-2 text-pink-500">
+              <button
+                type="button"
+                onClick={() => onLike && onLike()}
+                className="flex items-center justify-center gap-2 text-pink-500 hover:opacity-80 transition-opacity mx-auto"
+                aria-label="Like"
+              >
                 <ThumbsUp className="w-5 h-5" />
                 <span className="font-bold text-lg">
                   {likes.toLocaleString()}
                 </span>
-              </div>
-              <div className="flex items-center justify-center gap-2 text-pink-600">
+              </button>
+              <button
+                type="button"
+                onClick={() => onHeart && onHeart()}
+                className="flex items-center justify-center gap-2 text-pink-600 hover:opacity-80 transition-opacity mx-auto"
+                aria-label="Love"
+              >
                 <Heart className="w-5 h-5" />
                 <span className="font-bold text-lg">{hearts}</span>
-              </div>
+              </button>
             </div>
           </div>
 

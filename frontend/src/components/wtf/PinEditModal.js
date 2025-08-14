@@ -130,13 +130,13 @@ const PinEditModal = ({ isOpen, onClose, pin, onUpdatePin }) => {
               <label className="block text-sm font-medium mb-2">
                 Pin Caption
               </label>
-              <Input
-                type="text"
+              <textarea
                 value={formData.caption}
                 onChange={(e) =>
                   setFormData((prev) => ({ ...prev, caption: e.target.value }))
                 }
                 placeholder="Short description or caption"
+                className="w-full h-24 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
 
