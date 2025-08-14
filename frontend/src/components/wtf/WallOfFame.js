@@ -643,7 +643,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       <div className="flex items-center justify-center gap-3 mb-2 text-xs">
         <button
           type="button"
-          className="flex items-center gap-1 hover:opacity-80"
+          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -657,7 +657,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         </button>
         <button
           type="button"
-          className="flex items-center gap-1 hover:opacity-80"
+          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -672,7 +672,7 @@ const WallOfFameContent = ({ onToggleView }) => {
         </button>
         <button
           type="button"
-          className="flex items-center gap-1 hover:opacity-80"
+          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
