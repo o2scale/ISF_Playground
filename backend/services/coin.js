@@ -123,30 +123,42 @@ class CoinService {
     try {
       const config = WTF_COIN_CONFIG.SUBMISSION_APPROVAL;
 
+      // Use configured reward if available; fallback to static config amount
+      let amount = config.amount;
+      try {
+        // WtfSettingsService is a singleton instance with async methods
+        const configuredReward = await WtfSettingsService.getCoinReward();
+        if (typeof configuredReward === "number" && configuredReward >= 0) {
+          amount = configuredReward;
+        }
+      } catch (e) {
+        // Keep fallback amount if settings not available
+      }
+
       // Add WTF-specific metadata
       metadata.wtfSubmissionId = submissionId;
 
       const result = await Coin.awardWtfCoins(
         userId,
-        config.amount,
+        amount,
         config.type,
         config.description,
         metadata
       );
 
       errorLogger.info(
-        { userId, submissionId, amount: config.amount },
+        { userId, submissionId, amount },
         "WTF submission approval coins awarded successfully"
       );
 
       return {
         success: true,
         data: {
-          coinsAwarded: config.amount,
+          coinsAwarded: amount,
           newBalance: result.balance,
           description: config.description,
         },
-        message: `Awarded ${config.amount} coins for submission approval`,
+        message: `Awarded ${amount} coins for submission approval`,
       };
     } catch (error) {
       errorLogger.error(

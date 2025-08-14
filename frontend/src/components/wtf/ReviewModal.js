@@ -13,6 +13,21 @@ const ReviewModal = ({
 }) => {
   if (!submission) return null;
 
+  const type = (submission.type || "").toLowerCase();
+  const contentUrl =
+    typeof submission.content === "string" ? submission.content : "";
+  const mediaUrl =
+    submission.mediaUrl ||
+    submission.imageUrl ||
+    submission.videoUrl ||
+    contentUrl;
+  const isImage =
+    type.includes("image") ||
+    /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(mediaUrl);
+  const isVideo =
+    type.includes("video") || /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(mediaUrl);
+  const isHttpLike = /^(https?:\/\/|blob:|data:)/i.test(mediaUrl);
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -31,7 +46,7 @@ const ReviewModal = ({
           </div>
 
           <div className="border-t pt-6">
-            {submission.type === "voice" ? (
+            {type === "voice" ? (
               <div className="bg-gray-50 rounded-lg p-6 text-center">
                 <Play className="w-12 h-12 mx-auto mb-4 text-blue-500" />
                 <p className="text-gray-600 mb-4">Audio Player</p>
@@ -55,6 +70,33 @@ const ReviewModal = ({
                     </div>
                   ) : null}
                 </div>
+              </div>
+            ) : isImage && isHttpLike ? (
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <img
+                  src={mediaUrl}
+                  alt={submission.title}
+                  className="max-w-full max-h-[480px] object-contain rounded mx-auto bg-white"
+                />
+              </div>
+            ) : isVideo && isHttpLike ? (
+              <div className="bg-gray-50 rounded-lg p-6 text-center">
+                <video
+                  src={mediaUrl}
+                  controls
+                  className="w-full max-h-[480px] rounded bg-black"
+                />
+              </div>
+            ) : isHttpLike ? (
+              <div className="prose max-w-none bg-white rounded-lg p-6 border">
+                <a
+                  href={mediaUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="break-all text-blue-600"
+                >
+                  {mediaUrl}
+                </a>
               </div>
             ) : (
               <div className="prose max-w-none bg-white rounded-lg p-6 border">
