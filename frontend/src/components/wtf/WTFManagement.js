@@ -496,6 +496,56 @@ const WTFManagementContent = ({ onToggleView }) => {
         );
         setShowReviewModal(false);
         setSelectedSubmission(null);
+
+        // Refresh unified dashboard counts so the badge updates immediately
+        try {
+          const countsResp = await getWtfDashboardCounts();
+          if (countsResp?.success) {
+            setDashboardMetrics(countsResp.data);
+          }
+        } catch (e) {
+          // Fallback optimistic decrement if counts API fails
+          setDashboardMetrics((prev) => ({
+            ...prev,
+            studentSubmissions: Math.max(0, (prev.studentSubmissions || 1) - 1),
+          }));
+        }
+
+        // Refresh per-tab pending counts
+        try {
+          const [voiceResp, articleResp] = await Promise.all([
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "voice",
+              isCoachSuggestion: false,
+            }),
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "article",
+              isCoachSuggestion: false,
+            }),
+          ]);
+
+          const voiceTotal = voiceResp?.success
+            ? voiceResp?.data?.pagination?.total || 0
+            : 0;
+          const articleTotal = articleResp?.success
+            ? articleResp?.data?.pagination?.total || 0
+            : 0;
+
+          setPendingVoiceCount(voiceTotal);
+          setPendingArticleCount(articleTotal);
+        } catch (e) {
+          // If refresh fails, adjust the count for the active tab optimistically
+          setPendingVoiceCount((prev) =>
+            submissionTab === "voice" ? Math.max(0, (prev || 1) - 1) : prev
+          );
+          setPendingArticleCount((prev) =>
+            submissionTab === "article" ? Math.max(0, (prev || 1) - 1) : prev
+          );
+        }
       }
     } catch (error) {
       console.error("Error archiving submission:", error);
