@@ -42,14 +42,13 @@ import {
   likeWtfPin,
   loveWtfPin,
   markWtfPinAsSeen,
-  getWtfPinInteractions,
   createWtfPin,
   createCoachSuggestion,
-  getWtfSubmissionStats,
   getPendingSubmissionsCount,
   getCoachSuggestionsCount,
   submitVoiceNote,
   submitArticle,
+  submitWtfMedia,
   updateWtfSettings,
   uploadWtfBackgroundImage,
   uploadWtfFont,
@@ -794,6 +793,24 @@ const WallOfFameContent = ({ onToggleView }) => {
       let response;
       if (newPin.contentType === "audio") {
         response = await submitVoiceNote(submissionData);
+      } else if (
+        newPin.contentType === "image" ||
+        newPin.contentType === "video"
+      ) {
+        // Use multipart/form-data for media
+        if (!(newPin.file instanceof File)) {
+          throw new Error(
+            "Please upload a valid file for image/video content."
+          );
+        }
+        const fd = new FormData();
+        fd.append("title", newPin.title);
+        fd.append("type", newPin.contentType);
+        fd.append("file", newPin.file);
+        // Optional fields
+        fd.append("language", "english");
+        (newPin.tags || []).forEach((t) => fd.append("tags[]", t));
+        response = await submitWtfMedia(fd);
       } else {
         response = await submitArticle(submissionData);
       }
