@@ -300,14 +300,26 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
       existingPin.engagementMetrics
     );
 
+    // Calculate clamped values so they never go below 0
+    const current = existingPin.engagementMetrics || {};
+    const deltaLikes = metrics.likes || 0;
+    const deltaLoves = metrics.loves || 0;
+    const deltaSeen = metrics.seen || 0;
+    const deltaShares = metrics.shares || 0;
+
+    const newLikes = Math.max(0, (current.likes || 0) + deltaLikes);
+    const newLoves = Math.max(0, (current.loves || 0) + deltaLoves);
+    const newSeen = Math.max(0, (current.seen || 0) + deltaSeen);
+    const newShares = Math.max(0, (current.shares || 0) + deltaShares);
+
     const pin = await WtfPin.findByIdAndUpdate(
       pinId,
       {
-        $inc: {
-          "engagementMetrics.likes": metrics.likes || 0,
-          "engagementMetrics.loves": metrics.loves || 0,
-          "engagementMetrics.seen": metrics.seen || 0,
-          "engagementMetrics.shares": metrics.shares || 0,
+        $set: {
+          "engagementMetrics.likes": newLikes,
+          "engagementMetrics.loves": newLoves,
+          "engagementMetrics.seen": newSeen,
+          "engagementMetrics.shares": newShares,
         },
       },
       { new: true, runValidators: true }
@@ -339,7 +351,11 @@ exports.updateEngagementMetrics = async (pinId, metrics) => {
       { error: error.message },
       "Error in updateEngagementMetrics"
     );
-    throw error;
+    return {
+      success: false,
+      data: null,
+      message: "Error in updateEngagementMetrics",
+    };
   }
 };
 

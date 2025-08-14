@@ -820,6 +820,7 @@ class WtfService {
         const deleteResult = await deleteInteraction(studentId, pinId, "love");
         if (deleteResult.success) {
           // Update engagement metrics
+          // Use -1 but the data-access clamps to zero; leaving as-is but safe now
           await updateEngagementMetrics(pinId, { loves: -1 });
           return {
             success: true,
