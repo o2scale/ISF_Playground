@@ -1581,7 +1581,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                             : []
                           ).map((submission) => (
                             <tr
-                              key={submission.id}
+                              key={submission._id || submission.id}
                               className="border-b border-gray-100 hover:bg-gray-50"
                             >
                               <td className="py-4 px-4">
@@ -1628,7 +1628,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                                     size="sm"
                                     variant="outline"
                                     onClick={() =>
-                                      handleArchiveSubmission(submission.id)
+                                      handleArchiveSubmission(
+                                        submission._id || submission.id
+                                      )
                                     }
                                   >
                                     <Archive className="w-4 h-4 mr-1" />
@@ -1670,7 +1672,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                             : []
                           ).map((submission) => (
                             <tr
-                              key={submission.id}
+                              key={submission._id || submission.id}
                               className="border-b border-gray-100 hover:bg-gray-50"
                             >
                               <td className="py-4 px-4">
@@ -1717,7 +1719,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                                     size="sm"
                                     variant="outline"
                                     onClick={() =>
-                                      handleArchiveSubmission(submission.id)
+                                      handleArchiveSubmission(
+                                        submission._id || submission.id
+                                      )
                                     }
                                   >
                                     <Archive className="w-4 h-4 mr-1" />

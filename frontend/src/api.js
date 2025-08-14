@@ -976,9 +976,11 @@ export const loveWtfPin = async (pinId) => {
   }
 };
 
-export const markWtfPinAsSeen = async (pinId) => {
+export const markWtfPinAsSeen = async (pinId, viewDuration = 1) => {
   try {
-    const response = await api.post(`/api/v1/wtf/pins/${pinId}/seen`);
+    const response = await api.post(`/api/v1/wtf/pins/${pinId}/seen`, {
+      viewDuration,
+    });
     return response.data;
   } catch (error) {
     console.error("Error marking WTF pin as seen:", error);

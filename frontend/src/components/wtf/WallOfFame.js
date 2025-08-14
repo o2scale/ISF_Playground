@@ -36,6 +36,7 @@ import AudioPlayer from "./modals/AudioPlayer";
 import TextReader from "./modals/TextReader";
 import ArticleEditor from "./modals/ArticleEditor";
 import { Badge } from "../ui/badge.jsx";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   getActiveWtfPins,
   likeWtfPin,
@@ -239,6 +240,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
 };
 
 const WallOfFameContent = ({ onToggleView }) => {
+  const { user } = useAuth();
   const { isSidebarCollapsed } = useSidebar();
   const { backgroundSettings: contextBgSettings, updateBackgroundSettings } =
     useWtfBackground();
@@ -430,6 +432,23 @@ const WallOfFameContent = ({ onToggleView }) => {
     return () => clearInterval(interval);
   }, [isAdmin]);
 
+  // Track viewed pins per-user in current session to avoid duplicate view API calls
+  const viewedPinsRef = React.useRef(new Set());
+  useEffect(() => {
+    try {
+      const key = `wtf_viewed_${user?.id || "guest"}`;
+      const saved = sessionStorage.getItem(key);
+      if (saved) {
+        const ids = JSON.parse(saved);
+        if (Array.isArray(ids)) {
+          viewedPinsRef.current = new Set(ids);
+        }
+      }
+    } catch (e) {
+      // ignore parse errors
+    }
+  }, [user?.id]);
+
   const handlePinClick = async (item) => {
     // Find the most up-to-date version of this pin from the current content state
     const currentPin = content.find(
@@ -451,6 +470,53 @@ const WallOfFameContent = ({ onToggleView }) => {
       link: "text", // Links can be displayed in text modal
     };
     setModalType(modalTypeMap[item.type] || "text");
+
+    // Mark as seen on first open per user/session
+    const pinId = item._id || item.id;
+    if (pinId && !viewedPinsRef.current.has(pinId)) {
+      try {
+        // Send minimal non-zero duration to satisfy backend validation
+        const res = await markWtfPinAsSeen(pinId, 1);
+        if (res?.success && res?.data?.action === "seen") {
+          // Optimistically update UI counts
+          setContent((prev) =>
+            prev.map((p) =>
+              (p._id || p.id) === pinId
+                ? {
+                    ...p,
+                    engagementMetrics: {
+                      ...p.engagementMetrics,
+                      seen: (p.engagementMetrics?.seen || 0) + 1,
+                    },
+                  }
+                : p
+            )
+          );
+          setSelectedContent((prev) => {
+            if (!prev) return prev;
+            if ((prev._id || prev.id) !== pinId) return prev;
+            return {
+              ...prev,
+              engagementMetrics: {
+                ...prev.engagementMetrics,
+                seen: (prev.engagementMetrics?.seen || 0) + 1,
+              },
+            };
+          });
+        }
+      } catch (err) {
+        console.error("Error marking WTF pin as seen:", err);
+      } finally {
+        viewedPinsRef.current.add(pinId);
+        try {
+          const key = `wtf_viewed_${user?.id || "guest"}`;
+          sessionStorage.setItem(
+            key,
+            JSON.stringify(Array.from(viewedPinsRef.current))
+          );
+        } catch (_) {}
+      }
+    }
   };
 
   const closeModal = () => {
@@ -782,6 +848,23 @@ const WallOfFameContent = ({ onToggleView }) => {
           };
         });
       });
+
+      // Update modal state if the liked pin is currently open
+      setSelectedContent((prev) => {
+        if (!prev) return prev;
+        const currentId = prev.id || prev._id;
+        if (currentId !== pinId) return prev;
+        const currentLikes = prev.engagementMetrics?.likes ?? 0;
+        const delta = resp?.data?.action === "unliked" ? -1 : 1;
+        const newLikes = Math.max(0, currentLikes + delta);
+        return {
+          ...prev,
+          engagementMetrics: {
+            ...prev.engagementMetrics,
+            likes: newLikes,
+          },
+        };
+      });
     } catch (error) {
       console.error("Error liking pin:", error);
     }
@@ -821,6 +904,23 @@ const WallOfFameContent = ({ onToggleView }) => {
           };
         });
       });
+
+      // Update modal state if the loved pin is currently open
+      setSelectedContent((prev) => {
+        if (!prev) return prev;
+        const currentId = prev.id || prev._id;
+        if (currentId !== pinId) return prev;
+        const currentLoves = prev.engagementMetrics?.loves ?? 0;
+        const delta = resp?.data?.action === "unloved" ? -1 : 1;
+        const newLoves = Math.max(0, currentLoves + delta);
+        return {
+          ...prev,
+          engagementMetrics: {
+            ...prev.engagementMetrics,
+            loves: newLoves,
+          },
+        };
+      });
     } catch (error) {
       console.error("Error hearting pin:", error);
     }
@@ -828,7 +928,7 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   const handleMarkAsSeen = async (pinId) => {
     try {
-      await markWtfPinAsSeen(pinId);
+      await markWtfPinAsSeen(pinId, 1);
       setContent((prev) =>
         prev.map((pin) => {
           const currentId = pin.id || pin._id;
@@ -1800,6 +1900,12 @@ const WallOfFameContent = ({ onToggleView }) => {
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          onLike={() =>
+            handleLikePin(selectedContent.id || selectedContent._id)
+          }
+          onHeart={() =>
+            handleHeartPin(selectedContent.id || selectedContent._id)
+          }
         />
       )}
 
@@ -1814,6 +1920,12 @@ const WallOfFameContent = ({ onToggleView }) => {
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          onLike={() =>
+            handleLikePin(selectedContent.id || selectedContent._id)
+          }
+          onHeart={() =>
+            handleHeartPin(selectedContent.id || selectedContent._id)
+          }
         />
       )}
 
@@ -1828,6 +1940,12 @@ const WallOfFameContent = ({ onToggleView }) => {
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          onLike={() =>
+            handleLikePin(selectedContent.id || selectedContent._id)
+          }
+          onHeart={() =>
+            handleHeartPin(selectedContent.id || selectedContent._id)
+          }
         />
       )}
 
@@ -1842,6 +1960,12 @@ const WallOfFameContent = ({ onToggleView }) => {
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          onLike={() =>
+            handleLikePin(selectedContent.id || selectedContent._id)
+          }
+          onHeart={() =>
+            handleHeartPin(selectedContent.id || selectedContent._id)
+          }
         />
       )}
 

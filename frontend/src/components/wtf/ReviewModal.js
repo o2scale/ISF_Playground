@@ -73,7 +73,10 @@ const ReviewModal = ({
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button variant="outline" onClick={() => onArchive(submission.id)}>
+            <Button
+              variant="outline"
+              onClick={() => onArchive(submission._id || submission.id)}
+            >
               <Archive className="w-4 h-4 mr-2" />
               Archive
             </Button>
