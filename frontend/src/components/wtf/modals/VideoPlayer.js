@@ -24,6 +24,42 @@ const VideoPlayer = ({
     }, 3000);
   };
 
+  // Lightweight YouTube handling (no external deps)
+  const isYouTubeUrl = (url) => {
+    if (!url || typeof url !== "string") return false;
+    try {
+      const u = new URL(url);
+      return (
+        /(^|\.)youtube\.com$/i.test(u.hostname) ||
+        /(^|\.)youtu\.be$/i.test(u.hostname)
+      );
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const toYouTubeEmbed = (url) => {
+    try {
+      const u = new URL(url);
+      // youtu.be/<id>
+      if (/^youtu\.be$/i.test(u.hostname)) {
+        const id = u.pathname.replace(/^\//, "");
+        return `https://www.youtube.com/embed/${id}`;
+      }
+      // shorts
+      if (/\/shorts\//i.test(u.pathname)) {
+        const id = u.pathname.split("/shorts/")[1]?.split("/")[0];
+        if (id) return `https://www.youtube.com/embed/${id}`;
+      }
+      // standard watch?v=
+      const id = u.searchParams.get("v");
+      if (id) return `https://www.youtube.com/embed/${id}`;
+    } catch (_) {
+      // fall through
+    }
+    return url;
+  };
+
   const getPostageStampStyle = () => ({
     backgroundImage: `
       radial-gradient(circle at 0% 50%, transparent 4px, white 4px),
@@ -64,13 +100,24 @@ const VideoPlayer = ({
               </div>
             )}
             <div className="w-full h-80 bg-black mb-4 overflow-hidden rounded">
-              <video
-                ref={videoRef}
-                src={videoSrc}
-                controls
-                className="w-full h-full object-cover"
-                onPlay={handleVideoPlay}
-              />
+              {isYouTubeUrl(videoSrc) ? (
+                <iframe
+                  title="YouTube video player"
+                  src={toYouTubeEmbed(videoSrc)}
+                  className="w-full h-full"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                  allowFullScreen
+                />
+              ) : (
+                <video
+                  ref={videoRef}
+                  src={videoSrc}
+                  controls
+                  className="w-full h-full object-cover"
+                  onPlay={handleVideoPlay}
+                />
+              )}
             </div>
             <div className="text-center">
               <h3 className="font-handwriting text-lg text-gray-800 mb-1">
