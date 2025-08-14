@@ -21,6 +21,7 @@ import {
   ExternalLink,
   Calendar,
   CheckCircle,
+  Coins,
 } from "lucide-react";
 import { Button } from "../ui/button.jsx";
 import { Badge } from "../ui/badge.jsx";
@@ -30,6 +31,8 @@ import ReviewModal from "./ReviewModal";
 import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
 import { useAuth } from "../../contexts/AuthContext";
 import BackgroundSettings from "./BackgroundSettings";
+import showToast from "../../utils/toast";
+import { getWtfCoinReward, updateWtfCoinReward } from "../../api";
 import {
   useWtfBackground,
   WtfBackgroundProvider,
@@ -68,6 +71,10 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
+  // ISF Coin Rules - WTF Reward Configuration (UI only for now)
+  const [wtfCoinReward, setWtfCoinReward] = useState(25);
+  const [isSavingCoinReward, setIsSavingCoinReward] = useState(false);
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -104,6 +111,20 @@ const WTFManagementContent = ({ onToggleView }) => {
   useEffect(() => {
     fetchWtfData();
   }, [submissionTab]);
+
+  // Initialize coin reward from localStorage to persist admin's chosen value until backend is wired
+  useEffect(() => {
+    // Load from backend; fallback to default if not available
+    (async () => {
+      try {
+        const res = await getWtfCoinReward();
+        const value = res?.data?.wtfCoinReward;
+        if (typeof value === "number") setWtfCoinReward(value);
+      } catch (e) {
+        // silent fallback; UI keeps default 25
+      }
+    })();
+  }, []);
 
   const fetchWtfData = async () => {
     setLoading(true);
@@ -734,6 +755,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                 {
                   id: "background-settings",
                   label: "Background Settings",
+                  count: null,
+                },
+                {
+                  id: "coin-rules",
+                  label: "ISF Coin Rules",
                   count: null,
                 },
                 { id: "analytics", label: "Analytics", count: null },
@@ -1838,6 +1864,67 @@ const WTFManagementContent = ({ onToggleView }) => {
                     refreshBackgroundSettings();
                   }}
                 />
+              </div>
+            )}
+
+            {activeTab === "coin-rules" && (
+              <div className="p-6">
+                <div className="bg-white rounded-lg shadow border p-6 max-w-xl">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Coins className="w-5 h-5 text-yellow-600" />
+                    <h3 className="text-lg font-semibold">
+                      WTF Reward Configuration
+                    </h3>
+                  </div>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Set how many ISF Coins a student earns automatically when
+                    their content is featured on the WTF.
+                  </p>
+                  <label
+                    htmlFor="num-wtf-coin-award"
+                    className="block text-sm font-medium text-gray-700 mb-2"
+                  >
+                    ISF Coins to award for any student content featured on WTF
+                  </label>
+                  <input
+                    id="num-wtf-coin-award"
+                    type="number"
+                    min={0}
+                    className="w-40 px-3 py-2 border rounded focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    value={wtfCoinReward}
+                    onChange={(e) =>
+                      setWtfCoinReward(parseInt(e.target.value || "0", 10))
+                    }
+                  />
+                  <div className="mt-4">
+                    <Button
+                      onClick={async () => {
+                        setIsSavingCoinReward(true);
+                        try {
+                          await updateWtfCoinReward(
+                            Number.isFinite(wtfCoinReward) ? wtfCoinReward : 25
+                          );
+                          showToast("WTF Reward setting saved", "success");
+                        } catch (e) {
+                          // eslint-disable-next-line no-console
+                          console.error("Failed to save coin rule:", e);
+                          showToast("Failed to save reward setting", "error");
+                        } finally {
+                          setIsSavingCoinReward(false);
+                        }
+                      }}
+                      disabled={isSavingCoinReward}
+                      className="bg-purple-600 hover:bg-purple-700 text-white"
+                    >
+                      {isSavingCoinReward ? "Saving..." : "Save Setting"}
+                    </Button>
+                  </div>
+                  <div className="mt-6 text-xs text-gray-500">
+                    Backend hook will automatically credit coins to the
+                    student's balance when an Admin pins content. This UI only
+                    stores the value until API is connected.
+                  </div>
+                </div>
               </div>
             )}
 

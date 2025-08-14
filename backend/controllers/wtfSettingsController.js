@@ -175,4 +175,44 @@ module.exports = {
   uploadFontFile,
   deleteBackgroundImage,
   getSettingsHistory,
+  // New coin reward handlers
+  getCoinReward: async (req, res) => {
+    try {
+      const value = await WtfSettingsService.getCoinReward();
+      return res
+        .status(200)
+        .json({ success: true, data: { wtfCoinReward: value } });
+    } catch (error) {
+      return res
+        .status(500)
+        .json({
+          success: false,
+          message: error.message || "Failed to get coin reward",
+        });
+    }
+  },
+  updateCoinReward: async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { wtfCoinReward } = req.body || {};
+      const saved = await WtfSettingsService.updateCoinReward(
+        wtfCoinReward,
+        userId
+      );
+      return res
+        .status(200)
+        .json({
+          success: true,
+          message: "WTF coin reward updated",
+          data: saved,
+        });
+    } catch (error) {
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: error.message || "Failed to update coin reward",
+        });
+    }
+  },
 };

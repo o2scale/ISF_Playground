@@ -32,6 +32,12 @@ const wtfSettingsSchema = new mongoose.Schema(
       type: String,
       default: null, // S3 URL for uploaded font file (woff2/ttf/otf)
     },
+    // Global ISF Coin reward for featured WTF content
+    wtfCoinReward: {
+      type: Number,
+      default: 25,
+      min: 0,
+    },
     isActive: {
       type: Boolean,
       default: true,
