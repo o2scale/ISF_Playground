@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Eye, Heart, ThumbsUp } from "lucide-react";
-import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog.jsx";
 import { Badge } from "../../ui/badge.jsx";
 
 const ImageViewer = ({
@@ -17,13 +17,87 @@ const ImageViewer = ({
   onHeart,
 }) => {
   const [imgError, setImgError] = useState(false);
+  const [imgLoading, setImgLoading] = useState(true);
+  const [useFallback, setUseFallback] = useState(false);
+
+  // Reset states when image source changes or modal opens
+  useEffect(() => {
+    if (isOpen && imageSrc) {
+      console.log("ImageViewer - Modal opened with:", {
+        isOpen,
+        imageSrc,
+        title,
+        author,
+        type: typeof imageSrc,
+      });
+      setImgError(false);
+      setImgLoading(true);
+      setUseFallback(false);
+    }
+  }, [isOpen, imageSrc, title, author]);
+
+  // Check if CSS background image loaded successfully
+  useEffect(() => {
+    if (imageSrc && !imgLoading) {
+      // Give CSS background a moment to load, then check if we need fallback
+      const timer = setTimeout(() => {
+        if (imgLoading) {
+          setUseFallback(true);
+        }
+      }, 2000); // 2 second timeout
+
+      return () => clearTimeout(timer);
+    }
+  }, [imageSrc, imgLoading]);
 
   const isLikelyImageUrl = (url) => {
     if (!url || typeof url !== "string") return false;
-    return (
-      /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(url) ||
-      /^(data:image\/.+;base64,|blob:)/i.test(url)
+
+    // Debug logging
+    console.log("ImageViewer - Checking URL:", url);
+
+    // Check for common image file extensions anywhere in the URL
+    const hasImageExtension = /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(
+      url
     );
+
+    // Check for S3 bucket URLs that contain image paths
+    const isS3ImageUrl =
+      url.includes("s3.amazonaws.com") &&
+      (url.includes("/image/") ||
+        url.includes("/images/") ||
+        hasImageExtension);
+
+    // Check for other common image hosting patterns
+    const isCommonImageHost =
+      /(imgur|cloudinary|images\.unsplash|picsum|placeholdit|via\.placeholder)\.com/i.test(
+        url
+      );
+
+    // Check for data URLs and blob URLs
+    const isDataOrBlob = /^(data:image\/.+;base64,|blob:)/i.test(url);
+
+    // Special case: Always allow S3 URLs to pass through
+    const isS3Url = url.includes("s3.amazonaws.com");
+
+    const result =
+      hasImageExtension ||
+      isS3ImageUrl ||
+      isCommonImageHost ||
+      isDataOrBlob ||
+      isS3Url;
+
+    console.log("ImageViewer - URL check results:", {
+      url,
+      hasImageExtension,
+      isS3ImageUrl,
+      isCommonImageHost,
+      isDataOrBlob,
+      isS3Url,
+      result,
+    });
+
+    return result;
   };
   const getPostageStampStyle = () => ({
     backgroundImage: `
@@ -42,6 +116,7 @@ const ImageViewer = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-gray-100">
+        <DialogTitle className="sr-only">Image Viewer - {title}</DialogTitle>
         <div className="relative min-h-[600px] p-8">
           {/* Close button */}
           <button
@@ -66,27 +141,89 @@ const ImageViewer = ({
             )}
             <div className="w-full h-80 bg-gray-200 mb-4 overflow-hidden">
               {isLikelyImageUrl(imageSrc) && !imgError ? (
-                <img
-                  src={imageSrc}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                  loading="lazy"
-                  onError={() => setImgError(true)}
-                />
+                <>
+                  {imgLoading && (
+                    <div className="w-full h-full flex items-center justify-center bg-gray-100">
+                      <div className="text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600 mx-auto mb-2"></div>
+                        <p className="text-sm text-gray-600">
+                          Loading image...
+                        </p>
+                        {imageSrc && imageSrc.includes("s3.amazonaws.com") && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Loading S3 image...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Use CSS background-image instead of HTML img tag to avoid CORS issues */}
+                  <div
+                    className={`w-full h-full ${imgLoading ? "hidden" : ""}`}
+                    style={{
+                      backgroundImage: `url(${imageSrc})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                    }}
+                  />
+
+                  {/* Fallback img tag in case CSS background fails */}
+                  <img
+                    src={imageSrc}
+                    alt={title}
+                    className={`w-full h-full object-cover ${
+                      imgLoading ? "hidden" : ""
+                    }`}
+                    style={{ display: useFallback ? "block" : "none" }} // Show fallback when needed
+                    onLoad={() => {
+                      console.log(
+                        "ImageViewer - Image loaded successfully:",
+                        imageSrc
+                      );
+                      setImgLoading(false);
+                    }}
+                    onError={(e) => {
+                      console.error(
+                        "ImageViewer - Image failed to load:",
+                        imageSrc,
+                        e
+                      );
+                      setImgError(true);
+                      setImgLoading(false);
+                    }}
+                  />
+                </>
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-white text-center p-4">
                   <div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      This URL does not look like a direct image file.
-                    </div>
+                    {imgError ? (
+                      <>
+                        <div className="text-sm text-gray-600 mb-2">
+                          Failed to load image
+                        </div>
+                        <div className="text-xs text-gray-500 mb-3">
+                          The image could not be displayed
+                        </div>
+                        {imageSrc && imageSrc.includes("s3.amazonaws.com") && (
+                          <div className="text-xs text-gray-500 mb-2">
+                            This appears to be an S3 image. S3 bucket CORS
+                            settings might be preventing display.
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-sm text-gray-600 mb-2">
+                        This URL does not look like a direct image file.
+                      </div>
+                    )}
                     {imageSrc && (
                       <a
                         href={imageSrc}
                         target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline break-all"
+                        rel="no-referrer"
+                        className="text-blue-600 underline break-all text-xs"
                       >
                         Open link in a new tab
                       </a>
