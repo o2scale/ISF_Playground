@@ -1241,7 +1241,7 @@ export const getAllCoinTransactions = async (params = {}) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching all coin transactions:", error);
+    console.error("Error fetching student coin transactions:", error);
     throw error;
   }
 };

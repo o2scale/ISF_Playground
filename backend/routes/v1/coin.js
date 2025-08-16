@@ -45,7 +45,7 @@ router.get(
 
 // ==================== ADMIN COIN ROUTES ====================
 
-// Get all coin transactions across all users (Admin only)
+// Get student coin transactions across all users (Admin only)
 router.get(
   "/all-transactions",
   authenticate,

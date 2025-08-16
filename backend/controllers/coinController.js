@@ -492,7 +492,7 @@ exports.getAllTransactions = async (req, res) => {
         userId: req.user?.id,
         query: req.query,
       },
-      `Request received to fetch all coin transactions`
+      `Request received to fetch student coin transactions`
     );
 
     const filters = {};
@@ -517,7 +517,7 @@ exports.getAllTransactions = async (req, res) => {
           userId: req.user?.id,
           transactionsCount: result.data.transactions.length,
         },
-        `Successfully fetched all coin transactions`
+        `Successfully fetched student coin transactions`
       );
       res.status(HTTP_STATUS_CODE.OK).json(result);
     } else {
@@ -529,7 +529,7 @@ exports.getAllTransactions = async (req, res) => {
           userId: req.user?.id,
           error: result.message,
         },
-        `Failed to fetch all coin transactions`
+        `Failed to fetch student coin transactions`
       );
       res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
     }
@@ -542,7 +542,7 @@ exports.getAllTransactions = async (req, res) => {
         userId: req.user?.id,
         error: error.message,
       },
-      `Error occurred while fetching all coin transactions`
+      `Error occurred while fetching student coin transactions`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)

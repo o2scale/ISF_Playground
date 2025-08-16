@@ -523,6 +523,12 @@ class CoinService {
             "transactions.userId": "$userId",
           },
         },
+        // Filter to only show student transactions (exclude admin and coach)
+        {
+          $match: {
+            "transactions.userRole": { $in: ["student"] },
+          },
+        },
         {
           $project: {
             _id: 0,
@@ -535,10 +541,29 @@ class CoinService {
 
       const transactions = await Coin.aggregate(pipeline);
 
-      // Get total count for pagination
+      // Get total count for pagination (only student transactions)
       const countPipeline = [
         { $match: query },
         { $unwind: "$transactions" },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $addFields: {
+            "transactions.userRole": { $arrayElemAt: ["$user.role", 0] },
+          },
+        },
+        // Filter to only count student transactions
+        {
+          $match: {
+            "transactions.userRole": { $in: ["student"] },
+          },
+        },
         { $count: "total" },
       ];
 
@@ -558,12 +583,12 @@ class CoinService {
             pages: Math.ceil(totalTransactions / limit),
           },
         },
-        message: "All coin transactions retrieved successfully",
+        message: "Student coin transactions retrieved successfully",
       };
     } catch (error) {
       errorLogger.error(
         { error: error.message },
-        "Error getting all coin transactions"
+        "Error getting student coin transactions"
       );
       throw error;
     }

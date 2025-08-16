@@ -949,7 +949,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                 },
                 {
                   id: "coin-transactions",
-                  label: "Coin Transactions",
+                  label: "Student Coin Transactions",
                   count: null,
                 },
                 { id: "analytics", label: "Analytics", count: null },
@@ -2294,13 +2294,51 @@ const WTFManagementContent = ({ onToggleView }) => {
                     <div className="flex items-center gap-2 mb-4">
                       <Coins className="w-5 h-5 text-yellow-600" />
                       <h3 className="text-lg font-semibold">
-                        Coin Transactions
+                        Student Coin Transactions
                       </h3>
                     </div>
                     <p className="text-sm text-gray-500 mb-4">
-                      View all ISF coin transactions across all users. Track how
-                      students earn coins through WTF activities.
+                      View student ISF coin transactions. Students earn coins
+                      when their WTF content is approved by admins/coaches, and
+                      spend coins on purchases. Admins and coaches do not earn
+                      coins.
                     </p>
+
+                    {/* Business Logic Info */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <div className="w-5 h-5 bg-blue-100 rounded-full flex items-center justify-center">
+                            <span className="text-blue-600 text-xs font-bold">
+                              i
+                            </span>
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-medium text-blue-900 mb-1">
+                            How the Coin System Works
+                          </h4>
+                          <ul className="text-xs text-blue-800 space-y-1">
+                            <li>
+                              • <strong>Students earn coins</strong> when their
+                              WTF content (pins, submissions) gets approved
+                            </li>
+                            <li>
+                              • <strong>Students spend coins</strong> on
+                              purchases, repairs, and other services
+                            </li>
+                            <li>
+                              • <strong>Admins/Coaches</strong> manage the
+                              system but don't earn coins
+                            </li>
+                            <li>
+                              • <strong>Coin rewards</strong> are automatically
+                              given upon content approval
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
 
                     {/* Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
