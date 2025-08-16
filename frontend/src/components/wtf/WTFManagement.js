@@ -20,6 +20,7 @@ import {
   Calendar,
   CheckCircle,
   Coins,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "../ui/button.jsx";
 import { Badge } from "../ui/badge.jsx";
@@ -122,6 +123,115 @@ const WTFManagementContent = ({ onToggleView }) => {
   useEffect(() => {
     fetchWtfData();
   }, []);
+
+  // Function to refresh data when switching tabs
+  const refreshTabData = async (tabId) => {
+    try {
+      switch (tabId) {
+        case "dashboard":
+          // Refresh active pins for Pin Management tab
+          const pinsResponse = await getActiveWtfPins({
+            page: 1,
+            limit: 20,
+            type: filterType === "all" ? null : filterType,
+          });
+          if (
+            pinsResponse.success &&
+            pinsResponse.data &&
+            pinsResponse.data.pins
+          ) {
+            setActivePins(pinsResponse.data.pins);
+            setTotalItems(
+              pinsResponse.data.pagination?.total ||
+                pinsResponse.data.pins.length
+            );
+          }
+          break;
+
+        case "coach-suggestions":
+          // Refresh coach suggestions
+          const coachSuggestionsResponse = await getCoachSuggestions({
+            page: 1,
+            limit: 20,
+          });
+          if (coachSuggestionsResponse.success) {
+            const fetchedSuggestions = coachSuggestionsResponse.data || [];
+            setCoachSuggestions(fetchedSuggestions);
+            setPendingSuggestions(fetchedSuggestions);
+          }
+          break;
+
+        case "submissions":
+          // Refresh student submissions
+          const submissionsResponse = await getSubmissionsForReview({
+            page: 1,
+            limit: 20,
+            type: submissionTab,
+            isCoachSuggestion: false,
+          });
+          if (submissionsResponse.success) {
+            const fetchedSubmissions =
+              submissionsResponse.data?.submissions || [];
+            setStudentSubmissions(fetchedSubmissions);
+          }
+
+          // Refresh submission counts
+          const [voiceResp, articleResp] = await Promise.all([
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "voice",
+              isCoachSuggestion: false,
+            }),
+            getSubmissionsForReview({
+              page: 1,
+              limit: 1,
+              type: "article",
+              isCoachSuggestion: false,
+            }),
+          ]);
+
+          const voiceTotal = voiceResp?.success
+            ? voiceResp?.data?.pagination?.total || 0
+            : 0;
+          const articleTotal = articleResp?.success
+            ? articleResp?.data?.pagination?.total || 0
+            : 0;
+
+          setPendingVoiceCount(voiceTotal);
+          setPendingArticleCount(articleTotal);
+          break;
+
+        case "archive":
+          // Refresh archived submissions
+          const archivedResp = await getArchivedSubmissions({
+            page: 1,
+            limit: 50,
+          });
+          if (archivedResp?.success) {
+            setArchivedSubmissions(archivedResp.data?.submissions || []);
+          }
+          break;
+
+        default:
+          break;
+      }
+
+      // Always refresh dashboard counts when switching tabs
+      const countsResp = await getWtfDashboardCounts();
+      if (countsResp.success) {
+        setDashboardMetrics(countsResp.data);
+      }
+    } catch (error) {
+      console.error("Error refreshing tab data:", error);
+    }
+  };
+
+  // Handle tab switching with data refresh
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    refreshTabData(tabId);
+  };
 
   // Fetch coin transactions
   const fetchCoinTransactions = async () => {
@@ -524,8 +634,9 @@ const WTFManagementContent = ({ onToggleView }) => {
         setShowReviewModal(false);
         setSelectedSubmission(null);
 
-        // Refresh dashboard counts
+        // Refresh all data to ensure consistency across tabs
         try {
+          // Refresh dashboard counts
           const countsResp = await getWtfDashboardCounts();
           if (countsResp.success) {
             setDashboardMetrics(countsResp.data);
@@ -535,7 +646,62 @@ const WTFManagementContent = ({ onToggleView }) => {
               activePins: (prev.activePins || 0) + 1,
             }));
           }
+
+          // Refresh active pins list to ensure Pin Management tab shows updated data
+          const pinsResponse = await getActiveWtfPins({
+            page: 1,
+            limit: 20,
+            type: filterType === "all" ? null : filterType,
+          });
+          if (
+            pinsResponse.success &&
+            pinsResponse.data &&
+            pinsResponse.data.pins
+          ) {
+            setActivePins(pinsResponse.data.pins);
+            setTotalItems(
+              pinsResponse.data.pagination?.total ||
+                pinsResponse.data.pins.length
+            );
+          }
+
+          // Refresh submission counts for the current tab
+          if (submissionTab === "voice" || submissionTab === "article") {
+            const submissionsResponse = await getSubmissionsForReview({
+              page: 1,
+              limit: 20,
+              type: submissionTab,
+              isCoachSuggestion: false,
+            });
+            if (submissionsResponse.success) {
+              const updatedSubmissions =
+                submissionsResponse.data?.submissions || [];
+              setStudentSubmissions(updatedSubmissions);
+
+              // Update pending counts
+              if (submissionTab === "voice") {
+                setPendingVoiceCount(updatedSubmissions.length);
+              } else {
+                setPendingArticleCount(updatedSubmissions.length);
+              }
+            }
+          }
+
+          // Refresh coach suggestions if we're on that tab
+          if (activeTab === "coach-suggestions") {
+            const coachSuggestionsResponse = await getCoachSuggestions({
+              page: 1,
+              limit: 20,
+            });
+            if (coachSuggestionsResponse.success) {
+              const fetchedSuggestions = coachSuggestionsResponse.data || [];
+              setCoachSuggestions(fetchedSuggestions);
+              setPendingSuggestions(fetchedSuggestions);
+            }
+          }
         } catch (e) {
+          console.error("Error refreshing data after pin approval:", e);
+          // Fallback optimistic updates if refresh fails
           if (approvedPin) {
             setDashboardMetrics((prev) => ({
               ...prev,
@@ -666,12 +832,77 @@ const WTFManagementContent = ({ onToggleView }) => {
           }
         }
 
-        // Refresh dashboard counts using the unified counts API
+        // Refresh all data to ensure consistency across tabs
         try {
+          // Refresh dashboard counts using the unified counts API
           const countsResp = await getWtfDashboardCounts();
-          if (countsResp.success) setDashboardMetrics(countsResp.data);
+          if (countsResp.success) {
+            setDashboardMetrics(countsResp.data);
+          } else {
+            // Fallback update if counts API fails
+            setDashboardMetrics((prev) => ({
+              ...prev,
+              activePins: (prev.activePins || 0) + 1,
+              coachSuggestions: Math.max(0, (prev.coachSuggestions || 1) - 1),
+            }));
+          }
+
+          // Refresh active pins list to ensure Pin Management tab shows updated data
+          const pinsResponse = await getActiveWtfPins({
+            page: 1,
+            limit: 20,
+            type: filterType === "all" ? null : filterType,
+          });
+          if (
+            pinsResponse.success &&
+            pinsResponse.data &&
+            pinsResponse.data.pins
+          ) {
+            setActivePins(pinsResponse.data.pins);
+            setTotalItems(
+              pinsResponse.data.pagination?.total ||
+                pinsResponse.data.pins.length
+            );
+          }
+
+          // Refresh coach suggestions list
+          const coachSuggestionsResponse = await getCoachSuggestions({
+            page: 1,
+            limit: 20,
+          });
+          if (coachSuggestionsResponse.success) {
+            const fetchedSuggestions = coachSuggestionsResponse.data || [];
+            setCoachSuggestions(fetchedSuggestions);
+            setPendingSuggestions(fetchedSuggestions);
+          }
+
+          // Refresh submission counts if we're on the submissions tab
+          if (activeTab === "submissions") {
+            const submissionsResponse = await getSubmissionsForReview({
+              page: 1,
+              limit: 20,
+              type: submissionTab,
+              isCoachSuggestion: false,
+            });
+            if (submissionsResponse.success) {
+              const updatedSubmissions =
+                submissionsResponse.data?.submissions || [];
+              setStudentSubmissions(updatedSubmissions);
+
+              // Update pending counts
+              if (submissionTab === "voice") {
+                setPendingVoiceCount(updatedSubmissions.length);
+              } else {
+                setPendingArticleCount(updatedSubmissions.length);
+              }
+            }
+          }
         } catch (e) {
-          // Fallback update if counts API fails
+          console.error(
+            "Error refreshing data after coach suggestion approval:",
+            e
+          );
+          // Fallback optimistic updates if refresh fails
           setDashboardMetrics((prev) => ({
             ...prev,
             activePins: (prev.activePins || 0) + 1,
@@ -833,6 +1064,20 @@ const WTFManagementContent = ({ onToggleView }) => {
               </Button>
             )}
             <Button
+              onClick={() => {
+                fetchWtfData();
+                showToast("Refreshing data...", "info");
+              }}
+              variant="outline"
+              className="text-gray-600 hover:text-gray-900"
+              disabled={loading}
+            >
+              <RefreshCw
+                className={`w-4 h-4 mr-2 ${loading ? "animate-spin" : ""}`}
+              />
+              Refresh
+            </Button>
+            <Button
               onClick={() => setShowCreateModal(true)}
               className="bg-purple-600 hover:bg-purple-700 text-white"
             >
@@ -956,7 +1201,7 @@ const WTFManagementContent = ({ onToggleView }) => {
               ].map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
                     activeTab === tab.id
                       ? "border-purple-500 text-purple-600"
@@ -993,7 +1238,34 @@ const WTFManagementContent = ({ onToggleView }) => {
                         type="text"
                         placeholder="Search pins..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={async (e) => {
+                          const newSearchTerm = e.target.value;
+                          setSearchTerm(newSearchTerm);
+                          // Refresh active pins to ensure search results are current
+                          try {
+                            const pinsResponse = await getActiveWtfPins({
+                              page: 1,
+                              limit: 20,
+                              type: filterType === "all" ? null : filterType,
+                            });
+                            if (
+                              pinsResponse.success &&
+                              pinsResponse.data &&
+                              pinsResponse.data.pins
+                            ) {
+                              setActivePins(pinsResponse.data.pins);
+                              setTotalItems(
+                                pinsResponse.data.pagination?.total ||
+                                  pinsResponse.data.pins.length
+                              );
+                            }
+                          } catch (error) {
+                            console.error(
+                              "Error refreshing pins for search:",
+                              error
+                            );
+                          }
+                        }}
                         className="pl-14 pr-4 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         style={{
                           width: "300px",
@@ -1004,7 +1276,35 @@ const WTFManagementContent = ({ onToggleView }) => {
                     </div>
                     <select
                       value={filterType}
-                      onChange={(e) => setFilterType(e.target.value)}
+                      onChange={async (e) => {
+                        const newFilterType = e.target.value;
+                        setFilterType(newFilterType);
+                        // Refresh active pins with new filter
+                        try {
+                          const pinsResponse = await getActiveWtfPins({
+                            page: 1,
+                            limit: 20,
+                            type:
+                              newFilterType === "all" ? null : newFilterType,
+                          });
+                          if (
+                            pinsResponse.success &&
+                            pinsResponse.data &&
+                            pinsResponse.data.pins
+                          ) {
+                            setActivePins(pinsResponse.data.pins);
+                            setTotalItems(
+                              pinsResponse.data.pagination?.total ||
+                                pinsResponse.data.pins.length
+                            );
+                          }
+                        } catch (error) {
+                          console.error(
+                            "Error refreshing pins with filter:",
+                            error
+                          );
+                        }
+                      }}
                       className="px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent min-w-32"
                     >
                       <option value="all">All Types</option>
@@ -1850,7 +2150,30 @@ const WTFManagementContent = ({ onToggleView }) => {
                           ? "bg-blue-100 text-blue-700"
                           : "text-gray-500 hover:text-gray-700"
                       }`}
-                      onClick={() => setSubmissionTab("voice")}
+                      onClick={async () => {
+                        setSubmissionTab("voice");
+                        // Refresh data for voice tab
+                        try {
+                          const submissionsResponse =
+                            await getSubmissionsForReview({
+                              page: 1,
+                              limit: 20,
+                              type: "voice",
+                              isCoachSuggestion: false,
+                            });
+                          if (submissionsResponse.success) {
+                            const fetchedSubmissions =
+                              submissionsResponse.data?.submissions || [];
+                            setStudentSubmissions(fetchedSubmissions);
+                            setPendingVoiceCount(fetchedSubmissions.length);
+                          }
+                        } catch (error) {
+                          console.error(
+                            "Error refreshing voice submissions:",
+                            error
+                          );
+                        }
+                      }}
                     >
                       ▷ Voice Notes
                       {pendingVoiceCount > 0 ? (
@@ -1865,7 +2188,30 @@ const WTFManagementContent = ({ onToggleView }) => {
                           ? "bg-blue-100 text-blue-700"
                           : "text-gray-500 hover:text-gray-700"
                       }`}
-                      onClick={() => setSubmissionTab("article")}
+                      onClick={async () => {
+                        setSubmissionTab("article");
+                        // Refresh data for article tab
+                        try {
+                          const submissionsResponse =
+                            await getSubmissionsForReview({
+                              page: 1,
+                              limit: 20,
+                              type: "article",
+                              isCoachSuggestion: false,
+                            });
+                          if (submissionsResponse.success) {
+                            const fetchedSubmissions =
+                              submissionsResponse.data?.submissions || [];
+                            setStudentSubmissions(fetchedSubmissions);
+                            setPendingArticleCount(fetchedSubmissions.length);
+                          }
+                        } catch (error) {
+                          console.error(
+                            "Error refreshing article submissions:",
+                            error
+                          );
+                        }
+                      }}
                     >
                       Articles
                       {pendingArticleCount > 0 ? (

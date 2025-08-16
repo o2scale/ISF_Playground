@@ -91,6 +91,32 @@ class CoinService {
         metadata
       );
 
+      // Create notification for coin award
+      try {
+        const NotificationService = require("./notification");
+        await NotificationService.notifyCoinsAwarded(
+          userId,
+          amount,
+          "WTF_PIN_CREATION",
+          description,
+          {
+            pinId,
+            isFirstPin,
+            ...metadata,
+          }
+        );
+      } catch (notificationError) {
+        errorLogger.error(
+          {
+            userId,
+            pinId,
+            error: notificationError.message,
+          },
+          "Error creating coin award notification"
+        );
+        // Don't fail coin award if notification creation fails
+      }
+
       errorLogger.info(
         { userId, pinId, amount, isFirstPin },
         "WTF pin creation coins awarded successfully"

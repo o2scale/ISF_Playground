@@ -25,6 +25,7 @@ const scheduleRoutes = require("./routes/scheduleRoutes");
 const medicalCheckInsRoutes = require("./routes/medicalCheckInsRoutes");
 const offlineRequestQueueRoutes = require("./routes/offlineRequestQueue");
 const courseRoutes = require("./routes/courseRoutes");
+const notificationRoutes = require("./routes/notificationRoutes");
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -68,6 +69,7 @@ app.use("/api/schedules", scheduleRoutes);
 app.use("/api/medical-check-ins", medicalCheckInsRoutes);
 app.use("/api/offline-requests", offlineRequestQueueRoutes);
 app.use("/api/v1/courses", courseRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 const dbConnection =
   process.env.NODE_ENV === "local"
