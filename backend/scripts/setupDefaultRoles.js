@@ -42,6 +42,10 @@ const defaultRoles = [
         module: "WTF Analytics",
         actions: ["Create", "Read", "Update", "Delete"],
       },
+      {
+        module: "Coin Analytics",
+        actions: ["Create", "Read", "Update", "Delete"],
+      },
     ],
   },
   {

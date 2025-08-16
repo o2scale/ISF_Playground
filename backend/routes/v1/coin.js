@@ -8,6 +8,7 @@ const {
   getTopEarners,
   checkFirstPinBonusEligibility,
   checkWeeklyActiveBonusEligibility,
+  getAllTransactions,
 } = require("../../controllers/coinController");
 
 const router = express.Router();
@@ -43,6 +44,14 @@ router.get(
 );
 
 // ==================== ADMIN COIN ROUTES ====================
+
+// Get student coin transactions across all users (Admin only)
+router.get(
+  "/all-transactions",
+  authenticate,
+  authorize("Coin Analytics", "Read"),
+  getAllTransactions
+);
 
 // Get top coin earners (Admin only)
 router.get(
