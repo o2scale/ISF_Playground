@@ -1233,6 +1233,19 @@ export const getWtfTransactionHistory = async (params = {}) => {
   }
 };
 
+// Get all coin transactions (Admin only)
+export const getAllCoinTransactions = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/coin/all-transactions`, {
+      params,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all coin transactions:", error);
+    throw error;
+  }
+};
+
 // Admin Control Counts
 export const getWtfAdminCounts = async () => {
   try {

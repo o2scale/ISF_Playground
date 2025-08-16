@@ -48,6 +48,7 @@ import {
   getCoachSuggestions,
   getArchivedSubmissions,
   unarchiveSubmission,
+  getAllCoinTransactions,
 } from "../../api";
 
 const WTFManagementContent = ({ onToggleView }) => {
@@ -83,6 +84,19 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [submissionsPage, setSubmissionsPage] = useState(1);
   const [submissionsPerPage, setSubmissionsPerPage] = useState(10);
 
+  // Coin transactions state
+  const [coinTransactions, setCoinTransactions] = useState([]);
+  const [coinTransactionsLoading, setCoinTransactionsLoading] = useState(false);
+  const [coinTransactionsPage, setCoinTransactionsPage] = useState(1);
+  const [coinTransactionsPerPage, setCoinTransactionsPerPage] = useState(20);
+  const [coinTransactionsTotal, setCoinTransactionsTotal] = useState(0);
+  const [coinTransactionsFilters, setCoinTransactionsFilters] = useState({
+    type: "",
+    source: "",
+    dateFrom: "",
+    dateTo: "",
+  });
+
   // Real data from API
   const [activePins, setActivePins] = useState([]);
   const [pendingSuggestions, setPendingSuggestions] = useState([]); // legacy; kept for metrics fallback only
@@ -108,6 +122,42 @@ const WTFManagementContent = ({ onToggleView }) => {
   useEffect(() => {
     fetchWtfData();
   }, []);
+
+  // Fetch coin transactions
+  const fetchCoinTransactions = async () => {
+    try {
+      setCoinTransactionsLoading(true);
+      const params = {
+        page: coinTransactionsPage,
+        limit: coinTransactionsPerPage,
+        ...coinTransactionsFilters,
+      };
+
+      const response = await getAllCoinTransactions(params);
+      if (response.success) {
+        setCoinTransactions(response.data.transactions);
+        setCoinTransactionsTotal(response.data.totalTransactions);
+      }
+    } catch (error) {
+      console.error("Error fetching coin transactions:", error);
+      showToast("Error fetching coin transactions", "error");
+    } finally {
+      setCoinTransactionsLoading(false);
+    }
+  };
+
+  // Fetch coin transactions when filters or page changes
+  useEffect(() => {
+    if (activeTab === "coin-transactions") {
+      fetchCoinTransactions();
+    }
+  }, [activeTab, coinTransactionsPage, coinTransactionsFilters]);
+
+  // Handle coin transactions filter changes
+  const handleCoinTransactionsFilterChange = (key, value) => {
+    setCoinTransactionsFilters((prev) => ({ ...prev, [key]: value }));
+    setCoinTransactionsPage(1); // Reset to first page when filters change
+  };
 
   // Refetch submissions when switching between Voice and Articles
   useEffect(() => {
@@ -895,6 +945,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                 {
                   id: "coin-rules",
                   label: "ISF Coin Rules",
+                  count: null,
+                },
+                {
+                  id: "coin-transactions",
+                  label: "Coin Transactions",
                   count: null,
                 },
                 { id: "analytics", label: "Analytics", count: null },
@@ -2227,6 +2282,270 @@ const WTFManagementContent = ({ onToggleView }) => {
                     Backend hook will automatically credit coins to the
                     student's balance when an Admin pins content. This UI only
                     stores the value until API is connected.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "coin-transactions" && (
+              <div className="p-6">
+                <div className="bg-white rounded-lg shadow border">
+                  <div className="p-6 border-b">
+                    <div className="flex items-center gap-2 mb-4">
+                      <Coins className="w-5 h-5 text-yellow-600" />
+                      <h3 className="text-lg font-semibold">
+                        Coin Transactions
+                      </h3>
+                    </div>
+                    <p className="text-sm text-gray-500 mb-4">
+                      View all ISF coin transactions across all users. Track how
+                      students earn coins through WTF activities.
+                    </p>
+
+                    {/* Filters */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Transaction Type
+                        </label>
+                        <select
+                          value={coinTransactionsFilters.type}
+                          onChange={(e) =>
+                            handleCoinTransactionsFilterChange(
+                              "type",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">All Types</option>
+                          <option value="earned">Earned</option>
+                          <option value="spent">Spent</option>
+                          <option value="bonus">Bonus</option>
+                          <option value="penalty">Penalty</option>
+                          <option value="wtf_pin_creation">
+                            WTF Pin Creation
+                          </option>
+                          <option value="wtf_submission_approval">
+                            WTF Submission Approval
+                          </option>
+                          <option value="wtf_interaction">
+                            WTF Interaction
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Source
+                        </label>
+                        <select
+                          value={coinTransactionsFilters.source}
+                          onChange={(e) =>
+                            handleCoinTransactionsFilterChange(
+                              "source",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">All Sources</option>
+                          <option value="wtf">WTF</option>
+                          <option value="attendance">Attendance</option>
+                          <option value="task">Task</option>
+                          <option value="medical">Medical</option>
+                          <option value="sports">Sports</option>
+                          <option value="music">Music</option>
+                          <option value="general">General</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date From
+                        </label>
+                        <input
+                          type="date"
+                          value={coinTransactionsFilters.dateFrom}
+                          onChange={(e) =>
+                            handleCoinTransactionsFilterChange(
+                              "dateFrom",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date To
+                        </label>
+                        <input
+                          type="date"
+                          value={coinTransactionsFilters.dateTo}
+                          onChange={(e) =>
+                            handleCoinTransactionsFilterChange(
+                              "dateTo",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Transactions Table */}
+                  <div className="p-6">
+                    {coinTransactionsLoading ? (
+                      <div className="flex justify-center items-center py-8">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                      </div>
+                    ) : coinTransactions.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">
+                        No transactions found
+                      </div>
+                    ) : (
+                      <>
+                        <div className="overflow-x-auto">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  User
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Type
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Amount
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Source
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Description
+                                </th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                  Date
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {coinTransactions.map((transaction, index) => (
+                                <tr key={index} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center">
+                                      <div className="flex-shrink-0 h-8 w-8">
+                                        <div className="h-8 w-8 rounded-full bg-purple-100 flex items-center justify-center">
+                                          <User className="h-4 w-4 text-purple-600" />
+                                        </div>
+                                      </div>
+                                      <div className="ml-4">
+                                        <div className="text-sm font-medium text-gray-900">
+                                          {transaction.userName ||
+                                            "Unknown User"}
+                                        </div>
+                                        <div className="text-sm text-gray-500">
+                                          {transaction.userRole ||
+                                            "Unknown Role"}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <Badge
+                                      className={`text-xs ${
+                                        transaction.type === "earned" ||
+                                        transaction.type === "bonus"
+                                          ? "bg-green-100 text-green-800"
+                                          : transaction.type === "spent"
+                                          ? "bg-red-100 text-red-800"
+                                          : "bg-gray-100 text-gray-800"
+                                      }`}
+                                    >
+                                      {transaction.type.replace(/_/g, " ")}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span
+                                      className={`text-sm font-medium ${
+                                        transaction.amount > 0
+                                          ? "text-green-600"
+                                          : "text-red-600"
+                                      }`}
+                                    >
+                                      {transaction.amount > 0 ? "+" : ""}
+                                      {transaction.amount} coins
+                                    </span>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <Badge className="text-xs bg-blue-100 text-blue-800">
+                                      {transaction.source}
+                                    </Badge>
+                                  </td>
+                                  <td className="px-6 py-4">
+                                    <div className="text-sm text-gray-900 max-w-xs truncate">
+                                      {transaction.description}
+                                    </div>
+                                  </td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                    {new Date(
+                                      transaction.createdAt
+                                    ).toLocaleDateString()}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination */}
+                        <div className="mt-6 flex items-center justify-between">
+                          <div className="text-sm text-gray-700">
+                            Showing{" "}
+                            {(coinTransactionsPage - 1) *
+                              coinTransactionsPerPage +
+                              1}{" "}
+                            to{" "}
+                            {Math.min(
+                              coinTransactionsPage * coinTransactionsPerPage,
+                              coinTransactionsTotal
+                            )}{" "}
+                            of {coinTransactionsTotal} results
+                          </div>
+                          <div className="flex space-x-2">
+                            <Button
+                              onClick={() =>
+                                setCoinTransactionsPage((prev) =>
+                                  Math.max(1, prev - 1)
+                                )
+                              }
+                              disabled={coinTransactionsPage === 1}
+                              variant="outline"
+                              size="sm"
+                            >
+                              Previous
+                            </Button>
+                            <Button
+                              onClick={() =>
+                                setCoinTransactionsPage((prev) => prev + 1)
+                              }
+                              disabled={
+                                coinTransactionsPage *
+                                  coinTransactionsPerPage >=
+                                coinTransactionsTotal
+                              }
+                              variant="outline"
+                              size="sm"
+                            >
+                              Next
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

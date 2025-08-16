@@ -477,6 +477,97 @@ class CoinService {
       throw error;
     }
   }
+
+  // Get all coin transactions across all users (Admin only)
+  static async getAllTransactions(limit = 100, skip = 0, filters = {}) {
+    try {
+      let query = {};
+
+      // Apply filters if provided
+      if (filters.userId) {
+        query.userId = filters.userId;
+      }
+      if (filters.type) {
+        query["transactions.type"] = filters.type;
+      }
+      if (filters.source) {
+        query["transactions.source"] = filters.source;
+      }
+      if (filters.dateFrom || filters.dateTo) {
+        query["transactions.createdAt"] = {};
+        if (filters.dateFrom) {
+          query["transactions.createdAt"].$gte = new Date(filters.dateFrom);
+        }
+        if (filters.dateTo) {
+          query["transactions.createdAt"].$lte = new Date(filters.dateTo);
+        }
+      }
+
+      // Aggregate to get all transactions with user details
+      const pipeline = [
+        { $match: query },
+        { $unwind: "$transactions" },
+        { $sort: { "transactions.createdAt": -1 } },
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $addFields: {
+            "transactions.userName": { $arrayElemAt: ["$user.name", 0] },
+            "transactions.userRole": { $arrayElemAt: ["$user.role", 0] },
+            "transactions.userId": "$userId",
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            transaction: "$transactions",
+          },
+        },
+        { $skip: skip },
+        { $limit: limit },
+      ];
+
+      const transactions = await Coin.aggregate(pipeline);
+
+      // Get total count for pagination
+      const countPipeline = [
+        { $match: query },
+        { $unwind: "$transactions" },
+        { $count: "total" },
+      ];
+
+      const countResult = await Coin.aggregate(countPipeline);
+      const totalTransactions =
+        countResult.length > 0 ? countResult[0].total : 0;
+
+      return {
+        success: true,
+        data: {
+          transactions: transactions.map((t) => t.transaction),
+          totalTransactions,
+          pagination: {
+            page: Math.floor(skip / limit) + 1,
+            limit,
+            total: totalTransactions,
+            pages: Math.ceil(totalTransactions / limit),
+          },
+        },
+        message: "All coin transactions retrieved successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error getting all coin transactions"
+      );
+      throw error;
+    }
+  }
 }
 
 module.exports = CoinService;

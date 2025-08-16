@@ -397,7 +397,7 @@ exports.checkFirstPinBonusEligibility = async (req, res) => {
   }
 };
 
-// Check weekly active bonus eligibility
+// Check weekly active bonus eligibility (Authenticated users)
 exports.checkWeeklyActiveBonusEligibility = async (req, res) => {
   try {
     const userId = req.user?.id;
@@ -419,26 +419,41 @@ exports.checkWeeklyActiveBonusEligibility = async (req, res) => {
       `Request received to check weekly active bonus eligibility`
     );
 
-    const isEligible = await CoinService.isEligibleForWeeklyActiveBonus(userId);
+    const result = await CoinService.isEligibleForWeeklyActiveBonus(userId);
 
-    logger.info(
-      {
-        clientIP: req.socket.remoteAddress,
-        method: req.method,
-        api: req.originalUrl,
-        userId,
-        isEligible,
-      },
-      `Successfully checked weekly active bonus eligibility`
-    );
-
-    res.status(HTTP_STATUS_CODE.OK).json({
-      success: true,
-      data: {
-        isEligible: isEligible,
-      },
-      message: "Weekly active bonus eligibility checked successfully",
-    });
+    if (result) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId,
+          eligible: result,
+        },
+        `Successfully checked weekly active bonus eligibility`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: { eligible: result },
+        message: "Weekly active bonus eligibility checked successfully",
+      });
+    } else {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId,
+          eligible: result,
+        },
+        `User not eligible for weekly active bonus`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: { eligible: result },
+        message: "User not eligible for weekly active bonus",
+      });
+    }
   } catch (error) {
     errorLogger.error(
       {
@@ -449,6 +464,85 @@ exports.checkWeeklyActiveBonusEligibility = async (req, res) => {
         error: error.message,
       },
       `Error occurred while checking weekly active bonus eligibility`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Get all coin transactions across all users (Admin only)
+exports.getAllTransactions = async (req, res) => {
+  try {
+    const {
+      page = 1,
+      limit = 100,
+      userId,
+      type,
+      source,
+      dateFrom,
+      dateTo,
+    } = req.query;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?.id,
+        query: req.query,
+      },
+      `Request received to fetch all coin transactions`
+    );
+
+    const filters = {};
+    if (userId) filters.userId = userId;
+    if (type) filters.type = type;
+    if (source) filters.source = source;
+    if (dateFrom) filters.dateFrom = dateFrom;
+    if (dateTo) filters.dateTo = dateTo;
+
+    const result = await CoinService.getAllTransactions(
+      parseInt(limit),
+      (parseInt(page) - 1) * parseInt(limit),
+      filters
+    );
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?.id,
+          transactionsCount: result.data.transactions.length,
+        },
+        `Successfully fetched all coin transactions`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?.id,
+          error: result.message,
+        },
+        `Failed to fetch all coin transactions`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?.id,
+        error: error.message,
+      },
+      `Error occurred while fetching all coin transactions`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
