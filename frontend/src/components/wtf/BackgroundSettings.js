@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Palette, Image, Upload, Check, X, Loader, Trash2 } from "lucide-react";
+import { Palette, Image, Upload, X, Loader, Trash2 } from "lucide-react";
 import {
   getWtfSettings,
   updateWtfSettings,
@@ -22,22 +22,6 @@ const BackgroundSettings = ({ onSettingsChange }) => {
   const [success, setSuccess] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [deletingImage, setDeletingImage] = useState(false);
-
-  // Predefined color palette
-  const colorPalette = [
-    "#f8fafc", // Default light gray
-    "#f1f5f9", // Slate 100
-    "#e0f2fe", // Sky 100
-    "#dcfce7", // Green 100
-    "#fef3c7", // Yellow 100
-    "#fed7d7", // Red 100
-    "#e0e7ff", // Indigo 100
-    "#f3e8ff", // Purple 100
-    "#ffedd5", // Orange 100
-    "#fce7f3", // Pink 100
-    "#ffffff", // Pure white
-    "#1e293b", // Dark slate
-  ];
 
   useEffect(() => {
     fetchCurrentSettings();
@@ -250,51 +234,52 @@ const BackgroundSettings = ({ onSettingsChange }) => {
             Choose Background Color
           </label>
 
-          {/* Color Palette */}
-          <div className="grid grid-cols-6 gap-2 mb-4">
-            {colorPalette.map((color) => (
-              <button
-                key={color}
-                onClick={() => handleColorChange(color)}
-                className={`w-10 h-10 rounded-lg border-2 transition-all hover:scale-110 ${
-                  tempColor === color
-                    ? "border-purple-500 shadow-md"
-                    : "border-gray-300 hover:border-gray-400"
-                }`}
-                style={{ backgroundColor: color }}
-                title={color}
-              >
-                {tempColor === color && (
-                  <Check className="w-4 h-4 text-white mx-auto" />
-                )}
-              </button>
-            ))}
+          {/* Color Picker Input */}
+          <div className="flex items-center gap-4 mb-4">
+            <div className="flex flex-col items-center gap-2">
+              <label className="text-sm text-gray-600">Background Color:</label>
+              <input
+                type="color"
+                value={tempColor}
+                onChange={(e) => handleColorChange(e.target.value)}
+                className="w-16 h-16 border-2 border-gray-300 rounded-lg cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                title="Click to choose any background color"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-mono text-gray-500 bg-gray-100 px-3 py-2 rounded border">
+                {tempColor}
+              </span>
+              <div
+                className="w-16 h-16 rounded-lg border-2 border-gray-300 shadow-sm"
+                style={{ backgroundColor: tempColor }}
+                title="Preview of selected color"
+              />
+            </div>
           </div>
 
-          {/* Custom Color Input */}
-          <div className="flex items-center gap-3">
-            <label className="text-sm text-gray-600">Custom Color:</label>
-            <input
-              type="color"
-              value={tempColor}
-              onChange={(e) => handleColorChange(e.target.value)}
-              className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
-            />
-            <span className="text-sm font-mono text-gray-500">{tempColor}</span>
-          </div>
           {/* Font Color Input */}
-          <div className="flex items-center gap-3 mt-4">
-            <label className="text-sm text-gray-600">Font Color:</label>
-            <input
-              type="color"
-              value={tempFontColor}
-              onChange={(e) => handleFontColorChange(e.target.value)}
-              className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
-              title="Choose text color to ensure readability"
-            />
-            <span className="text-sm font-mono text-gray-500">
-              {tempFontColor}
-            </span>
+          <div className="flex items-center gap-4">
+            <div className="flex flex-col items-center gap-2">
+              <label className="text-sm text-gray-600">Font Color:</label>
+              <input
+                type="color"
+                value={tempFontColor}
+                onChange={(e) => handleFontColorChange(e.target.value)}
+                className="w-12 h-12 border-2 border-gray-300 rounded-lg cursor-pointer shadow-sm hover:shadow-md transition-shadow"
+                title="Choose text color to ensure readability"
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-sm font-mono text-gray-500 bg-gray-100 px-3 py-2 rounded border">
+                {tempFontColor}
+              </span>
+              <div
+                className="w-12 h-12 rounded-lg border-2 border-gray-300 shadow-sm"
+                style={{ backgroundColor: tempFontColor }}
+                title="Preview of selected font color"
+              />
+            </div>
           </div>
         </div>
       )}

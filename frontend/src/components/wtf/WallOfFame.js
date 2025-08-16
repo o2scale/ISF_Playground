@@ -11,7 +11,6 @@ import {
   Plus,
   Palette,
   Upload,
-  Check,
   Loader,
   Mic,
   StopCircle,
@@ -529,20 +528,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   };
 
   // Background settings functions
-  const predefinedColors = [
-    "#f8fafc",
-    "#f1f5f9",
-    "#e0f2fe",
-    "#dcfce7",
-    "#fef3c7",
-    "#fed7d7",
-    "#e0e7ff",
-    "#f3e8ff",
-    "#ffedd5",
-    "#fce7f3",
-    "#ffffff",
-    "#1e293b",
-  ];
 
   // Popular Google Fonts for the dropdown
   const googleFonts = [
@@ -1928,26 +1913,19 @@ Check console for detailed results.`);
                   {/* Color Picker */}
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-2">
-                      Background Colors
+                      Background Color
                     </label>
-                    <div className="grid grid-cols-6 gap-1">
-                      {predefinedColors.map((color) => (
-                        <button
-                          key={color}
-                          onClick={() => handleColorChange(color)}
-                          className={`w-8 h-8 rounded border-2 transition-all hover:scale-110 ${
-                            previewBgSettings.backgroundColor === color
-                              ? "border-blue-500 shadow-md"
-                              : "border-gray-300 hover:border-gray-400"
-                          }`}
-                          style={{ backgroundColor: color }}
-                          title={color}
-                        >
-                          {previewBgSettings.backgroundColor === color && (
-                            <Check className="w-3 h-3 text-white mx-auto" />
-                          )}
-                        </button>
-                      ))}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={previewBgSettings.backgroundColor}
+                        onChange={(e) => handleColorChange(e.target.value)}
+                        className="w-10 h-8 border border-gray-300 rounded cursor-pointer"
+                        title="Choose any background color"
+                      />
+                      <span className="text-[10px] font-mono text-gray-500 bg-gray-100 px-2 py-1 rounded border">
+                        {previewBgSettings.backgroundColor}
+                      </span>
                     </div>
                     {/* Font Color */}
                     <div className="flex items-center gap-2 mt-3">
