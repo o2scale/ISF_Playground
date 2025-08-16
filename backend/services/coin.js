@@ -513,11 +513,11 @@ class CoinService {
       if (filters.userId) {
         query.userId = filters.userId;
       }
-      if (filters.type) {
-        query["transactions.type"] = filters.type;
-      }
       if (filters.source) {
         query["transactions.source"] = filters.source;
+      }
+      if (filters.pinType) {
+        query["transactions.wtfPinId"] = { $exists: true, $ne: null };
       }
       if (filters.dateFrom || filters.dateTo) {
         query["transactions.createdAt"] = {};
@@ -542,13 +542,34 @@ class CoinService {
             as: "user",
           },
         },
+        // Lookup WTF pin information for pin-related transactions
+        {
+          $lookup: {
+            from: "wtf_pins",
+            localField: "transactions.wtfPinId",
+            foreignField: "_id",
+            as: "wtfPin",
+          },
+        },
         {
           $addFields: {
             "transactions.userName": { $arrayElemAt: ["$user.name", 0] },
             "transactions.userRole": { $arrayElemAt: ["$user.role", 0] },
             "transactions.userId": "$userId",
+            "transactions.pinType": { $arrayElemAt: ["$wtfPin.type", 0] },
+            "transactions.pinTitle": { $arrayElemAt: ["$wtfPin.title", 0] },
           },
         },
+        // Apply pin type filter if specified
+        ...(filters.pinType
+          ? [
+              {
+                $match: {
+                  "transactions.pinType": filters.pinType,
+                },
+              },
+            ]
+          : []),
         // Filter to only show student transactions (exclude admin and coach)
         {
           $match: {

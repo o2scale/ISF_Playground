@@ -41,3 +41,79 @@
 ::-webkit-scrollbar {
   display: none;
 }
+
+/* Global font application for WTF background settings */
+:root {
+  --wtf-font-family: inherit;
+}
+
+/* Apply the selected font globally with maximum specificity */
+html,
+html * {
+  font-family: var(--wtf-font-family, inherit) !important;
+}
+
+body,
+body * {
+  font-family: var(--wtf-font-family, inherit) !important;
+}
+
+/* Apply to all text elements with maximum specificity */
+h1,
+h1 *,
+h2,
+h2 *,
+h3,
+h3 *,
+h4,
+h4 *,
+h5,
+h5 *,
+h6,
+h6 *,
+p,
+p *,
+span,
+span *,
+div,
+div *,
+button,
+button *,
+input,
+input *,
+textarea,
+textarea *,
+select,
+select *,
+label,
+label *,
+a,
+a *,
+li,
+li *,
+td,
+td *,
+th,
+th * {
+  font-family: var(--wtf-font-family, inherit) !important;
+}
+
+/* Specific components that might need font override */
+.wtf-content,
+.wtf-content *,
+.wtf-content * * {
+  font-family: var(--wtf-font-family, inherit) !important;
+}
+
+/* Ensure the font applies to the entire WTF section */
+[data-wtf-section],
+[data-wtf-section] *,
+[data-wtf-section] * * {
+  font-family: var(--wtf-font-family, inherit) !important;
+}
+
+/* Override any other font declarations with maximum specificity */
+*,
+* * {
+  font-family: var(--wtf-font-family, inherit) !important;
+}

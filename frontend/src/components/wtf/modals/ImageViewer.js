@@ -1,6 +1,14 @@
-import React, { useState } from "react";
-import { X, Eye, Heart, ThumbsUp } from "lucide-react";
-import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Eye,
+  Heart,
+  ThumbsUp,
+  Image as ImageIcon,
+  FileImage,
+  AlertCircle,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog.jsx";
 import { Badge } from "../../ui/badge.jsx";
 
 const ImageViewer = ({
@@ -17,13 +25,87 @@ const ImageViewer = ({
   onHeart,
 }) => {
   const [imgError, setImgError] = useState(false);
+  const [imgLoading, setImgLoading] = useState(true);
+  const [useFallback, setUseFallback] = useState(false);
+
+  // Reset states when image source changes or modal opens
+  useEffect(() => {
+    if (isOpen && imageSrc) {
+      console.log("ImageViewer - Modal opened with:", {
+        isOpen,
+        imageSrc,
+        title,
+        author,
+        type: typeof imageSrc,
+      });
+      setImgError(false);
+      setImgLoading(true);
+      setUseFallback(false);
+    }
+  }, [isOpen, imageSrc, title, author]);
+
+  // Check if CSS background image loaded successfully
+  useEffect(() => {
+    if (imageSrc && !imgLoading) {
+      // Give CSS background a moment to load, then check if we need fallback
+      const timer = setTimeout(() => {
+        if (imgLoading) {
+          setUseFallback(true);
+        }
+      }, 2000); // 2 second timeout
+
+      return () => clearTimeout(timer);
+    }
+  }, [imageSrc, imgLoading]);
 
   const isLikelyImageUrl = (url) => {
     if (!url || typeof url !== "string") return false;
-    return (
-      /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(url) ||
-      /^(data:image\/.+;base64,|blob:)/i.test(url)
+
+    // Debug logging
+    console.log("ImageViewer - Checking URL:", url);
+
+    // Check for common image file extensions anywhere in the URL
+    const hasImageExtension = /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(
+      url
     );
+
+    // Check for S3 bucket URLs that contain image paths
+    const isS3ImageUrl =
+      url.includes("s3.amazonaws.com") &&
+      (url.includes("/image/") ||
+        url.includes("/images/") ||
+        hasImageExtension);
+
+    // Check for other common image hosting patterns
+    const isCommonImageHost =
+      /(imgur|cloudinary|images\.unsplash|picsum|placeholdit|via\.placeholder)\.com/i.test(
+        url
+      );
+
+    // Check for data URLs and blob URLs
+    const isDataOrBlob = /^(data:image\/.+;base64,|blob:)/i.test(url);
+
+    // Special case: Always allow S3 URLs to pass through
+    const isS3Url = url.includes("s3.amazonaws.com");
+
+    const result =
+      hasImageExtension ||
+      isS3ImageUrl ||
+      isCommonImageHost ||
+      isDataOrBlob ||
+      isS3Url;
+
+    console.log("ImageViewer - URL check results:", {
+      url,
+      hasImageExtension,
+      isS3ImageUrl,
+      isCommonImageHost,
+      isDataOrBlob,
+      isS3Url,
+      result,
+    });
+
+    return result;
   };
   const getPostageStampStyle = () => ({
     backgroundImage: `
@@ -42,6 +124,25 @@ const ImageViewer = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-gray-100">
+        <DialogTitle className="sr-only">Image Viewer - {title}</DialogTitle>
+
+        {/* Custom CSS for animations */}
+        <style jsx>{`
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(10px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+          .animate-fade-in {
+            animation: fadeIn 0.3s ease-out;
+          }
+        `}</style>
+
         <div className="relative min-h-[600px] p-8">
           {/* Close button */}
           <button
@@ -66,31 +167,163 @@ const ImageViewer = ({
             )}
             <div className="w-full h-80 bg-gray-200 mb-4 overflow-hidden">
               {isLikelyImageUrl(imageSrc) && !imgError ? (
-                <img
-                  src={imageSrc}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                  referrerPolicy="no-referrer"
-                  crossOrigin="anonymous"
-                  loading="lazy"
-                  onError={() => setImgError(true)}
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-white text-center p-4">
-                  <div>
-                    <div className="text-sm text-gray-600 mb-2">
-                      This URL does not look like a direct image file.
+                <>
+                  {imgLoading && (
+                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+                      <div className="text-center space-y-4">
+                        {/* Animated Loading Icon */}
+                        <div className="relative">
+                          <div className="w-16 h-16 border-4 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <ImageIcon className="w-6 h-6 text-blue-600" />
+                          </div>
+                        </div>
+
+                        {/* Loading Text */}
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-gray-700">
+                            Loading Image...
+                          </p>
+                          {imageSrc &&
+                            imageSrc.includes("s3.amazonaws.com") && (
+                              <p className="text-xs text-gray-500">
+                                Loading from S3 bucket
+                              </p>
+                            )}
+                        </div>
+
+                        {/* Loading Progress Bar */}
+                        <div className="w-32 h-1 bg-gray-200 rounded-full overflow-hidden mx-auto">
+                          <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 animate-pulse"></div>
+                        </div>
+                      </div>
                     </div>
-                    {imageSrc && (
-                      <a
-                        href={imageSrc}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline break-all"
-                      >
-                        Open link in a new tab
-                      </a>
-                    )}
+                  )}
+
+                  {/* Use CSS background-image instead of HTML img tag to avoid CORS issues */}
+                  <div
+                    className={`w-full h-full ${imgLoading ? "hidden" : ""}`}
+                    style={{
+                      backgroundImage: `url(${imageSrc})`,
+                      backgroundSize: "cover",
+                      backgroundPosition: "center",
+                      backgroundRepeat: "no-repeat",
+                    }}
+                  />
+
+                  {/* Fallback img tag in case CSS background fails */}
+                  <img
+                    src={imageSrc}
+                    alt={title}
+                    className={`w-full h-full object-cover ${
+                      imgLoading ? "hidden" : ""
+                    }`}
+                    style={{ display: useFallback ? "block" : "none" }} // Show fallback when needed
+                    onLoad={() => {
+                      console.log(
+                        "ImageViewer - Image loaded successfully:",
+                        imageSrc
+                      );
+                      setImgLoading(false);
+                    }}
+                    onError={(e) => {
+                      console.error(
+                        "ImageViewer - Image failed to load:",
+                        imageSrc,
+                        e
+                      );
+                      setImgError(true);
+                      setImgLoading(false);
+                    }}
+                  />
+                </>
+              ) : !imageSrc ? (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-center p-6">
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Placeholder Icon */}
+                    <div className="flex justify-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-200">
+                        <ImageIcon className="w-10 h-10 text-gray-400" />
+                      </div>
+                    </div>
+
+                    {/* Placeholder Message */}
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-semibold text-gray-700">
+                        No Image Available
+                      </h4>
+                      <p className="text-sm text-gray-500 max-w-xs">
+                        This content doesn't have an associated image to
+                        display.
+                      </p>
+                    </div>
+
+                    {/* Content Info */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="text-xs text-gray-400 space-y-1">
+                        <div>Title: {title || "Untitled"}</div>
+                        <div>Type: Text/Content Only</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 text-center p-6">
+                  <div className="space-y-4 animate-fade-in">
+                    {/* Placeholder Icon */}
+                    <div className="flex justify-center">
+                      <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center shadow-lg transform hover:scale-105 transition-transform duration-200">
+                        <ImageIcon className="w-10 h-10 text-blue-600" />
+                      </div>
+                    </div>
+
+                    {/* Placeholder Message */}
+                    <div className="space-y-2">
+                      <h4 className="text-lg font-semibold text-gray-700">
+                        {imgError ? "Image Unavailable" : "Image Preview"}
+                      </h4>
+                      <p className="text-sm text-gray-500 max-w-xs">
+                        {imgError
+                          ? "The image could not be loaded from the provided URL."
+                          : "This content will be displayed as an image preview."}
+                      </p>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      {imageSrc && (
+                        <a
+                          href={imageSrc}
+                          target="_blank"
+                          rel="no-referrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-all duration-200 hover:shadow-md transform hover:-translate-y-0.5"
+                        >
+                          <FileImage className="w-4 h-4" />
+                          Open Image
+                        </a>
+                      )}
+
+                      {imgError &&
+                        imageSrc &&
+                        imageSrc.includes("s3.amazonaws.com") && (
+                          <div className="inline-flex items-center gap-2 px-3 py-2 bg-amber-100 text-amber-800 text-xs rounded-md border border-amber-200">
+                            <AlertCircle className="w-4 h-4" />
+                            S3 Image
+                          </div>
+                        )}
+                    </div>
+
+                    {/* Content Info */}
+                    <div className="pt-4 border-t border-gray-200">
+                      <div className="text-xs text-gray-400 space-y-1">
+                        <div>Title: {title || "Untitled"}</div>
+                        {imageSrc && (
+                          <div className="break-all">
+                            Source: {imageSrc.substring(0, 60)}...
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -101,7 +334,22 @@ const ImageViewer = ({
               </h3>
               {author && (
                 <p className="text-sm text-gray-600">
-                  by {typeof author === "object" ? author.name : author}
+                  by{" "}
+                  {typeof author === "object"
+                    ? author.name ||
+                      author.displayName ||
+                      author.username ||
+                      "Unknown"
+                    : typeof author === "string"
+                    ? author
+                    : "Unknown"}
+                </p>
+              )}
+
+              {/* Fallback author display */}
+              {!author && (
+                <p className="text-sm text-gray-500 italic">
+                  by Unknown Author
                 </p>
               )}
             </div>

@@ -92,8 +92,8 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [coinTransactionsPerPage, setCoinTransactionsPerPage] = useState(20);
   const [coinTransactionsTotal, setCoinTransactionsTotal] = useState(0);
   const [coinTransactionsFilters, setCoinTransactionsFilters] = useState({
-    type: "",
     source: "",
+    pinType: "",
     dateFrom: "",
     dateTo: "",
   });
@@ -2688,36 +2688,7 @@ const WTFManagementContent = ({ onToggleView }) => {
 
                     {/* Filters */}
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
-                          Transaction Type
-                        </label>
-                        <select
-                          value={coinTransactionsFilters.type}
-                          onChange={(e) =>
-                            handleCoinTransactionsFilterChange(
-                              "type",
-                              e.target.value
-                            )
-                          }
-                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="">All Types</option>
-                          <option value="earned">Earned</option>
-                          <option value="spent">Spent</option>
-                          <option value="bonus">Bonus</option>
-                          <option value="penalty">Penalty</option>
-                          <option value="wtf_pin_creation">
-                            WTF Pin Creation
-                          </option>
-                          <option value="wtf_submission_approval">
-                            WTF Submission Approval
-                          </option>
-                          <option value="wtf_interaction">
-                            WTF Interaction
-                          </option>
-                        </select>
-                      </div>
+                      {/* Transaction Type filter hidden as Type column is hidden */}
 
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -2741,6 +2712,29 @@ const WTFManagementContent = ({ onToggleView }) => {
                           <option value="sports">Sports</option>
                           <option value="music">Music</option>
                           <option value="general">General</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Pin Type
+                        </label>
+                        <select
+                          value={coinTransactionsFilters.pinType || ""}
+                          onChange={(e) =>
+                            handleCoinTransactionsFilterChange(
+                              "pinType",
+                              e.target.value
+                            )
+                          }
+                          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <option value="">All Pin Types</option>
+                          <option value="image">Image</option>
+                          <option value="video">Video</option>
+                          <option value="audio">Audio</option>
+                          <option value="text">Text</option>
+                          <option value="link">Link</option>
                         </select>
                       </div>
 
@@ -2799,6 +2793,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                   User
                                 </th>
+                                {/* Type column hidden as requested */}
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                   Type
                                 </th>
@@ -2838,19 +2833,47 @@ const WTFManagementContent = ({ onToggleView }) => {
                                       </div>
                                     </div>
                                   </td>
+                                  {/* Type column data hidden as requested */}
                                   <td className="px-6 py-4 whitespace-nowrap">
-                                    <Badge
-                                      className={`text-xs ${
-                                        transaction.type === "earned" ||
-                                        transaction.type === "bonus"
-                                          ? "bg-green-100 text-green-800"
-                                          : transaction.type === "spent"
-                                          ? "bg-red-100 text-red-800"
-                                          : "bg-gray-100 text-gray-800"
-                                      }`}
-                                    >
-                                      {transaction.type.replace(/_/g, " ")}
-                                    </Badge>
+                                    {transaction.pinType ? (
+                                      <div className="flex items-center space-x-2">
+                                        <div className="flex items-center space-x-1">
+                                          {transaction.pinType === "image" && (
+                                            <ImageIcon className="h-3 w-3 text-blue-600" />
+                                          )}
+                                          {transaction.pinType === "video" && (
+                                            <Video className="h-3 w-3 text-red-600" />
+                                          )}
+                                          {transaction.pinType === "audio" && (
+                                            <Volume2 className="h-3 w-3 text-green-600" />
+                                          )}
+                                          {transaction.pinType === "text" && (
+                                            <FileText className="h-3 w-3 text-purple-600" />
+                                          )}
+                                          {transaction.pinType === "link" && (
+                                            <ExternalLink className="h-3 w-3 text-orange-600" />
+                                          )}
+                                          <Badge className="text-xs bg-purple-100 text-purple-800">
+                                            {transaction.pinType
+                                              .charAt(0)
+                                              .toUpperCase() +
+                                              transaction.pinType.slice(1)}
+                                          </Badge>
+                                        </div>
+                                        {transaction.pinTitle && (
+                                          <span
+                                            className="text-xs text-gray-600 max-w-24 truncate"
+                                            title={transaction.pinTitle}
+                                          >
+                                            {transaction.pinTitle}
+                                          </span>
+                                        )}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-gray-400">
+                                        -
+                                      </span>
+                                    )}
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap">
                                     <span
@@ -2871,7 +2894,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                                   </td>
                                   <td className="px-6 py-4">
                                     <div className="text-sm text-gray-900 max-w-xs truncate">
-                                      {transaction.description}
+                                      {transaction.type ===
+                                        "wtf_pin_creation" &&
+                                      transaction.pinTitle
+                                        ? `Created ${transaction.pinType} pin: ${transaction.pinTitle}`
+                                        : transaction.description}
                                     </div>
                                   </td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">

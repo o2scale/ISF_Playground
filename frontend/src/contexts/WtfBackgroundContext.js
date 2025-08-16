@@ -25,6 +25,167 @@ export const WtfBackgroundProvider = ({ children }) => {
     error: null,
   });
 
+  // Function to load Google Fonts
+  const loadGoogleFont = (fontName) => {
+    if (!fontName) return;
+
+    console.log("Loading Google Font:", fontName);
+
+    // Check if font is already loaded
+    const existingLink = document.querySelector(
+      `link[href*="${fontName.replace(/\s+/g, "+")}"]`
+    );
+    if (existingLink) {
+      console.log("Font already loaded:", fontName);
+      return;
+    }
+
+    const link = document.createElement("link");
+    link.href = `https://fonts.googleapis.com/css2?family=${fontName.replace(
+      /\s+/g,
+      "+"
+    )}:wght@300;400;500;600;700&display=swap`;
+    link.rel = "stylesheet";
+
+    // Add event listeners to track loading
+    link.onload = () => {
+      console.log("Font loaded successfully:", fontName);
+      // Re-apply font after loading
+      setTimeout(() => {
+        const category = getFontCategory(fontName);
+        const fontFamilyValue = `"${fontName}", ${category}`;
+        document.documentElement.style.setProperty(
+          "--wtf-font-family",
+          fontFamilyValue
+        );
+      }, 100);
+    };
+
+    link.onerror = () => {
+      console.error("Failed to load font:", fontName);
+    };
+
+    document.head.appendChild(link);
+    console.log("Font loading initiated:", fontName);
+  };
+
+  // Function to get font category for fallback
+  const getFontCategory = (fontName) => {
+    const fontCategories = {
+      Roboto: "sans-serif",
+      "Open Sans": "sans-serif",
+      Lato: "sans-serif",
+      Poppins: "sans-serif",
+      Montserrat: "sans-serif",
+      "Source Sans Pro": "sans-serif",
+      Raleway: "sans-serif",
+      "PT Sans": "sans-serif",
+      Ubuntu: "sans-serif",
+      "Playfair Display": "serif",
+      Merriweather: "serif",
+      Lora: "serif",
+      "Patrick Hand": "handwriting",
+      "Indie Flower": "handwriting",
+      "Shadows Into Light": "handwriting",
+      Caveat: "handwriting",
+      "Dancing Script": "handwriting",
+      Pacifico: "handwriting",
+      Kalam: "handwriting",
+      "Architects Daughter": "handwriting",
+      "Gloria Hallelujah": "handwriting",
+      "Permanent Marker": "handwriting",
+      Satisfy: "handwriting",
+      Bangers: "display",
+      "Fredoka One": "display",
+      Righteous: "display",
+      Lobster: "display",
+      Bungee: "display",
+      "Press Start 2P": "display",
+      Orbitron: "display",
+      Audiowide: "display",
+      Monoton: "display",
+    };
+
+    return fontCategories[fontName] || "sans-serif";
+  };
+
+  // Function to apply font globally
+  const applyFontGlobally = (fontName) => {
+    if (!fontName) return;
+
+    console.log("Applying font globally:", fontName);
+
+    // Load the font
+    loadGoogleFont(fontName);
+
+    // Set CSS custom property for global use
+    const category = getFontCategory(fontName);
+    const fontFamilyValue = `"${fontName}", ${category}`;
+
+    console.log("Font family value:", fontFamilyValue);
+
+    // Set CSS custom property
+    document.documentElement.style.setProperty(
+      "--wtf-font-family",
+      fontFamilyValue
+    );
+
+    // Apply to html, body, and all elements more aggressively
+    document.documentElement.style.fontFamily = fontFamilyValue;
+    document.body.style.fontFamily = fontFamilyValue;
+
+    // Force apply to all elements
+    const allElements = document.querySelectorAll("*");
+    allElements.forEach((element) => {
+      element.style.fontFamily = fontFamilyValue;
+    });
+
+    console.log("Font applied globally to", allElements.length, "elements");
+  };
+
+  // Function to check if font is available
+  const checkFontAvailability = (fontName) => {
+    if (!fontName) return false;
+
+    // Check if font is loaded in the document
+    const fontLinks = document.querySelectorAll(
+      'link[href*="fonts.googleapis.com"]'
+    );
+    const isFontLoaded = Array.from(fontLinks).some((link) =>
+      link.href.includes(fontName.replace(/\s+/g, "+"))
+    );
+
+    console.log("Font availability check:", fontName, "Loaded:", isFontLoaded);
+    return isFontLoaded;
+  };
+
+  // Function to force refresh font application
+  const forceRefreshFont = (fontName) => {
+    if (!fontName) return;
+
+    console.log("Force refreshing font:", fontName);
+    const category = getFontCategory(fontName);
+    const fontFamilyValue = `"${fontName}", ${category}`;
+
+    // Force apply to all elements again
+    document.documentElement.style.setProperty(
+      "--wtf-font-family",
+      fontFamilyValue
+    );
+    document.documentElement.style.fontFamily = fontFamilyValue;
+    document.body.style.fontFamily = fontFamilyValue;
+
+    // Also try to apply to specific WTF elements
+    const wtfElements = document.querySelectorAll(
+      "[data-wtf-section], .wtf-content"
+    );
+    wtfElements.forEach((element) => {
+      element.style.fontFamily = fontFamilyValue;
+    });
+
+    console.log("Font force refreshed for", wtfElements.length, "WTF elements");
+  };
+
   const fetchBackgroundSettings = async () => {
     try {
       setBackgroundSettings((prev) => ({
@@ -35,7 +196,7 @@ export const WtfBackgroundProvider = ({ children }) => {
       const response = await getWtfSettings();
       const settings = response.data;
 
-      setBackgroundSettings({
+      const newSettings = {
         backgroundType: settings.backgroundType || "color",
         backgroundColor: settings.backgroundColor || "#f8fafc",
         backgroundImage: settings.backgroundImage || null,
@@ -44,7 +205,14 @@ export const WtfBackgroundProvider = ({ children }) => {
         fontUrl: settings.fontUrl || null,
         isLoading: false,
         error: null,
-      });
+      };
+
+      setBackgroundSettings(newSettings);
+
+      // Apply font globally if it exists
+      if (newSettings.fontFamily) {
+        applyFontGlobally(newSettings.fontFamily);
+      }
     } catch (error) {
       console.error("Error fetching WTF background settings:", error);
       setBackgroundSettings((prev) => ({
@@ -56,15 +224,25 @@ export const WtfBackgroundProvider = ({ children }) => {
   };
 
   const updateBackgroundSettings = (newSettings) => {
-    setBackgroundSettings((prev) => ({
-      ...prev,
+    const updatedSettings = {
+      ...backgroundSettings,
       backgroundType: newSettings.backgroundType,
       backgroundColor: newSettings.backgroundColor,
       backgroundImage: newSettings.backgroundImage,
-      fontColor: newSettings.fontColor || prev.fontColor,
+      fontColor: newSettings.fontColor || backgroundSettings.fontColor,
       fontFamily: newSettings.fontFamily || null,
       fontUrl: newSettings.fontUrl || null,
-    }));
+    };
+
+    setBackgroundSettings(updatedSettings);
+
+    // Apply font globally if it changed
+    if (
+      newSettings.fontFamily &&
+      newSettings.fontFamily !== backgroundSettings.fontFamily
+    ) {
+      applyFontGlobally(newSettings.fontFamily);
+    }
   };
 
   const getBackgroundStyle = () => {
@@ -79,13 +257,21 @@ export const WtfBackgroundProvider = ({ children }) => {
         backgroundRepeat: "no-repeat",
         backgroundAttachment: "fixed",
         color: backgroundSettings.fontColor || undefined,
-        fontFamily: backgroundSettings.fontFamily || undefined,
+        fontFamily: backgroundSettings.fontFamily
+          ? `"${backgroundSettings.fontFamily}", ${getFontCategory(
+              backgroundSettings.fontFamily
+            )}`
+          : undefined,
       };
     } else {
       return {
         backgroundColor: backgroundSettings.backgroundColor,
         color: backgroundSettings.fontColor || undefined,
-        fontFamily: backgroundSettings.fontFamily || undefined,
+        fontFamily: backgroundSettings.fontFamily
+          ? `"${backgroundSettings.fontFamily}", ${getFontCategory(
+              backgroundSettings.fontFamily
+            )}`
+          : undefined,
       };
     }
   };
@@ -99,6 +285,11 @@ export const WtfBackgroundProvider = ({ children }) => {
     updateBackgroundSettings,
     refreshBackgroundSettings: fetchBackgroundSettings,
     getBackgroundStyle,
+    loadGoogleFont,
+    applyFontGlobally,
+    getFontCategory,
+    checkFontAvailability,
+    forceRefreshFont,
   };
 
   return (
