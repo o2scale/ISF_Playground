@@ -2373,17 +2373,14 @@ class WtfService {
       }
 
       // Award coins using the coin service
-      const coinResult = await CoinService.addCoins(
+      const coinResult = await CoinService.awardPinCreationCoins(
         studentId,
-        coinReward,
-        "WTF_CONTENT_PINNED",
-        `Your ${pinData.contentType.toLowerCase()} "${
-          pinData.title
-        }" was featured on WTF!`,
+        pinData.pinId,
+        false, // isFirstPin
         {
-          pinId: pinData.pinId,
           contentType: pinData.contentType,
           pinnedBy: pinData.pinnedBy.adminId,
+          isPinned: true,
         }
       );
 

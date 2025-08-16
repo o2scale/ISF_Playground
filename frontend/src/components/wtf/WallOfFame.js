@@ -241,8 +241,14 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
 const WallOfFameContent = ({ onToggleView }) => {
   const { user } = useAuth();
   const { isSidebarCollapsed } = useSidebar();
-  const { backgroundSettings: contextBgSettings, updateBackgroundSettings } =
-    useWtfBackground();
+  const {
+    backgroundSettings: contextBgSettings,
+    updateBackgroundSettings,
+    applyFontGlobally,
+    getFontCategory,
+    checkFontAvailability,
+    forceRefreshFont,
+  } = useWtfBackground();
   const [selectedContent, setSelectedContent] = useState(null);
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -287,7 +293,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   const [isUploadingBg, setIsUploadingBg] = useState(false);
-  const [isUploadingFont, setIsUploadingFont] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [bgSuccess, setBgSuccess] = useState("");
   const [bgError, setBgError] = useState("");
@@ -539,6 +544,561 @@ const WallOfFameContent = ({ onToggleView }) => {
     "#1e293b",
   ];
 
+  // Popular Google Fonts for the dropdown
+  const googleFonts = [
+    { name: "Roboto", category: "sans-serif" },
+    { name: "Open Sans", category: "sans-serif" },
+    { name: "Lato", category: "sans-serif" },
+    { name: "Poppins", category: "sans-serif" },
+    { name: "Montserrat", category: "sans-serif" },
+    { name: "Source Sans Pro", category: "sans-serif" },
+    { name: "Raleway", category: "sans-serif" },
+    { name: "PT Sans", category: "sans-serif" },
+    { name: "Ubuntu", category: "sans-serif" },
+    { name: "Playfair Display", category: "serif" },
+    { name: "Merriweather", category: "serif" },
+    { name: "Lora", category: "serif" },
+    { name: "Crimson Text", category: "serif" },
+    { name: "Georgia", category: "serif" },
+    { name: "Times New Roman", category: "serif" },
+    { name: "Patrick Hand", category: "handwriting" },
+    { name: "Indie Flower", category: "handwriting" },
+    { name: "Shadows Into Light", category: "handwriting" },
+    { name: "Caveat", category: "handwriting" },
+    { name: "Dancing Script", category: "handwriting" },
+    { name: "Pacifico", category: "handwriting" },
+    { name: "Kalam", category: "handwriting" },
+    { name: "Architects Daughter", category: "handwriting" },
+    { name: "Gloria Hallelujah", category: "handwriting" },
+    { name: "Permanent Marker", category: "handwriting" },
+    { name: "Satisfy", category: "handwriting" },
+    { name: "Bangers", category: "display" },
+    { name: "Fredoka One", category: "display" },
+    { name: "Righteous", category: "display" },
+    { name: "Lobster", category: "display" },
+    { name: "Bungee", category: "display" },
+    { name: "Press Start 2P", category: "display" },
+    { name: "Orbitron", category: "display" },
+    { name: "Audiowide", category: "display" },
+    { name: "Monoton", category: "display" },
+    { name: "Faster One", category: "display" },
+    { name: "Codystar", category: "display" },
+    { name: "Freckle Face", category: "display" },
+    { name: "Creepster", category: "display" },
+    { name: "Butcherman", category: "display" },
+    { name: "Nosifer", category: "display" },
+    { name: "Griffy", category: "display" },
+    { name: "Eater", category: "display" },
+    { name: "Fascinate", category: "display" },
+    { name: "Fascinate Inline", category: "display" },
+    { name: "Flavors", category: "display" },
+    { name: "Fondamento", category: "display" },
+    { name: "Freckle Face", category: "display" },
+    { name: "Frijole", category: "display" },
+    { name: "Fruktur", category: "display" },
+    { name: "Fugaz One", category: "display" },
+    { name: "Goblin One", category: "display" },
+    { name: "Gorditas", category: "display" },
+    { name: "Graduate", category: "display" },
+    { name: "Gravitas One", category: "display" },
+    { name: "Great Vibes", category: "handwriting" },
+    { name: "Griffy", category: "display" },
+    { name: "Gruppo", category: "display" },
+    { name: "Holtwood One SC", category: "display" },
+    { name: "Homemade Apple", category: "handwriting" },
+    { name: "Iceberg", category: "display" },
+    { name: "Iceland", category: "display" },
+    { name: "Imprima", category: "sans-serif" },
+    { name: "Inconsolata", category: "monospace" },
+    { name: "Inder", category: "sans-serif" },
+    { name: "Indie Flower", category: "handwriting" },
+    { name: "Inika", category: "serif" },
+    { name: "Irish Grover", category: "display" },
+    { name: "Istok Web", category: "sans-serif" },
+    { name: "Italiana", category: "serif" },
+    { name: "Italianno", category: "handwriting" },
+    { name: "Jacques Francois", category: "serif" },
+    { name: "Jacques Francois Shadow", category: "display" },
+    { name: "Jim Nightshade", category: "handwriting" },
+    { name: "Jockey One", category: "display" },
+    { name: "Jolly Lodger", category: "display" },
+    { name: "Josefin Sans", category: "sans-serif" },
+    { name: "Josefin Slab", category: "serif" },
+    { name: "Joti One", category: "display" },
+    { name: "Judson", category: "serif" },
+    { name: "Julee", category: "handwriting" },
+    { name: "Julius Sans One", category: "display" },
+    { name: "Junge", category: "serif" },
+    { name: "Jura", category: "sans-serif" },
+    { name: "Just Another Hand", category: "handwriting" },
+    { name: "Just Me Again Down Here", category: "handwriting" },
+    { name: "Kalam", category: "handwriting" },
+    { name: "Kameron", category: "serif" },
+    { name: "Kantumruy", category: "sans-serif" },
+    { name: "Karla", category: "sans-serif" },
+    { name: "Karma", category: "serif" },
+    { name: "Kaushan Script", category: "handwriting" },
+    { name: "Kavoon", category: "display" },
+    { name: "Kdam Thmor", category: "display" },
+    { name: "Keania One", category: "display" },
+    { name: "Kelly Slab", category: "display" },
+    { name: "Kenia", category: "display" },
+    { name: "Khand", category: "sans-serif" },
+    { name: "Khmer", category: "display" },
+    { name: "Kite One", category: "display" },
+    { name: "Knewave", category: "display" },
+    { name: "Kotta One", category: "serif" },
+    { name: "Koulen", category: "display" },
+    { name: "Kranky", category: "display" },
+    { name: "Kreon", category: "serif" },
+    { name: "Kristi", category: "handwriting" },
+    { name: "Krona One", category: "display" },
+    { name: "La Belle Aurore", category: "handwriting" },
+    { name: "Lancelot", category: "display" },
+    { name: "Lato", category: "sans-serif" },
+    { name: "League Script", category: "handwriting" },
+    { name: "Leckerli One", category: "handwriting" },
+    { name: "Ledger", category: "serif" },
+    { name: "Lekton", category: "sans-serif" },
+    { name: "Lemon", category: "display" },
+    { name: "Libre Baskerville", category: "serif" },
+    { name: "Life Savers", category: "display" },
+    { name: "Lilita One", category: "display" },
+    { name: "Lily Script One", category: "display" },
+    { name: "Limelight", category: "display" },
+    { name: "Linden Hill", category: "serif" },
+    { name: "Lobster", category: "display" },
+    { name: "Lobster Two", category: "display" },
+    { name: "Londrina Outline", category: "display" },
+    { name: "Londrina Shadow", category: "display" },
+    { name: "Londrina Sketch", category: "display" },
+    { name: "Londrina Solid", category: "display" },
+    { name: "Lora", category: "serif" },
+    { name: "Love Ya Like A Sister", category: "display" },
+    { name: "Loved by the King", category: "handwriting" },
+    { name: "Lovers Quarrel", category: "handwriting" },
+    { name: "Luckiest Guy", category: "display" },
+    { name: "Lusitana", category: "serif" },
+    { name: "Lustria", category: "serif" },
+    { name: "Macondo", category: "display" },
+    { name: "Macondo Swash Caps", category: "display" },
+    { name: "Magra", category: "sans-serif" },
+    { name: "Maiden Orange", category: "display" },
+    { name: "Mako", category: "sans-serif" },
+    { name: "Mallanna", category: "sans-serif" },
+    { name: "Mandali", category: "sans-serif" },
+    { name: "Marcellus", category: "serif" },
+    { name: "Marcellus SC", category: "serif" },
+    { name: "Marck Script", category: "handwriting" },
+    { name: "Margarine", category: "display" },
+    { name: "Marko One", category: "serif" },
+    { name: "Marmelad", category: "sans-serif" },
+    { name: "Marvel", category: "sans-serif" },
+    { name: "Mate", category: "serif" },
+    { name: "Mate SC", category: "serif" },
+    { name: "Maven Pro", category: "sans-serif" },
+    { name: "McLaren", category: "display" },
+    { name: "Meddon", category: "handwriting" },
+    { name: "MedievalSharp", category: "display" },
+    { name: "Medula One", category: "display" },
+    { name: "Megrim", category: "display" },
+    { name: "Meie Script", category: "handwriting" },
+    { name: "Merienda", category: "handwriting" },
+    { name: "Merienda One", category: "handwriting" },
+    { name: "Merriweather", category: "serif" },
+    { name: "Metal", category: "display" },
+    { name: "Metal Mania", category: "display" },
+    { name: "Metamorphous", category: "display" },
+    { name: "Metrophobic", category: "sans-serif" },
+    { name: "Michroma", category: "sans-serif" },
+    { name: "Milonga", category: "display" },
+    { name: "Miltonian", category: "display" },
+    { name: "Miltonian Tattoo", category: "display" },
+    { name: "Miniver", category: "display" },
+    { name: "Miss Fajardose", category: "handwriting" },
+    { name: "Modern Antiqua", category: "display" },
+    { name: "Molengo", category: "sans-serif" },
+    { name: "Monofett", category: "display" },
+    { name: "Monoton", category: "display" },
+    { name: "Monsieur La Doulaise", category: "handwriting" },
+    { name: "Montaga", category: "serif" },
+    { name: "Montez", category: "handwriting" },
+    { name: "Montserrat", category: "sans-serif" },
+    { name: "Moul", category: "display" },
+    { name: "Moulpali", category: "display" },
+    { name: "Mountains of Christmas", category: "display" },
+    { name: "Mouse Memoirs", category: "sans-serif" },
+    { name: "Mr Bedfort", category: "handwriting" },
+    { name: "Mr Dafoe", category: "handwriting" },
+    { name: "Mr De Haviland", category: "handwriting" },
+    { name: "Mrs Saint Delafield", category: "handwriting" },
+    { name: "Mrs Sheppards", category: "handwriting" },
+    { name: "Muli", category: "sans-serif" },
+    { name: "Mystery Quest", category: "display" },
+    { name: "Neucha", category: "handwriting" },
+    { name: "Neuton", category: "serif" },
+    { name: "New Rocker", category: "display" },
+    { name: "News Cycle", category: "sans-serif" },
+    { name: "Niconne", category: "handwriting" },
+    { name: "Nixie One", category: "display" },
+    { name: "Nobile", category: "sans-serif" },
+    { name: "Nokora", category: "serif" },
+    { name: "Norican", category: "handwriting" },
+    { name: "Nosifer", category: "display" },
+    { name: "Nothing You Could Do", category: "handwriting" },
+    { name: "Noticia Text", category: "serif" },
+    { name: "Noto Sans", category: "sans-serif" },
+    { name: "Noto Serif", category: "serif" },
+    { name: "Nova Cut", category: "display" },
+    { name: "Nova Flat", category: "display" },
+    { name: "Nova Mono", category: "monospace" },
+    { name: "Nova Oval", category: "display" },
+    { name: "Nova Round", category: "display" },
+    { name: "Nova Script", category: "display" },
+    { name: "Nova Slim", category: "display" },
+    { name: "Nova Square", category: "display" },
+    { name: "Numans", category: "sans-serif" },
+    { name: "Nunito", category: "sans-serif" },
+    { name: "Odor Mean Chey", category: "display" },
+    { name: "Offside", category: "display" },
+    { name: "Old Standard TT", category: "serif" },
+    { name: "Oldenburg", category: "display" },
+    { name: "Oleo Script", category: "display" },
+    { name: "Oleo Script Swash Caps", category: "display" },
+    { name: "Open Sans", category: "sans-serif" },
+    { name: "Open Sans Condensed", category: "sans-serif" },
+    { name: "Oranienbaum", category: "serif" },
+    { name: "Orbitron", category: "display" },
+    { name: "Oregano", category: "display" },
+    { name: "Orienta", category: "sans-serif" },
+    { name: "Original Surfer", category: "display" },
+    { name: "Oswald", category: "sans-serif" },
+    { name: "Over the Rainbow", category: "handwriting" },
+    { name: "Overlock", category: "display" },
+    { name: "Overlock SC", category: "display" },
+    { name: "Ovo", category: "serif" },
+    { name: "Oxygen", category: "sans-serif" },
+    { name: "Oxygen Mono", category: "monospace" },
+    { name: "Pacifico", category: "handwriting" },
+    { name: "Paprika", category: "display" },
+    { name: "Parisienne", category: "handwriting" },
+    { name: "Passero One", category: "display" },
+    { name: "Passion One", category: "display" },
+    { name: "Patrick Hand", category: "handwriting" },
+    { name: "Patua One", category: "display" },
+    { name: "Paytone One", category: "sans-serif" },
+    { name: "Peralta", category: "display" },
+    { name: "Permanent Marker", category: "handwriting" },
+    { name: "Petit Formal Script", category: "handwriting" },
+    { name: "Petrona", category: "serif" },
+    { name: "Philosopher", category: "serif" },
+    { name: "Piedra", category: "display" },
+    { name: "Pinyon Script", category: "handwriting" },
+    { name: "Pirata One", category: "display" },
+    { name: "Plaster", category: "display" },
+    { name: "Play", category: "sans-serif" },
+    { name: "Playball", category: "display" },
+    { name: "Playfair Display", category: "serif" },
+    { name: "Playfair Display SC", category: "serif" },
+    { name: "Podkova", category: "serif" },
+    { name: "Poiret One", category: "display" },
+    { name: "Poller One", category: "display" },
+    { name: "Poly", category: "serif" },
+    { name: "Pompiere", category: "display" },
+    { name: "Pontano Sans", category: "sans-serif" },
+    { name: "Poppins", category: "sans-serif" },
+    { name: "Port Lligat Sans", category: "sans-serif" },
+    { name: "Port Lligat Slab", category: "serif" },
+    { name: "Prata", category: "serif" },
+    { name: "Preahvihear", category: "display" },
+    { name: "Press Start 2P", category: "display" },
+    { name: "Princess Sofia", category: "handwriting" },
+    { name: "Prociono", category: "serif" },
+    { name: "Prosto One", category: "display" },
+    { name: "PT Sans", category: "sans-serif" },
+    { name: "PT Sans Caption", category: "sans-serif" },
+    { name: "PT Sans Narrow", category: "sans-serif" },
+    { name: "PT Serif", category: "serif" },
+    { name: "PT Serif Caption", category: "serif" },
+    { name: "Puritan", category: "sans-serif" },
+    { name: "Purple Purse", category: "display" },
+    { name: "Quando", category: "serif" },
+    { name: "Quantico", category: "sans-serif" },
+    { name: "Quattrocento", category: "serif" },
+    { name: "Quattrocento Sans", category: "sans-serif" },
+    { name: "Questrial", category: "sans-serif" },
+    { name: "Quicksand", category: "sans-serif" },
+    { name: "Quintessential", category: "handwriting" },
+    { name: "Qwigley", category: "handwriting" },
+    { name: "Racing Sans One", category: "display" },
+    { name: "Radley", category: "serif" },
+    { name: "Raleway", category: "sans-serif" },
+    { name: "Raleway Dots", category: "display" },
+    { name: "Rambla", category: "sans-serif" },
+    { name: "Rammetto One", category: "display" },
+    { name: "Ranchers", category: "display" },
+    { name: "Rancho", category: "handwriting" },
+    { name: "Rationale", category: "sans-serif" },
+    { name: "Redressed", category: "handwriting" },
+    { name: "Reenie Beanie", category: "handwriting" },
+    { name: "Revalia", category: "display" },
+    { name: "Ribeye", category: "display" },
+    { name: "Ribeye Marrow", category: "display" },
+    { name: "Righteous", category: "display" },
+    { name: "Risque", category: "display" },
+    { name: "Roboto", category: "sans-serif" },
+    { name: "Roboto Condensed", category: "sans-serif" },
+    { name: "Roboto Mono", category: "monospace" },
+    { name: "Roboto Slab", category: "serif" },
+    { name: "Rochester", category: "handwriting" },
+    { name: "Rock Salt", category: "handwriting" },
+    { name: "Rokkitt", category: "serif" },
+    { name: "Romanesco", category: "handwriting" },
+    { name: "Ropa Sans", category: "sans-serif" },
+    { name: "Rosario", category: "sans-serif" },
+    { name: "Rosarivo", category: "serif" },
+    { name: "Rouge Script", category: "handwriting" },
+    { name: "Rozha One", category: "serif" },
+    { name: "Rubik", category: "sans-serif" },
+    { name: "Rubik Mono One", category: "display" },
+    { name: "Rubik One", category: "display" },
+    { name: "Ruda", category: "sans-serif" },
+    { name: "Rufina", category: "serif" },
+    { name: "Ruge Boogie", category: "handwriting" },
+    { name: "Ruluko", category: "sans-serif" },
+    { name: "Rum Raisin", category: "sans-serif" },
+    { name: "Ruslan Display", category: "display" },
+    { name: "Russo One", category: "sans-serif" },
+    { name: "Ruthie", category: "handwriting" },
+    { name: "Rye", category: "display" },
+    { name: "Sacramento", category: "handwriting" },
+    { name: "Sail", category: "display" },
+    { name: "Salsa", category: "display" },
+    { name: "Sanchez", category: "serif" },
+    { name: "Sancreek", category: "display" },
+    { name: "Sansita One", category: "display" },
+    { name: "Sarina", category: "display" },
+    { name: "Satisfy", category: "handwriting" },
+    { name: "Scada", category: "sans-serif" },
+    { name: "Schoolbell", category: "handwriting" },
+    { name: "Seaweed Script", category: "display" },
+    { name: "Sevillana", category: "display" },
+    { name: "Seymour One", category: "sans-serif" },
+    { name: "Shadows Into Light", category: "handwriting" },
+    { name: "Shadows Into Light Two", category: "handwriting" },
+    { name: "Shanti", category: "sans-serif" },
+    { name: "Share", category: "display" },
+    { name: "Share Tech", category: "sans-serif" },
+    { name: "Share Tech Mono", category: "monospace" },
+    { name: "Shojumaru", category: "display" },
+    { name: "Short Stack", category: "handwriting" },
+    { name: "Siemreap", category: "display" },
+    { name: "Sigmar One", category: "display" },
+    { name: "Signika", category: "sans-serif" },
+    { name: "Signika Negative", category: "sans-serif" },
+    { name: "Simonetta", category: "serif" },
+    { name: "Sintony", category: "sans-serif" },
+    { name: "Sirin Stencil", category: "display" },
+    { name: "Six Caps", category: "sans-serif" },
+    { name: "Skranji", category: "display" },
+    { name: "Slabo 13px", category: "serif" },
+    { name: "Slabo 27px", category: "serif" },
+    { name: "Slackey", category: "display" },
+    { name: "Smokum", category: "display" },
+    { name: "Smythe", category: "display" },
+    { name: "Sniglet", category: "display" },
+    { name: "Snippet", category: "sans-serif" },
+    { name: "Snowburst One", category: "display" },
+    { name: "Sofadi One", category: "display" },
+    { name: "Sofia", category: "handwriting" },
+    { name: "Sonsie One", category: "display" },
+    { name: "Sorts Mill Goudy", category: "serif" },
+    { name: "Source Code Pro", category: "monospace" },
+    { name: "Source Sans Pro", category: "sans-serif" },
+    { name: "Source Serif Pro", category: "serif" },
+    { name: "Special Elite", category: "display" },
+    { name: "Spicy Rice", category: "display" },
+    { name: "Spinnaker", category: "sans-serif" },
+    { name: "Spirax", category: "display" },
+    { name: "Squada One", category: "display" },
+    { name: "Stalemate", category: "handwriting" },
+    { name: "Stalinist One", category: "display" },
+    { name: "Stardos Stencil", category: "display" },
+    { name: "Stint Ultra Condensed", category: "display" },
+    { name: "Stint Ultra Expanded", category: "display" },
+    { name: "Stoke", category: "serif" },
+    { name: "Strait", category: "sans-serif" },
+    { name: "Sue Ellen Francisco", category: "handwriting" },
+    { name: "Sunshiney", category: "handwriting" },
+    { name: "Supermercado One", category: "display" },
+    { name: "Suwannaphum", category: "display" },
+    { name: "Swanky and Moo Moo", category: "display" },
+    { name: "Syncopate", category: "sans-serif" },
+    { name: "Tangerine", category: "handwriting" },
+    { name: "Taprom", category: "display" },
+    { name: "Tauri", category: "sans-serif" },
+    { name: "Teko", category: "sans-serif" },
+    { name: "Telex", category: "sans-serif" },
+    { name: "Tenali Ramakrishna", category: "sans-serif" },
+    { name: "Tenor Sans", category: "sans-serif" },
+    { name: "Text Me One", category: "sans-serif" },
+    { name: "The Girl Next Door", category: "handwriting" },
+    { name: "Tienne", category: "serif" },
+    { name: "Tinos", category: "serif" },
+    { name: "Titan One", category: "display" },
+    { name: "Titillium Web", category: "sans-serif" },
+    { name: "Trade Winds", category: "display" },
+    { name: "Trocchi", category: "serif" },
+    { name: "Trochut", category: "display" },
+    { name: "Trykker", category: "serif" },
+    { name: "Tulpen One", category: "display" },
+    { name: "Ubuntu", category: "sans-serif" },
+    { name: "Ubuntu Condensed", category: "sans-serif" },
+    { name: "Ubuntu Mono", category: "monospace" },
+    { name: "Ultra", category: "serif" },
+    { name: "UnifrakturCook", category: "display" },
+    { name: "UnifrakturMaguntia", category: "display" },
+    { name: "Unkempt", category: "display" },
+    { name: "Unlock", category: "display" },
+    { name: "Unna", category: "serif" },
+    { name: "VT323", category: "monospace" },
+    { name: "Vampiro One", category: "display" },
+    { name: "Varela", category: "sans-serif" },
+    { name: "Varela Round", category: "sans-serif" },
+    { name: "Vast Shadow", category: "display" },
+    { name: "Vibur", category: "handwriting" },
+    { name: "Vidaloka", category: "serif" },
+    { name: "Viga", category: "sans-serif" },
+    { name: "Voces", category: "display" },
+    { name: "Volkhov", category: "serif" },
+    { name: "Vollkorn", category: "serif" },
+    { name: "Voltaire", category: "sans-serif" },
+    { name: "Waiting for the Sunrise", category: "handwriting" },
+    { name: "Wallpoet", category: "display" },
+    { name: "Walter Turncoat", category: "handwriting" },
+    { name: "Warnes", category: "display" },
+    { name: "Wellfleet", category: "display" },
+    { name: "Wendy One", category: "sans-serif" },
+    { name: "Wire One", category: "sans-serif" },
+    { name: "Yanone Kaffeesatz", category: "sans-serif" },
+    { name: "Yellowtail", category: "handwriting" },
+    { name: "Yeseva One", category: "display" },
+    { name: "Yesteryear", category: "handwriting" },
+    { name: "Zeyada", category: "handwriting" },
+  ];
+
+  // Function to handle font selection
+  const handleFontSelection = (fontName) => {
+    if (!fontName) return;
+
+    console.log("Font selected:", fontName);
+
+    // Update preview settings
+    const settings = {
+      ...previewBgSettings,
+      fontFamily: fontName,
+      fontUrl: null, // Clear any uploaded font URL
+    };
+    setPreviewBgSettings(settings);
+    setHasUnsavedChanges(true);
+
+    // Apply font globally using context
+    applyFontGlobally(fontName);
+
+    // Check if font was applied successfully
+    setTimeout(() => {
+      const isAvailable = checkFontAvailability(fontName);
+      console.log("Font availability after selection:", isAvailable);
+
+      if (!isAvailable) {
+        console.log("Font not available, forcing refresh...");
+        forceRefreshFont(fontName);
+      }
+    }, 500);
+  };
+
+  // Function to manually trigger font application
+  const manualApplyFont = () => {
+    const currentFont = previewBgSettings.fontFamily;
+    if (!currentFont) {
+      alert("No font selected");
+      return;
+    }
+
+    console.log("Manually applying font:", currentFont);
+
+    // Force apply the font
+    applyFontGlobally(currentFont);
+
+    // Also force refresh
+    setTimeout(() => {
+      forceRefreshFont(currentFont);
+    }, 200);
+
+    alert(`Font ${currentFont} manually applied. Check console for details.`);
+  };
+
+  // Function to test current font application
+  const testCurrentFont = () => {
+    const currentFont = previewBgSettings.fontFamily;
+    if (!currentFont) {
+      alert("No font selected");
+      return;
+    }
+
+    console.log("Testing current font:", currentFont);
+
+    // Check if font is available
+    const isAvailable = checkFontAvailability(currentFont);
+    console.log("Font available:", isAvailable);
+
+    // Check current CSS custom property
+    const cssVar = getComputedStyle(document.documentElement).getPropertyValue(
+      "--wtf-font-family"
+    );
+    console.log("CSS custom property value:", cssVar);
+
+    // Check body font
+    const bodyFont = getComputedStyle(document.body).fontFamily;
+    console.log("Body font:", bodyFont);
+
+    // Check html font
+    const htmlFont = getComputedStyle(document.documentElement).fontFamily;
+    console.log("HTML font:", htmlFont);
+
+    // Show results
+    alert(`Font Test Results:
+Font: ${currentFont}
+Available: ${isAvailable}
+CSS Variable: ${cssVar}
+Body Font: ${bodyFont}
+HTML Font: ${htmlFont}`);
+  };
+
+  // Load selected font on component mount and when font changes
+  useEffect(() => {
+    if (previewBgSettings.fontFamily) {
+      console.log("Font changed in useEffect:", previewBgSettings.fontFamily);
+
+      // Apply font immediately
+      applyFontGlobally(previewBgSettings.fontFamily);
+
+      // Also check and force refresh after a delay
+      setTimeout(() => {
+        const isAvailable = checkFontAvailability(previewBgSettings.fontFamily);
+        if (!isAvailable) {
+          console.log("Font not available in useEffect, forcing refresh...");
+          forceRefreshFont(previewBgSettings.fontFamily);
+        }
+      }, 1000);
+    }
+  }, [
+    previewBgSettings.fontFamily,
+    applyFontGlobally,
+    checkFontAvailability,
+    forceRefreshFont,
+  ]);
+
   const handleColorChange = (color) => {
     // Only apply preview, don't save to backend yet
     const settings = {
@@ -685,11 +1245,21 @@ const WallOfFameContent = ({ onToggleView }) => {
         backgroundRepeat: "no-repeat",
         backgroundAttachment: "fixed",
         color: previewBgSettings.fontColor || undefined,
+        fontFamily: previewBgSettings.fontFamily
+          ? `"${previewBgSettings.fontFamily}", ${getFontCategory(
+              previewBgSettings.fontFamily
+            )}`
+          : undefined,
       };
     } else {
       return {
         backgroundColor: previewBgSettings.backgroundColor,
         color: previewBgSettings.fontColor || undefined,
+        fontFamily: previewBgSettings.fontFamily
+          ? `"${previewBgSettings.fontFamily}", ${getFontCategory(
+              previewBgSettings.fontFamily
+            )}`
+          : undefined,
       };
     }
   };
@@ -1144,10 +1714,64 @@ const WallOfFameContent = ({ onToggleView }) => {
           .join(", ")})`,
       };
 
+  // Function to check computed styles for font application
+  const checkComputedStyles = () => {
+    const currentFont = previewBgSettings.fontFamily;
+    if (!currentFont) {
+      alert("No font selected");
+      return;
+    }
+
+    console.log("Checking computed styles for font:", currentFont);
+
+    // Check various elements
+    const elements = [
+      { name: "HTML", element: document.documentElement },
+      { name: "Body", element: document.body },
+      {
+        name: "Main WTF div",
+        element: document.querySelector("[data-wtf-section]"),
+      },
+      { name: "WTF content", element: document.querySelector(".wtf-content") },
+      { name: "First h1", element: document.querySelector("h1") },
+      { name: "First p", element: document.querySelector("p") },
+    ];
+
+    elements.forEach(({ name, element }) => {
+      if (element) {
+        const computedStyle = getComputedStyle(element);
+        const fontFamily = computedStyle.fontFamily;
+        console.log(`${name} font-family:`, fontFamily);
+
+        // Check if our font is in the computed style
+        if (fontFamily.includes(currentFont)) {
+          console.log(`✅ ${name} has our font`);
+        } else {
+          console.log(`❌ ${name} does NOT have our font`);
+        }
+      }
+    });
+
+    // Show summary
+    const hasFont = elements.some(({ name, element }) => {
+      if (element) {
+        const computedStyle = getComputedStyle(element);
+        return computedStyle.fontFamily.includes(currentFont);
+      }
+      return false;
+    });
+
+    alert(`Computed Styles Check:
+Font: ${currentFont}
+Font Applied: ${hasFont ? "YES" : "NO"}
+Check console for detailed results.`);
+  };
+
   return (
     <div
       className="min-h-screen flex w-full h-screen transition-all duration-300"
       style={getPreviewBackgroundStyle()}
+      data-wtf-section="true"
     >
       {/* Left Sidebar */}
       <div
@@ -1159,7 +1783,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       </div>
 
       {/* Main content area */}
-      <div className="flex-1 relative">
+      <div className="flex-1 relative wtf-content">
         {/* Admin Controls - Only show for admins */}
         {(isAdmin || forceShowAdminControls) && (
           <div
@@ -1349,85 +1973,112 @@ const WallOfFameContent = ({ onToggleView }) => {
                       Font
                     </label>
                     <div className="flex items-center gap-2">
-                      <input
-                        type="text"
-                        placeholder="Font family (e.g., 'Patrick Hand', cursive)"
+                      <select
                         value={previewBgSettings.fontFamily || ""}
-                        onChange={(e) => {
-                          const s = {
-                            ...previewBgSettings,
-                            fontFamily: e.target.value,
-                          };
-                          setPreviewBgSettings(s);
-                          setHasUnsavedChanges(true);
-                        }}
+                        onChange={(e) => handleFontSelection(e.target.value)}
                         className="flex-1 text-xs px-2 py-1 border rounded"
-                      />
-                    </div>
-                    <div className="mt-2 border border-dashed border-gray-300 rounded p-3 text-center">
-                      <input
-                        type="file"
-                        accept=".woff2,.woff,.ttf,.otf"
-                        onChange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          try {
-                            setIsUploadingFont(true);
-                            const resp = await uploadWtfFont(file);
-                            const s = {
-                              ...previewBgSettings,
-                              fontUrl: resp.data.fontUrl,
-                            };
-                            setPreviewBgSettings(s);
-                            setHasUnsavedChanges(true);
-                            setBgSuccess(
-                              "Font uploaded! Remember to set font family and Save."
-                            );
-                            setTimeout(() => setBgSuccess(""), 3000);
-                          } catch (err) {
-                            setBgError("Failed to upload font");
-                            setTimeout(() => setBgError(""), 3000);
-                          } finally {
-                            setIsUploadingFont(false);
-                          }
-                        }}
-                        className="hidden"
-                        id="bg-font-upload-compact"
-                        disabled={isUploadingBg}
-                      />
-                      <label
-                        htmlFor="bg-font-upload-compact"
-                        className={`cursor-pointer flex flex-col items-center ${
-                          isUploadingFont
-                            ? "pointer-events-none opacity-50"
-                            : ""
-                        }`}
                       >
-                        {isUploadingFont ? (
-                          <Loader className="w-5 h-5 animate-spin text-blue-600 mb-1" />
-                        ) : (
-                          <Upload className="w-5 h-5 text-gray-400 mb-1" />
-                        )}
-                        <span className="text-xs text-gray-600">
-                          {isUploadingFont
-                            ? "Uploading..."
-                            : "Upload Font (.woff2/.ttf/.otf)"}
-                        </span>
-                      </label>
+                        <option value="">Select a font</option>
+                        {googleFonts.map((font) => (
+                          <option key={font.name} value={font.name}>
+                            {font.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    {/* Show chosen font file (URL) */}
-                    {previewBgSettings.fontUrl && (
-                      <div className="mt-2 text-xs text-gray-600 break-all">
-                        Selected font file:
-                        <div className="truncate">
-                          <a
-                            href={previewBgSettings.fontUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-blue-600 underline"
+
+                    {/* Font Debug Info */}
+                    <div className="mt-2 p-2 bg-yellow-50 rounded border border-yellow-200">
+                      <div className="text-xs text-yellow-700 mb-1">
+                        Debug Info:
+                      </div>
+                      <div className="text-xs text-yellow-600 space-y-1">
+                        <div>
+                          Selected Font:{" "}
+                          {previewBgSettings.fontFamily || "None"}
+                        </div>
+                        <div>
+                          CSS Variable:{" "}
+                          {typeof window !== "undefined"
+                            ? getComputedStyle(
+                                document.documentElement
+                              ).getPropertyValue("--wtf-font-family")
+                            : "N/A"}
+                        </div>
+                        <div>
+                          Body Font:{" "}
+                          {typeof window !== "undefined"
+                            ? getComputedStyle(document.body).fontFamily
+                            : "N/A"}
+                        </div>
+                      </div>
+                      <button
+                        onClick={manualApplyFont}
+                        className="mt-2 w-full text-xs px-2 py-1 bg-yellow-200 text-yellow-800 rounded hover:bg-yellow-300"
+                      >
+                        Manual Apply Font
+                      </button>
+                      <button
+                        onClick={checkComputedStyles}
+                        className="mt-2 w-full text-xs px-2 py-1 bg-orange-200 text-orange-800 rounded hover:bg-orange-300"
+                      >
+                        Check Computed Styles
+                      </button>
+                    </div>
+
+                    {/* Selected Font Preview */}
+                    {previewBgSettings.fontFamily && (
+                      <div className="mt-2 p-2 bg-gray-50 rounded border">
+                        <div className="text-xs text-gray-600 mb-1">
+                          Preview:
+                        </div>
+                        <div
+                          className="text-sm"
+                          style={{
+                            fontFamily: `"${
+                              previewBgSettings.fontFamily
+                            }", ${getFontCategory(
+                              previewBgSettings.fontFamily
+                            )}`,
+                          }}
+                        >
+                          The quick brown fox jumps over the lazy dog
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          {previewBgSettings.fontFamily} (
+                          {getFontCategory(previewBgSettings.fontFamily)})
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            onClick={() =>
+                              forceRefreshFont(previewBgSettings.fontFamily)
+                            }
+                            className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                           >
-                            {previewBgSettings.fontUrl}
-                          </a>
+                            Force Apply Font
+                          </button>
+                          <button
+                            onClick={() => {
+                              const isAvailable = checkFontAvailability(
+                                previewBgSettings.fontFamily
+                              );
+                              console.log("Font availability:", isAvailable);
+                              alert(
+                                `Font ${previewBgSettings.fontFamily} is ${
+                                  isAvailable ? "available" : "not available"
+                                }`
+                              );
+                            }}
+                            className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          >
+                            Check Font Status
+                          </button>
+                          <button
+                            onClick={testCurrentFont}
+                            className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded hover:bg-purple-200"
+                          >
+                            Test Font
+                          </button>
                         </div>
                       </div>
                     )}
