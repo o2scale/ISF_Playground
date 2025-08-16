@@ -1900,23 +1900,34 @@ const WallOfFameContent = ({ onToggleView }) => {
 
       {/* Sophisticated Modals */}
       {selectedContent && modalType === "photo" && (
-        <ImageViewer
-          isOpen={true}
-          onClose={closeModal}
-          imageSrc={selectedContent.mediaUrl || selectedContent.content}
-          title={selectedContent.title}
-          author={selectedContent.author}
-          likes={selectedContent.engagementMetrics?.likes || 0}
-          hearts={selectedContent.engagementMetrics?.loves || 0}
-          views={selectedContent.engagementMetrics?.seen || 0}
-          isOfficial={selectedContent.isOfficial}
-          onLike={() =>
-            handleLikePin(selectedContent.id || selectedContent._id)
-          }
-          onHeart={() =>
-            handleHeartPin(selectedContent.id || selectedContent._id)
-          }
-        />
+        <>
+          {/* Debug info */}
+          {console.log("ImageViewer Debug - selectedContent:", {
+            title: selectedContent.title,
+            author: selectedContent.author,
+            authorType: typeof selectedContent.author,
+            authorKeys: selectedContent.author
+              ? Object.keys(selectedContent.author)
+              : null,
+          })}
+          <ImageViewer
+            isOpen={true}
+            onClose={closeModal}
+            imageSrc={selectedContent.mediaUrl || selectedContent.content}
+            title={selectedContent.title}
+            author={selectedContent.author}
+            likes={selectedContent.engagementMetrics?.likes || 0}
+            hearts={selectedContent.engagementMetrics?.loves || 0}
+            views={selectedContent.engagementMetrics?.seen || 0}
+            isOfficial={selectedContent.isOfficial}
+            onLike={() =>
+              handleLikePin(selectedContent.id || selectedContent._id)
+            }
+            onHeart={() =>
+              handleHeartPin(selectedContent.id || selectedContent._id)
+            }
+          />
+        </>
       )}
 
       {selectedContent && modalType === "video" && (
