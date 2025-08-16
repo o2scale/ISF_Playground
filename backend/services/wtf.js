@@ -361,6 +361,56 @@ class WtfService {
           );
         }
 
+        // Create notifications for pin creation
+        try {
+          const NotificationService = require("./notification");
+
+          if (
+            mappedPayload.author &&
+            mappedPayload.author.toString().match(/^[0-9a-fA-F]{24}$/)
+          ) {
+            // Check if author is a student
+            const User = require("../models/user");
+            const user = await User.findById(mappedPayload.author);
+
+            if (user && user.role === "student") {
+              // Personal notification for student whose content was pinned
+              await NotificationService.notifyWtfPinAdded(user._id, {
+                pinId: result.data._id,
+                title: mappedPayload.title,
+                contentType: mappedPayload.type,
+                pinnedBy: { adminId: user._id },
+              });
+            }
+          }
+
+          // Common notification for all students about new content (regardless of who created it)
+          await NotificationService.createCommunityNotification(
+            "New Content Featured on WTF!",
+            `A new ${mappedPayload.type.toLowerCase()} "${
+              mappedPayload.title
+            }" has been featured on the WTF board! Check it out!`,
+            "NEW_CONTENT",
+            ["student"], // targetAudience: array of roles
+            {
+              pinId: result.data._id,
+              contentType: mappedPayload.type,
+              title: mappedPayload.title,
+              actionUrl: `/wtf/pin/${result.data._id}`,
+            }
+          );
+        } catch (notificationError) {
+          errorLogger.error(
+            {
+              userId: mappedPayload.author,
+              pinId: result.data._id,
+              error: notificationError.message,
+            },
+            "Error creating notification for pin creation"
+          );
+          // Don't fail the pin creation if notification creation fails
+        }
+
         return {
           success: true,
           data: result.data,
@@ -1442,6 +1492,34 @@ class WtfService {
 
             // Add coin information to response
             result.data.coinAward = coinResult.data;
+
+            // Create notification for student about submission approval
+            try {
+              const NotificationService = require("./notification");
+              await NotificationService.createPersonalNotification(
+                result.data.studentId,
+                "Submission Approved!",
+                `Your ${result.data.type} submission "${result.data.title}" has been approved and is now featured on the WTF board!`,
+                "NEW_CONTENT",
+                {
+                  submissionId: submissionId,
+                  pinId: result.data.approvedPin?._id,
+                  contentType: result.data.type,
+                  title: result.data.title,
+                  actionUrl: `/wtf/pin/${result.data.approvedPin?._id}`,
+                }
+              );
+            } catch (notificationError) {
+              errorLogger.error(
+                {
+                  studentId: result.data.studentId,
+                  submissionId: submissionId,
+                  error: notificationError.message,
+                },
+                "Error creating submission approval notification"
+              );
+              // Don't fail the approval if notification creation fails
+            }
           } catch (coinError) {
             errorLogger.error(
               { submissionId, reviewerId, error: coinError.message },
@@ -2310,6 +2388,34 @@ class WtfService {
       );
 
       if (coinResult.success) {
+        // Create notification for coin award
+        try {
+          const NotificationService = require("./notification");
+          await NotificationService.notifyCoinsAwarded(
+            studentId,
+            coinReward,
+            "WTF_CONTENT_PINNED",
+            `Your ${pinData.contentType.toLowerCase()} "${
+              pinData.title
+            }" was featured on WTF!`,
+            {
+              pinId: pinData.pinId,
+              contentType: pinData.contentType,
+              pinnedBy: pinData.pinnedBy?.adminId,
+            }
+          );
+        } catch (notificationError) {
+          errorLogger.error(
+            {
+              studentId,
+              pinId: pinData.pinId,
+              error: notificationError.message,
+            },
+            "Error creating coin award notification"
+          );
+          // Don't fail coin award if notification creation fails
+        }
+
         logger.info(
           {
             studentId,

@@ -5,7 +5,14 @@ import "./Layout.css";
 import { useAuth } from "../contexts/AuthContext";
 import { useRBAC } from "../contexts/RBACContext";
 import { usePermission } from "./hooks/usePermission";
-import { getUserCoinBalance } from "../api";
+import {
+  getUserCoinBalance,
+  getUserNotifications,
+  getUnreadNotificationCount,
+  markNotificationAsRead,
+  markAllNotificationsAsRead,
+  updateNotificationLastViewed,
+} from "../api";
 
 // Create Sidebar Context
 const SidebarContext = createContext();
@@ -26,11 +33,13 @@ const Layout = () => {
   const location = useLocation(); // Get current location
   const [visibleMenus, setVisibleMenus] = useState([]);
   const [role, setRole] = useState("");
-  const [notifications, setNotifications] = useState(1);
+  const [notifications, setNotifications] = useState(0);
   const [showChatWindow, setShowChatWindow] = useState(null); // null, "coach", or "admin"
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [coinBalance, setCoinBalance] = useState(null);
+  const [notificationsList, setNotificationsList] = useState([]);
+  const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   // Check if current route is WTF
   const isWTFRoute = location.pathname === "/wtf";
@@ -102,43 +111,102 @@ const Layout = () => {
     { id: 6, name: "Reports", activeTab: "reports" },
   ];
 
-  const notificationsList = [
-    {
-      id: 1,
-      title: "New Lesson Available",
-      message: "Check out the new English lesson!",
-      time: "1 hour ago",
-    },
-    {
-      id: 2,
-      title: "Homework Reminder",
-      message: "Don't forget to complete your homework",
-      time: "3 hours ago",
-    },
-    {
-      id: 3,
-      title: "Achievement Unlocked",
-      message: "You've earned the 'Fast Learner' badge!",
-      time: "Yesterday",
-    },
-    {
-      id: 4,
-      title: "Coach Message",
-      message: "Your coach sent you a new message",
-      time: "Yesterday",
-    },
-    {
-      id: 5,
-      title: "ISF Shop Update",
-      message: "New items available in the ISF shop",
-      time: "2 days ago",
-    },
-  ];
-
   console.log(sportCoachMenu);
 
-  const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
+  const handleNotificationClick = async () => {
+    const newShowState = !showNotifications;
+    setShowNotifications(newShowState);
+
+    // If opening notifications, update last viewed time
+    if (newShowState && localStorage.getItem("role") === "student") {
+      try {
+        await updateNotificationLastViewed();
+        // Refresh the unread count to show only new notifications
+        await fetchUnreadCount();
+      } catch (error) {
+        console.error("Error updating notification last viewed time:", error);
+      }
+    }
+  };
+
+  // Fetch notifications for the user
+  const fetchNotifications = async () => {
+    if (localStorage.getItem("role") === "student") {
+      try {
+        setIsLoadingNotifications(true);
+        const result = await getUserNotifications(20, 0);
+        if (result.success) {
+          setNotificationsList(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setIsLoadingNotifications(false);
+      }
+    }
+  };
+
+  // Fetch unread notification count
+  const fetchUnreadCount = async () => {
+    if (localStorage.getItem("role") === "student") {
+      try {
+        const result = await getUnreadNotificationCount();
+        if (result.success) {
+          setNotifications(result.data.count);
+        }
+      } catch (error) {
+        console.error("Error fetching unread count:", error);
+      }
+    }
+  };
+
+  // Mark notification as read
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markNotificationAsRead(notificationId);
+      // Refresh notifications and unread count
+      await fetchNotifications();
+      await fetchUnreadCount();
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+    }
+  };
+
+  // Handle closing notifications panel and mark all as read
+  const handleCloseNotifications = async () => {
+    if (localStorage.getItem("role") === "student") {
+      try {
+        // Mark all notifications as read
+        await markAllNotificationsAsRead();
+        // Refresh the unread count
+        await fetchUnreadCount();
+      } catch (error) {
+        console.error("Error marking all notifications as read:", error);
+      }
+    }
+    // Close the panel
+    setShowNotifications(false);
+  };
+
+  // Format time for display
+  const formatTime = (timestamp) => {
+    const now = new Date();
+    const notificationTime = new Date(timestamp);
+    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
+
+    if (diffInMinutes < 1) return "Just now";
+    if (diffInMinutes < 60)
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? "s" : ""} ago`;
+
+    const diffInHours = Math.floor(diffInMinutes / 60);
+    if (diffInHours < 24)
+      return `${diffInHours} hour${diffInHours > 1 ? "s" : ""} ago`;
+
+    const diffInDays = Math.floor(diffInHours / 24);
+    if (diffInDays < 7)
+      return `${diffInDays} day${diffInDays > 1 ? "s" : ""} ago`;
+
+    return notificationTime.toLocaleDateString();
   };
 
   const NotificationsPanel = () => {
@@ -146,16 +214,39 @@ const Layout = () => {
       <div className="notifications-panel">
         <div className="notifications-header">
           <h3>Notifications</h3>
-          <button onClick={() => setShowNotifications(false)}>✖</button>
+          <button onClick={handleCloseNotifications}>✖</button>
         </div>
         <div className="notifications-list">
-          {notificationsList.map((notification) => (
-            <div key={notification.id} className="notification-item">
-              <div className="notification-title">{notification.title}</div>
-              <div className="notification-message">{notification.message}</div>
-              <div className="notification-time">{notification.time}</div>
+          {isLoadingNotifications ? (
+            <div className="notification-item">
+              <div className="notification-message">
+                Loading notifications...
+              </div>
             </div>
-          ))}
+          ) : notificationsList.length === 0 ? (
+            <div className="notification-item">
+              <div className="notification-message">No notifications</div>
+            </div>
+          ) : (
+            notificationsList.map((notification) => (
+              <div
+                key={notification._id}
+                className={`notification-item ${
+                  !notification.isRead ? "unread" : ""
+                }`}
+                onClick={() => handleMarkAsRead(notification._id)}
+                style={{ cursor: "pointer" }}
+              >
+                <div className="notification-title">{notification.title}</div>
+                <div className="notification-message">
+                  {notification.message}
+                </div>
+                <div className="notification-time">
+                  {formatTime(notification.createdAt)}
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </div>
     );
@@ -176,7 +267,8 @@ const Layout = () => {
     );
 
     setVisibleMenus(filteredMenus);
-    // Fetch coin balance for student
+
+    // Fetch coin balance and notifications for student
     if (userRole === "student") {
       (async () => {
         try {
@@ -189,6 +281,10 @@ const Layout = () => {
           setCoinBalance(0);
         }
       })();
+
+      // Fetch notifications
+      fetchNotifications();
+      fetchUnreadCount();
     }
   }, []);
 
