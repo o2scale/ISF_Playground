@@ -507,29 +507,50 @@ class CoinService {
   // Get all coin transactions across all users (Admin only)
   static async getAllTransactions(limit = 100, skip = 0, filters = {}) {
     try {
+      console.log("getAllTransactions called with filters:", filters);
       let query = {};
 
       // Apply filters if provided
       if (filters.userId) {
         query.userId = filters.userId;
       }
-      if (filters.source) {
+      if (filters.source && filters.source.trim() !== "") {
         query["transactions.source"] = filters.source;
+        console.log("Applied source filter:", filters.source);
       }
-      if (filters.pinType) {
-        query["transactions.wtfPinId"] = { $exists: true, $ne: null };
+      // Note: pinType and date filtering are handled in the aggregation pipeline after lookup
+      // We don't need to restrict the initial query for these filters
+
+      // Log date filter values for debugging
+      if (filters.dateFrom && filters.dateFrom.trim() !== "") {
+        console.log("DateFrom filter value:", filters.dateFrom);
+        console.log("DateFrom as Date object:", new Date(filters.dateFrom));
+        console.log(
+          "DateFrom as ISO string:",
+          new Date(filters.dateFrom).toISOString()
+        );
       }
-      if (filters.dateFrom || filters.dateTo) {
-        query["transactions.createdAt"] = {};
-        if (filters.dateFrom) {
-          query["transactions.createdAt"].$gte = new Date(filters.dateFrom);
-        }
-        if (filters.dateTo) {
-          query["transactions.createdAt"].$lte = new Date(filters.dateTo);
-        }
+      if (filters.dateTo && filters.dateTo.trim() !== "") {
+        console.log("DateTo filter value:", filters.dateTo);
+        console.log("DateTo as Date object:", new Date(filters.dateTo));
+        console.log(
+          "DateTo as ISO string:",
+          new Date(filters.dateTo).toISOString()
+        );
+      }
+
+      console.log("Final query:", JSON.stringify(query, null, 2));
+
+      // Log pin type filter if specified
+      if (filters.pinType && filters.pinType.trim() !== "") {
+        console.log("Will apply pinType filter:", filters.pinType);
       }
 
       // Aggregate to get all transactions with user details
+      console.log(
+        "Starting aggregation pipeline with query:",
+        JSON.stringify(query, null, 2)
+      );
       const pipeline = [
         { $match: query },
         { $unwind: "$transactions" },
@@ -542,7 +563,7 @@ class CoinService {
             as: "user",
           },
         },
-        // Lookup WTF pin information for pin-related transactions
+        // Lookup WTF pin information for pin-related transactions (left join to preserve all transactions)
         {
           $lookup: {
             from: "wtf_pins",
@@ -556,16 +577,51 @@ class CoinService {
             "transactions.userName": { $arrayElemAt: ["$user.name", 0] },
             "transactions.userRole": { $arrayElemAt: ["$user.role", 0] },
             "transactions.userId": "$userId",
-            "transactions.pinType": { $arrayElemAt: ["$wtfPin.type", 0] },
-            "transactions.pinTitle": { $arrayElemAt: ["$wtfPin.title", 0] },
+            "transactions.pinType": {
+              $cond: {
+                if: { $gt: [{ $size: "$wtfPin" }, 0] },
+                then: { $arrayElemAt: ["$wtfPin.type", 0] },
+                else: null,
+              },
+            },
+            "transactions.pinTitle": {
+              $cond: {
+                if: { $gt: [{ $size: "$wtfPin" }, 0] },
+                then: { $arrayElemAt: ["$wtfPin.title", 0] },
+                else: null,
+              },
+            },
           },
         },
         // Apply pin type filter if specified
-        ...(filters.pinType
+        ...(filters.pinType && filters.pinType.trim() !== ""
           ? [
               {
                 $match: {
                   "transactions.pinType": filters.pinType,
+                },
+              },
+            ]
+          : []),
+        // Apply date filters if specified
+        ...(filters.dateFrom && filters.dateFrom.trim() !== ""
+          ? [
+              {
+                $match: {
+                  "transactions.createdAt": {
+                    $gte: new Date(filters.dateFrom),
+                  },
+                },
+              },
+            ]
+          : []),
+        ...(filters.dateTo && filters.dateTo.trim() !== ""
+          ? [
+              {
+                $match: {
+                  "transactions.createdAt": {
+                    $lte: new Date(filters.dateTo),
+                  },
                 },
               },
             ]
@@ -586,7 +642,30 @@ class CoinService {
         { $limit: limit },
       ];
 
+      console.log(
+        "Complete aggregation pipeline:",
+        JSON.stringify(pipeline, null, 2)
+      );
       const transactions = await Coin.aggregate(pipeline);
+      console.log(
+        "Aggregation pipeline returned",
+        transactions.length,
+        "transactions"
+      );
+
+      // Log first few transaction dates for debugging
+      if (transactions.length > 0) {
+        console.log("Sample transaction dates:");
+        transactions.slice(0, 3).forEach((t, i) => {
+          console.log(`Transaction ${i + 1}:`, {
+            createdAt: t.transaction.createdAt,
+            createdAtType: typeof t.transaction.createdAt,
+            createdAtISO: t.transaction.createdAt
+              ? t.transaction.createdAt.toISOString()
+              : "null",
+          });
+        });
+      }
 
       // Get total count for pagination (only student transactions)
       const countPipeline = [
@@ -600,11 +679,60 @@ class CoinService {
             as: "user",
           },
         },
+        // Lookup WTF pin information for pin-related transactions (needed for pin type filtering)
+        {
+          $lookup: {
+            from: "wtf_pins",
+            localField: "transactions.wtfPinId",
+            foreignField: "_id",
+            as: "wtfPin",
+          },
+        },
         {
           $addFields: {
             "transactions.userRole": { $arrayElemAt: ["$user.role", 0] },
+            "transactions.pinType": {
+              $cond: {
+                if: { $gt: [{ $size: "$wtfPin" }, 0] },
+                then: { $arrayElemAt: ["$wtfPin.type", 0] },
+                else: null,
+              },
+            },
           },
         },
+        // Apply pin type filter if specified
+        ...(filters.pinType && filters.pinType.trim() !== ""
+          ? [
+              {
+                $match: {
+                  "transactions.pinType": filters.pinType,
+                },
+              },
+            ]
+          : []),
+        // Apply date filters if specified
+        ...(filters.dateFrom && filters.dateFrom.trim() !== ""
+          ? [
+              {
+                $match: {
+                  "transactions.createdAt": {
+                    $gte: new Date(filters.dateFrom),
+                  },
+                },
+              },
+            ]
+          : []),
+        ...(filters.dateTo && filters.dateTo.trim() !== ""
+          ? [
+              {
+                $match: {
+                  "transactions.createdAt": {
+                    $lte: new Date(filters.dateTo),
+                  },
+                },
+              },
+            ]
+          : []),
         // Filter to only count student transactions
         {
           $match: {

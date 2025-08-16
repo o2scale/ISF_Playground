@@ -243,10 +243,14 @@ const WTFManagementContent = ({ onToggleView }) => {
         ...coinTransactionsFilters,
       };
 
+      console.log("Fetching coin transactions with params:", params);
+      console.log("Current filters:", coinTransactionsFilters);
+
       const response = await getAllCoinTransactions(params);
       if (response.success) {
         setCoinTransactions(response.data.transactions);
         setCoinTransactionsTotal(response.data.totalTransactions);
+        console.log("Received transactions:", response.data.transactions);
       }
     } catch (error) {
       console.error("Error fetching coin transactions:", error);
@@ -258,6 +262,14 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Fetch coin transactions when filters or page changes
   useEffect(() => {
+    console.log(
+      "useEffect triggered - activeTab:",
+      activeTab,
+      "page:",
+      coinTransactionsPage,
+      "filters:",
+      coinTransactionsFilters
+    );
     if (activeTab === "coin-transactions") {
       fetchCoinTransactions();
     }
@@ -265,8 +277,26 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Handle coin transactions filter changes
   const handleCoinTransactionsFilterChange = (key, value) => {
-    setCoinTransactionsFilters((prev) => ({ ...prev, [key]: value }));
+    console.log(`Filter change: ${key} = ${value}`);
+    console.log(`Previous filters:`, coinTransactionsFilters);
+    setCoinTransactionsFilters((prev) => {
+      const newFilters = { ...prev, [key]: value };
+      console.log(`New filters:`, newFilters);
+      return newFilters;
+    });
     setCoinTransactionsPage(1); // Reset to first page when filters change
+  };
+
+  // Clear all filters
+  const clearCoinTransactionsFilters = () => {
+    console.log("Clearing all filters");
+    setCoinTransactionsFilters({
+      source: "",
+      pinType: "",
+      dateFrom: "",
+      dateTo: "",
+    });
+    setCoinTransactionsPage(1);
   };
 
   // Refetch submissions when switching between Voice and Articles
@@ -2683,6 +2713,16 @@ const WTFManagementContent = ({ onToggleView }) => {
                             </li>
                           </ul>
                         </div>
+                      </div>
+
+                      {/* Clear Filters Button */}
+                      <div className="flex justify-end mb-4">
+                        <button
+                          onClick={clearCoinTransactionsFilters}
+                          className="px-4 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                        >
+                          Clear Filters
+                        </button>
                       </div>
                     </div>
 

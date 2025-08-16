@@ -502,6 +502,11 @@ exports.getAllTransactions = async (req, res) => {
     if (dateFrom) filters.dateFrom = dateFrom;
     if (dateTo) filters.dateTo = dateTo;
 
+    // Map pinType filter to type filter for WTF pin filtering
+    if (req.query.pinType) {
+      filters.pinType = req.query.pinType;
+    }
+
     const result = await CoinService.getAllTransactions(
       parseInt(limit),
       (parseInt(page) - 1) * parseInt(limit),

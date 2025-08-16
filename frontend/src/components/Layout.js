@@ -372,7 +372,12 @@ const Layout = () => {
                   <br />
                   EARNED
                 </span>
-                <div className="coins-circle">{coinBalance ?? "--"}</div>
+                <div
+                  className="coins-circle"
+                  data-digits={coinBalance ? coinBalance.toString().length : 0}
+                >
+                  {coinBalance ?? "--"}
+                </div>
               </div>
               <div className="notifications-container">
                 <div
