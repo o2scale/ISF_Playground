@@ -51,6 +51,7 @@ import {
   updateWtfSettings,
   uploadWtfBackgroundImage,
   uploadWtfFont,
+  getStudentInteractionHistory,
 } from "../../api";
 import showToast from "../../utils/toast";
 
@@ -468,6 +469,10 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   // Track viewed pins per-user in current session to avoid duplicate view API calls
   const viewedPinsRef = React.useRef(new Set());
+  
+  // Track all pins the student has viewed (from backend)
+  const [viewedPinsFromBackend, setViewedPinsFromBackend] = useState(new Set());
+  
   useEffect(() => {
     try {
       const key = `wtf_viewed_${user?.id || "guest"}`;
@@ -480,6 +485,54 @@ const WallOfFameContent = ({ onToggleView }) => {
       }
     } catch (e) {
       // ignore parse errors
+    }
+  }, [user?.id]);
+
+  // Fetch student's interaction history to determine which pins have been viewed
+  useEffect(() => {
+    const fetchStudentInteractions = async () => {
+      if (!user?.id) return;
+      
+      try {
+        const response = await getStudentInteractionHistory(user.id, { limit: 1000, type: 'seen' });
+        if (response.success && response.data?.interactions) {
+          const viewedPinIds = new Set(
+            response.data.interactions
+              .filter(interaction => interaction.type === 'seen')
+              .map(interaction => interaction.pinId?._id || interaction.pinId)
+          );
+          setViewedPinsFromBackend(viewedPinIds);
+        }
+      } catch (error) {
+        console.error('Error fetching student interactions:', error);
+      }
+    };
+
+    fetchStudentInteractions();
+  }, [user?.id]);
+
+  // Function to check if a pin has been viewed by the current student
+  const hasStudentViewedPin = useCallback((pinId) => {
+    if (!pinId) return false;
+    return viewedPinsRef.current.has(pinId) || viewedPinsFromBackend.has(pinId);
+  }, [viewedPinsFromBackend]);
+
+  // Function to refresh viewed pins from backend
+  const refreshViewedPins = useCallback(async () => {
+    if (!user?.id) return;
+    
+    try {
+      const response = await getStudentInteractionHistory(user.id, { limit: 1000, type: 'seen' });
+      if (response.success && response.data?.interactions) {
+        const viewedPinIds = new Set(
+          response.data.interactions
+            .filter(interaction => interaction.type === 'seen')
+            .map(interaction => interaction.pinId?._id || interaction.pinId)
+        );
+        setViewedPinsFromBackend(viewedPinIds);
+      }
+    } catch (error) {
+      console.error('Error refreshing viewed pins:', error);
     }
   }, [user?.id]);
 
@@ -542,6 +595,8 @@ const WallOfFameContent = ({ onToggleView }) => {
         console.error("Error marking WTF pin as seen:", err);
       } finally {
         viewedPinsRef.current.add(pinId);
+        // Also update the backend viewed pins state
+        setViewedPinsFromBackend(prev => new Set([...prev, pinId]));
         try {
           const key = `wtf_viewed_${user?.id || "guest"}`;
           sessionStorage.setItem(
@@ -1635,23 +1690,37 @@ HTML Font: ${htmlFont}`);
     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
   });
 
-  const renderCard = (item) => (
-    <div
-      key={item._id || item.id}
-      className="bg-yellow-50 p-4 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl relative"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePinClick(item);
-      }}
-      style={{
-        transform: `rotate(${Math.random() * 6 - 3}deg)`,
-        ...getPostageStampStyle(),
-      }}
-    >
+  const renderCard = (item) => {
+    const pinId = item._id || item.id;
+    const isViewed = hasStudentViewedPin(pinId);
+    
+    return (
+      <div
+        key={pinId}
+        className={`bg-yellow-50 p-4 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl relative ${
+          isViewed ? 'opacity-60 grayscale hover:opacity-100 hover:grayscale-0' : ''
+        }`}
+        title={isViewed ? 'Pin already viewed - click to view again' : 'Click to view pin'}
+        style={{
+          transform: `rotate(${Math.random() * 6 - 3}deg)`,
+          ...getPostageStampStyle(),
+          ...(isViewed && { borderColor: '#9ca3af' }), // Subtle border color change for viewed pins
+          filter: isViewed ? 'grayscale(100%)' : 'none', // Ensure grayscale works
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handlePinClick(item);
+        }}
+      >
       {item.isOfficial && (
         <div className="absolute top-2 left-2 z-20">
           <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+        </div>
+      )}
+      {isViewed && (
+        <div className="absolute top-2 right-2 z-20">
+          <Badge className="bg-gray-500 text-white text-xs">Viewed</Badge>
         </div>
       )}
       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
@@ -1705,7 +1774,7 @@ HTML Font: ${htmlFont}`);
           }}
           aria-label="Love"
         >
-          <Heart className="w-3 h-3 text-red-500" />
+          <Heart className="w-3 h-3 text-green-500" />
           <span className="text-gray-700 font-medium">
             {item.engagementMetrics?.loves ?? 0}
           </span>
@@ -1732,8 +1801,9 @@ HTML Font: ${htmlFont}`);
           {item.title}
         </h3>
       )}
-    </div>
-  );
+      </div>
+    );
+  };
 
   // Dynamic background style based on settings
   const backgroundStyle = backgroundSettings.image
@@ -1905,6 +1975,17 @@ Check console for detailed results.`);
                       <Eye className="w-4 h-4" />
                       Review Queue ({adminCounts.reviewQueue})
                     </div>
+                  </div>
+                  
+                  <div className="mt-3">
+                    <button
+                      onClick={refreshViewedPins}
+                      className="w-full bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded flex items-center gap-2 justify-center"
+                      title="Refresh viewed pins from backend"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Refresh Viewed Pins
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2414,6 +2495,27 @@ Check console for detailed results.`);
                   </button>
                 </div>
               </div>
+
+              {/* Summary of viewed vs unviewed pins */}
+              {filteredContent.length > 0 && (
+                <div className="mb-4 text-center">
+                  <div className="inline-flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2 text-sm">
+                    <span className="text-gray-600">
+                      Total: <span className="font-semibold">{filteredContent.length}</span>
+                    </span>
+                    <span className="text-blue-600">
+                      Unviewed: <span className="font-semibold">
+                        {filteredContent.filter(item => !hasStudentViewedPin(item._id || item.id)).length}
+                      </span>
+                    </span>
+                    <span className="text-gray-500">
+                      Viewed: <span className="font-semibold">
+                        {filteredContent.filter(item => hasStudentViewedPin(item._id || item.id)).length}
+                      </span>
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {filteredContent.length > 0 ? (
                 !groupByType ? (
