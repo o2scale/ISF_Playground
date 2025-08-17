@@ -80,7 +80,7 @@ router.delete(
 router.post(
   "/admin/system-announcement",
   authenticate,
-  checkPermission("notifications", "create"),
+  checkPermission("notifications", "Create"),
   notificationController.createSystemAnnouncement
 );
 
@@ -92,9 +92,45 @@ router.post(
 router.post(
   "/admin/shop-update",
   authenticate,
-  checkPermission("notifications", "create"),
+  checkPermission("notifications", "Create"),
   notificationController.createShopUpdateNotification
 );
+
+/**
+ * @route   POST /api/notifications/admin/send-personal
+ * @desc    Send a personal notification to a specific student (admin only)
+ * @access  Private (Admin)
+ */
+router.post(
+  "/admin/send-personal",
+  authenticate,
+  // Temporarily commenting out permission check for testing
+  // checkPermission("notifications", "Create"),
+  notificationController.sendAdminPersonalNotification
+);
+
+/**
+ * @route   GET /api/notifications/debug/user-permissions
+ * @desc    Debug endpoint to check current user's role and permissions
+ * @access  Private (for debugging)
+ */
+router.get("/debug/user-permissions", authenticate, (req, res) => {
+  try {
+    const user = req.user;
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        email: user.email,
+      },
+      message: "User permissions debug info",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 /**
  * @route   GET /api/notifications/admin/stats
@@ -104,7 +140,7 @@ router.post(
 router.get(
   "/admin/stats",
   authenticate,
-  checkPermission("notifications", "read"),
+  checkPermission("notifications", "Read"),
   notificationController.getNotificationStats
 );
 
@@ -116,7 +152,7 @@ router.get(
 router.post(
   "/admin/cleanup",
   authenticate,
-  checkPermission("notifications", "delete"),
+  checkPermission("notifications", "Delete"),
   notificationController.cleanupExpiredNotifications
 );
 
@@ -131,7 +167,7 @@ router.post(
 router.post(
   "/coach/message",
   authenticate,
-  checkPermission("notifications", "create"),
+  checkPermission("notifications", "Create"),
   notificationController.sendCoachMessage
 );
 

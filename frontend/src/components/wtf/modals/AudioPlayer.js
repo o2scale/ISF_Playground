@@ -9,12 +9,15 @@ const AudioPlayer = ({
   audioSrc,
   title,
   author,
+  caption,
   likes,
   hearts,
   views,
   isOfficial,
+  officialCategory,
   onLike,
   onHeart,
+  isStudent = false,
 }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -130,8 +133,31 @@ const AudioPlayer = ({
             }}
           >
             {isOfficial && (
-              <div className="absolute -top-3 -left-3">
-                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              <div className="absolute -top-3 -left-3 flex flex-col gap-1">
+                <Badge className="bg-purple-600 text-white text-xs px-2 py-1">
+                  ISF Official
+                </Badge>
+                {officialCategory && (
+                  <Badge
+                    className={`text-white text-xs px-2 py-1 ${
+                      officialCategory === "mann-ki-baat"
+                        ? "bg-purple-700"
+                        : officialCategory === "op-ed"
+                        ? "bg-indigo-600"
+                        : officialCategory === "isf-updates"
+                        ? "bg-teal-600"
+                        : "bg-gray-600"
+                    }`}
+                  >
+                    {officialCategory === "mann-ki-baat"
+                      ? "🎙️ Mann Ki Baat"
+                      : officialCategory === "op-ed"
+                      ? "📝 Op Ed"
+                      : officialCategory === "isf-updates"
+                      ? "📢 ISF Updates"
+                      : "Official"}
+                  </Badge>
+                )}
               </div>
             )}
             <div className="text-center mb-6">
@@ -141,6 +167,9 @@ const AudioPlayer = ({
               <h3 className="font-handwriting text-xl text-gray-800 mb-2">
                 {title}
               </h3>
+              {caption && (
+                <p className="text-sm text-gray-600 mb-2 italic">{caption}</p>
+              )}
               {author && (
                 <p className="text-sm text-gray-600">
                   Speaker: {typeof author === "object" ? author.name : author}
@@ -268,9 +297,11 @@ const AudioPlayer = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                <span className="text-sm font-bold">
-                  {likes.toLocaleString()}
-                </span>
+                {!isStudent && (
+                  <span className="text-sm font-bold">
+                    {likes.toLocaleString()}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -279,7 +310,9 @@ const AudioPlayer = ({
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                <span className="text-sm font-bold">{hearts}</span>
+                {!isStudent && (
+                  <span className="text-sm font-bold">{hearts}</span>
+                )}
               </button>
             </div>
           </div>

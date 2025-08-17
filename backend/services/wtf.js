@@ -417,8 +417,20 @@ class WtfService {
           mediaUrl: mediaUrl,
           thumbnailUrl: pinData.thumbnailUrl,
           hasThumbnailUrl: !!pinData.thumbnailUrl,
+          caption: mappedPayload.caption,
+          hasCaption: !!mappedPayload.caption,
         },
         "Pin data created with thumbnail information"
+      );
+
+      // Debug logging for final pin data
+      logger.info(
+        {
+          pinDataKeys: Object.keys(pinData),
+          pinDataCaption: pinData.caption,
+          pinDataHasCaption: !!pinData.caption,
+        },
+        "Final pin data before database save"
       );
 
       // Remove file object from pinData before saving to database
@@ -543,9 +555,16 @@ class WtfService {
     limit = 20,
     type = null,
     isOfficial = null,
+    officialCategory = null,
   }) {
     try {
-      const result = await getActivePins({ page, limit, type, isOfficial });
+      const result = await getActivePins({
+        page,
+        limit,
+        type,
+        isOfficial,
+        officialCategory,
+      });
 
       if (result.success) {
         return {
@@ -569,25 +588,27 @@ class WtfService {
     page = 1,
     limit = 20,
     type = null,
+    author = null,
     isOfficial = null,
+    officialCategory = null,
+    dateFrom = null,
+    dateTo = null,
+    source = null,
+    pinType = null,
   }) {
     try {
-      // Use admin version that doesn't filter by expiry date
       const result = await getActivePinsForAdminDA({
         page,
         limit,
         type,
+        author,
         isOfficial,
+        officialCategory,
+        dateFrom,
+        dateTo,
+        source,
+        pinType,
       });
-
-      if (result.success) {
-        return {
-          success: true,
-          data: result.data,
-          message: "Active pins fetched successfully for admin",
-        };
-      }
-
       return result;
     } catch (error) {
       errorLogger.error(

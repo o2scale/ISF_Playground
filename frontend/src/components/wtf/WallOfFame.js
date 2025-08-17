@@ -17,6 +17,7 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useSidebar } from "../Layout";
@@ -28,6 +29,7 @@ import {
 import CategoryButtons from "./CategoryButtons";
 import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
+import "./WtfDashboard.css";
 import CreateNewPinModal from "./CreateNewPinModal";
 import ImageViewer from "./modals/ImageViewer";
 import VideoPlayer from "./modals/VideoPlayer";
@@ -51,11 +53,12 @@ import {
   updateWtfSettings,
   uploadWtfBackgroundImage,
   uploadWtfFont,
+  getStudentInteractionHistory,
 } from "../../api";
 import showToast from "../../utils/toast";
 
 // Inline voice suggestion modal (see spec)
-const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
+const VoiceSuggestionModal = ({ open, onClose }) => {
   const [recording, setRecording] = React.useState(false);
   const [permissionError, setPermissionError] = React.useState("");
   const [mediaRecorder, setMediaRecorder] = React.useState(null);
@@ -90,10 +93,33 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       setMediaRecorder(mr);
       setRecording(true);
       setTimer(0);
-      const id = setInterval(() => setTimer((t) => t + 1), 1000);
+
+      // Start timer with strict 1-minute limit
+      const id = setInterval(() => {
+        setTimer((t) => {
+          const newTime = t + 1;
+          // Force stop at exactly 60 seconds (1 minute)
+          if (newTime >= 60) {
+            console.log("Recording reached 60 seconds, stopping automatically");
+            clearInterval(id);
+            mr.stop();
+            s.getTracks().forEach((track) => track.stop());
+            setRecording(false);
+            return 60;
+          }
+          return newTime;
+        });
+      }, 1000);
       setTimerId(id);
-      // Auto stop at 60s
-      setTimeout(() => stopRecording(), 60000);
+
+      // Backup safety timeout in case the interval fails
+      setTimeout(() => {
+        if (recording) {
+          console.log("Backup safety timeout triggered");
+          stopRecording();
+        }
+      }, 60500); // Slightly longer than 60s as a backup
+
       // We avoid mouseup here because the button lives outside modal scope sometimes.
     } catch (err) {
       setPermissionError("Microphone permission denied or unavailable.");
@@ -115,8 +141,15 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
     setChunks([]);
     chunksRef.current = [];
   };
+  // Safety effect: force stop if recording exceeds 60 seconds
   React.useEffect(() => {
-    if (open && autoStart) startRecording();
+    if (recording && timer >= 60) {
+      console.log("Safety effect: forcing stop at 60 seconds");
+      stopRecording();
+    }
+  }, [recording, timer]);
+
+  React.useEffect(() => {
     return () => {
       try {
         if (timerId) clearInterval(timerId);
@@ -125,7 +158,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       } catch (_) {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, []);
   const [submitting, setSubmitting] = React.useState(false);
   const handleSubmit = async () => {
     try {
@@ -154,7 +187,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
         <div className="flex items-center gap-2 mb-3">
           <Mic className="w-5 h-5 text-purple-600" />
-          <h3 className="text-lg font-semibold">Share Your Voice</h3>
+          <h3 className="text-lg font-semibold">Suggest a Topic for a Talk!</h3>
           <button className="ml-auto" onClick={onClose}>
             ×
           </button>
@@ -162,6 +195,10 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
         {permissionError && (
           <div className="mb-3 text-sm text-red-600">{permissionError}</div>
         )}
+        <div className="mb-4 text-sm text-gray-600 text-center">
+          Share your idea for a talk or something you'd like to learn more
+          about. You have 1 minute to record your voice note.
+        </div>
         {recording ? (
           <div className="text-center py-6">
             <button
@@ -171,11 +208,20 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
             >
               <StopCircle className="w-8 h-8 text-red-500" />
             </button>
-            <div className="font-medium">Recording... Click stop to finish</div>
+            <div className="font-medium">Recording...</div>
             <div className="text-sm text-gray-600 mt-1">
-              {`${String(Math.floor(timer / 60)).padStart(2, "0")}:${String(
-                timer % 60
-              ).padStart(2, "0")}`}
+              {`${String(Math.floor((60 - timer) / 60)).padStart(
+                2,
+                "0"
+              )}:${String((60 - timer) % 60).padStart(2, "0")}`}
+            </div>
+            <div className="mt-3">
+              <button
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                onClick={stopRecording}
+              >
+                <StopCircle className="w-4 h-4" /> Stop Recording
+              </button>
             </div>
           </div>
         ) : (
@@ -184,30 +230,46 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
               <div className="text-center py-6">
                 <button
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-                  onMouseDown={startRecording}
+                  onClick={startRecording}
                 >
-                  <Mic className="w-4 h-4" /> Hold to Record
+                  <Mic className="w-4 h-4" /> Click to Record
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
-                <audio
-                  controls
-                  className="w-full"
-                  src={audioUrl}
-                  onPlay={() => setHasReviewed(true)}
-                />
-                <div className="flex items-center gap-2">
+                <div className="text-center">
+                  <h4 className="font-medium mb-3">Your Recording is Ready!</h4>
+                  <audio
+                    controls
+                    className="w-full mb-4"
+                    src={audioUrl}
+                    onPlay={() => setHasReviewed(true)}
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
                   <button
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
-                    onClick={resetRecording}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => {
+                      const audioElement = document.querySelector("audio");
+                      if (audioElement) {
+                        audioElement.play();
+                        setHasReviewed(true);
+                      }
+                    }}
                   >
-                    <Mic className="w-4 h-4" /> Re-record
+                    <Play className="w-4 h-4" /> Listen to My Suggestion
                   </button>
                   <button
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded text-white ${
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    onClick={resetRecording}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <Mic className="w-4 h-4" /> Delete & Re-record
+                  </button>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white ${
                       hasReviewed && !submitting
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "bg-green-600 hover:bg-green-700"
                         : "bg-gray-300 cursor-not-allowed"
                     }`}
                     disabled={!hasReviewed || submitting}
@@ -225,7 +287,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
                     )}
                   </button>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 text-center">
                   Please listen to your recording before submitting.
                 </div>
               </div>
@@ -251,6 +313,11 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState({
+    name: "All",
+    isOfficial: false,
+    category: null,
+  });
 
   const [modalType, setModalType] = useState(null);
   const [adminCounts, setAdminCounts] = useState({
@@ -297,7 +364,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [bgError, setBgError] = useState("");
   // Voice modal state
   const [showVoiceModal, setShowVoiceModal] = useState(false);
-  const [voiceAutoStart, setVoiceAutoStart] = useState(false);
   const [showArticleEditor, setShowArticleEditor] = useState(false);
 
   // Pin type filter and grouping state
@@ -377,7 +443,17 @@ const WallOfFameContent = ({ onToggleView }) => {
     const fetchPins = async () => {
       try {
         console.log("🔧 Frontend: Fetching pins...");
-        const response = await getActiveWtfPins();
+
+        // Build query parameters based on selected category
+        const queryParams = {};
+        if (selectedCategory.isOfficial && selectedCategory.category) {
+          queryParams.isOfficial = true;
+          queryParams.officialCategory = selectedCategory.category;
+        } else if (selectedCategory.isOfficial) {
+          queryParams.isOfficial = true;
+        }
+
+        const response = await getActiveWtfPins(queryParams);
         console.log("🔧 Frontend: getActiveWtfPins response:", response);
 
         if (response.success && response.data && response.data.pins) {
@@ -387,9 +463,11 @@ const WallOfFameContent = ({ onToggleView }) => {
             pins.map((p) => ({
               id: p._id || p.id,
               title: p.title,
+              caption: p.caption,
               engagementMetrics: p.engagementMetrics,
             }))
           );
+          console.log("🔧 Frontend: First pin full data:", pins[0]);
           setContent(pins);
         } else {
           console.log("🔧 Frontend: No pins found or error response");
@@ -433,10 +511,14 @@ const WallOfFameContent = ({ onToggleView }) => {
     }, 30000); // Poll every 30 seconds
 
     return () => clearInterval(interval);
-  }, [isAdmin]);
+  }, [isAdmin, selectedCategory]);
 
   // Track viewed pins per-user in current session to avoid duplicate view API calls
   const viewedPinsRef = React.useRef(new Set());
+
+  // Track all pins the student has viewed (from backend)
+  const [viewedPinsFromBackend, setViewedPinsFromBackend] = useState(new Set());
+
   useEffect(() => {
     try {
       const key = `wtf_viewed_${user?.id || "guest"}`;
@@ -451,6 +533,70 @@ const WallOfFameContent = ({ onToggleView }) => {
       // ignore parse errors
     }
   }, [user?.id]);
+
+  // Fetch student's interaction history to determine which pins have been viewed
+  useEffect(() => {
+    const fetchStudentInteractions = async () => {
+      if (!user?.id) return;
+
+      try {
+        const response = await getStudentInteractionHistory(user.id, {
+          limit: 1000,
+          type: "seen",
+        });
+        if (response.success && response.data?.interactions) {
+          const viewedPinIds = new Set(
+            response.data.interactions
+              .filter((interaction) => interaction.type === "seen")
+              .map((interaction) => interaction.pinId?._id || interaction.pinId)
+          );
+          setViewedPinsFromBackend(viewedPinIds);
+        }
+      } catch (error) {
+        console.error("Error fetching student interactions:", error);
+      }
+    };
+
+    fetchStudentInteractions();
+  }, [user?.id]);
+
+  // Function to check if a pin has been viewed by the current student
+  const hasStudentViewedPin = useCallback(
+    (pinId) => {
+      if (!pinId) return false;
+      return (
+        viewedPinsRef.current.has(pinId) || viewedPinsFromBackend.has(pinId)
+      );
+    },
+    [viewedPinsFromBackend]
+  );
+
+  // Function to refresh viewed pins from backend
+  const refreshViewedPins = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await getStudentInteractionHistory(user.id, {
+        limit: 1000,
+        type: "seen",
+      });
+      if (response.success && response.data?.interactions) {
+        const viewedPinIds = new Set(
+          response.data.interactions
+            .filter((interaction) => interaction.type === "seen")
+            .map((interaction) => interaction.pinId?._id || interaction.pinId)
+        );
+        setViewedPinsFromBackend(viewedPinIds);
+      }
+    } catch (error) {
+      console.error("Error refreshing viewed pins:", error);
+    }
+  }, [user?.id]);
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    console.log("Selected category:", category);
+  };
 
   const handlePinClick = async (item) => {
     // Find the most up-to-date version of this pin from the current content state
@@ -511,6 +657,8 @@ const WallOfFameContent = ({ onToggleView }) => {
         console.error("Error marking WTF pin as seen:", err);
       } finally {
         viewedPinsRef.current.add(pinId);
+        // Also update the backend viewed pins state
+        setViewedPinsFromBackend((prev) => new Set([...prev, pinId]));
         try {
           const key = `wtf_viewed_${user?.id || "guest"}`;
           sessionStorage.setItem(
@@ -1604,105 +1752,153 @@ HTML Font: ${htmlFont}`);
     boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
   });
 
-  const renderCard = (item) => (
-    <div
-      key={item._id || item.id}
-      className="bg-yellow-50 p-4 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl relative"
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        handlePinClick(item);
-      }}
-      style={{
-        transform: `rotate(${Math.random() * 6 - 3}deg)`,
-        ...getPostageStampStyle(),
-      }}
-    >
-      {item.isOfficial && (
-        <div className="absolute top-2 left-2 z-20">
-          <Badge className="bg-purple-600 text-white">ISF Official</Badge>
-        </div>
-      )}
-      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
+  const renderCard = (item) => {
+    const pinId = item._id || item.id;
+    const isViewed = hasStudentViewedPin(pinId);
 
+    return (
       <div
-        className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center relative"
-        style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
+        key={pinId}
+        className={`bg-yellow-50 p-4 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl relative ${
+          isViewed
+            ? "opacity-60 grayscale hover:opacity-100 hover:grayscale-0"
+            : ""
+        }`}
+        title={
+          isViewed
+            ? "Pin already viewed - click to view again"
+            : "Click to view pin"
+        }
+        style={{
+          transform: `rotate(${Math.random() * 6 - 3}deg)`,
+          ...getPostageStampStyle(),
+          ...(isViewed && { borderColor: "#9ca3af" }), // Subtle border color change for viewed pins
+          filter: isViewed ? "grayscale(100%)" : "none", // Ensure grayscale works
+        }}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          handlePinClick(item);
+        }}
       >
-        {/* Show placeholder only when no thumbnail/image is available */}
-        {!item.thumbnailUrl && !(item.type === "image" && item.mediaUrl) ? (
-          <div className="text-center">
-            <div className="mb-2 flex justify-center opacity-60">
-              {renderTypeIcon(item.type)}
-            </div>
-            <p className="text-xs text-gray-600 font-medium">{item.title}</p>
-          </div>
-        ) : null}
-
-        {/* Show play button overlay for video thumbnails */}
-        {item.type === "video" && item.thumbnailUrl && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-            <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
-              <div className="w-0 h-0 border-l-[12px] border-l-blue-600 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1"></div>
-            </div>
+        {item.isOfficial && (
+          <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+            <Badge className="bg-purple-600 text-white text-xs px-2 py-1">
+              ISF Official
+            </Badge>
+            {item.officialCategory && (
+              <Badge
+                className={`text-white text-xs px-2 py-1 ${
+                  item.officialCategory === "mann-ki-baat"
+                    ? "bg-purple-700"
+                    : item.officialCategory === "op-ed"
+                    ? "bg-indigo-600"
+                    : item.officialCategory === "isf-updates"
+                    ? "bg-teal-600"
+                    : "bg-gray-600"
+                }`}
+              >
+                {item.officialCategory === "mann-ki-baat"
+                  ? "🎙️ Mann Ki Baat"
+                  : item.officialCategory === "op-ed"
+                  ? "📝 Op Ed"
+                  : item.officialCategory === "isf-updates"
+                  ? "📢 ISF Updates"
+                  : "Official"}
+              </Badge>
+            )}
           </div>
         )}
-      </div>
+        {isViewed && (
+          <div className="absolute top-2 right-2 z-20">
+            <Badge className="bg-gray-500 text-white text-xs">Viewed</Badge>
+          </div>
+        )}
+        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
 
-      <div className="flex items-center justify-center gap-3 mb-2 text-xs">
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleMarkAsSeen(item.id || item._id);
-          }}
+        <div
+          className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center relative"
+          style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
         >
-          <Eye className="w-3 h-3 text-gray-600" />
-          <span className="text-gray-700 font-medium">
-            {item.engagementMetrics?.seen ?? item.views ?? 0}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleHeartPin(item.id || item._id);
-          }}
-          aria-label="Love"
-        >
-          <Heart className="w-3 h-3 text-red-500" />
-          <span className="text-gray-700 font-medium">
-            {item.engagementMetrics?.loves ?? 0}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleLikePin(item.id || item._id);
-          }}
-          aria-label="Like"
-        >
-          <ThumbsUp className="w-3 h-3 text-pink-500" />
-          <span className="text-gray-700 font-medium">
-            {item.engagementMetrics?.likes ?? 0}
-          </span>
-        </button>
-      </div>
+          {/* Show placeholder only when no thumbnail/image is available */}
+          {!item.thumbnailUrl && !(item.type === "image" && item.mediaUrl) ? (
+            <div className="text-center">
+              <div className="mb-2 flex justify-center opacity-60">
+                {renderTypeIcon(item.type)}
+              </div>
+              <p className="text-xs text-gray-600 font-medium">{item.title}</p>
+            </div>
+          ) : null}
 
-      {item.type === "photo" && (
-        <h3 className="text-center text-sm font-bold text-gray-800 line-clamp-2 leading-tight">
-          {item.title}
-        </h3>
-      )}
-    </div>
-  );
+          {/* Show play button overlay for video thumbnails */}
+          {item.type === "video" && item.thumbnailUrl && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+              <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
+                <div className="w-0 h-0 border-l-[12px] border-l-blue-600 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1"></div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-3 mb-2 text-xs">
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleMarkAsSeen(item.id || item._id);
+            }}
+          >
+            <Eye className="w-3 h-3 text-gray-600" />
+            <span className="text-gray-700 font-medium">
+              {item.engagementMetrics?.seen ?? item.views ?? 0}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleHeartPin(item.id || item._id);
+            }}
+            aria-label="Love"
+          >
+            <Heart className="w-3 h-3 text-green-500" />
+            {!isStudent && (
+              <span className="text-gray-700 font-medium">
+                {item.engagementMetrics?.loves ?? 0}
+              </span>
+            )}
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleLikePin(item.id || item._id);
+            }}
+            aria-label="Like"
+          >
+            <ThumbsUp className="w-3 h-3 text-pink-500" />
+            {!isStudent && (
+              <span className="text-gray-700 font-medium">
+                {item.engagementMetrics?.likes ?? 0}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {item.type === "photo" && (
+          <h3 className="text-center text-sm font-bold text-gray-800 line-clamp-2 leading-tight">
+            {item.title}
+          </h3>
+        )}
+      </div>
+    );
+  };
 
   // Dynamic background style based on settings
   const backgroundStyle = backgroundSettings.image
@@ -1874,6 +2070,17 @@ Check console for detailed results.`);
                       <Eye className="w-4 h-4" />
                       Review Queue ({adminCounts.reviewQueue})
                     </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <button
+                      onClick={refreshViewedPins}
+                      className="w-full bg-gray-500 hover:bg-gray-600 text-white text-sm px-3 py-2 rounded flex items-center gap-2 justify-center"
+                      title="Refresh viewed pins from backend"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Refresh Viewed Pins
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2239,21 +2446,23 @@ Check console for detailed results.`);
           {/* Fixed Header */}
           <div className="p-6 space-y-6 bg-white flex-shrink-0">
             <div className="flex items-center gap-6">
-              <div className="flex-1 overflow-hidden">
-                <CategoryButtons />
+              <div className="flex-1">
+                <CategoryButtons
+                  onCategoryChange={handleCategoryChange}
+                  selectedCategory={selectedCategory.name}
+                />
               </div>
               {isStudent && (
                 <div className="flex items-center gap-3">
                   <button
                     id="btn-wtf-share-voice"
-                    onMouseDown={() => {
+                    onClick={() => {
                       setShowVoiceModal(true);
-                      setVoiceAutoStart(true);
                     }}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                    title="Share Your Voice!"
+                    title="Suggest a Topic for a Talk!"
                   >
-                    <Mic className="w-4 h-4" /> Share Your Voice!
+                    <Mic className="w-4 h-4" /> Suggest a Topic!
                   </button>
                   <button
                     id="btn-wtf-write-story"
@@ -2266,7 +2475,7 @@ Check console for detailed results.`);
                 </div>
               )}
             </div>
-            <div className="overflow-hidden">
+            <div>
               <LevelIndicators />
             </div>
           </div>
@@ -2332,6 +2541,40 @@ Check console for detailed results.`);
                   ? "Discover and suggest amazing content from our community"
                   : "Discover amazing content from our community"}
               </p>
+
+              {/* Category Indicator */}
+              {selectedCategory.isOfficial && (
+                <div className="mt-4">
+                  <Badge
+                    className={`text-white text-lg px-4 py-2 ${
+                      selectedCategory.category === "mann-ki-baat"
+                        ? "bg-purple-700"
+                        : selectedCategory.category === "op-ed"
+                        ? "bg-indigo-600"
+                        : selectedCategory.category === "isf-updates"
+                        ? "bg-teal-600"
+                        : "bg-purple-600"
+                    }`}
+                  >
+                    {selectedCategory.category === "mann-ki-baat"
+                      ? "🎙️ Mann Ki Baat"
+                      : selectedCategory.category === "op-ed"
+                      ? "📝 Op Ed"
+                      : selectedCategory.category === "isf-updates"
+                      ? "📢 ISF Updates"
+                      : "📢 Official Content"}
+                  </Badge>
+                  <p className="text-sm text-gray-600 mt-2">
+                    {selectedCategory.category === "mann-ki-baat"
+                      ? "Official podcasts and audio content from ISF"
+                      : selectedCategory.category === "op-ed"
+                      ? "Opinion editorial content and articles"
+                      : selectedCategory.category === "isf-updates"
+                      ? "Official ISF announcements and updates"
+                      : "Official ISF content curated for the community"}
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">
@@ -2383,6 +2626,8 @@ Check console for detailed results.`);
                   </button>
                 </div>
               </div>
+
+              {/* Content Count and Filter Status */}
 
               {filteredContent.length > 0 ? (
                 !groupByType ? (
@@ -2537,10 +2782,8 @@ Check console for detailed results.`);
           {/* Voice suggestion modal */}
           <VoiceSuggestionModal
             open={showVoiceModal}
-            autoStart={voiceAutoStart}
             onClose={() => {
               setShowVoiceModal(false);
-              setVoiceAutoStart(false);
             }}
           />
 
@@ -2559,6 +2802,9 @@ Check console for detailed results.`);
           {console.log("ImageViewer Debug - selectedContent:", {
             title: selectedContent.title,
             author: selectedContent.author,
+            caption: selectedContent.caption,
+            captionType: typeof selectedContent.caption,
+            allKeys: Object.keys(selectedContent),
             authorType: typeof selectedContent.author,
             authorKeys: selectedContent.author
               ? Object.keys(selectedContent.author)
@@ -2570,16 +2816,19 @@ Check console for detailed results.`);
             imageSrc={selectedContent.mediaUrl || selectedContent.content}
             title={selectedContent.title}
             author={selectedContent.author}
+            caption={selectedContent.caption}
             likes={selectedContent.engagementMetrics?.likes || 0}
             hearts={selectedContent.engagementMetrics?.loves || 0}
             views={selectedContent.engagementMetrics?.seen || 0}
             isOfficial={selectedContent.isOfficial}
+            officialCategory={selectedContent.officialCategory}
             onLike={() =>
               handleLikePin(selectedContent.id || selectedContent._id)
             }
             onHeart={() =>
               handleHeartPin(selectedContent.id || selectedContent._id)
             }
+            isStudent={isStudent}
           />
         </>
       )}
@@ -2591,16 +2840,19 @@ Check console for detailed results.`);
           videoSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
+          caption={selectedContent.caption}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
           onLike={() =>
             handleLikePin(selectedContent.id || selectedContent._id)
           }
           onHeart={() =>
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
+          isStudent={isStudent}
         />
       )}
 
@@ -2611,16 +2863,19 @@ Check console for detailed results.`);
           audioSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
+          caption={selectedContent.caption}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
           onLike={() =>
             handleLikePin(selectedContent.id || selectedContent._id)
           }
           onHeart={() =>
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
+          isStudent={isStudent}
         />
       )}
 
@@ -2631,16 +2886,19 @@ Check console for detailed results.`);
           title={selectedContent.title}
           content={selectedContent.content}
           author={selectedContent.author}
+          caption={selectedContent.caption}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
           onLike={() =>
             handleLikePin(selectedContent.id || selectedContent._id)
           }
           onHeart={() =>
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
+          isStudent={isStudent}
         />
       )}
 

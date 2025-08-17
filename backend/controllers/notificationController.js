@@ -544,6 +544,93 @@ exports.createShopUpdateNotification = async (req, res) => {
 };
 
 /**
+ * Send a personal notification to a specific student (admin only)
+ */
+exports.sendAdminPersonalNotification = async (req, res) => {
+  try {
+    const adminId = req.user.id;
+    const {
+      studentId,
+      title,
+      message,
+      category = "GENERAL",
+      metadata = {},
+    } = req.body;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        adminId,
+        studentId,
+        title,
+      },
+      "Request received to send admin personal notification"
+    );
+
+    // Validate required fields
+    if (!studentId || !title || !message) {
+      return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+        success: false,
+        message: "Student ID, title, and message are required",
+      });
+    }
+
+    const result = await NotificationService.createPersonalNotification(
+      studentId,
+      title,
+      message,
+      category,
+      { adminId, ...metadata }
+    );
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          adminId,
+          studentId,
+          title,
+        },
+        "Admin personal notification sent successfully"
+      );
+      res.status(HTTP_STATUS_CODE.CREATED).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          adminId,
+          studentId,
+          title,
+        },
+        "Failed to send admin personal notification"
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        adminId: req.user?.id,
+      },
+      "Error occurred while sending admin personal notification"
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+/**
  * Get notification statistics for admin dashboard
  */
 exports.getNotificationStats = async (req, res) => {

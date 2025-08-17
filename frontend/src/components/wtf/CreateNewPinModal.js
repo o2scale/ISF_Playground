@@ -37,6 +37,7 @@ const CreateNewPinModal = ({
     content: "",
     caption: "",
     isOfficial: false,
+    officialCategory: null,
     file: null,
     // Coach-specific fields
     studentName: "",
@@ -622,10 +623,14 @@ const CreateNewPinModal = ({
       const newPin = {
         title: formData.title,
         content: formData.content,
+        caption: formData.caption, // Add the caption field
         type: formData.contentType, // Backend expects 'type' not 'contentType'
         contentType: formData.contentType, // Keep original for frontend flow branching
         author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
         isOfficial: formData.isOfficial,
+        officialCategory: formData.isOfficial
+          ? formData.officialCategory
+          : null,
         status: isDraft ? "draft" : "active", // Backend expects lowercase enum values
         language: "english", // Default language
         tags: [], // Default empty tags
@@ -655,6 +660,7 @@ const CreateNewPinModal = ({
         content: "",
         caption: "",
         isOfficial: false,
+        officialCategory: null,
         file: null,
         studentName: "",
         studentId: "",
@@ -1242,6 +1248,34 @@ const CreateNewPinModal = ({
                     Mark as "ISF Official Post"
                   </label>
                 </div>
+
+                {formData.isOfficial && (
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor="officialCategory"
+                      className="text-sm font-medium"
+                    >
+                      Official Content Category
+                    </label>
+                    <select
+                      id="officialCategory"
+                      value={formData.officialCategory || ""}
+                      onChange={(e) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          officialCategory: e.target.value || null,
+                        }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required={formData.isOfficial}
+                    >
+                      <option value="">Select a category</option>
+                      <option value="mann-ki-baat">Mann Ki Baat</option>
+                      <option value="op-ed">Op Ed</option>
+                      <option value="isf-updates">ISF Updates</option>
+                    </select>
+                  </div>
+                )}
               </>
             )}
 

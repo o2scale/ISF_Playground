@@ -38,3 +38,26 @@
   min-height: 100vh !important;
   overflow-y: auto !important;
 }
+
+/* Button wrapping layout styles */
+.category-buttons-container,
+.level-indicators-container {
+  gap: 0.5rem;
+}
+
+/* Ensure proper spacing between wrapped buttons */
+.category-buttons-container button,
+.level-indicators-container button {
+  margin-bottom: 0.5rem;
+}
+
+/* Responsive button sizing for better wrapping */
+@media (max-width: 768px) {
+  .category-buttons-container button,
+  .level-indicators-container button {
+    min-width: 120px !important;
+    font-size: 0.875rem !important;
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+}

@@ -7,6 +7,11 @@ const wtfPinSchema = new mongoose.Schema(
       required: [true, "Title is required"],
       trim: true,
     },
+    caption: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Caption cannot exceed 500 characters"],
+    },
     content: {
       type: String,
       required: [true, "Content is required"],
@@ -45,6 +50,14 @@ const wtfPinSchema = new mongoose.Schema(
     isOfficial: {
       type: Boolean,
       default: false, // ISF Official Post
+    },
+    officialCategory: {
+      type: String,
+      enum: ["mann-ki-baat", "op-ed", "isf-updates", null],
+      default: null,
+      required: function () {
+        return this.isOfficial === true;
+      },
     },
     language: {
       type: String,

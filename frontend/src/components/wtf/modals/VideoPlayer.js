@@ -9,12 +9,15 @@ const VideoPlayer = ({
   videoSrc,
   title,
   author,
+  caption,
   likes,
   hearts,
   views,
   isOfficial,
+  officialCategory,
   onLike,
   onHeart,
+  isStudent = false,
 }) => {
   const videoRef = useRef(null);
 
@@ -95,8 +98,31 @@ const VideoPlayer = ({
             }}
           >
             {isOfficial && (
-              <div className="absolute -top-3 -left-3">
-                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+              <div className="absolute -top-3 -left-3 flex flex-col gap-1">
+                <Badge className="bg-purple-600 text-white text-xs px-2 py-1">
+                  ISF Official
+                </Badge>
+                {officialCategory && (
+                  <Badge
+                    className={`text-white text-xs px-2 py-1 ${
+                      officialCategory === "mann-ki-baat"
+                        ? "bg-purple-700"
+                        : officialCategory === "op-ed"
+                        ? "bg-indigo-600"
+                        : officialCategory === "isf-updates"
+                        ? "bg-teal-600"
+                        : "bg-gray-600"
+                    }`}
+                  >
+                    {officialCategory === "mann-ki-baat"
+                      ? "🎙️ Mann Ki Baat"
+                      : officialCategory === "op-ed"
+                      ? "📝 Op Ed"
+                      : officialCategory === "isf-updates"
+                      ? "📢 ISF Updates"
+                      : "Official"}
+                  </Badge>
+                )}
               </div>
             )}
             <div className="w-full h-80 bg-black mb-4 overflow-hidden rounded">
@@ -123,6 +149,9 @@ const VideoPlayer = ({
               <h3 className="font-handwriting text-lg text-gray-800 mb-1">
                 {title}
               </h3>
+              {caption && (
+                <p className="text-sm text-gray-600 mb-2 italic">{caption}</p>
+              )}
               {author && (
                 <p className="text-sm text-gray-600">
                   Performance by{" "}
@@ -173,9 +202,11 @@ const VideoPlayer = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                <span className="font-bold text-lg">
-                  {likes.toLocaleString()}
-                </span>
+                {!isStudent && (
+                  <span className="font-bold text-lg">
+                    {likes.toLocaleString()}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -184,7 +215,9 @@ const VideoPlayer = ({
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                <span className="font-bold text-lg">{hearts}</span>
+                {!isStudent && (
+                  <span className="font-bold text-lg">{hearts}</span>
+                )}
               </button>
             </div>
           </div>

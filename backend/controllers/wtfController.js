@@ -80,7 +80,17 @@ exports.createPin = async (req, res) => {
 // Get active pins for students
 exports.getActivePins = async (req, res) => {
   try {
-    const { page = 1, limit = 20, type, isOfficial } = req.query;
+    const {
+      page = 1,
+      limit = 20,
+      type,
+      isOfficial,
+      officialCategory,
+      dateFrom,
+      dateTo,
+      source,
+      pinType,
+    } = req.query;
 
     logger.info(
       {
@@ -108,6 +118,11 @@ exports.getActivePins = async (req, res) => {
               : isOfficial === "false"
               ? false
               : null,
+          officialCategory: officialCategory || null,
+          dateFrom: dateFrom || null,
+          dateTo: dateTo || null,
+          source: source || null,
+          pinType: pinType || null,
         })
       : await WtfService.getActivePinsForStudents({
           page: parseInt(page),
@@ -119,6 +134,7 @@ exports.getActivePins = async (req, res) => {
               : isOfficial === "false"
               ? false
               : null,
+          officialCategory: officialCategory || null,
         });
 
     if (result.success) {

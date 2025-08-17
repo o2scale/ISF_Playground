@@ -1,8 +1,25 @@
-import React from "react";
-import { X, Star, Archive, Play, User } from "lucide-react";
+import React, { useState } from "react";
+import {
+  X,
+  Star,
+  Archive,
+  Play,
+  User,
+  CheckCircle,
+  Clock,
+  MessageSquare,
+} from "lucide-react";
 import { Dialog, DialogContent } from "../ui/dialog.jsx";
 import { Button } from "../ui/button.jsx";
 import { Badge } from "../ui/badge.jsx";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select.tsx";
+import { sendAdminPersonalNotification } from "../../api.js";
 
 const ReviewModal = ({
   isOpen,
@@ -11,6 +28,9 @@ const ReviewModal = ({
   onPinToWTF,
   onArchive,
 }) => {
+  const [statusUpdate, setStatusUpdate] = useState("");
+  const [isUpdating, setIsUpdating] = useState(false);
+
   if (!submission) return null;
 
   const type = (submission.type || "").toLowerCase();
@@ -27,6 +47,55 @@ const ReviewModal = ({
   const isVideo =
     type.includes("video") || /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(mediaUrl);
   const isHttpLike = /^(https?:\/\/|blob:|data:)/i.test(mediaUrl);
+
+  const handleStatusUpdate = async () => {
+    if (!statusUpdate) return;
+
+    setIsUpdating(true);
+    try {
+      if (statusUpdate === "mark-reviewed") {
+        // Send notification: "We have reviewed your pin"
+        await sendAdminPersonalNotification(
+          submission.studentId,
+          "Submission Reviewed",
+          `We have reviewed your ${
+            submission.type === "voice" ? "voice note" : "article"
+          } "${submission.title}". Thank you for your submission!`,
+          {
+            submissionId: submission._id || submission.id,
+            action: "reviewed",
+            contentType: submission.type,
+            title: submission.title,
+          }
+        );
+      } else if (statusUpdate === "consider-future") {
+        // Send notification: "We will consider this for future talk"
+        await sendAdminPersonalNotification(
+          submission.studentId,
+          "Submission Under Consideration",
+          `We will consider your ${
+            submission.type === "voice" ? "voice note" : "article"
+          } "${submission.title}" for future talks. Great idea!`,
+          {
+            submissionId: submission._id || submission.id,
+            action: "consider_future",
+            contentType: submission.type,
+            title: submission.title,
+          }
+        );
+      } else if (statusUpdate === "archive") {
+        // Archive the submission
+        await onArchive(submission._id || submission.id);
+      }
+
+      // Reset the status update
+      setStatusUpdate("");
+    } catch (error) {
+      console.error("Error updating status:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -115,13 +184,56 @@ const ReviewModal = ({
               <Star className="w-4 h-4 mr-2" />
               Pin to WTF
             </Button>
-            <Button
-              variant="outline"
-              onClick={() => onArchive(submission._id || submission.id)}
-            >
-              <Archive className="w-4 h-4 mr-2" />
-              Archive
-            </Button>
+
+            {/* Update Status Dropdown */}
+            <div className="flex items-center gap-2">
+              <Select value={statusUpdate} onValueChange={setStatusUpdate}>
+                <SelectTrigger className="w-48">
+                  <SelectValue placeholder="Update Status" />
+                </SelectTrigger>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg">
+                  <SelectItem value="mark-reviewed">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      Mark as Reviewed
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="consider-future">
+                    <div className="flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-blue-600" />
+                      Consider for Future Talk
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="archive">
+                    <div className="flex items-center gap-2">
+                      <Archive className="w-4 h-4 text-gray-600" />
+                      Archive/Dismiss
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {statusUpdate && (
+                <Button
+                  onClick={handleStatusUpdate}
+                  disabled={isUpdating}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {isUpdating ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <MessageSquare className="w-4 h-4 mr-2" />
+                      Update
+                    </>
+                  )}
+                </Button>
+              )}
+            </div>
+
             <Button variant="outline" onClick={onClose}>
               Close
             </Button>
