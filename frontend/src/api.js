@@ -1531,3 +1531,14 @@ export const sendCoachMessage = async (studentId, message, metadata = {}) => {
     throw error;
   }
 };
+
+// Debug: Check current user permissions
+export const debugUserPermissions = async () => {
+  try {
+    const response = await api.get(`/api/notifications/debug/user-permissions`);
+    return response.data;
+  } catch (error) {
+    console.error("Error checking user permissions:", error);
+    throw error;
+  }
+};

@@ -29,6 +29,7 @@ import {
 import CategoryButtons from "./CategoryButtons";
 import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
+import "./WtfDashboard.css";
 import CreateNewPinModal from "./CreateNewPinModal";
 import ImageViewer from "./modals/ImageViewer";
 import VideoPlayer from "./modals/VideoPlayer";
@@ -2445,7 +2446,7 @@ Check console for detailed results.`);
           {/* Fixed Header */}
           <div className="p-6 space-y-6 bg-white flex-shrink-0">
             <div className="flex items-center gap-6">
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1">
                 <CategoryButtons
                   onCategoryChange={handleCategoryChange}
                   selectedCategory={selectedCategory.name}
@@ -2474,7 +2475,7 @@ Check console for detailed results.`);
                 </div>
               )}
             </div>
-            <div className="overflow-hidden">
+            <div>
               <LevelIndicators />
             </div>
           </div>
@@ -2627,32 +2628,6 @@ Check console for detailed results.`);
               </div>
 
               {/* Content Count and Filter Status */}
-              {content.length > 0 && (
-                <div className="mb-4 text-center">
-                  <div className="inline-flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2 text-sm">
-                    <span className="text-gray-600">
-                      Showing:{" "}
-                      <span className="font-semibold">{content.length}</span>{" "}
-                      {selectedCategory.isOfficial ? "official" : ""} pins
-                    </span>
-                    {selectedCategory.isOfficial && (
-                      <span
-                        className={`font-semibold ${
-                          selectedCategory.category === "mann-ki-baat"
-                            ? "text-purple-600"
-                            : selectedCategory.category === "op-ed"
-                            ? "text-indigo-600"
-                            : selectedCategory.category === "isf-updates"
-                            ? "text-teal-600"
-                            : "text-purple-600"
-                        }`}
-                      >
-                        {selectedCategory.name} Category
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
 
               {filteredContent.length > 0 ? (
                 !groupByType ? (

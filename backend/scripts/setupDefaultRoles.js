@@ -46,6 +46,10 @@ const defaultRoles = [
         module: "Coin Analytics",
         actions: ["Create", "Read", "Update", "Delete"],
       },
+      {
+        module: "notifications",
+        actions: ["Create", "Read", "Update", "Delete"],
+      },
     ],
   },
   {

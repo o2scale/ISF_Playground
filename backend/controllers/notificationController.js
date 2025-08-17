@@ -553,7 +553,7 @@ exports.sendAdminPersonalNotification = async (req, res) => {
       studentId,
       title,
       message,
-      category = "ADMIN_MESSAGE",
+      category = "GENERAL",
       metadata = {},
     } = req.body;
 
