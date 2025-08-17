@@ -52,7 +52,8 @@
 }
 
 /* Smooth transitions for collapsible elements */
-.category-buttons-container {
+.category-buttons-container,
+.level-indicators-container {
   transition: all 0.3s ease-in-out;
 }
 
@@ -85,7 +86,9 @@
   margin: 0;
 }
 
-.category-toggle-button {
+/* Toggle button styling for both category and level sections */
+.category-toggle-button,
+.level-toggle-button {
   padding: 0.5rem;
   border-radius: 0.5rem;
   color: #6b7280;
@@ -95,13 +98,15 @@
   cursor: pointer;
 }
 
-.category-toggle-button:hover {
+.category-toggle-button:hover,
+.level-toggle-button:hover {
   background-color: #f3f4f6;
   color: #374151;
   transform: scale(1.05);
 }
 
-.category-toggle-button:focus {
+.category-toggle-button:focus,
+.level-toggle-button:focus {
   outline: none;
   ring: 2px;
   ring-color: #3b82f6;
