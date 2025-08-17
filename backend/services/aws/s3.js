@@ -6,6 +6,7 @@ const {
 } = require("@aws-sdk/client-s3");
 const fs = require("fs");
 const path = require("path");
+const VideoThumbnailService = require("../videoThumbnail");
 
 // Configure the S3 client
 const s3Client = new S3Client({
@@ -111,10 +112,21 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
 
     const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
     console.log(`WTF media uploaded successfully: ${url}`);
-    return url;
+
+    return {
+      success: true,
+      message: "WTF media uploaded successfully",
+      url: url,
+      key: fileName,
+      contentType: contentType,
+    };
   } catch (error) {
     console.error("Error uploading WTF media:", error);
-    throw error;
+    return {
+      success: false,
+      message: "Failed to upload WTF media",
+      error: error.message,
+    };
   }
 };
 
@@ -201,19 +213,87 @@ exports.uploadWtfVoiceNote = async (filePath, submissionId) => {
 // Generate thumbnail for WTF media
 exports.generateWtfThumbnail = async (originalKey, thumbnailKey) => {
   try {
-    // This would typically involve image processing
-    // For now, we'll return a placeholder implementation
-    // In production, you might use AWS Lambda or a separate image processing service
+    // Check if the original key is a video file
+    const isVideo = /\.(mp4|webm|avi|mov|mkv)$/i.test(originalKey);
 
-    const region = await s3Client.config.region();
-    const thumbnailUrl = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
+    if (!isVideo) {
+      // For non-video files, return the original as thumbnail
+      const region = await s3Client.config.region();
+      const thumbnailUrl = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
 
-    return {
-      success: true,
-      message: "WTF thumbnail generated successfully",
-      url: thumbnailUrl,
-      key: thumbnailKey,
-    };
+      return {
+        success: true,
+        message: "Non-video file - using original as thumbnail",
+        url: thumbnailUrl,
+        key: thumbnailKey,
+      };
+    }
+
+    // For video files, generate actual thumbnail using FFmpeg
+    try {
+      const thumbnailService = new VideoThumbnailService();
+
+      const result = await thumbnailService.generateThumbnailFromS3(
+        s3Client,
+        process.env.AWS_S3_WTF_BUCKET_NAME,
+        originalKey,
+        thumbnailKey,
+        {
+          time: "00:00:01", // Extract frame at 1 second
+          width: 320, // Thumbnail width
+          height: 240, // Thumbnail height
+          quality: 80, // JPEG quality
+        }
+      );
+
+      if (result.success) {
+        const region = await s3Client.config.region();
+        const thumbnailUrl = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
+
+        // Thumbnail service cleanup not needed
+
+        return {
+          success: true,
+          message: "Video thumbnail generated successfully",
+          url: thumbnailUrl,
+          key: thumbnailKey,
+        };
+      } else {
+        // Thumbnail service cleanup not needed
+
+        console.warn(
+          `Failed to generate video thumbnail for ${originalKey}: ${result.error}`
+        );
+
+        // Return a fallback response
+        const region = await s3Client.config.region();
+        const thumbnailUrl = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
+
+        return {
+          success: false,
+          message: "Video thumbnail generation failed",
+          url: null,
+          key: thumbnailKey,
+          error: result.error,
+        };
+      }
+    } catch (ffmpegError) {
+      console.error(
+        `FFmpeg error during thumbnail generation for ${originalKey}: ${ffmpegError.message}`
+      );
+
+      // Return a fallback response
+      const region = await s3Client.config.region();
+      const thumbnailUrl = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${region}.amazonaws.com/${thumbnailKey}`;
+
+      return {
+        success: false,
+        message: "Video thumbnail generation failed due to FFmpeg error",
+        url: null,
+        key: thumbnailKey,
+        error: ffmpegError.message,
+      };
+    }
   } catch (error) {
     console.error("Error generating WTF thumbnail:", error);
     return {

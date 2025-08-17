@@ -7,6 +7,7 @@ const {
   uploadWtfMedia,
   deleteWtfMedia,
   uploadWtfVoiceNote,
+  generateWtfThumbnail,
 } = require("./aws/s3");
 
 // Import data access methods
@@ -187,6 +188,7 @@ class WtfService {
 
       // Handle file upload to S3 for media types
       let mediaUrl = mappedPayload.mediaUrl || mappedPayload.content;
+      let thumbnailUrl = null; // Declare thumbnailUrl at function level
 
       if (
         mappedPayload.file &&
@@ -204,14 +206,111 @@ class WtfService {
           );
 
           // Upload file to S3
-          const s3Url = await uploadWtfMedia(
+          const uploadResult = await uploadWtfMedia(
             mappedPayload.file.path,
             mappedPayload.type,
             `temp_${Date.now()}` // Temporary ID, will be updated with actual pin ID
           );
 
-          mediaUrl = s3Url;
-          logger.info({ s3Url }, "File uploaded to S3 successfully");
+          if (!uploadResult.success) {
+            throw new Error(
+              uploadResult.message || "Failed to upload file to S3"
+            );
+          }
+
+          mediaUrl = uploadResult.url;
+
+          // Generate thumbnail for videos BEFORE uploading to S3
+          if (mappedPayload.type === "video") {
+            try {
+              logger.info(
+                { videoType: mappedPayload.type },
+                "Starting video thumbnail generation from local file"
+              );
+
+              // Generate thumbnail from local file first
+              const VideoThumbnailService = require("./videoThumbnail");
+              const thumbnailService = new VideoThumbnailService();
+
+              const thumbnailResult =
+                await thumbnailService.generateThumbnailFromPath(
+                  mappedPayload.file.path,
+                  {
+                    time: "00:00:01",
+                    width: 320,
+                    height: 240,
+                  }
+                );
+
+              if (thumbnailResult.success) {
+                // Create a temporary thumbnail file
+                const tempDir = require("os").tmpdir();
+                const tempThumbnailPath = require("path").join(
+                  tempDir,
+                  `temp_thumb_${Date.now()}.jpg`
+                );
+
+                try {
+                  // Write thumbnail buffer to temp file
+                  require("fs").writeFileSync(
+                    tempThumbnailPath,
+                    thumbnailResult.thumbnailBuffer
+                  );
+
+                  // Upload thumbnail file to S3
+                  const thumbnailS3Result = await uploadWtfMedia(
+                    tempThumbnailPath,
+                    "image",
+                    `thumb_${Date.now()}`
+                  );
+
+                  if (thumbnailS3Result.success) {
+                    thumbnailUrl = thumbnailS3Result.url;
+                    logger.info(
+                      { thumbnailUrl: thumbnailS3Result.url },
+                      "Video thumbnail generated and uploaded successfully"
+                    );
+                  } else {
+                    logger.warn(
+                      { error: thumbnailS3Result.message },
+                      "Failed to upload thumbnail to S3"
+                    );
+                  }
+
+                  // Clean up temp thumbnail file
+                  require("fs").unlinkSync(tempThumbnailPath);
+                } catch (fileError) {
+                  logger.error(
+                    { error: fileError.message },
+                    "Error handling temporary thumbnail file"
+                  );
+                }
+              } else {
+                logger.warn(
+                  { error: thumbnailResult.error },
+                  "Failed to generate video thumbnail from local file"
+                );
+              }
+            } catch (thumbnailError) {
+              logger.error(
+                {
+                  error: thumbnailError.message,
+                  videoType: mappedPayload.type,
+                },
+                "Error during thumbnail generation"
+              );
+            }
+          } else {
+            logger.info(
+              { mediaType: mappedPayload.type },
+              "Skipping thumbnail generation for non-video media"
+            );
+          }
+
+          logger.info(
+            { s3Url: uploadResult.url, thumbnailUrl },
+            "File uploaded to S3 successfully"
+          );
 
           // Clean up temporary file after successful S3 upload
           try {
@@ -296,10 +395,13 @@ class WtfService {
         ...mappedPayload,
         mediaUrl: mediaUrl, // Use S3 URL if uploaded, otherwise original content
         // For image pins, set thumbnailUrl to the same as mediaUrl for display purposes
+        // For video pins, use the generated thumbnail if available
         thumbnailUrl:
           mappedPayload.type === "image"
             ? mediaUrl
-            : mappedPayload.thumbnailUrl,
+            : mappedPayload.type === "video" && thumbnailUrl
+            ? thumbnailUrl
+            : mappedPayload.thumbnailUrl || null, // Ensure thumbnailUrl is never undefined
         status: mappedPayload.status || "active",
         isOfficial: mappedPayload.isOfficial || false,
         language: mappedPayload.language || "english",
@@ -307,6 +409,17 @@ class WtfService {
           mappedPayload.expiresAt ||
           new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
       };
+
+      // Debug logging for thumbnail generation
+      logger.info(
+        {
+          pinType: mappedPayload.type,
+          mediaUrl: mediaUrl,
+          thumbnailUrl: pinData.thumbnailUrl,
+          hasThumbnailUrl: !!pinData.thumbnailUrl,
+        },
+        "Pin data created with thumbnail information"
+      );
 
       // Remove file object from pinData before saving to database
       delete pinData.file;
@@ -1273,13 +1386,100 @@ class WtfService {
 
       // Upload media to S3
       let mediaUrl = null;
+      let thumbnailUrl = null; // Declare thumbnailUrl at function level
       try {
-        const s3Url = await uploadWtfMedia(
+        const uploadResult = await uploadWtfMedia(
           payload.file.path,
           type,
           `submission_${Date.now()}`
         );
-        mediaUrl = s3Url;
+
+        if (!uploadResult.success) {
+          throw new Error(
+            uploadResult.message || "Failed to upload media to S3"
+          );
+        }
+
+        mediaUrl = uploadResult.url;
+
+        // Generate thumbnail for videos from local file
+        if (type === "video") {
+          try {
+            logger.info(
+              { videoType: type },
+              "Starting video thumbnail generation for submission"
+            );
+
+            const VideoThumbnailService = require("./videoThumbnail");
+            const thumbnailService = new VideoThumbnailService();
+
+            const thumbnailResult =
+              await thumbnailService.generateThumbnailFromPath(
+                payload.file.path,
+                {
+                  time: "00:00:01",
+                  width: 320,
+                  height: 240,
+                }
+              );
+
+            if (thumbnailResult.success) {
+              // Create a temporary thumbnail file
+              const tempDir = require("os").tmpdir();
+              const tempThumbnailPath = require("path").join(
+                tempDir,
+                `temp_thumb_${Date.now()}.jpg`
+              );
+
+              try {
+                // Write thumbnail buffer to temp file
+                require("fs").writeFileSync(
+                  tempThumbnailPath,
+                  thumbnailResult.thumbnailBuffer
+                );
+
+                // Upload thumbnail file to S3
+                const thumbnailS3Result = await uploadWtfMedia(
+                  tempThumbnailPath,
+                  "image",
+                  `thumb_${Date.now()}`
+                );
+
+                if (thumbnailS3Result.success) {
+                  thumbnailUrl = thumbnailS3Result.url;
+                  logger.info(
+                    { thumbnailUrl: thumbnailS3Result.url },
+                    "Video thumbnail generated and uploaded successfully for submission"
+                  );
+                } else {
+                  logger.warn(
+                    { error: thumbnailS3Result.message },
+                    "Failed to upload thumbnail to S3 for submission"
+                  );
+                }
+
+                // Clean up temp thumbnail file
+                require("fs").unlinkSync(tempThumbnailPath);
+              } catch (fileError) {
+                logger.error(
+                  { error: fileError.message },
+                  "Error handling temporary thumbnail file for submission"
+                );
+              }
+            } else {
+              logger.warn(
+                { error: thumbnailResult.error },
+                "Failed to generate video thumbnail from local file for submission"
+              );
+            }
+          } catch (thumbnailError) {
+            logger.error(
+              { error: thumbnailError.message },
+              "Error during thumbnail generation for submission"
+            );
+          }
+        }
+
         // Cleanup local temp file
         try {
           if (fs.existsSync(payload.file.path)) {
@@ -1301,6 +1501,7 @@ class WtfService {
         type: "article",
         title: payload.title,
         content: mediaUrl,
+        thumbnailUrl: thumbnailUrl, // Include thumbnail URL for videos
         language: payload.language || "english",
         tags: payload.tags || [],
         isDraft: payload.isDraft || false,
@@ -2115,18 +2316,110 @@ class WtfService {
       };
 
       // If a file is present, upload to S3 first and get a URL
+      let thumbnailUrl = null; // Declare thumbnailUrl at function level
       if (payload.file && payload.file.path) {
         try {
-          const s3Url = await uploadWtfMedia(
+          const uploadResult = await uploadWtfMedia(
             payload.file.path,
             payload.type === "audio" ? "audio" : payload.type,
             `coach_suggestion_${Date.now()}`
           );
-          // Map to correct field
-          if (submissionType === "voice") {
-            suggestionData.audioUrl = s3Url;
-          } else if (submissionType === "article") {
-            suggestionData.content = s3Url || payload.content || "";
+
+          if (uploadResult.success) {
+            // Generate thumbnail for videos from local file
+            if (payload.type === "video") {
+              try {
+                logger.info(
+                  { videoType: payload.type },
+                  "Starting video thumbnail generation for coach suggestion"
+                );
+
+                const VideoThumbnailService = require("./videoThumbnail");
+                const thumbnailService = new VideoThumbnailService();
+
+                const thumbnailResult =
+                  await thumbnailService.generateThumbnailFromPath(
+                    payload.file.path,
+                    {
+                      time: "00:00:01",
+                      width: 320,
+                      height: 240,
+                    }
+                  );
+
+                if (thumbnailResult.success) {
+                  // Create a temporary thumbnail file
+                  const tempDir = require("os").tmpdir();
+                  const tempThumbnailPath = require("path").join(
+                    tempDir,
+                    `temp_thumb_${Date.now()}.jpg`
+                  );
+
+                  try {
+                    // Write thumbnail buffer to temp file
+                    require("fs").writeFileSync(
+                      tempThumbnailPath,
+                      thumbnailResult.thumbnailBuffer
+                    );
+
+                    // Upload thumbnail file to S3
+                    const thumbnailS3Result = await uploadWtfMedia(
+                      tempThumbnailPath,
+                      "image",
+                      `thumb_${Date.now()}`
+                    );
+
+                    if (thumbnailS3Result.success) {
+                      thumbnailUrl = thumbnailS3Result.url;
+                      logger.info(
+                        { thumbnailUrl: thumbnailS3Result.url },
+                        "Video thumbnail generated and uploaded successfully for coach suggestion"
+                      );
+                    } else {
+                      logger.warn(
+                        { error: thumbnailS3Result.message },
+                        "Failed to upload thumbnail to S3 for coach suggestion"
+                      );
+                    }
+
+                    // Clean up temp thumbnail file
+                    require("fs").unlinkSync(tempThumbnailPath);
+                  } catch (fileError) {
+                    logger.error(
+                      { error: fileError.message },
+                      "Error handling temporary thumbnail file for coach suggestion"
+                    );
+                  }
+                } else {
+                  logger.warn(
+                    { error: thumbnailResult.error },
+                    "Failed to generate video thumbnail from local file for coach suggestion"
+                  );
+                }
+              } catch (thumbnailError) {
+                logger.error(
+                  { error: thumbnailError.message },
+                  "Error during thumbnail generation for coach suggestion"
+                );
+              }
+            }
+
+            // Map to correct field
+            if (submissionType === "voice") {
+              suggestionData.audioUrl = uploadResult.url;
+            } else if (submissionType === "article") {
+              suggestionData.content =
+                uploadResult.url || payload.content || "";
+              // Add thumbnail URL for video suggestions
+              if (payload.type === "video" && thumbnailUrl) {
+                suggestionData.thumbnailUrl = thumbnailUrl;
+              }
+            }
+          } else {
+            errorLogger.error(
+              { error: uploadResult.message },
+              "S3 upload failed for coach suggestion"
+            );
           }
           // Clean up local temp file
           try {
