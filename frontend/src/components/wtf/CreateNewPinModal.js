@@ -1239,26 +1239,29 @@ const CreateNewPinModal = ({
                   />
                 </div>
 
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="isOfficial"
-                    checked={formData.isOfficial}
-                    onChange={(e) => {
-                      setError(""); // Clear errors when checkbox changes
-                      setFormData((prev) => ({
-                        ...prev,
-                        isOfficial: e.target.checked,
-                      }));
-                    }}
-                    className="rounded"
-                  />
-                  <label htmlFor="isOfficial" className="text-sm font-medium">
-                    Mark as "ISF Official Post"
-                  </label>
-                </div>
+                {/* Hide ISF Official controls for students */}
+                {!isStudentMode && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="isOfficial"
+                      checked={formData.isOfficial}
+                      onChange={(e) => {
+                        setError(""); // Clear errors when checkbox changes
+                        setFormData((prev) => ({
+                          ...prev,
+                          isOfficial: e.target.checked,
+                        }));
+                      }}
+                      className="rounded"
+                    />
+                    <label htmlFor="isOfficial" className="text-sm font-medium">
+                      Mark as "ISF Official Post"
+                    </label>
+                  </div>
+                )}
 
-                {formData.isOfficial && (
+                {formData.isOfficial && !isStudentMode && (
                   <div className="flex flex-col gap-2">
                     <label
                       htmlFor="officialCategory"
