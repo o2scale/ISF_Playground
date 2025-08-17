@@ -39,7 +39,7 @@ const wtfPinSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["active", "unpinned", "archived", "expired"],
+      enum: ["active", "unpinned", "archived", "expired", "draft"],
       default: "active",
     },
     isOfficial: {

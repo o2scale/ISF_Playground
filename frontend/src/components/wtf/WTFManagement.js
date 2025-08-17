@@ -28,6 +28,7 @@ import CreateNewPinModal from "./CreateNewPinModal";
 import PinEditModal from "./PinEditModal";
 import ReviewModal from "./ReviewModal";
 import CoachSuggestionReviewModal from "./CoachSuggestionReviewModal";
+import DraftsModal from "./DraftsModal";
 import { useAuth } from "../../contexts/AuthContext";
 import BackgroundSettings from "./BackgroundSettings";
 import showToast from "../../utils/toast";
@@ -60,6 +61,8 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedPin, setSelectedPin] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showDraftsModal, setShowDraftsModal] = useState(false);
+  const [editingDraft, setEditingDraft] = useState(null);
   const [selectedSubmission, setSelectedSubmission] = useState(null);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedCoachSuggestion, setSelectedCoachSuggestion] = useState(null);
@@ -599,6 +602,12 @@ const WTFManagementContent = ({ onToggleView }) => {
     if (!response.success) {
       throw new Error(response.message || "Failed to create pin");
     }
+
+    // If this was a draft being published, remove it from drafts
+    if (editingDraft) {
+      setEditingDraft(null);
+    }
+
     setActivePins((prev) => [response.data, ...prev]);
     setShowCreateModal(false);
 
@@ -618,6 +627,19 @@ const WTFManagementContent = ({ onToggleView }) => {
         ...prev,
         activePins: (prev.activePins || 0) + 1,
       }));
+    }
+  };
+
+  const handleSelectDraft = (draft) => {
+    setEditingDraft(draft);
+    setShowDraftsModal(false);
+    setShowCreateModal(true);
+  };
+
+  const handleDraftDeleted = (draftId) => {
+    // If we were editing this draft, clear it
+    if (editingDraft && editingDraft._id === draftId) {
+      setEditingDraft(null);
     }
   };
 
@@ -1107,6 +1129,16 @@ const WTFManagementContent = ({ onToggleView }) => {
               />
               Refresh
             </Button>
+            {user?.role === "admin" && (
+              <Button
+                onClick={() => setShowDraftsModal(true)}
+                variant="outline"
+                className="border-gray-300 text-gray-700 hover:bg-gray-50"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Check Drafts
+              </Button>
+            )}
             <Button
               onClick={() => setShowCreateModal(true)}
               className="bg-purple-600 hover:bg-purple-700 text-white"
@@ -3029,8 +3061,21 @@ const WTFManagementContent = ({ onToggleView }) => {
       {/* Create New Pin Modal */}
       <CreateNewPinModal
         isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
+        onClose={() => {
+          setShowCreateModal(false);
+          setEditingDraft(null);
+        }}
         onCreatePin={handleCreatePin}
+        userRole={user?.role}
+        editingDraft={editingDraft}
+      />
+
+      {/* Drafts Modal */}
+      <DraftsModal
+        isOpen={showDraftsModal}
+        onClose={() => setShowDraftsModal(false)}
+        onSelectDraft={handleSelectDraft}
+        onDraftDeleted={handleDraftDeleted}
       />
 
       {/* Edit Pin Modal */}

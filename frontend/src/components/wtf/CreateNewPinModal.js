@@ -28,6 +28,7 @@ const CreateNewPinModal = ({
   isCoachMode = false,
   isStudentMode = false,
   userRole = "admin",
+  editingDraft = null,
 }) => {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
@@ -122,6 +123,38 @@ const CreateNewPinModal = ({
       setError("");
     }
   }, [isOpen]);
+
+  // Populate form when editing draft
+  useEffect(() => {
+    if (editingDraft && isOpen) {
+      setFormData({
+        title: editingDraft.title || "",
+        contentType: editingDraft.type || editingDraft.contentType || "",
+        content: editingDraft.content || "",
+        caption: editingDraft.caption || "",
+        isOfficial: editingDraft.isOfficial || false,
+        file: null, // We don't restore the file, user needs to re-upload
+        studentName: editingDraft.studentName || "",
+        studentId: editingDraft.studentId || "",
+        balagruha: editingDraft.balagruha || "",
+        reason: editingDraft.reason || "",
+      });
+    } else if (isOpen && !editingDraft) {
+      // Reset form when opening for new pin
+      setFormData({
+        title: "",
+        contentType: "",
+        content: "",
+        caption: "",
+        isOfficial: false,
+        file: null,
+        studentName: "",
+        studentId: "",
+        balagruha: "",
+        reason: "",
+      });
+    }
+  }, [editingDraft, isOpen]);
 
   // Filter students by balagruha
   useEffect(() => {
@@ -593,7 +626,7 @@ const CreateNewPinModal = ({
         contentType: formData.contentType, // Keep original for frontend flow branching
         author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
         isOfficial: formData.isOfficial,
-        status: isDraft ? "archived" : "active", // Backend expects lowercase enum values
+        status: isDraft ? "draft" : "active", // Backend expects lowercase enum values
         language: "english", // Default language
         tags: [], // Default empty tags
         // Coach suggestion specific fields needed by parent handler to route correctly
@@ -982,7 +1015,7 @@ const CreateNewPinModal = ({
             </div>
           ) : (
             <h2 className="text-2xl font-bold mb-6 text-center">
-              Create New WTF Pin
+              {editingDraft ? "Edit Draft" : "Create New WTF Pin"}
             </h2>
           )}
 
@@ -1279,22 +1312,24 @@ const CreateNewPinModal = ({
                       "Publish Pin"
                     )}
                   </Button>
-                  <Button
-                    type="button"
-                    onClick={(e) => handleSubmit(e, true)}
-                    variant="outline"
-                    className="flex-1"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Saving...
-                      </div>
-                    ) : (
-                      "Save as Draft"
-                    )}
-                  </Button>
+                  {userRole === "admin" && (
+                    <Button
+                      type="button"
+                      onClick={(e) => handleSubmit(e, true)}
+                      variant="outline"
+                      className="flex-1"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? (
+                        <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          Saving...
+                        </div>
+                      ) : (
+                        "Save as Draft"
+                      )}
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     onClick={onClose}

@@ -485,6 +485,38 @@ class WtfService {
     }
   }
 
+  static async getDrafts({
+    page = 1,
+    limit = 20,
+    type = null,
+    author = null,
+    isOfficial = null,
+  }) {
+    try {
+      const result = await getPinsByStatus({
+        page,
+        limit,
+        status: "draft",
+        type,
+        author,
+        isOfficial,
+      });
+
+      if (result.success) {
+        return {
+          success: true,
+          data: result.data,
+          message: "Drafts fetched successfully",
+        };
+      }
+
+      return result;
+    } catch (error) {
+      errorLogger.error({ error: error.message }, "Error in getDrafts service");
+      throw error;
+    }
+  }
+
   static async getPinById(pinId) {
     try {
       if (!pinId) {

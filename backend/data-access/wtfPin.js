@@ -34,7 +34,17 @@ exports.getActivePins = async ({
 
     // Add filters
     if (type) query.type = type;
-    if (author) query.author = new mongoose.Types.ObjectId(author);
+    if (author) {
+      // Handle both ObjectId and string author values
+      if (mongoose.Types.ObjectId.isValid(author)) {
+        query.author = new mongoose.Types.ObjectId(author);
+      } else {
+        // If author is a string (name), we'll need to find the user first
+        // For now, we'll skip the author filter if it's not a valid ObjectId
+        // This can be enhanced later to search by user name
+        console.log(`Skipping author filter for non-ObjectId: ${author}`);
+      }
+    }
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)
@@ -63,6 +73,64 @@ exports.getActivePins = async ({
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in getActivePins");
+    throw error;
+  }
+};
+
+// Get pins by status with pagination
+exports.getPinsByStatus = async ({
+  page = 1,
+  limit = 20,
+  status = "active",
+  type = null,
+  author = null,
+  isOfficial = null,
+}) => {
+  try {
+    const skip = (page - 1) * limit;
+    const query = { status };
+
+    // Add filters
+    if (type) query.type = type;
+    if (author) {
+      // Handle both ObjectId and string author values
+      if (mongoose.Types.ObjectId.isValid(author)) {
+        query.author = new mongoose.Types.ObjectId(author);
+      } else {
+        // If author is a string (name), we'll need to find the user first
+        // For now, we'll skip the author filter if it's not a valid ObjectId
+        // This can be enhanced later to search by user name
+        console.log(`Skipping author filter for non-ObjectId: ${author}`);
+      }
+    }
+    if (isOfficial !== null) query.isOfficial = isOfficial;
+
+    const pins = await WtfPin.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate("author", "name role")
+      .lean();
+
+    const total = await WtfPin.countDocuments(query);
+
+    return {
+      success: true,
+      data: {
+        pins,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: page * limit < total,
+          hasPrev: page > 1,
+        },
+      },
+      message: `${status} pins fetched successfully`,
+    };
+  } catch (error) {
+    errorLogger.error({ error: error.message }, "Error in getPinsByStatus");
     throw error;
   }
 };
@@ -188,7 +256,34 @@ exports.getPinsByAuthor = async (
 ) => {
   try {
     const skip = (page - 1) * limit;
-    const query = { author: new mongoose.Types.ObjectId(authorId) };
+
+    // Handle both ObjectId and string author values
+    let authorQuery;
+    if (mongoose.Types.ObjectId.isValid(authorId)) {
+      authorQuery = new mongoose.Types.ObjectId(authorId);
+    } else {
+      // If authorId is a string (name), we'll need to find the user first
+      // For now, we'll skip the author filter if it's not a valid ObjectId
+      // This can be enhanced later to search by user name
+      console.log(`Skipping author filter for non-ObjectId: ${authorId}`);
+      return {
+        success: true,
+        data: {
+          pins: [],
+          pagination: {
+            page,
+            limit,
+            total: 0,
+            totalPages: 0,
+            hasNext: false,
+            hasPrev: false,
+          },
+        },
+        message: "Author filter skipped - invalid author ID format",
+      };
+    }
+
+    const query = { author: authorQuery };
 
     if (status) query.status = status;
 
@@ -236,7 +331,17 @@ exports.getPinsByStatus = async ({
     const query = { status };
 
     if (type) query.type = type;
-    if (author) query.author = new mongoose.Types.ObjectId(author);
+    if (author) {
+      // Handle both ObjectId and string author values
+      if (mongoose.Types.ObjectId.isValid(author)) {
+        query.author = new mongoose.Types.ObjectId(author);
+      } else {
+        // If author is a string (name), we'll need to find the user first
+        // For now, we'll skip the author filter if it's not a valid ObjectId
+        // This can be enhanced later to search by user name
+        console.log(`Skipping author filter for non-ObjectId: ${author}`);
+      }
+    }
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)
@@ -553,7 +658,17 @@ exports.getActivePinsForAdmin = async ({
 
     // Add filters
     if (type) query.type = type;
-    if (author) query.author = new mongoose.Types.ObjectId(author);
+    if (author) {
+      // Handle both ObjectId and string author values
+      if (mongoose.Types.ObjectId.isValid(author)) {
+        query.author = new mongoose.Types.ObjectId(author);
+      } else {
+        // If author is a string (name), we'll need to find the user first
+        // For now, we'll skip the author filter if it's not a valid ObjectId
+        // This can be enhanced later to search by user name
+        console.log(`Skipping author filter for non-ObjectId: ${author}`);
+      }
+    }
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)
