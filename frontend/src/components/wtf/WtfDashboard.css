@@ -67,8 +67,9 @@
   }
 }
 
-/* Category header styling */
-.category-header {
+/* Category and Level header styling */
+.category-header,
+.level-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -76,7 +77,8 @@
   padding: 0 1rem;
 }
 
-.category-header h3 {
+.category-header h3,
+.level-header h3 {
   font-size: 1.125rem;
   font-weight: 600;
   color: #1f2937;
