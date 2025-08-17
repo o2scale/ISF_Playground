@@ -310,11 +310,20 @@ const CreateNewPinModal = ({
 
   const handleStudentSelect = (student) => {
     setError(""); // Clear errors when student is selected
+    // Prefer new schema where balagruhaIds is populated with objects having a name
+    let selectedBalagruha = student.balagruha;
+    if (
+      Array.isArray(student.balagruhaIds) &&
+      student.balagruhaIds.length > 0
+    ) {
+      selectedBalagruha = student.balagruhaIds[0]?.name || selectedBalagruha;
+    }
+
     setFormData((prev) => ({
       ...prev,
       studentId: student._id,
       studentName: student.name || `${student.firstName} ${student.lastName}`,
-      balagruha: student.balagruha,
+      balagruha: selectedBalagruha || "",
     }));
   };
 

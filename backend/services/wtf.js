@@ -2245,9 +2245,38 @@ class WtfService {
           submission.type === "voice"
             ? submission.audioUrl
             : submission.content;
+
+        // Derive student name from multiple sources (prefer populated data)
+        const derivedStudentName =
+          submission.studentName ||
+          submission.studentId?.name ||
+          `${submission.studentId?.firstName || ""} ${
+            submission.studentId?.lastName || ""
+          }`.trim() ||
+          meta.studentName ||
+          "Unknown Student";
+
+        // Derive balagruha from populated student, transformed fields, or metadata
+        let derivedBalagruha = submission.balagruha;
+        if (!derivedBalagruha) {
+          if (
+            Array.isArray(submission.studentId?.balagruhaIds) &&
+            submission.studentId.balagruhaIds.length > 0
+          ) {
+            derivedBalagruha =
+              submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+          } else if (submission.studentId?.balagruha) {
+            derivedBalagruha = submission.studentId.balagruha;
+          } else if (meta.balagruha) {
+            derivedBalagruha = meta.balagruha;
+          } else {
+            derivedBalagruha = "Unknown House";
+          }
+        }
+
         return {
           _id: submission._id, // Use _id to match frontend expectations
-          studentName: meta.studentName || "Unknown Student",
+          studentName: derivedStudentName,
           coachName: meta.suggestedBy || "Coach",
           workType:
             originalType === "audio" || originalType === "voice"
@@ -2258,9 +2287,9 @@ class WtfService {
           content: contentUrl,
           suggestedDate: submission.createdAt,
           status: submission.status
-            ? submission.status.toLowerCase() // Use lowercase to match frontend expectations
+            ? submission.status.toLowerCase()
             : "pending",
-          balagruha: meta.balagruha || "Unknown House",
+          balagruha: derivedBalagruha,
         };
       });
 

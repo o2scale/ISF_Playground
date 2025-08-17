@@ -475,7 +475,8 @@ const WTFManagementContent = ({ onToggleView }) => {
       const totalActivePins = activePins.length;
       const totalCoachSuggestions = fetchedSuggestions.length;
       const totalStudentSubmissions = fetchedSubmissions.length;
-      const totalEngagement = totalActivePins + totalCoachSuggestions + totalStudentSubmissions;
+      const totalEngagement =
+        totalActivePins + totalCoachSuggestions + totalStudentSubmissions;
 
       setDashboardMetrics({
         activePins: totalActivePins,
@@ -508,8 +509,7 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
         setActivePins(pinsResponse.data.pins);
         setTotalItems(
-          pinsResponse.data.pagination?.total ||
-            pinsResponse.data.pins.length
+          pinsResponse.data.pagination?.total || pinsResponse.data.pins.length
         );
         setCurrentPage(1); // Reset to first page
       } else {
@@ -1329,8 +1329,14 @@ const WTFManagementContent = ({ onToggleView }) => {
                               page: 1,
                               limit: 20,
                               type: filterType === "all" ? null : filterType,
-                              source: pinFilters.source === "all" ? null : pinFilters.source,
-                              pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+                              source:
+                                pinFilters.source === "all"
+                                  ? null
+                                  : pinFilters.source,
+                              pinType:
+                                pinFilters.pinType === "all"
+                                  ? null
+                                  : pinFilters.pinType,
                               dateFrom: pinFilters.dateFrom || null,
                               dateTo: pinFilters.dateTo || null,
                             });
@@ -1372,8 +1378,14 @@ const WTFManagementContent = ({ onToggleView }) => {
                             limit: 20,
                             type:
                               newFilterType === "all" ? null : newFilterType,
-                            source: pinFilters.source === "all" ? null : pinFilters.source,
-                            pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+                            source:
+                              pinFilters.source === "all"
+                                ? null
+                                : pinFilters.source,
+                            pinType:
+                              pinFilters.pinType === "all"
+                                ? null
+                                : pinFilters.pinType,
                             dateFrom: pinFilters.dateFrom || null,
                             dateTo: pinFilters.dateTo || null,
                           });
@@ -1410,7 +1422,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                 {/* Additional Filters */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-4 mb-4">
-                    <h4 className="text-sm font-medium text-gray-700">Filters</h4>
+                    <h4 className="text-sm font-medium text-gray-700">
+                      Filters
+                    </h4>
                     <button
                       onClick={() => {
                         setPinFilters({
@@ -1435,7 +1449,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <select
                         value={pinFilters.source}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, source: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            source: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
@@ -1451,7 +1468,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <select
                         value={pinFilters.pinType}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, pinType: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            pinType: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
@@ -1471,7 +1491,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                         type="date"
                         value={pinFilters.dateFrom}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, dateFrom: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            dateFrom: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
@@ -1484,7 +1507,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                         type="date"
                         value={pinFilters.dateTo}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, dateTo: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            dateTo: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
@@ -2414,6 +2440,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                               Voice Note
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Student
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
                               Balagruha
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
@@ -2440,13 +2469,13 @@ const WTFManagementContent = ({ onToggleView }) => {
                               className="border-b border-gray-100 hover:bg-gray-50"
                             >
                               <td className="py-4 px-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {submission.title}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {submission.studentName}
-                                  </div>
+                                <div className="font-medium">
+                                  {submission.title}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.studentName}
                                 </div>
                               </td>
                               <td className="py-4 px-4">
@@ -2505,6 +2534,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                               Article
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Student
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
                               Balagruha
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
@@ -2531,13 +2563,13 @@ const WTFManagementContent = ({ onToggleView }) => {
                               className="border-b border-gray-100 hover:bg-gray-50"
                             >
                               <td className="py-4 px-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {submission.title}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {submission.studentName}
-                                  </div>
+                                <div className="font-medium">
+                                  {submission.title}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.studentName}
                                 </div>
                               </td>
                               <td className="py-4 px-4">
