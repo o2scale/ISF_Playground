@@ -1858,11 +1858,9 @@ HTML Font: ${htmlFont}`);
             aria-label="Love"
           >
             <Heart className="w-3 h-3 text-green-500" />
-            {!isStudent && (
-              <span className="text-gray-700 font-medium">
-                {item.engagementMetrics?.loves ?? 0}
-              </span>
-            )}
+            <span className="text-gray-700 font-medium">
+              {item.engagementMetrics?.loves ?? 0}
+            </span>
           </button>
           <button
             type="button"
@@ -1875,11 +1873,9 @@ HTML Font: ${htmlFont}`);
             aria-label="Like"
           >
             <ThumbsUp className="w-3 h-3 text-pink-500" />
-            {!isStudent && (
-              <span className="text-gray-700 font-medium">
-                {item.engagementMetrics?.likes ?? 0}
-              </span>
-            )}
+            <span className="text-gray-700 font-medium">
+              {item.engagementMetrics?.likes ?? 0}
+            </span>
           </button>
         </div>
 
