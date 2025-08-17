@@ -138,11 +138,16 @@ exports.getPendingSubmissions = async ({
   limit = 20,
   type = null,
   isCoachSuggestion = null,
+  status = null,
 }) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
-      status: "pending",
+      status: status
+        ? Array.isArray(status)
+          ? { $in: status }
+          : status
+        : { $in: ["pending", "reviewed", "considered"] },
       isDraft: false,
     };
 
@@ -531,6 +536,155 @@ exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
   }
 };
 
+// Mark submission as reviewed (keeps it in table but no longer pending)
+exports.markSubmissionReviewed = async (
+  submissionId,
+  reviewerId,
+  notes = ""
+) => {
+  try {
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      {
+        status: "reviewed",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    )
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
+
+    if (!submission) {
+      return {
+        success: false,
+        data: null,
+        message: "WTF Submission not found",
+      };
+    }
+
+    const transformed = submission.toObject();
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
+    return {
+      success: true,
+      data: transformed,
+      message: "WTF Submission marked as reviewed",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in markSubmissionReviewed"
+    );
+    throw error;
+  }
+};
+
+// Mark submission as considered for future talk (keeps it in table)
+exports.markSubmissionConsidered = async (
+  submissionId,
+  reviewerId,
+  notes = ""
+) => {
+  try {
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      {
+        status: "considered",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    )
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
+
+    if (!submission) {
+      return {
+        success: false,
+        data: null,
+        message: "WTF Submission not found",
+      };
+    }
+
+    const transformed = submission.toObject();
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
+    return {
+      success: true,
+      data: transformed,
+      message: "WTF Submission marked as considered",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in markSubmissionConsidered"
+    );
+    throw error;
+  }
+};
 // Reject submission
 exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
   try {

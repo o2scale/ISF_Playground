@@ -204,12 +204,14 @@ const WTFManagementContent = ({ onToggleView }) => {
               limit: 1,
               type: "voice",
               isCoachSuggestion: false,
+              status: "pending",
             }),
             getSubmissionsForReview({
               page: 1,
               limit: 1,
               type: "article",
               isCoachSuggestion: false,
+              status: "pending",
             }),
           ]);
 
@@ -338,12 +340,14 @@ const WTFManagementContent = ({ onToggleView }) => {
               limit: 1,
               type: "voice",
               isCoachSuggestion: false,
+              status: "pending",
             }),
             getSubmissionsForReview({
               page: 1,
               limit: 1,
               type: "article",
               isCoachSuggestion: false,
+              status: "pending",
             }),
           ]);
 
@@ -752,9 +756,17 @@ const WTFManagementContent = ({ onToggleView }) => {
 
               // Update pending counts
               if (submissionTab === "voice") {
-                setPendingVoiceCount(updatedSubmissions.length);
+                setPendingVoiceCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               } else {
-                setPendingArticleCount(updatedSubmissions.length);
+                setPendingArticleCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               }
             }
           }
@@ -963,9 +975,17 @@ const WTFManagementContent = ({ onToggleView }) => {
 
               // Update pending counts
               if (submissionTab === "voice") {
-                setPendingVoiceCount(updatedSubmissions.length);
+                setPendingVoiceCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               } else {
-                setPendingArticleCount(updatedSubmissions.length);
+                setPendingArticleCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               }
             }
           }
@@ -2374,7 +2394,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                             const fetchedSubmissions =
                               submissionsResponse.data?.submissions || [];
                             setStudentSubmissions(fetchedSubmissions);
-                            setPendingVoiceCount(fetchedSubmissions.length);
+                            setPendingVoiceCount(
+                              fetchedSubmissions.filter(
+                                (s) => (s.status || "").toString() === "pending"
+                              ).length
+                            );
                           }
                         } catch (error) {
                           console.error(
@@ -2412,7 +2436,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                             const fetchedSubmissions =
                               submissionsResponse.data?.submissions || [];
                             setStudentSubmissions(fetchedSubmissions);
-                            setPendingArticleCount(fetchedSubmissions.length);
+                            setPendingArticleCount(
+                              fetchedSubmissions.filter(
+                                (s) => (s.status || "").toString() === "pending"
+                              ).length
+                            );
                           }
                         } catch (error) {
                           console.error(
@@ -2460,7 +2488,12 @@ const WTFManagementContent = ({ onToggleView }) => {
                           {(Array.isArray(studentSubmissions)
                             ? studentSubmissions.filter(
                                 (s) =>
-                                  s.status === "pending" && s.type === "voice"
+                                  [
+                                    "pending",
+                                    "reviewed",
+                                    "considered",
+                                  ].includes((s.status || "").toString()) &&
+                                  s.type === "voice"
                               )
                             : []
                           ).map((submission) => (
@@ -2554,7 +2587,12 @@ const WTFManagementContent = ({ onToggleView }) => {
                           {(Array.isArray(studentSubmissions)
                             ? studentSubmissions.filter(
                                 (s) =>
-                                  s.status === "pending" && s.type === "article"
+                                  [
+                                    "pending",
+                                    "reviewed",
+                                    "considered",
+                                  ].includes((s.status || "").toString()) &&
+                                  s.type === "article"
                               )
                             : []
                           ).map((submission) => (
@@ -2705,8 +2743,11 @@ const WTFManagementContent = ({ onToggleView }) => {
 
                     {/* No Student Submissions State */}
                     {(Array.isArray(studentSubmissions)
-                      ? studentSubmissions.filter((s) => s.status === "pending")
-                          .length
+                      ? studentSubmissions.filter((s) =>
+                          ["pending", "reviewed", "considered"].includes(
+                            (s.status || "").toString()
+                          )
+                        ).length
                       : 0) === 0 && (
                       <div className="text-center py-12">
                         <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
@@ -3252,6 +3293,17 @@ const WTFManagementContent = ({ onToggleView }) => {
         submission={selectedSubmission}
         onPinToWTF={handlePinToWTF}
         onArchive={handleArchiveSubmission}
+        onStatusChange={(newStatus) => {
+          if (!selectedSubmission) return;
+          const id = selectedSubmission._id || selectedSubmission.id;
+          setStudentSubmissions((prev) =>
+            Array.isArray(prev)
+              ? prev.map((s) =>
+                  (s._id || s.id) === id ? { ...s, status: newStatus } : s
+                )
+              : prev
+          );
+        }}
       />
 
       {/* Coach Suggestion Review Modal */}

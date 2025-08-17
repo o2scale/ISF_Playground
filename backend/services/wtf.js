@@ -65,6 +65,8 @@ const {
   getSubmissionAnalytics,
   bulkUpdateSubmissionStatus,
   getSubmissionsNeedingReview,
+  markSubmissionReviewed,
+  markSubmissionConsidered,
 } = require("../data-access/wtfSubmission");
 
 class WtfService {
@@ -1611,6 +1613,7 @@ class WtfService {
     limit = 20,
     type = null,
     isCoachSuggestion = null,
+    status = null,
   }) {
     try {
       const result = await getPendingSubmissions({
@@ -1618,6 +1621,7 @@ class WtfService {
         limit,
         type,
         isCoachSuggestion,
+        status,
       });
       return result;
     } catch (error) {
@@ -1639,7 +1643,13 @@ class WtfService {
         };
       }
 
-      const validActions = ["approve", "reject", "archive"];
+      const validActions = [
+        "approve",
+        "reject",
+        "archive",
+        "mark_reviewed",
+        "consider_future",
+      ];
       if (!validActions.includes(action)) {
         return {
           success: false,
@@ -1786,6 +1796,14 @@ class WtfService {
         result = await rejectSubmission(submissionId, reviewerId, notes);
       } else if (action === "archive") {
         result = await archiveSubmission(submissionId);
+      } else if (action === "mark_reviewed") {
+        result = await markSubmissionReviewed(submissionId, reviewerId, notes);
+      } else if (action === "consider_future") {
+        result = await markSubmissionConsidered(
+          submissionId,
+          reviewerId,
+          notes
+        );
       }
 
       // Trigger real-time event
