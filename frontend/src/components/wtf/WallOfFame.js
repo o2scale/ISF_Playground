@@ -17,6 +17,7 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
+  Trash2,
 } from "lucide-react";
 import { useUserRole } from "../../hooks/useUserRole";
 import { useSidebar } from "../Layout";
@@ -56,7 +57,7 @@ import {
 import showToast from "../../utils/toast";
 
 // Inline voice suggestion modal (see spec)
-const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
+const VoiceSuggestionModal = ({ open, onClose }) => {
   const [recording, setRecording] = React.useState(false);
   const [permissionError, setPermissionError] = React.useState("");
   const [mediaRecorder, setMediaRecorder] = React.useState(null);
@@ -148,7 +149,6 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
   }, [recording, timer]);
 
   React.useEffect(() => {
-    if (open && autoStart) startRecording();
     return () => {
       try {
         if (timerId) clearInterval(timerId);
@@ -157,7 +157,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       } catch (_) {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open]);
+  }, []);
   const [submitting, setSubmitting] = React.useState(false);
   const handleSubmit = async () => {
     try {
@@ -186,7 +186,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-md">
         <div className="flex items-center gap-2 mb-3">
           <Mic className="w-5 h-5 text-purple-600" />
-          <h3 className="text-lg font-semibold">Share Your Voice</h3>
+          <h3 className="text-lg font-semibold">Suggest a Topic for a Talk!</h3>
           <button className="ml-auto" onClick={onClose}>
             ×
           </button>
@@ -194,6 +194,10 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
         {permissionError && (
           <div className="mb-3 text-sm text-red-600">{permissionError}</div>
         )}
+        <div className="mb-4 text-sm text-gray-600 text-center">
+          Share your idea for a talk or something you'd like to learn more
+          about. You have 1 minute to record your voice note.
+        </div>
         {recording ? (
           <div className="text-center py-6">
             <button
@@ -203,11 +207,20 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
             >
               <StopCircle className="w-8 h-8 text-red-500" />
             </button>
-            <div className="font-medium">Recording... Click stop to finish</div>
+            <div className="font-medium">Recording...</div>
             <div className="text-sm text-gray-600 mt-1">
-              {`${String(Math.floor(timer / 60)).padStart(2, "0")}:${String(
-                timer % 60
-              ).padStart(2, "0")}`}
+              {`${String(Math.floor((60 - timer) / 60)).padStart(
+                2,
+                "0"
+              )}:${String((60 - timer) % 60).padStart(2, "0")}`}
+            </div>
+            <div className="mt-3">
+              <button
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                onClick={stopRecording}
+              >
+                <StopCircle className="w-4 h-4" /> Stop Recording
+              </button>
             </div>
           </div>
         ) : (
@@ -216,30 +229,46 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
               <div className="text-center py-6">
                 <button
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600 text-white hover:bg-purple-700"
-                  onMouseDown={startRecording}
+                  onClick={startRecording}
                 >
-                  <Mic className="w-4 h-4" /> Hold to Record
+                  <Mic className="w-4 h-4" /> Click to Record
                 </button>
               </div>
             ) : (
               <div className="space-y-4">
-                <audio
-                  controls
-                  className="w-full"
-                  src={audioUrl}
-                  onPlay={() => setHasReviewed(true)}
-                />
-                <div className="flex items-center gap-2">
+                <div className="text-center">
+                  <h4 className="font-medium mb-3">Your Recording is Ready!</h4>
+                  <audio
+                    controls
+                    className="w-full mb-4"
+                    src={audioUrl}
+                    onPlay={() => setHasReviewed(true)}
+                  />
+                </div>
+                <div className="flex flex-col gap-3">
                   <button
-                    className="inline-flex items-center gap-2 px-3 py-2 rounded bg-gray-100 hover:bg-gray-200"
-                    onClick={resetRecording}
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                    onClick={() => {
+                      const audioElement = document.querySelector("audio");
+                      if (audioElement) {
+                        audioElement.play();
+                        setHasReviewed(true);
+                      }
+                    }}
                   >
-                    <Mic className="w-4 h-4" /> Re-record
+                    <Play className="w-4 h-4" /> Listen to My Suggestion
                   </button>
                   <button
-                    className={`inline-flex items-center gap-2 px-3 py-2 rounded text-white ${
+                    className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    onClick={resetRecording}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <Mic className="w-4 h-4" /> Delete & Re-record
+                  </button>
+                  <button
+                    className={`inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg text-white ${
                       hasReviewed && !submitting
-                        ? "bg-blue-600 hover:bg-blue-700"
+                        ? "bg-green-600 hover:bg-green-700"
                         : "bg-gray-300 cursor-not-allowed"
                     }`}
                     disabled={!hasReviewed || submitting}
@@ -257,7 +286,7 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
                     )}
                   </button>
                 </div>
-                <div className="text-xs text-gray-500">
+                <div className="text-xs text-gray-500 text-center">
                   Please listen to your recording before submitting.
                 </div>
               </div>
@@ -329,7 +358,6 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [bgError, setBgError] = useState("");
   // Voice modal state
   const [showVoiceModal, setShowVoiceModal] = useState(false);
-  const [voiceAutoStart, setVoiceAutoStart] = useState(false);
   const [showArticleEditor, setShowArticleEditor] = useState(false);
 
   // Pin type filter and grouping state
@@ -1792,9 +1820,11 @@ HTML Font: ${htmlFont}`);
             aria-label="Love"
           >
             <Heart className="w-3 h-3 text-green-500" />
-            <span className="text-gray-700 font-medium">
-              {item.engagementMetrics?.loves ?? 0}
-            </span>
+            {!isStudent && (
+              <span className="text-gray-700 font-medium">
+                {item.engagementMetrics?.loves ?? 0}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -1807,9 +1837,11 @@ HTML Font: ${htmlFont}`);
             aria-label="Like"
           >
             <ThumbsUp className="w-3 h-3 text-pink-500" />
-            <span className="text-gray-700 font-medium">
-              {item.engagementMetrics?.likes ?? 0}
-            </span>
+            {!isStudent && (
+              <span className="text-gray-700 font-medium">
+                {item.engagementMetrics?.likes ?? 0}
+              </span>
+            )}
           </button>
         </div>
 
@@ -2375,14 +2407,13 @@ Check console for detailed results.`);
                 <div className="flex items-center gap-3">
                   <button
                     id="btn-wtf-share-voice"
-                    onMouseDown={() => {
+                    onClick={() => {
                       setShowVoiceModal(true);
-                      setVoiceAutoStart(true);
                     }}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                    title="Share Your Voice!"
+                    title="Suggest a Topic for a Talk!"
                   >
-                    <Mic className="w-4 h-4" /> Share Your Voice!
+                    <Mic className="w-4 h-4" /> Suggest a Topic!
                   </button>
                   <button
                     id="btn-wtf-write-story"
@@ -2513,8 +2544,8 @@ Check console for detailed results.`);
                 </div>
               </div>
 
-              {/* Summary of viewed vs unviewed pins */}
-              {filteredContent.length > 0 && (
+              {/* Summary of viewed vs unviewed pins - HIDDEN */}
+              {/* {filteredContent.length > 0 && (
                 <div className="mb-4 text-center">
                   <div className="inline-flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2 text-sm">
                     <span className="text-gray-600">
@@ -2545,7 +2576,7 @@ Check console for detailed results.`);
                     </span>
                   </div>
                 </div>
-              )}
+              )} */}
 
               {filteredContent.length > 0 ? (
                 !groupByType ? (
@@ -2700,10 +2731,8 @@ Check console for detailed results.`);
           {/* Voice suggestion modal */}
           <VoiceSuggestionModal
             open={showVoiceModal}
-            autoStart={voiceAutoStart}
             onClose={() => {
               setShowVoiceModal(false);
-              setVoiceAutoStart(false);
             }}
           />
 
@@ -2743,6 +2772,7 @@ Check console for detailed results.`);
             onHeart={() =>
               handleHeartPin(selectedContent.id || selectedContent._id)
             }
+            isStudent={isStudent}
           />
         </>
       )}
@@ -2764,6 +2794,7 @@ Check console for detailed results.`);
           onHeart={() =>
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
+          isStudent={isStudent}
         />
       )}
 
@@ -2784,6 +2815,7 @@ Check console for detailed results.`);
           onHeart={() =>
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
+          isStudent={isStudent}
         />
       )}
 
@@ -2804,6 +2836,7 @@ Check console for detailed results.`);
           onHeart={() =>
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
+          isStudent={isStudent}
         />
       )}
 

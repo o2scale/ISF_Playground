@@ -15,6 +15,7 @@ const TextReader = ({
   isOfficial,
   onLike,
   onHeart,
+  isStudent = false,
 }) => {
   const [isReading, setIsReading] = useState(false);
 
@@ -162,9 +163,11 @@ const TextReader = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                <span className="font-bold text-lg">
-                  {likes.toLocaleString()}
-                </span>
+                {!isStudent && (
+                  <span className="font-bold text-lg">
+                    {likes.toLocaleString()}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -173,7 +176,9 @@ const TextReader = ({
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                <span className="font-bold text-lg">{hearts}</span>
+                {!isStudent && (
+                  <span className="font-bold text-lg">{hearts}</span>
+                )}
               </button>
             </div>
           </div>

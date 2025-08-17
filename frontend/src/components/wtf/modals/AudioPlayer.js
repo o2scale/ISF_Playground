@@ -15,6 +15,7 @@ const AudioPlayer = ({
   isOfficial,
   onLike,
   onHeart,
+  isStudent = false,
 }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -268,9 +269,11 @@ const AudioPlayer = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                <span className="text-sm font-bold">
-                  {likes.toLocaleString()}
-                </span>
+                {!isStudent && (
+                  <span className="text-sm font-bold">
+                    {likes.toLocaleString()}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
@@ -279,7 +282,9 @@ const AudioPlayer = ({
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                <span className="text-sm font-bold">{hearts}</span>
+                {!isStudent && (
+                  <span className="text-sm font-bold">{hearts}</span>
+                )}
               </button>
             </div>
           </div>
