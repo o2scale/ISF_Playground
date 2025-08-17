@@ -1,73 +1,31 @@
-const rateLimit = require("express-rate-limit");
 const { body, validationResult } = require("express-validator");
 const { errorLogger } = require("../config/pino-config");
 const { HTTP_STATUS_CODE } = require("../constants/general");
 
-// Rate limiting configuration for WTF endpoints
+// Rate limiting configuration for WTF endpoints - DISABLED
 const createRateLimiter = (windowMs, max, message) => {
-  return rateLimit({
-    windowMs: windowMs,
-    max: max, // Limit each IP to max requests per windowMs
-    message: {
-      success: false,
-      message: message || "Too many requests, please try again later.",
-    },
-    standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
-    legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-    handler: (req, res) => {
-      errorLogger.warn(
-        {
-          clientIP: req.ip,
-          userAgent: req.get("User-Agent"),
-          endpoint: req.originalUrl,
-          userId: req.user?.id,
-        },
-        "Rate limit exceeded for WTF endpoint"
-      );
-      res.status(HTTP_STATUS_CODE.TOO_MANY_REQUESTS).json({
-        success: false,
-        message: message || "Too many requests, please try again later.",
-      });
-    },
-  });
+  // Return a no-op middleware that does nothing
+  return (req, res, next) => {
+    next();
+  };
 };
 
-// Rate limiters for different WTF operations
+// Rate limiters for different WTF operations - ALL DISABLED
 const wtfRateLimiters = {
-  // Pin creation - 10 requests per hour
-  pinCreation: createRateLimiter(
-    60 * 60 * 1000, // 1 hour
-    10,
-    "Pin creation limit exceeded. Maximum 10 pins per hour."
-  ),
+  // Pin creation - NO LIMIT
+  pinCreation: (req, res, next) => next(),
 
-  // Pin interactions - 100 requests per hour
-  pinInteractions: createRateLimiter(
-    60 * 60 * 1000, // 1 hour
-    100,
-    "Interaction limit exceeded. Maximum 100 interactions per hour."
-  ),
+  // Pin interactions - NO LIMIT
+  pinInteractions: (req, res, next) => next(),
 
-  // Submissions - 15 requests per hour
-  submissions: createRateLimiter(
-    60 * 60 * 1000, // 1 hour
-    15,
-    "Submission limit exceeded. Maximum 15 submissions per hour."
-  ),
+  // Submissions - NO LIMIT
+  submissions: (req, res, next) => next(),
 
-  // General WTF endpoints - 200 requests per hour
-  general: createRateLimiter(
-    60 * 60 * 1000, // 1 hour
-    200,
-    "WTF endpoint limit exceeded. Please try again later."
-  ),
+  // General WTF endpoints - NO LIMIT
+  general: (req, res, next) => next(),
 
-  // Admin operations - 50 requests per hour
-  admin: createRateLimiter(
-    60 * 60 * 1000, // 1 hour
-    50,
-    "Admin operation limit exceeded. Please try again later."
-  ),
+  // Admin operations - NO LIMIT
+  admin: (req, res, next) => next(),
 };
 
 // Content sanitization and validation for WTF submissions

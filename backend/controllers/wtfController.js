@@ -236,6 +236,73 @@ exports.getPinsByStatus = async (req, res) => {
   }
 };
 
+// Get drafts (Admin only)
+exports.getDrafts = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, type, author, isOfficial } = req.query;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        query: req.query,
+        userId: req.user?.id,
+      },
+      `Request received to fetch WTF drafts`
+    );
+
+    const result = await WtfService.getDrafts({
+      page: parseInt(page),
+      limit: parseInt(limit),
+      type: type || null,
+      author: req.user?.id, // Always use the authenticated user's ID
+      isOfficial:
+        isOfficial === "true" ? true : isOfficial === "false" ? false : null,
+    });
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          draftsCount: result.data.pins?.length || 0,
+          userId: req.user?.id,
+        },
+        `Successfully fetched WTF drafts`
+      );
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          error: result.message,
+          userId: req.user?.id,
+        },
+        `Failed to fetch WTF drafts`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while fetching WTF drafts`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
 // Get pin by ID
 exports.getPinById = async (req, res) => {
   try {

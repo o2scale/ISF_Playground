@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { X, Play, Pause, Volume2, Eye, Heart, ThumbsUp } from "lucide-react";
 import { Dialog, DialogContent } from "../../ui/dialog.jsx";
 import { Badge } from "../../ui/badge.jsx";
@@ -22,32 +22,45 @@ const AudioPlayer = ({
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
 
+  // Reset state when audioSrc changes
+  useEffect(() => {
+    setCurrentTime(0);
+    setIsPlaying(false);
+  }, [audioSrc]);
+
+  // Ensure handle moves to 100% when audio finishes
+  useEffect(() => {
+    if (
+      !isPlaying &&
+      currentTime > 0 &&
+      Math.abs(currentTime - duration) < 0.1
+    ) {
+      console.log("Audio finished, ensuring handle is at 100%");
+      setCurrentTime(duration);
+    }
+  }, [isPlaying, currentTime, duration]);
+
   const togglePlay = () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
         audioRef.current.play();
+        setIsPlaying(true);
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
   const handleTimeUpdate = () => {
     if (audioRef.current) {
-      const time = audioRef.current.currentTime;
-      setCurrentTime(
-        Number.isFinite(time) && !Number.isNaN(time) && time >= 0 ? time : 0
-      );
+      setCurrentTime(audioRef.current.currentTime);
     }
   };
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      const dur = audioRef.current.duration;
-      setDuration(
-        Number.isFinite(dur) && !Number.isNaN(dur) && dur >= 0 ? dur : 0
-      );
+      setDuration(audioRef.current.duration);
     }
   };
 
@@ -67,9 +80,16 @@ const AudioPlayer = ({
   };
 
   const formatTime = (time) => {
-    if (!Number.isFinite(time) || Number.isNaN(time) || time <= 0) {
+    if (!Number.isFinite(time) || Number.isNaN(time) || time < 0) {
       return "0:00";
     }
+
+    // For durations less than 1 minute, show seconds with 's' suffix
+    if (time < 60) {
+      const seconds = Math.round(time * 10) / 10;
+      return `${seconds}s`;
+    }
+
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
@@ -140,6 +160,14 @@ const AudioPlayer = ({
               }}
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
+              onEnded={() => {
+                console.log(
+                  "Audio ended, setting currentTime to duration:",
+                  duration
+                );
+                setIsPlaying(false);
+                setCurrentTime(duration);
+              }}
             />
 
             <div className="space-y-4">
@@ -161,13 +189,22 @@ const AudioPlayer = ({
                   type="range"
                   min="0"
                   max={duration || 0}
-                  value={Math.min(currentTime, duration || 0)}
+                  value={currentTime}
                   onChange={handleSeek}
-                  className="w-full"
+                  className="w-full cursor-pointer"
+                  step="0.01"
                 />
                 <div className="flex justify-between text-sm text-gray-500">
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
+                </div>
+                {/* Debug info */}
+                <div className="text-xs text-gray-400 text-center">
+                  Progress:{" "}
+                  {duration > 0
+                    ? Math.round((currentTime / duration) * 100)
+                    : 0}
+                  % ({currentTime.toFixed(3)} / {duration.toFixed(3)})
                 </div>
               </div>
 
@@ -231,7 +268,7 @@ const AudioPlayer = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                <span className="font-bold text-lg">
+                <span className="text-sm font-bold">
                   {likes.toLocaleString()}
                 </span>
               </button>
@@ -242,13 +279,12 @@ const AudioPlayer = ({
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                <span className="font-bold text-lg">{hearts}</span>
+                <span className="text-sm font-bold">{hearts}</span>
               </button>
             </div>
           </div>
 
           {/* Decorative tape strips */}
-
           <div className="absolute bottom-32 right-96 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-6 shadow-sm"></div>
         </div>
       </DialogContent>

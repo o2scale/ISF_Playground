@@ -768,6 +768,16 @@ export const getActiveWtfPins = async (params = {}) => {
   }
 };
 
+export const getWtfDrafts = async (params = {}) => {
+  try {
+    const response = await api.get(`/api/v1/wtf/pins/drafts`, { params });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching WTF drafts:", error);
+    throw error;
+  }
+};
+
 export const createCoachSuggestion = async (suggestionData) => {
   try {
     // If no file is present, send JSON so backend validators can read body

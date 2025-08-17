@@ -1564,7 +1564,23 @@ HTML Font: ${htmlFont}`);
             }
           : { backgroundColor: "#f3f4f6" };
       case "video":
-        return { backgroundColor: "#dbeafe" };
+        // Use thumbnail first, then fallback to blue background
+        const videoThumbnail = thumbnail || mediaUrl;
+        console.log(
+          "Video card background - Thumbnail:",
+          thumbnail,
+          "MediaUrl:",
+          mediaUrl,
+          "Using:",
+          videoThumbnail
+        );
+        return videoThumbnail
+          ? {
+              backgroundImage: `url(${videoThumbnail})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }
+          : { backgroundColor: "#dbeafe" };
       case "audio":
         return { backgroundColor: "#fce7f3" };
       case "text":
@@ -1610,16 +1626,25 @@ HTML Font: ${htmlFont}`);
       <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
 
       <div
-        className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center"
+        className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center relative"
         style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
       >
-        {(item.type === "photo" || item.type === "image") &&
-        (item.thumbnailUrl || item.mediaUrl) ? null : (
+        {/* Show placeholder only when no thumbnail/image is available */}
+        {!item.thumbnailUrl && !(item.type === "image" && item.mediaUrl) ? (
           <div className="text-center">
             <div className="mb-2 flex justify-center opacity-60">
               {renderTypeIcon(item.type)}
             </div>
             <p className="text-xs text-gray-600 font-medium">{item.title}</p>
+          </div>
+        ) : null}
+
+        {/* Show play button overlay for video thumbnails */}
+        {item.type === "video" && item.thumbnailUrl && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+            <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
+              <div className="w-0 h-0 border-l-[12px] border-l-blue-600 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1"></div>
+            </div>
           </div>
         )}
       </div>

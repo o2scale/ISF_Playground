@@ -23,6 +23,7 @@ const {
   deletePin,
   changePinStatus,
   getPinsByStatus,
+  getDrafts,
 
   // Interaction Controllers
   likePin,
@@ -100,15 +101,6 @@ router.get(
   getActivePins
 );
 
-// Get pin by ID (Public - requires authentication)
-router.get(
-  "/pins/:pinId",
-  authenticate,
-  wtfSecurityHeaders,
-  wtfRateLimiters.general,
-  getPinById
-);
-
 // Get pins by status (Admin only)
 router.get(
   "/pins/status/list",
@@ -117,6 +109,25 @@ router.get(
   wtfSecurityHeaders,
   wtfRateLimiters.admin,
   getPinsByStatus
+);
+
+// Get drafts (Admin only)
+router.get(
+  "/pins/drafts",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_READ, "Read"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.admin,
+  getDrafts
+);
+
+// Get pin by ID (Public - requires authentication)
+router.get(
+  "/pins/:pinId",
+  authenticate,
+  wtfSecurityHeaders,
+  wtfRateLimiters.general,
+  getPinById
 );
 
 // Update pin (Admin only)
