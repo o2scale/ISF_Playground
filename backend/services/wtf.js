@@ -543,9 +543,16 @@ class WtfService {
     limit = 20,
     type = null,
     isOfficial = null,
+    officialCategory = null,
   }) {
     try {
-      const result = await getActivePins({ page, limit, type, isOfficial });
+      const result = await getActivePins({
+        page,
+        limit,
+        type,
+        isOfficial,
+        officialCategory,
+      });
 
       if (result.success) {
         return {
@@ -570,6 +577,7 @@ class WtfService {
     limit = 20,
     type = null,
     isOfficial = null,
+    officialCategory = null,
   }) {
     try {
       // Use admin version that doesn't filter by expiry date
@@ -578,6 +586,7 @@ class WtfService {
         limit,
         type,
         isOfficial,
+        officialCategory,
       });
 
       if (result.success) {

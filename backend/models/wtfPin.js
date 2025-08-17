@@ -46,6 +46,14 @@ const wtfPinSchema = new mongoose.Schema(
       type: Boolean,
       default: false, // ISF Official Post
     },
+    officialCategory: {
+      type: String,
+      enum: ["mann-ki-baat", "op-ed", "isf-updates", null],
+      default: null,
+      required: function () {
+        return this.isOfficial === true;
+      },
+    },
     language: {
       type: String,
       enum: ["hindi", "english", "both"],

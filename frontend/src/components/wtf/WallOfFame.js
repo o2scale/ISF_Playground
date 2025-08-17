@@ -312,6 +312,11 @@ const WallOfFameContent = ({ onToggleView }) => {
   const [selectedContent, setSelectedContent] = useState(null);
   const [content, setContent] = useState([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState({
+    name: "All",
+    isOfficial: false,
+    category: null,
+  });
 
   const [modalType, setModalType] = useState(null);
   const [adminCounts, setAdminCounts] = useState({
@@ -437,7 +442,17 @@ const WallOfFameContent = ({ onToggleView }) => {
     const fetchPins = async () => {
       try {
         console.log("🔧 Frontend: Fetching pins...");
-        const response = await getActiveWtfPins();
+
+        // Build query parameters based on selected category
+        const queryParams = {};
+        if (selectedCategory.isOfficial && selectedCategory.category) {
+          queryParams.isOfficial = true;
+          queryParams.officialCategory = selectedCategory.category;
+        } else if (selectedCategory.isOfficial) {
+          queryParams.isOfficial = true;
+        }
+
+        const response = await getActiveWtfPins(queryParams);
         console.log("🔧 Frontend: getActiveWtfPins response:", response);
 
         if (response.success && response.data && response.data.pins) {
@@ -493,7 +508,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     }, 30000); // Poll every 30 seconds
 
     return () => clearInterval(interval);
-  }, [isAdmin]);
+  }, [isAdmin, selectedCategory]);
 
   // Track viewed pins per-user in current session to avoid duplicate view API calls
   const viewedPinsRef = React.useRef(new Set());
@@ -574,6 +589,11 @@ const WallOfFameContent = ({ onToggleView }) => {
       console.error("Error refreshing viewed pins:", error);
     }
   }, [user?.id]);
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    console.log("Selected category:", category);
+  };
 
   const handlePinClick = async (item) => {
     // Find the most up-to-date version of this pin from the current content state
@@ -2401,7 +2421,10 @@ Check console for detailed results.`);
           <div className="p-6 space-y-6 bg-white flex-shrink-0">
             <div className="flex items-center gap-6">
               <div className="flex-1 overflow-hidden">
-                <CategoryButtons />
+                <CategoryButtons
+                  onCategoryChange={handleCategoryChange}
+                  selectedCategory={selectedCategory.name}
+                />
               </div>
               {isStudent && (
                 <div className="flex items-center gap-3">
@@ -2492,6 +2515,18 @@ Check console for detailed results.`);
                   ? "Discover and suggest amazing content from our community"
                   : "Discover amazing content from our community"}
               </p>
+
+              {/* Category Indicator */}
+              {selectedCategory.isOfficial && (
+                <div className="mt-4">
+                  <Badge className="bg-purple-600 text-white text-lg px-4 py-2">
+                    📢 {selectedCategory.name}
+                  </Badge>
+                  <p className="text-sm text-gray-600 mt-2">
+                    Official ISF content curated for the community
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">

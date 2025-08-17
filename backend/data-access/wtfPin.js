@@ -24,6 +24,7 @@ exports.getActivePins = async ({
   type = null,
   author = null,
   isOfficial = null,
+  officialCategory = null,
 }) => {
   try {
     const skip = (page - 1) * limit;
@@ -39,13 +40,14 @@ exports.getActivePins = async ({
       if (mongoose.Types.ObjectId.isValid(author)) {
         query.author = new mongoose.Types.ObjectId(author);
       } else {
-        // If author is a string (name), we'll need to find the user first
+        // If author is a string (name), we'll need to find the author first
         // For now, we'll skip the author filter if it's not a valid ObjectId
         // This can be enhanced later to search by user name
         console.log(`Skipping author filter for non-ObjectId: ${author}`);
       }
     }
     if (isOfficial !== null) query.isOfficial = isOfficial;
+    if (officialCategory !== null) query.officialCategory = officialCategory;
 
     const pins = await WtfPin.find(query)
       .sort({ createdAt: -1 })
@@ -651,6 +653,7 @@ exports.getActivePinsForAdmin = async ({
   type = null,
   author = null,
   isOfficial = null,
+  officialCategory = null,
 }) => {
   try {
     const skip = (page - 1) * limit;
@@ -663,13 +666,14 @@ exports.getActivePinsForAdmin = async ({
       if (mongoose.Types.ObjectId.isValid(author)) {
         query.author = new mongoose.Types.ObjectId(author);
       } else {
-        // If author is a string (name), we'll need to find the user first
+        // If author is a string (name), we'll need to find the author first
         // For now, we'll skip the author filter if it's not a valid ObjectId
         // This can be enhanced later to search by user name
         console.log(`Skipping author filter for non-ObjectId: ${author}`);
       }
     }
     if (isOfficial !== null) query.isOfficial = isOfficial;
+    if (officialCategory !== null) query.officialCategory = officialCategory;
 
     const pins = await WtfPin.find(query)
       .sort({ createdAt: -1 })
