@@ -90,10 +90,33 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
       setMediaRecorder(mr);
       setRecording(true);
       setTimer(0);
-      const id = setInterval(() => setTimer((t) => t + 1), 1000);
+
+      // Start timer with strict 1-minute limit
+      const id = setInterval(() => {
+        setTimer((t) => {
+          const newTime = t + 1;
+          // Force stop at exactly 60 seconds (1 minute)
+          if (newTime >= 60) {
+            console.log("Recording reached 60 seconds, stopping automatically");
+            clearInterval(id);
+            mr.stop();
+            s.getTracks().forEach((track) => track.stop());
+            setRecording(false);
+            return 60;
+          }
+          return newTime;
+        });
+      }, 1000);
       setTimerId(id);
-      // Auto stop at 60s
-      setTimeout(() => stopRecording(), 60000);
+
+      // Backup safety timeout in case the interval fails
+      setTimeout(() => {
+        if (recording) {
+          console.log("Backup safety timeout triggered");
+          stopRecording();
+        }
+      }, 60500); // Slightly longer than 60s as a backup
+
       // We avoid mouseup here because the button lives outside modal scope sometimes.
     } catch (err) {
       setPermissionError("Microphone permission denied or unavailable.");
@@ -115,6 +138,14 @@ const VoiceSuggestionModal = ({ open, autoStart, onClose }) => {
     setChunks([]);
     chunksRef.current = [];
   };
+  // Safety effect: force stop if recording exceeds 60 seconds
+  React.useEffect(() => {
+    if (recording && timer >= 60) {
+      console.log("Safety effect: forcing stop at 60 seconds");
+      stopRecording();
+    }
+  }, [recording, timer]);
+
   React.useEffect(() => {
     if (open && autoStart) startRecording();
     return () => {
