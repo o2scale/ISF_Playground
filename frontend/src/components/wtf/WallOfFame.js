@@ -1841,20 +1841,12 @@ HTML Font: ${htmlFont}`);
         </div>
 
         <div className="flex items-center justify-center gap-3 mb-2 text-xs">
-          <button
-            type="button"
-            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              handleMarkAsSeen(item.id || item._id);
-            }}
-          >
+          <div className="flex items-center gap-1 bg-transparent p-0">
             <Eye className="w-3 h-3 text-gray-600" />
             <span className="text-gray-700 font-medium">
               {item.engagementMetrics?.seen ?? item.views ?? 0}
             </span>
-          </button>
+          </div>
           <button
             type="button"
             className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
