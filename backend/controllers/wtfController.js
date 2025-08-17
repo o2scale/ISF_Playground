@@ -1117,7 +1117,7 @@ exports.submitArticle = async (req, res) => {
 // Get submissions for review (Admin only)
 exports.getSubmissionsForReview = async (req, res) => {
   try {
-    const { page = 1, limit = 20, type, isCoachSuggestion } = req.query;
+    const { page = 1, limit = 20, type, isCoachSuggestion, status } = req.query;
 
     logger.info(
       {
@@ -1140,6 +1140,7 @@ exports.getSubmissionsForReview = async (req, res) => {
           : isCoachSuggestion === "false"
           ? false
           : null,
+      status: status || null,
     });
 
     if (result.success) {
@@ -1205,10 +1206,20 @@ exports.reviewSubmission = async (req, res) => {
       });
     }
 
-    if (!action || !["approve", "reject", "archive"].includes(action)) {
+    if (
+      !action ||
+      ![
+        "approve",
+        "reject",
+        "archive",
+        "mark_reviewed",
+        "consider_future",
+      ].includes(action)
+    ) {
       return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
         success: false,
-        message: "Valid action (approve/reject/archive) is required",
+        message:
+          "Valid action (approve/reject/archive/mark_reviewed/consider_future) is required",
       });
     }
 

@@ -204,12 +204,14 @@ const WTFManagementContent = ({ onToggleView }) => {
               limit: 1,
               type: "voice",
               isCoachSuggestion: false,
+              status: "pending",
             }),
             getSubmissionsForReview({
               page: 1,
               limit: 1,
               type: "article",
               isCoachSuggestion: false,
+              status: "pending",
             }),
           ]);
 
@@ -338,12 +340,14 @@ const WTFManagementContent = ({ onToggleView }) => {
               limit: 1,
               type: "voice",
               isCoachSuggestion: false,
+              status: "pending",
             }),
             getSubmissionsForReview({
               page: 1,
               limit: 1,
               type: "article",
               isCoachSuggestion: false,
+              status: "pending",
             }),
           ]);
 
@@ -475,7 +479,8 @@ const WTFManagementContent = ({ onToggleView }) => {
       const totalActivePins = activePins.length;
       const totalCoachSuggestions = fetchedSuggestions.length;
       const totalStudentSubmissions = fetchedSubmissions.length;
-      const totalEngagement = totalActivePins + totalCoachSuggestions + totalStudentSubmissions;
+      const totalEngagement =
+        totalActivePins + totalCoachSuggestions + totalStudentSubmissions;
 
       setDashboardMetrics({
         activePins: totalActivePins,
@@ -508,8 +513,7 @@ const WTFManagementContent = ({ onToggleView }) => {
       if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
         setActivePins(pinsResponse.data.pins);
         setTotalItems(
-          pinsResponse.data.pagination?.total ||
-            pinsResponse.data.pins.length
+          pinsResponse.data.pagination?.total || pinsResponse.data.pins.length
         );
         setCurrentPage(1); // Reset to first page
       } else {
@@ -752,9 +756,17 @@ const WTFManagementContent = ({ onToggleView }) => {
 
               // Update pending counts
               if (submissionTab === "voice") {
-                setPendingVoiceCount(updatedSubmissions.length);
+                setPendingVoiceCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               } else {
-                setPendingArticleCount(updatedSubmissions.length);
+                setPendingArticleCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               }
             }
           }
@@ -963,9 +975,17 @@ const WTFManagementContent = ({ onToggleView }) => {
 
               // Update pending counts
               if (submissionTab === "voice") {
-                setPendingVoiceCount(updatedSubmissions.length);
+                setPendingVoiceCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               } else {
-                setPendingArticleCount(updatedSubmissions.length);
+                setPendingArticleCount(
+                  updatedSubmissions.filter(
+                    (s) => (s.status || "").toString() === "pending"
+                  ).length
+                );
               }
             }
           }
@@ -1329,8 +1349,14 @@ const WTFManagementContent = ({ onToggleView }) => {
                               page: 1,
                               limit: 20,
                               type: filterType === "all" ? null : filterType,
-                              source: pinFilters.source === "all" ? null : pinFilters.source,
-                              pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+                              source:
+                                pinFilters.source === "all"
+                                  ? null
+                                  : pinFilters.source,
+                              pinType:
+                                pinFilters.pinType === "all"
+                                  ? null
+                                  : pinFilters.pinType,
                               dateFrom: pinFilters.dateFrom || null,
                               dateTo: pinFilters.dateTo || null,
                             });
@@ -1372,8 +1398,14 @@ const WTFManagementContent = ({ onToggleView }) => {
                             limit: 20,
                             type:
                               newFilterType === "all" ? null : newFilterType,
-                            source: pinFilters.source === "all" ? null : pinFilters.source,
-                            pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+                            source:
+                              pinFilters.source === "all"
+                                ? null
+                                : pinFilters.source,
+                            pinType:
+                              pinFilters.pinType === "all"
+                                ? null
+                                : pinFilters.pinType,
                             dateFrom: pinFilters.dateFrom || null,
                             dateTo: pinFilters.dateTo || null,
                           });
@@ -1410,7 +1442,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                 {/* Additional Filters */}
                 <div className="mb-6 p-4 bg-gray-50 rounded-lg">
                   <div className="flex items-center gap-4 mb-4">
-                    <h4 className="text-sm font-medium text-gray-700">Filters</h4>
+                    <h4 className="text-sm font-medium text-gray-700">
+                      Filters
+                    </h4>
                     <button
                       onClick={() => {
                         setPinFilters({
@@ -1435,7 +1469,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <select
                         value={pinFilters.source}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, source: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            source: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
@@ -1451,7 +1488,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <select
                         value={pinFilters.pinType}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, pinType: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            pinType: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       >
@@ -1471,7 +1511,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                         type="date"
                         value={pinFilters.dateFrom}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, dateFrom: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            dateFrom: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
@@ -1484,7 +1527,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                         type="date"
                         value={pinFilters.dateTo}
                         onChange={(e) => {
-                          setPinFilters(prev => ({ ...prev, dateTo: e.target.value }));
+                          setPinFilters((prev) => ({
+                            ...prev,
+                            dateTo: e.target.value,
+                          }));
                         }}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                       />
@@ -1775,7 +1821,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                           Type
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Source
+                          Details
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
                           Archived On
@@ -1824,9 +1870,29 @@ const WTFManagementContent = ({ onToggleView }) => {
                                 </div>
                               </td>
                               <td className="py-3 px-4 text-gray-700">
-                                {isCoachSuggestion
-                                  ? item?.metadata?.suggestedBy || "Coach"
-                                  : "Student Submission"}
+                                {isCoachSuggestion ? (
+                                  <div className="space-y-1">
+                                    <div>
+                                      Coach:{" "}
+                                      {item?.metadata?.suggestedBy || "Coach"}
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      Student: {item?.studentName || "-"}
+                                      {item?.balagruha
+                                        ? ` (${item.balagruha})`
+                                        : ""}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <div>
+                                      Student: {item?.studentName || "-"}
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      Balagruha: {item?.balagruha || "-"}
+                                    </div>
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 px-4 text-gray-700">
                                 {archivedAt
@@ -2348,7 +2414,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                             const fetchedSubmissions =
                               submissionsResponse.data?.submissions || [];
                             setStudentSubmissions(fetchedSubmissions);
-                            setPendingVoiceCount(fetchedSubmissions.length);
+                            setPendingVoiceCount(
+                              fetchedSubmissions.filter(
+                                (s) => (s.status || "").toString() === "pending"
+                              ).length
+                            );
                           }
                         } catch (error) {
                           console.error(
@@ -2386,7 +2456,11 @@ const WTFManagementContent = ({ onToggleView }) => {
                             const fetchedSubmissions =
                               submissionsResponse.data?.submissions || [];
                             setStudentSubmissions(fetchedSubmissions);
-                            setPendingArticleCount(fetchedSubmissions.length);
+                            setPendingArticleCount(
+                              fetchedSubmissions.filter(
+                                (s) => (s.status || "").toString() === "pending"
+                              ).length
+                            );
                           }
                         } catch (error) {
                           console.error(
@@ -2414,6 +2488,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                               Voice Note
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Student
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
                               Balagruha
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
@@ -2431,7 +2508,12 @@ const WTFManagementContent = ({ onToggleView }) => {
                           {(Array.isArray(studentSubmissions)
                             ? studentSubmissions.filter(
                                 (s) =>
-                                  s.status === "pending" && s.type === "voice"
+                                  [
+                                    "pending",
+                                    "reviewed",
+                                    "considered",
+                                  ].includes((s.status || "").toString()) &&
+                                  s.type === "voice"
                               )
                             : []
                           ).map((submission) => (
@@ -2440,13 +2522,13 @@ const WTFManagementContent = ({ onToggleView }) => {
                               className="border-b border-gray-100 hover:bg-gray-50"
                             >
                               <td className="py-4 px-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {submission.title}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {submission.studentName}
-                                  </div>
+                                <div className="font-medium">
+                                  {submission.title}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.studentName}
                                 </div>
                               </td>
                               <td className="py-4 px-4">
@@ -2505,6 +2587,9 @@ const WTFManagementContent = ({ onToggleView }) => {
                               Article
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
+                              Student
+                            </th>
+                            <th className="text-left py-3 px-4 font-medium text-gray-900">
                               Balagruha
                             </th>
                             <th className="text-left py-3 px-4 font-medium text-gray-900">
@@ -2522,7 +2607,12 @@ const WTFManagementContent = ({ onToggleView }) => {
                           {(Array.isArray(studentSubmissions)
                             ? studentSubmissions.filter(
                                 (s) =>
-                                  s.status === "pending" && s.type === "article"
+                                  [
+                                    "pending",
+                                    "reviewed",
+                                    "considered",
+                                  ].includes((s.status || "").toString()) &&
+                                  s.type === "article"
                               )
                             : []
                           ).map((submission) => (
@@ -2531,13 +2621,13 @@ const WTFManagementContent = ({ onToggleView }) => {
                               className="border-b border-gray-100 hover:bg-gray-50"
                             >
                               <td className="py-4 px-4">
-                                <div>
-                                  <div className="font-medium">
-                                    {submission.title}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    {submission.studentName}
-                                  </div>
+                                <div className="font-medium">
+                                  {submission.title}
+                                </div>
+                              </td>
+                              <td className="py-4 px-4">
+                                <div className="text-sm">
+                                  {submission.studentName}
                                 </div>
                               </td>
                               <td className="py-4 px-4">
@@ -2673,8 +2763,11 @@ const WTFManagementContent = ({ onToggleView }) => {
 
                     {/* No Student Submissions State */}
                     {(Array.isArray(studentSubmissions)
-                      ? studentSubmissions.filter((s) => s.status === "pending")
-                          .length
+                      ? studentSubmissions.filter((s) =>
+                          ["pending", "reviewed", "considered"].includes(
+                            (s.status || "").toString()
+                          )
+                        ).length
                       : 0) === 0 && (
                       <div className="text-center py-12">
                         <div className="bg-gray-50 rounded-lg p-8 max-w-md mx-auto">
@@ -3220,6 +3313,17 @@ const WTFManagementContent = ({ onToggleView }) => {
         submission={selectedSubmission}
         onPinToWTF={handlePinToWTF}
         onArchive={handleArchiveSubmission}
+        onStatusChange={(newStatus) => {
+          if (!selectedSubmission) return;
+          const id = selectedSubmission._id || selectedSubmission.id;
+          setStudentSubmissions((prev) =>
+            Array.isArray(prev)
+              ? prev.map((s) =>
+                  (s._id || s.id) === id ? { ...s, status: newStatus } : s
+                )
+              : prev
+          );
+        }}
       />
 
       {/* Coach Suggestion Review Modal */}

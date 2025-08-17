@@ -60,7 +60,14 @@ const wtfSubmissionSchema = new mongoose.Schema(
     // Common fields
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "archived"],
+      enum: [
+        "pending",
+        "reviewed",
+        "considered",
+        "approved",
+        "rejected",
+        "archived",
+      ],
       default: "pending",
     },
     reviewedBy: {

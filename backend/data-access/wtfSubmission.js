@@ -2,13 +2,60 @@ const { default: mongoose } = require("mongoose");
 const { errorLogger } = require("../config/pino-config");
 const WtfSubmission = require("../models/wtfSubmission");
 
-// Create WTF Submission
-exports.createWtfSubmission = async (payload) => {
+// Create WTF submission
+exports.createWtfSubmission = async (submissionData) => {
   try {
-    const result = await WtfSubmission.create(payload);
+    const submission = new WtfSubmission(submissionData);
+    await submission.save();
+
+    const populatedSubmission = await WtfSubmission.findById(submission._id)
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author")
+      .lean();
+
+    // Transform submission to include proper student name and balagruha
+    const transformed = { ...populatedSubmission };
+
+    // Extract student name from populated studentId or metadata
+    if (populatedSubmission.studentId) {
+      transformed.studentName =
+        populatedSubmission.studentId.name ||
+        `${populatedSubmission.studentId.firstName || ""} ${
+          populatedSubmission.studentId.lastName || ""
+        }`.trim() ||
+        populatedSubmission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        populatedSubmission.studentId.balagruhaIds &&
+        populatedSubmission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          populatedSubmission.studentId.balagruhaIds[0]?.name ||
+          "Unknown House";
+      } else if (populatedSubmission.studentId.balagruha) {
+        transformed.balagruha = populatedSubmission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          populatedSubmission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        populatedSubmission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha =
+        populatedSubmission.metadata?.balagruha || "Unknown House";
+    }
+
     return {
       success: true,
-      data: result,
+      data: transformed,
       message: "WTF Submission created successfully",
     };
   } catch (error) {
@@ -17,11 +64,15 @@ exports.createWtfSubmission = async (payload) => {
   }
 };
 
-// Get submission by ID
+// Get WTF submission by ID
 exports.getWtfSubmissionById = async (submissionId) => {
   try {
     const submission = await WtfSubmission.findById(submissionId)
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .populate("approvedPinId", "title type author")
       .lean();
@@ -34,9 +85,42 @@ exports.getWtfSubmissionById = async (submissionId) => {
       };
     }
 
+    // Transform submission to include proper student name and balagruha
+    const transformed = { ...submission };
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
     return {
       success: true,
-      data: submission,
+      data: transformed,
       message: "WTF Submission fetched successfully",
     };
   } catch (error) {
@@ -54,11 +138,16 @@ exports.getPendingSubmissions = async ({
   limit = 20,
   type = null,
   isCoachSuggestion = null,
+  status = null,
 }) => {
   try {
     const skip = (page - 1) * limit;
     const query = {
-      status: "pending",
+      status: status
+        ? Array.isArray(status)
+          ? { $in: status }
+          : status
+        : { $in: ["pending", "reviewed", "considered"] },
       isDraft: false,
     };
 
@@ -79,16 +168,58 @@ exports.getPendingSubmissions = async ({
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .lean();
+
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
 
     const total = await WtfSubmission.countDocuments(query);
 
     return {
       success: true,
       data: {
-        submissions,
+        submissions: transformedSubmissions,
         pagination: {
           page,
           limit,
@@ -125,16 +256,59 @@ exports.getStudentSubmissions = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .populate("approvedPinId", "title type author")
       .lean();
+
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
 
     const total = await WtfSubmission.countDocuments(query);
 
     return {
       success: true,
       data: {
-        submissions,
+        submissions: transformedSubmissions,
         pagination: {
           page,
           limit,
@@ -163,7 +337,11 @@ exports.updateWtfSubmission = async (submissionId, updateData) => {
       updateData,
       { new: true, runValidators: true }
     )
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .populate("approvedPinId", "title type author");
 
@@ -175,9 +353,42 @@ exports.updateWtfSubmission = async (submissionId, updateData) => {
       };
     }
 
+    // Transform submission to include proper student name and balagruha
+    const transformed = submission.toObject();
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
     return {
       success: true,
-      data: submission,
+      data: transformed,
       message: "WTF Submission updated successfully",
     };
   } catch (error) {
@@ -189,7 +400,14 @@ exports.updateWtfSubmission = async (submissionId, updateData) => {
 // Delete submission
 exports.deleteWtfSubmission = async (submissionId) => {
   try {
-    const submission = await WtfSubmission.findByIdAndDelete(submissionId);
+    const submission = await WtfSubmission.findById(submissionId)
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
 
     if (!submission) {
       return {
@@ -199,9 +417,44 @@ exports.deleteWtfSubmission = async (submissionId) => {
       };
     }
 
+    // Transform submission to include proper student name and balagruha
+    const transformed = submission.toObject();
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
+    await WtfSubmission.findByIdAndDelete(submissionId);
+
     return {
       success: true,
-      data: submission,
+      data: transformed,
       message: "WTF Submission deleted successfully",
     };
   } catch (error) {
@@ -213,7 +466,23 @@ exports.deleteWtfSubmission = async (submissionId) => {
 // Approve submission
 exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
   try {
-    const submission = await WtfSubmission.findById(submissionId);
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      {
+        status: "approved",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    )
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
 
     if (!submission) {
       return {
@@ -223,31 +492,43 @@ exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
       };
     }
 
-    if (submission.status !== "pending") {
-      return {
-        success: false,
-        data: null,
-        message: "Submission is not in pending status",
-      };
+    // Transform submission to include proper student name and balagruha
+    const transformed = submission.toObject();
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
     }
-
-    // Update submission status
-    submission.status = "approved";
-    submission.reviewedBy = reviewerId;
-    submission.reviewNotes = notes;
-    submission.reviewedAt = new Date();
-
-    await submission.save();
-
-    const populatedSubmission = await WtfSubmission.findById(submissionId)
-      .populate("studentId", "name role")
-      .populate("reviewedBy", "name role")
-      .populate("approvedPinId", "title type author");
 
     return {
       success: true,
-      data: populatedSubmission,
-      message: "Submission approved successfully",
+      data: transformed,
+      message: "WTF Submission approved successfully",
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in approveSubmission");
@@ -255,10 +536,30 @@ exports.approveSubmission = async (submissionId, reviewerId, notes = "") => {
   }
 };
 
-// Reject submission
-exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
+// Mark submission as reviewed (keeps it in table but no longer pending)
+exports.markSubmissionReviewed = async (
+  submissionId,
+  reviewerId,
+  notes = ""
+) => {
   try {
-    const submission = await WtfSubmission.findById(submissionId);
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      {
+        status: "reviewed",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    )
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
 
     if (!submission) {
       return {
@@ -268,31 +569,188 @@ exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
       };
     }
 
-    if (submission.status !== "pending") {
-      return {
-        success: false,
-        data: null,
-        message: "Submission is not in pending status",
-      };
+    const transformed = submission.toObject();
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
     }
-
-    // Update submission status
-    submission.status = "rejected";
-    submission.reviewedBy = reviewerId;
-    submission.reviewNotes = notes;
-    submission.reviewedAt = new Date();
-
-    await submission.save();
-
-    const populatedSubmission = await WtfSubmission.findById(submissionId)
-      .populate("studentId", "name role")
-      .populate("reviewedBy", "name role")
-      .populate("approvedPinId", "title type author");
 
     return {
       success: true,
-      data: populatedSubmission,
-      message: "Submission rejected successfully",
+      data: transformed,
+      message: "WTF Submission marked as reviewed",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in markSubmissionReviewed"
+    );
+    throw error;
+  }
+};
+
+// Mark submission as considered for future talk (keeps it in table)
+exports.markSubmissionConsidered = async (
+  submissionId,
+  reviewerId,
+  notes = ""
+) => {
+  try {
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      {
+        status: "considered",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    )
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
+
+    if (!submission) {
+      return {
+        success: false,
+        data: null,
+        message: "WTF Submission not found",
+      };
+    }
+
+    const transformed = submission.toObject();
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
+    return {
+      success: true,
+      data: transformed,
+      message: "WTF Submission marked as considered",
+    };
+  } catch (error) {
+    errorLogger.error(
+      { error: error.message },
+      "Error in markSubmissionConsidered"
+    );
+    throw error;
+  }
+};
+// Reject submission
+exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
+  try {
+    const submission = await WtfSubmission.findByIdAndUpdate(
+      submissionId,
+      {
+        status: "rejected",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
+      { new: true, runValidators: true }
+    )
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .populate("approvedPinId", "title type author");
+
+    if (!submission) {
+      return {
+        success: false,
+        data: null,
+        message: "WTF Submission not found",
+      };
+    }
+
+    // Transform submission to include proper student name and balagruha
+    const transformed = submission.toObject();
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
+    return {
+      success: true,
+      data: transformed,
+      message: "WTF Submission rejected successfully",
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in rejectSubmission");
@@ -301,14 +759,23 @@ exports.rejectSubmission = async (submissionId, reviewerId, notes = "") => {
 };
 
 // Archive submission
-exports.archiveSubmission = async (submissionId) => {
+exports.archiveSubmission = async (submissionId, reviewerId, notes = "") => {
   try {
     const submission = await WtfSubmission.findByIdAndUpdate(
       submissionId,
-      { status: "archived" },
+      {
+        status: "archived",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
       { new: true, runValidators: true }
     )
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .populate("approvedPinId", "title type author");
 
@@ -320,10 +787,43 @@ exports.archiveSubmission = async (submissionId) => {
       };
     }
 
+    // Transform submission to include proper student name and balagruha
+    const transformed = submission.toObject();
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
     return {
       success: true,
-      data: submission,
-      message: "Submission archived successfully",
+      data: transformed,
+      message: "WTF Submission archived successfully",
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in archiveSubmission");
@@ -331,15 +831,24 @@ exports.archiveSubmission = async (submissionId) => {
   }
 };
 
-// Unarchive submission (move from archived back to pending)
-exports.unarchiveSubmission = async (submissionId) => {
+// Unarchive submission
+exports.unarchiveSubmission = async (submissionId, reviewerId, notes = "") => {
   try {
     const submission = await WtfSubmission.findByIdAndUpdate(
       submissionId,
-      { status: "pending" },
+      {
+        status: "pending",
+        reviewedBy: reviewerId,
+        reviewNotes: notes,
+        reviewedAt: new Date(),
+      },
       { new: true, runValidators: true }
     )
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .populate("approvedPinId", "title type author");
 
@@ -351,10 +860,43 @@ exports.unarchiveSubmission = async (submissionId) => {
       };
     }
 
+    // Transform submission to include proper student name and balagruha
+    const transformed = submission.toObject();
+
+    // Extract student name from populated studentId or metadata
+    if (submission.studentId) {
+      transformed.studentName =
+        submission.studentId.name ||
+        `${submission.studentId.firstName || ""} ${
+          submission.studentId.lastName || ""
+        }`.trim() ||
+        submission.metadata?.studentName ||
+        "Unknown Student";
+
+      // Extract balagruha from populated studentId or metadata
+      if (
+        submission.studentId.balagruhaIds &&
+        submission.studentId.balagruhaIds.length > 0
+      ) {
+        transformed.balagruha =
+          submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+      } else if (submission.studentId.balagruha) {
+        transformed.balagruha = submission.studentId.balagruha;
+      } else {
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+    } else {
+      // Fallback to metadata if studentId is not populated
+      transformed.studentName =
+        submission.metadata?.studentName || "Unknown Student";
+      transformed.balagruha = submission.metadata?.balagruha || "Unknown House";
+    }
+
     return {
       success: true,
-      data: submission,
-      message: "Submission unarchived successfully",
+      data: transformed,
+      message: "WTF Submission unarchived successfully",
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in unarchiveSubmission");
@@ -362,7 +904,7 @@ exports.unarchiveSubmission = async (submissionId) => {
   }
 };
 
-// List archived submissions (optionally filter by type)
+// Get archived submissions
 exports.getArchivedSubmissions = async ({
   page = 1,
   limit = 20,
@@ -371,23 +913,65 @@ exports.getArchivedSubmissions = async ({
   try {
     const skip = (page - 1) * limit;
     const query = { status: "archived" };
+
     if (type) query.type = type;
 
     const submissions = await WtfSubmission.find(query)
-      .sort({ updatedAt: -1 })
+      .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
-      .populate("approvedPinId", "title type author")
       .lean();
+
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
 
     const total = await WtfSubmission.countDocuments(query);
 
     return {
       success: true,
       data: {
-        submissions,
+        submissions: transformedSubmissions,
         pagination: {
           page,
           limit,
@@ -423,16 +1007,58 @@ exports.getSubmissionsByType = async (
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .lean();
+
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
 
     const total = await WtfSubmission.countDocuments(query);
 
     return {
       success: true,
       data: {
-        submissions,
+        submissions: transformedSubmissions,
         pagination: {
           page,
           limit,
@@ -456,36 +1082,68 @@ exports.getSubmissionsByType = async (
 // Get submission statistics
 exports.getSubmissionStats = async () => {
   try {
-    const stats = await WtfSubmission.getSubmissionStats();
-    console.log("Raw submission stats from model:", stats);
+    const submissions = await WtfSubmission.find()
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .lean();
 
-    // Calculate additional metrics
-    const totalSubmissions = stats.reduce((sum, item) => sum + item.count, 0);
-    const pendingCount =
-      stats.find((item) => item._id === "pending")?.count || 0;
-    const approvedCount =
-      stats.find((item) => item._id === "approved")?.count || 0;
-    const rejectedCount =
-      stats.find((item) => item._id === "rejected")?.count || 0;
-    const archivedCount =
-      stats.find((item) => item._id === "archived")?.count || 0;
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
 
-    const result = {
-      totalSubmissions,
-      pendingCount,
-      approvedCount,
-      rejectedCount,
-      archivedCount,
-      approvalRate:
-        totalSubmissions > 0 ? (approvedCount / totalSubmissions) * 100 : 0,
-      rejectionRate:
-        totalSubmissions > 0 ? (rejectedCount / totalSubmissions) * 100 : 0,
-      breakdown: stats,
-    };
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
+
+    const stats = await WtfSubmission.aggregate([
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+          types: { $addToSet: "$type" },
+        },
+      },
+    ]);
 
     return {
       success: true,
-      data: result,
+      data: {
+        stats,
+        submissions: transformedSubmissions,
+      },
       message: "Submission statistics fetched successfully",
     };
   } catch (error) {
@@ -495,28 +1153,65 @@ exports.getSubmissionStats = async () => {
 };
 
 // Get recent submissions for analytics
-exports.getRecentSubmissions = async ({
-  days = 7,
-  type = null,
-  status = null,
-}) => {
+exports.getRecentSubmissions = async ({ days = 30, type = null }) => {
   try {
     const date = new Date();
     date.setDate(date.getDate() - days);
 
     const query = { createdAt: { $gte: date } };
     if (type) query.type = type;
-    if (status) query.status = status;
 
     const submissions = await WtfSubmission.find(query)
       .sort({ createdAt: -1 })
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .populate("reviewedBy", "name role")
       .lean();
 
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
+
     return {
       success: true,
-      data: submissions,
+      data: transformedSubmissions,
       message: "Recent submissions fetched successfully",
     };
   } catch (error) {
@@ -534,58 +1229,93 @@ exports.getSubmissionAnalytics = async ({ days = 30, type = null }) => {
     const date = new Date();
     date.setDate(date.getDate() - days);
 
-    const matchStage = { createdAt: { $gte: date } };
-    if (type) matchStage.type = type;
+    const query = { createdAt: { $gte: date } };
+    if (type) query.type = type;
 
-    const analytics = await WtfSubmission.aggregate([
-      { $match: matchStage },
-      {
-        $group: {
-          _id: {
-            status: "$status",
-            type: "$type",
-          },
-          count: { $sum: 1 },
-          uniqueStudents: { $addToSet: "$studentId" },
-        },
-      },
-      {
-        $group: {
-          _id: "$_id.status",
-          types: {
-            $push: {
-              type: "$_id.type",
-              count: "$count",
-              uniqueStudents: { $size: "$uniqueStudents" },
-            },
-          },
-          totalCount: { $sum: "$count" },
-          totalUniqueStudents: { $addToSet: "$uniqueStudents" },
-        },
-      },
-    ]);
+    const submissions = await WtfSubmission.find(query)
+      .sort({ createdAt: -1 })
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .lean();
 
-    // Calculate additional metrics
-    const totalSubmissions = analytics.reduce(
-      (sum, item) => sum + item.totalCount,
-      0
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
+
+    // Calculate analytics
+    const totalSubmissions = transformedSubmissions.length;
+    const submissionsByType = transformedSubmissions.reduce(
+      (acc, submission) => {
+        acc[submission.type] = (acc[submission.type] || 0) + 1;
+        return acc;
+      },
+      {}
     );
-    const uniqueStudentsCount = new Set(
-      analytics.flatMap((item) => item.totalUniqueStudents.flat())
-    ).size;
 
-    const result = {
-      period: `${days} days`,
-      totalSubmissions,
-      uniqueStudents: uniqueStudentsCount,
-      breakdown: analytics,
-      averageSubmissionsPerStudent:
-        uniqueStudentsCount > 0 ? totalSubmissions / uniqueStudentsCount : 0,
-    };
+    const submissionsByStatus = transformedSubmissions.reduce(
+      (acc, submission) => {
+        acc[submission.status] = (acc[submission.status] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
+
+    const submissionsByBalagruha = transformedSubmissions.reduce(
+      (acc, submission) => {
+        acc[submission.balagruha] = (acc[submission.balagruha] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
 
     return {
       success: true,
-      data: result,
+      data: {
+        totalSubmissions,
+        submissionsByType,
+        submissionsByStatus,
+        submissionsByBalagruha,
+        submissions: transformedSubmissions,
+        period: { days, startDate: date, endDate: new Date() },
+      },
       message: "Submission analytics fetched successfully",
     };
   } catch (error) {
@@ -615,11 +1345,62 @@ exports.bulkUpdateSubmissionStatus = async (
       updateData
     );
 
+    // Fetch the updated submissions to return with proper data
+    const updatedSubmissions = await WtfSubmission.find({
+      _id: { $in: submissionIds },
+    })
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
+      .populate("reviewedBy", "name role")
+      .lean();
+
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = updatedSubmissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
+
     return {
       success: true,
       data: {
         matchedCount: result.matchedCount,
         modifiedCount: result.modifiedCount,
+        updatedSubmissions: transformedSubmissions,
       },
       message: `Bulk updated ${result.modifiedCount} submissions to ${status}`,
     };
@@ -651,15 +1432,57 @@ exports.getSubmissionsNeedingReview = async ({
       .sort({ createdAt: 1 }) // Oldest first for review queue
       .skip(skip)
       .limit(limit)
-      .populate("studentId", "name role")
+      .populate({
+        path: "studentId",
+        select: "name firstName lastName balagruha balagruhaIds",
+        populate: { path: "balagruhaIds", select: "name" },
+      })
       .lean();
+
+    // Transform submissions to include proper student name and balagruha
+    const transformedSubmissions = submissions.map((submission) => {
+      const transformed = { ...submission };
+
+      // Extract student name from populated studentId or metadata
+      if (submission.studentId) {
+        transformed.studentName =
+          submission.studentId.name ||
+          `${submission.studentId.firstName || ""} ${
+            submission.studentId.lastName || ""
+          }`.trim() ||
+          submission.metadata?.studentName ||
+          "Unknown Student";
+
+        // Extract balagruha from populated studentId or metadata
+        if (
+          submission.studentId.balagruhaIds &&
+          submission.studentId.balagruhaIds.length > 0
+        ) {
+          transformed.balagruha =
+            submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+        } else if (submission.studentId.balagruha) {
+          transformed.balagruha = submission.studentId.balagruha;
+        } else {
+          transformed.balagruha =
+            submission.metadata?.balagruha || "Unknown House";
+        }
+      } else {
+        // Fallback to metadata if studentId is not populated
+        transformed.studentName =
+          submission.metadata?.studentName || "Unknown Student";
+        transformed.balagruha =
+          submission.metadata?.balagruha || "Unknown House";
+      }
+
+      return transformed;
+    });
 
     const total = await WtfSubmission.countDocuments(query);
 
     return {
       success: true,
       data: {
-        submissions,
+        submissions: transformedSubmissions,
         pagination: {
           page,
           limit,

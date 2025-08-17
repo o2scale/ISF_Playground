@@ -65,6 +65,8 @@ const {
   getSubmissionAnalytics,
   bulkUpdateSubmissionStatus,
   getSubmissionsNeedingReview,
+  markSubmissionReviewed,
+  markSubmissionConsidered,
 } = require("../data-access/wtfSubmission");
 
 class WtfService {
@@ -1611,6 +1613,7 @@ class WtfService {
     limit = 20,
     type = null,
     isCoachSuggestion = null,
+    status = null,
   }) {
     try {
       const result = await getPendingSubmissions({
@@ -1618,6 +1621,7 @@ class WtfService {
         limit,
         type,
         isCoachSuggestion,
+        status,
       });
       return result;
     } catch (error) {
@@ -1639,7 +1643,13 @@ class WtfService {
         };
       }
 
-      const validActions = ["approve", "reject", "archive"];
+      const validActions = [
+        "approve",
+        "reject",
+        "archive",
+        "mark_reviewed",
+        "consider_future",
+      ];
       if (!validActions.includes(action)) {
         return {
           success: false,
@@ -1786,6 +1796,14 @@ class WtfService {
         result = await rejectSubmission(submissionId, reviewerId, notes);
       } else if (action === "archive") {
         result = await archiveSubmission(submissionId);
+      } else if (action === "mark_reviewed") {
+        result = await markSubmissionReviewed(submissionId, reviewerId, notes);
+      } else if (action === "consider_future") {
+        result = await markSubmissionConsidered(
+          submissionId,
+          reviewerId,
+          notes
+        );
       }
 
       // Trigger real-time event
@@ -2245,9 +2263,38 @@ class WtfService {
           submission.type === "voice"
             ? submission.audioUrl
             : submission.content;
+
+        // Derive student name from multiple sources (prefer populated data)
+        const derivedStudentName =
+          submission.studentName ||
+          submission.studentId?.name ||
+          `${submission.studentId?.firstName || ""} ${
+            submission.studentId?.lastName || ""
+          }`.trim() ||
+          meta.studentName ||
+          "Unknown Student";
+
+        // Derive balagruha from populated student, transformed fields, or metadata
+        let derivedBalagruha = submission.balagruha;
+        if (!derivedBalagruha) {
+          if (
+            Array.isArray(submission.studentId?.balagruhaIds) &&
+            submission.studentId.balagruhaIds.length > 0
+          ) {
+            derivedBalagruha =
+              submission.studentId.balagruhaIds[0]?.name || "Unknown House";
+          } else if (submission.studentId?.balagruha) {
+            derivedBalagruha = submission.studentId.balagruha;
+          } else if (meta.balagruha) {
+            derivedBalagruha = meta.balagruha;
+          } else {
+            derivedBalagruha = "Unknown House";
+          }
+        }
+
         return {
           _id: submission._id, // Use _id to match frontend expectations
-          studentName: meta.studentName || "Unknown Student",
+          studentName: derivedStudentName,
           coachName: meta.suggestedBy || "Coach",
           workType:
             originalType === "audio" || originalType === "voice"
@@ -2258,9 +2305,9 @@ class WtfService {
           content: contentUrl,
           suggestedDate: submission.createdAt,
           status: submission.status
-            ? submission.status.toLowerCase() // Use lowercase to match frontend expectations
+            ? submission.status.toLowerCase()
             : "pending",
-          balagruha: meta.balagruha || "Unknown House",
+          balagruha: derivedBalagruha,
         };
       });
 

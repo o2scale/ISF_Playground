@@ -27,6 +27,7 @@ const ReviewModal = ({
   submission,
   onPinToWTF,
   onArchive,
+  onStatusChange,
 }) => {
   const [statusUpdate, setStatusUpdate] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
@@ -54,7 +55,14 @@ const ReviewModal = ({
     setIsUpdating(true);
     try {
       if (statusUpdate === "mark-reviewed") {
-        // Send notification: "We have reviewed your pin"
+        // Update status in backend (keep row, change status)
+        const { reviewSubmission } = await import("../../api.js");
+        await reviewSubmission(submission._id || submission.id, {
+          action: "mark_reviewed",
+          notes: "Marked as reviewed",
+        });
+        if (onStatusChange) onStatusChange("reviewed");
+        // Optional: send notification
         await sendAdminPersonalNotification(
           submission.studentId,
           "Submission Reviewed",
@@ -69,7 +77,12 @@ const ReviewModal = ({
           }
         );
       } else if (statusUpdate === "consider-future") {
-        // Send notification: "We will consider this for future talk"
+        const { reviewSubmission } = await import("../../api.js");
+        await reviewSubmission(submission._id || submission.id, {
+          action: "consider_future",
+          notes: "Marked for future talk",
+        });
+        if (onStatusChange) onStatusChange("considered");
         await sendAdminPersonalNotification(
           submission.studentId,
           "Submission Under Consideration",
@@ -90,6 +103,8 @@ const ReviewModal = ({
 
       // Reset the status update
       setStatusUpdate("");
+      // Close dialog to reflect change in parent list
+      onClose();
     } catch (error) {
       console.error("Error updating status:", error);
     } finally {
