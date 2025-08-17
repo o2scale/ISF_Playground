@@ -469,10 +469,10 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   // Track viewed pins per-user in current session to avoid duplicate view API calls
   const viewedPinsRef = React.useRef(new Set());
-  
+
   // Track all pins the student has viewed (from backend)
   const [viewedPinsFromBackend, setViewedPinsFromBackend] = useState(new Set());
-  
+
   useEffect(() => {
     try {
       const key = `wtf_viewed_${user?.id || "guest"}`;
@@ -492,19 +492,22 @@ const WallOfFameContent = ({ onToggleView }) => {
   useEffect(() => {
     const fetchStudentInteractions = async () => {
       if (!user?.id) return;
-      
+
       try {
-        const response = await getStudentInteractionHistory(user.id, { limit: 1000, type: 'seen' });
+        const response = await getStudentInteractionHistory(user.id, {
+          limit: 1000,
+          type: "seen",
+        });
         if (response.success && response.data?.interactions) {
           const viewedPinIds = new Set(
             response.data.interactions
-              .filter(interaction => interaction.type === 'seen')
-              .map(interaction => interaction.pinId?._id || interaction.pinId)
+              .filter((interaction) => interaction.type === "seen")
+              .map((interaction) => interaction.pinId?._id || interaction.pinId)
           );
           setViewedPinsFromBackend(viewedPinIds);
         }
       } catch (error) {
-        console.error('Error fetching student interactions:', error);
+        console.error("Error fetching student interactions:", error);
       }
     };
 
@@ -512,27 +515,35 @@ const WallOfFameContent = ({ onToggleView }) => {
   }, [user?.id]);
 
   // Function to check if a pin has been viewed by the current student
-  const hasStudentViewedPin = useCallback((pinId) => {
-    if (!pinId) return false;
-    return viewedPinsRef.current.has(pinId) || viewedPinsFromBackend.has(pinId);
-  }, [viewedPinsFromBackend]);
+  const hasStudentViewedPin = useCallback(
+    (pinId) => {
+      if (!pinId) return false;
+      return (
+        viewedPinsRef.current.has(pinId) || viewedPinsFromBackend.has(pinId)
+      );
+    },
+    [viewedPinsFromBackend]
+  );
 
   // Function to refresh viewed pins from backend
   const refreshViewedPins = useCallback(async () => {
     if (!user?.id) return;
-    
+
     try {
-      const response = await getStudentInteractionHistory(user.id, { limit: 1000, type: 'seen' });
+      const response = await getStudentInteractionHistory(user.id, {
+        limit: 1000,
+        type: "seen",
+      });
       if (response.success && response.data?.interactions) {
         const viewedPinIds = new Set(
           response.data.interactions
-            .filter(interaction => interaction.type === 'seen')
-            .map(interaction => interaction.pinId?._id || interaction.pinId)
+            .filter((interaction) => interaction.type === "seen")
+            .map((interaction) => interaction.pinId?._id || interaction.pinId)
         );
         setViewedPinsFromBackend(viewedPinIds);
       }
     } catch (error) {
-      console.error('Error refreshing viewed pins:', error);
+      console.error("Error refreshing viewed pins:", error);
     }
   }, [user?.id]);
 
@@ -596,7 +607,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       } finally {
         viewedPinsRef.current.add(pinId);
         // Also update the backend viewed pins state
-        setViewedPinsFromBackend(prev => new Set([...prev, pinId]));
+        setViewedPinsFromBackend((prev) => new Set([...prev, pinId]));
         try {
           const key = `wtf_viewed_${user?.id || "guest"}`;
           sessionStorage.setItem(
@@ -1693,19 +1704,25 @@ HTML Font: ${htmlFont}`);
   const renderCard = (item) => {
     const pinId = item._id || item.id;
     const isViewed = hasStudentViewedPin(pinId);
-    
+
     return (
       <div
         key={pinId}
         className={`bg-yellow-50 p-4 cursor-pointer hover:scale-105 transition-all duration-300 hover:shadow-xl relative ${
-          isViewed ? 'opacity-60 grayscale hover:opacity-100 hover:grayscale-0' : ''
+          isViewed
+            ? "opacity-60 grayscale hover:opacity-100 hover:grayscale-0"
+            : ""
         }`}
-        title={isViewed ? 'Pin already viewed - click to view again' : 'Click to view pin'}
+        title={
+          isViewed
+            ? "Pin already viewed - click to view again"
+            : "Click to view pin"
+        }
         style={{
           transform: `rotate(${Math.random() * 6 - 3}deg)`,
           ...getPostageStampStyle(),
-          ...(isViewed && { borderColor: '#9ca3af' }), // Subtle border color change for viewed pins
-          filter: isViewed ? 'grayscale(100%)' : 'none', // Ensure grayscale works
+          ...(isViewed && { borderColor: "#9ca3af" }), // Subtle border color change for viewed pins
+          filter: isViewed ? "grayscale(100%)" : "none", // Ensure grayscale works
         }}
         onClick={(e) => {
           e.preventDefault();
@@ -1713,94 +1730,94 @@ HTML Font: ${htmlFont}`);
           handlePinClick(item);
         }}
       >
-      {item.isOfficial && (
-        <div className="absolute top-2 left-2 z-20">
-          <Badge className="bg-purple-600 text-white">ISF Official</Badge>
-        </div>
-      )}
-      {isViewed && (
-        <div className="absolute top-2 right-2 z-20">
-          <Badge className="bg-gray-500 text-white text-xs">Viewed</Badge>
-        </div>
-      )}
-      <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
-
-      <div
-        className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center relative"
-        style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
-      >
-        {/* Show placeholder only when no thumbnail/image is available */}
-        {!item.thumbnailUrl && !(item.type === "image" && item.mediaUrl) ? (
-          <div className="text-center">
-            <div className="mb-2 flex justify-center opacity-60">
-              {renderTypeIcon(item.type)}
-            </div>
-            <p className="text-xs text-gray-600 font-medium">{item.title}</p>
-          </div>
-        ) : null}
-
-        {/* Show play button overlay for video thumbnails */}
-        {item.type === "video" && item.thumbnailUrl && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
-            <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
-              <div className="w-0 h-0 border-l-[12px] border-l-blue-600 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1"></div>
-            </div>
+        {item.isOfficial && (
+          <div className="absolute top-2 left-2 z-20">
+            <Badge className="bg-purple-600 text-white">ISF Official</Badge>
           </div>
         )}
-      </div>
+        {isViewed && (
+          <div className="absolute top-2 right-2 z-20">
+            <Badge className="bg-gray-500 text-white text-xs">Viewed</Badge>
+          </div>
+        )}
+        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-red-500 rounded-full border-2 border-red-600 shadow-lg z-10"></div>
 
-      <div className="flex items-center justify-center gap-3 mb-2 text-xs">
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleMarkAsSeen(item.id || item._id);
-          }}
+        <div
+          className="w-full h-32 mb-3 rounded border-2 border-gray-300 overflow-hidden flex items-center justify-center relative"
+          style={getCardBackground(item.type, item.thumbnailUrl, item.mediaUrl)}
         >
-          <Eye className="w-3 h-3 text-gray-600" />
-          <span className="text-gray-700 font-medium">
-            {item.engagementMetrics?.seen ?? item.views ?? 0}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleHeartPin(item.id || item._id);
-          }}
-          aria-label="Love"
-        >
-          <Heart className="w-3 h-3 text-green-500" />
-          <span className="text-gray-700 font-medium">
-            {item.engagementMetrics?.loves ?? 0}
-          </span>
-        </button>
-        <button
-          type="button"
-          className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            handleLikePin(item.id || item._id);
-          }}
-          aria-label="Like"
-        >
-          <ThumbsUp className="w-3 h-3 text-pink-500" />
-          <span className="text-gray-700 font-medium">
-            {item.engagementMetrics?.likes ?? 0}
-          </span>
-        </button>
-      </div>
+          {/* Show placeholder only when no thumbnail/image is available */}
+          {!item.thumbnailUrl && !(item.type === "image" && item.mediaUrl) ? (
+            <div className="text-center">
+              <div className="mb-2 flex justify-center opacity-60">
+                {renderTypeIcon(item.type)}
+              </div>
+              <p className="text-xs text-gray-600 font-medium">{item.title}</p>
+            </div>
+          ) : null}
 
-      {item.type === "photo" && (
-        <h3 className="text-center text-sm font-bold text-gray-800 line-clamp-2 leading-tight">
-          {item.title}
-        </h3>
-      )}
+          {/* Show play button overlay for video thumbnails */}
+          {item.type === "video" && item.thumbnailUrl && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-30">
+              <div className="w-12 h-12 bg-white bg-opacity-90 rounded-full flex items-center justify-center shadow-lg">
+                <div className="w-0 h-0 border-l-[12px] border-l-blue-600 border-t-[8px] border-t-transparent border-b-[8px] border-b-transparent ml-1"></div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-3 mb-2 text-xs">
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleMarkAsSeen(item.id || item._id);
+            }}
+          >
+            <Eye className="w-3 h-3 text-gray-600" />
+            <span className="text-gray-700 font-medium">
+              {item.engagementMetrics?.seen ?? item.views ?? 0}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleHeartPin(item.id || item._id);
+            }}
+            aria-label="Love"
+          >
+            <Heart className="w-3 h-3 text-green-500" />
+            <span className="text-gray-700 font-medium">
+              {item.engagementMetrics?.loves ?? 0}
+            </span>
+          </button>
+          <button
+            type="button"
+            className="flex items-center gap-1 hover:opacity-80 bg-transparent border-0 p-0 shadow-none outline-none focus:outline-none"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleLikePin(item.id || item._id);
+            }}
+            aria-label="Like"
+          >
+            <ThumbsUp className="w-3 h-3 text-pink-500" />
+            <span className="text-gray-700 font-medium">
+              {item.engagementMetrics?.likes ?? 0}
+            </span>
+          </button>
+        </div>
+
+        {item.type === "photo" && (
+          <h3 className="text-center text-sm font-bold text-gray-800 line-clamp-2 leading-tight">
+            {item.title}
+          </h3>
+        )}
       </div>
     );
   };
@@ -1976,7 +1993,7 @@ Check console for detailed results.`);
                       Review Queue ({adminCounts.reviewQueue})
                     </div>
                   </div>
-                  
+
                   <div className="mt-3">
                     <button
                       onClick={refreshViewedPins}
@@ -2501,16 +2518,29 @@ Check console for detailed results.`);
                 <div className="mb-4 text-center">
                   <div className="inline-flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2 text-sm">
                     <span className="text-gray-600">
-                      Total: <span className="font-semibold">{filteredContent.length}</span>
+                      Total:{" "}
+                      <span className="font-semibold">
+                        {filteredContent.length}
+                      </span>
                     </span>
                     <span className="text-blue-600">
-                      Unviewed: <span className="font-semibold">
-                        {filteredContent.filter(item => !hasStudentViewedPin(item._id || item.id)).length}
+                      Unviewed:{" "}
+                      <span className="font-semibold">
+                        {
+                          filteredContent.filter(
+                            (item) => !hasStudentViewedPin(item._id || item.id)
+                          ).length
+                        }
                       </span>
                     </span>
                     <span className="text-gray-500">
-                      Viewed: <span className="font-semibold">
-                        {filteredContent.filter(item => hasStudentViewedPin(item._id || item.id)).length}
+                      Viewed:{" "}
+                      <span className="font-semibold">
+                        {
+                          filteredContent.filter((item) =>
+                            hasStudentViewedPin(item._id || item.id)
+                          ).length
+                        }
                       </span>
                     </span>
                   </div>
