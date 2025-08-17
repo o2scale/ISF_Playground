@@ -462,9 +462,11 @@ const WallOfFameContent = ({ onToggleView }) => {
             pins.map((p) => ({
               id: p._id || p.id,
               title: p.title,
+              caption: p.caption,
               engagementMetrics: p.engagementMetrics,
             }))
           );
+          console.log("🔧 Frontend: First pin full data:", pins[0]);
           setContent(pins);
         } else {
           console.log("🔧 Frontend: No pins found or error response");
@@ -1778,27 +1780,32 @@ HTML Font: ${htmlFont}`);
           handlePinClick(item);
         }}
       >
-        {item.isOfficial && item.officialCategory && (
-          <div className="absolute top-2 left-2 z-20">
-            <Badge
-              className={`text-white text-xs px-2 py-1 ${
-                item.officialCategory === "mann-ki-baat"
-                  ? "bg-purple-700"
-                  : item.officialCategory === "op-ed"
-                  ? "bg-indigo-600"
-                  : item.officialCategory === "isf-updates"
-                  ? "bg-teal-600"
-                  : "bg-purple-600"
-              }`}
-            >
-              {item.officialCategory === "mann-ki-baat"
-                ? "🎙️ Mann Ki Baat"
-                : item.officialCategory === "op-ed"
-                ? "📝 Op Ed"
-                : item.officialCategory === "isf-updates"
-                ? "📢 ISF Updates"
-                : "ISF Official"}
+        {item.isOfficial && (
+          <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+            <Badge className="bg-purple-600 text-white text-xs px-2 py-1">
+              ISF Official
             </Badge>
+            {item.officialCategory && (
+              <Badge
+                className={`text-white text-xs px-2 py-1 ${
+                  item.officialCategory === "mann-ki-baat"
+                    ? "bg-purple-700"
+                    : item.officialCategory === "op-ed"
+                    ? "bg-indigo-600"
+                    : item.officialCategory === "isf-updates"
+                    ? "bg-teal-600"
+                    : "bg-gray-600"
+                }`}
+              >
+                {item.officialCategory === "mann-ki-baat"
+                  ? "🎙️ Mann Ki Baat"
+                  : item.officialCategory === "op-ed"
+                  ? "📝 Op Ed"
+                  : item.officialCategory === "isf-updates"
+                  ? "📢 ISF Updates"
+                  : "Official"}
+              </Badge>
+            )}
           </div>
         )}
         {isViewed && (
@@ -2619,39 +2626,33 @@ Check console for detailed results.`);
                 </div>
               </div>
 
-              {/* Summary of viewed vs unviewed pins - HIDDEN */}
-              {/* {filteredContent.length > 0 && (
+              {/* Content Count and Filter Status */}
+              {content.length > 0 && (
                 <div className="mb-4 text-center">
                   <div className="inline-flex items-center gap-4 bg-white rounded-lg shadow-sm px-4 py-2 text-sm">
                     <span className="text-gray-600">
-                      Total:{" "}
-                      <span className="font-semibold">
-                        {filteredContent.length}
-                      </span>
+                      Showing:{" "}
+                      <span className="font-semibold">{content.length}</span>{" "}
+                      {selectedCategory.isOfficial ? "official" : ""} pins
                     </span>
-                    <span className="text-blue-600">
-                      Unviewed:{" "}
-                      <span className="font-semibold">
-                        {
-                          filteredContent.filter(
-                            (item) => !hasStudentViewedPin(item._id || item.id)
-                          ).length
-                        }
+                    {selectedCategory.isOfficial && (
+                      <span
+                        className={`font-semibold ${
+                          selectedCategory.category === "mann-ki-baat"
+                            ? "text-purple-600"
+                            : selectedCategory.category === "op-ed"
+                            ? "text-indigo-600"
+                            : selectedCategory.category === "isf-updates"
+                            ? "text-teal-600"
+                            : "text-purple-600"
+                        }`}
+                      >
+                        {selectedCategory.name} Category
                       </span>
-                    </span>
-                    <span className="text-gray-500">
-                      Viewed:{" "}
-                      <span className="font-semibold">
-                        {
-                          filteredContent.filter((item) =>
-                            hasStudentViewedPin(item._id || item.id)
-                          ).length
-                        }
-                      </span>
-                    </span>
+                    )}
                   </div>
                 </div>
-              )} */}
+              )}
 
               {filteredContent.length > 0 ? (
                 !groupByType ? (
@@ -2826,6 +2827,9 @@ Check console for detailed results.`);
           {console.log("ImageViewer Debug - selectedContent:", {
             title: selectedContent.title,
             author: selectedContent.author,
+            caption: selectedContent.caption,
+            captionType: typeof selectedContent.caption,
+            allKeys: Object.keys(selectedContent),
             authorType: typeof selectedContent.author,
             authorKeys: selectedContent.author
               ? Object.keys(selectedContent.author)

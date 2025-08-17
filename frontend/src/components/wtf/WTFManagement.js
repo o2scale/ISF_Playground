@@ -122,10 +122,25 @@ const WTFManagementContent = ({ onToggleView }) => {
   const [archivedPage, setArchivedPage] = useState(1);
   const [archivedPerPage, setArchivedPerPage] = useState(10);
 
+  // Pin management filters
+  const [pinFilters, setPinFilters] = useState({
+    source: "all",
+    pinType: "all",
+    dateFrom: "",
+    dateTo: "",
+  });
+
   // Fetch data on component mount
   useEffect(() => {
     fetchWtfData();
   }, []);
+
+  // Refresh active pins when filters change
+  useEffect(() => {
+    if (activeTab === "dashboard") {
+      refreshActivePins();
+    }
+  }, [pinFilters, filterType]);
 
   // Function to refresh data when switching tabs
   const refreshTabData = async (tabId) => {
@@ -137,6 +152,10 @@ const WTFManagementContent = ({ onToggleView }) => {
             page: 1,
             limit: 20,
             type: filterType === "all" ? null : filterType,
+            source: pinFilters.source === "all" ? null : pinFilters.source,
+            pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+            dateFrom: pinFilters.dateFrom || null,
+            dateTo: pinFilters.dateTo || null,
           });
           if (
             pinsResponse.success &&
@@ -371,6 +390,10 @@ const WTFManagementContent = ({ onToggleView }) => {
         page: 1,
         limit: 20,
         type: filterType === "all" ? null : filterType,
+        source: pinFilters.source === "all" ? null : pinFilters.source,
+        pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+        dateFrom: pinFilters.dateFrom || null,
+        dateTo: pinFilters.dateTo || null,
       });
       if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
         const pins = pinsResponse.data.pins;
@@ -449,56 +472,53 @@ const WTFManagementContent = ({ onToggleView }) => {
       }
 
       // Calculate dashboard metrics after all data is fetched
-      const calculateDashboardMetrics = (pins, suggestions, submissions) => {
-        return {
-          activePins: Array.isArray(pins)
-            ? pins.filter((p) => p.status === "active").length
-            : 0,
-          coachSuggestions: Array.isArray(suggestions) ? suggestions.length : 0,
-          studentSubmissions: Array.isArray(submissions)
-            ? submissions.filter((s) => s.status === "pending").length
-            : 0,
-          totalEngagement: Array.isArray(pins)
-            ? pins.reduce(
-                (acc, pin) => acc + (pin.engagementMetrics?.seen || 0),
-                0
-              )
-            : 0,
-        };
-      };
+      const totalActivePins = activePins.length;
+      const totalCoachSuggestions = fetchedSuggestions.length;
+      const totalStudentSubmissions = fetchedSubmissions.length;
+      const totalEngagement = totalActivePins + totalCoachSuggestions + totalStudentSubmissions;
 
-      // Try to fetch unified dashboard counts from the new API
-      try {
-        const dashboardCountsResponse = await getWtfDashboardCounts();
-
-        if (dashboardCountsResponse.success) {
-          const counts = dashboardCountsResponse.data;
-          setDashboardMetrics({
-            activePins: counts.activePins || 0,
-            coachSuggestions: counts.coachSuggestions || 0,
-            studentSubmissions: counts.studentSubmissions || 0,
-            totalEngagement: counts.totalEngagement || 0,
-          });
-        } else {
-          throw new Error("Dashboard counts API returned success: false");
-        }
-      } catch (metricsError) {
-        console.error("Error fetching dashboard counts:", metricsError);
-        console.log("Using fallback calculations...");
-        // Fallback to local calculations using the fetched data
-        setDashboardMetrics(
-          calculateDashboardMetrics(
-            activePins,
-            fetchedSuggestions,
-            fetchedSubmissions
-          )
-        );
-      }
+      setDashboardMetrics({
+        activePins: totalActivePins,
+        coachSuggestions: totalCoachSuggestions,
+        studentSubmissions: totalStudentSubmissions,
+        totalEngagement,
+      });
     } catch (error) {
       console.error("Error fetching WTF data:", error);
-      setError("Failed to load WTF data. Please try again.");
+      setError(error.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to refresh active pins with current filters
+  const refreshActivePins = async () => {
+    try {
+      const params = {
+        page: 1,
+        limit: 20,
+        type: filterType === "all" ? null : filterType,
+        source: pinFilters.source === "all" ? null : pinFilters.source,
+        pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+        dateFrom: pinFilters.dateFrom || null,
+        dateTo: pinFilters.dateTo || null,
+      };
+
+      const pinsResponse = await getActiveWtfPins(params);
+      if (pinsResponse.success && pinsResponse.data && pinsResponse.data.pins) {
+        setActivePins(pinsResponse.data.pins);
+        setTotalItems(
+          pinsResponse.data.pagination?.total ||
+            pinsResponse.data.pins.length
+        );
+        setCurrentPage(1); // Reset to first page
+      } else {
+        setActivePins([]);
+        setTotalItems(0);
+      }
+    } catch (error) {
+      console.error("Error refreshing active pins:", error);
+      showToast("Error refreshing pins", "error");
     }
   };
 
@@ -1309,6 +1329,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                               page: 1,
                               limit: 20,
                               type: filterType === "all" ? null : filterType,
+                              source: pinFilters.source === "all" ? null : pinFilters.source,
+                              pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+                              dateFrom: pinFilters.dateFrom || null,
+                              dateTo: pinFilters.dateTo || null,
                             });
                             if (
                               pinsResponse.success &&
@@ -1348,6 +1372,10 @@ const WTFManagementContent = ({ onToggleView }) => {
                             limit: 20,
                             type:
                               newFilterType === "all" ? null : newFilterType,
+                            source: pinFilters.source === "all" ? null : pinFilters.source,
+                            pinType: pinFilters.pinType === "all" ? null : pinFilters.pinType,
+                            dateFrom: pinFilters.dateFrom || null,
+                            dateTo: pinFilters.dateTo || null,
                           });
                           if (
                             pinsResponse.success &&
@@ -1376,6 +1404,99 @@ const WTFManagementContent = ({ onToggleView }) => {
                       <option value="audio">Audio</option>
                       <option value="link">Link</option>
                     </select>
+                  </div>
+                </div>
+
+                {/* Additional Filters */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-4 mb-4">
+                    <h4 className="text-sm font-medium text-gray-700">Filters</h4>
+                    <button
+                      onClick={() => {
+                        setPinFilters({
+                          source: "all",
+                          pinType: "all",
+                          dateFrom: "",
+                          dateTo: "",
+                        });
+                        // Refresh with cleared filters
+                        refreshActivePins();
+                      }}
+                      className="text-sm text-gray-500 hover:text-gray-700"
+                    >
+                      Clear Filters
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Source
+                      </label>
+                      <select
+                        value={pinFilters.source}
+                        onChange={(e) => {
+                          setPinFilters(prev => ({ ...prev, source: e.target.value }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="all">All Sources</option>
+                        <option value="wtf">WTF Content</option>
+                        <option value="official">Official Content</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Pin Type
+                      </label>
+                      <select
+                        value={pinFilters.pinType}
+                        onChange={(e) => {
+                          setPinFilters(prev => ({ ...prev, pinType: e.target.value }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="all">All Pin Types</option>
+                        <option value="text">Text</option>
+                        <option value="image">Image</option>
+                        <option value="video">Video</option>
+                        <option value="audio">Audio</option>
+                        <option value="link">Link</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Date From
+                      </label>
+                      <input
+                        type="date"
+                        value={pinFilters.dateFrom}
+                        onChange={(e) => {
+                          setPinFilters(prev => ({ ...prev, dateFrom: e.target.value }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Date To
+                      </label>
+                      <input
+                        type="date"
+                        value={pinFilters.dateTo}
+                        onChange={(e) => {
+                          setPinFilters(prev => ({ ...prev, dateTo: e.target.value }));
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <button
+                      onClick={refreshActivePins}
+                      className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2"
+                    >
+                      Apply Filters
+                    </button>
                   </div>
                 </div>
 

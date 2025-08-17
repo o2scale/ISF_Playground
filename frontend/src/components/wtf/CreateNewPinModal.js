@@ -623,6 +623,7 @@ const CreateNewPinModal = ({
       const newPin = {
         title: formData.title,
         content: formData.content,
+        caption: formData.caption, // Add the caption field
         type: formData.contentType, // Backend expects 'type' not 'contentType'
         contentType: formData.contentType, // Keep original for frontend flow branching
         author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'

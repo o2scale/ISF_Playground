@@ -132,27 +132,32 @@ const AudioPlayer = ({
               ...getPostageStampStyle(),
             }}
           >
-            {isOfficial && officialCategory && (
-              <div className="absolute -top-3 -left-3">
-                <Badge
-                  className={`text-white text-xs px-2 py-1 ${
-                    officialCategory === "mann-ki-baat"
-                      ? "bg-purple-700"
-                      : officialCategory === "op-ed"
-                      ? "bg-indigo-600"
-                      : officialCategory === "isf-updates"
-                      ? "bg-teal-600"
-                      : "bg-purple-600"
-                  }`}
-                >
-                  {officialCategory === "mann-ki-baat"
-                    ? "🎙️ Mann Ki Baat"
-                    : officialCategory === "op-ed"
-                    ? "📝 Op Ed"
-                    : officialCategory === "isf-updates"
-                    ? "📢 ISF Updates"
-                    : "ISF Official"}
+            {isOfficial && (
+              <div className="absolute -top-3 -left-3 flex flex-col gap-1">
+                <Badge className="bg-purple-600 text-white text-xs px-2 py-1">
+                  ISF Official
                 </Badge>
+                {officialCategory && (
+                  <Badge
+                    className={`text-white text-xs px-2 py-1 ${
+                      officialCategory === "mann-ki-baat"
+                        ? "bg-purple-700"
+                        : officialCategory === "op-ed"
+                        ? "bg-indigo-600"
+                        : officialCategory === "isf-updates"
+                        ? "bg-teal-600"
+                        : "bg-gray-600"
+                    }`}
+                  >
+                    {officialCategory === "mann-ki-baat"
+                      ? "🎙️ Mann Ki Baat"
+                      : officialCategory === "op-ed"
+                      ? "📝 Op Ed"
+                      : officialCategory === "isf-updates"
+                      ? "📢 ISF Updates"
+                      : "Official"}
+                  </Badge>
+                )}
               </div>
             )}
             <div className="text-center mb-6">

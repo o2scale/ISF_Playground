@@ -1485,6 +1485,27 @@ export const createShopUpdateNotification = async (
   }
 };
 
+// Admin: Send personal notification to student
+export const sendAdminPersonalNotification = async (
+  studentId,
+  title,
+  message,
+  metadata = {}
+) => {
+  try {
+    const response = await api.post(`/api/notifications/admin/send-personal`, {
+      studentId,
+      title,
+      message,
+      metadata,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error sending admin personal notification:", error);
+    throw error;
+  }
+};
+
 // Admin: Get notification statistics
 export const getNotificationStats = async () => {
   try {

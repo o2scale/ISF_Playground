@@ -97,6 +97,18 @@ router.post(
 );
 
 /**
+ * @route   POST /api/notifications/admin/send-personal
+ * @desc    Send a personal notification to a specific student (admin only)
+ * @access  Private (Admin)
+ */
+router.post(
+  "/admin/send-personal",
+  authenticate,
+  checkPermission("notifications", "create"),
+  notificationController.sendAdminPersonalNotification
+);
+
+/**
  * @route   GET /api/notifications/admin/stats
  * @desc    Get notification statistics for admin dashboard (admin only)
  * @access  Private (Admin)

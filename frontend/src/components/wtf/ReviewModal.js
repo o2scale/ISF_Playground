@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../ui/select.tsx";
-import { sendCoachMessage } from "../../api.js";
+import { sendAdminPersonalNotification } from "../../api.js";
 
 const ReviewModal = ({
   isOpen,
@@ -55,8 +55,9 @@ const ReviewModal = ({
     try {
       if (statusUpdate === "mark-reviewed") {
         // Send notification: "We have reviewed your pin"
-        await sendCoachMessage(
+        await sendAdminPersonalNotification(
           submission.studentId,
+          "Submission Reviewed",
           `We have reviewed your ${
             submission.type === "voice" ? "voice note" : "article"
           } "${submission.title}". Thank you for your submission!`,
@@ -69,8 +70,9 @@ const ReviewModal = ({
         );
       } else if (statusUpdate === "consider-future") {
         // Send notification: "We will consider this for future talk"
-        await sendCoachMessage(
+        await sendAdminPersonalNotification(
           submission.studentId,
+          "Submission Under Consideration",
           `We will consider your ${
             submission.type === "voice" ? "voice note" : "article"
           } "${submission.title}" for future talks. Great idea!`,
@@ -189,7 +191,7 @@ const ReviewModal = ({
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Update Status" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-white border border-gray-200 shadow-lg">
                   <SelectItem value="mark-reviewed">
                     <div className="flex items-center gap-2">
                       <CheckCircle className="w-4 h-4 text-green-600" />

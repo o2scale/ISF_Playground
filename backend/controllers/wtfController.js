@@ -86,6 +86,10 @@ exports.getActivePins = async (req, res) => {
       type,
       isOfficial,
       officialCategory,
+      dateFrom,
+      dateTo,
+      source,
+      pinType,
     } = req.query;
 
     logger.info(
@@ -115,6 +119,10 @@ exports.getActivePins = async (req, res) => {
               ? false
               : null,
           officialCategory: officialCategory || null,
+          dateFrom: dateFrom || null,
+          dateTo: dateTo || null,
+          source: source || null,
+          pinType: pinType || null,
         })
       : await WtfService.getActivePinsForStudents({
           page: parseInt(page),
