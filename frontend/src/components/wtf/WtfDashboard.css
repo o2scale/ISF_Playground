@@ -51,6 +51,12 @@
   margin-bottom: 0.5rem;
 }
 
+/* Smooth transitions for collapsible elements */
+.category-buttons-container,
+.level-indicators-container {
+  transition: all 0.3s ease-in-out;
+}
+
 /* Responsive button sizing for better wrapping */
 @media (max-width: 768px) {
   .category-buttons-container button,
@@ -60,4 +66,49 @@
     padding-left: 1rem !important;
     padding-right: 1rem !important;
   }
+}
+
+/* Category and Level header styling */
+.category-header,
+.level-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+  padding: 0 1rem;
+}
+
+.category-header h3,
+.level-header h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Toggle button styling for both category and level sections */
+.category-toggle-button,
+.level-toggle-button {
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  color: #6b7280;
+  transition: all 0.2s ease-in-out;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.category-toggle-button:hover,
+.level-toggle-button:hover {
+  background-color: #f3f4f6;
+  color: #374151;
+  transform: scale(1.05);
+}
+
+.category-toggle-button:focus,
+.level-toggle-button:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #3b82f6;
+  ring-offset: 2px;
 }
