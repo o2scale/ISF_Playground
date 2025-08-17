@@ -1821,7 +1821,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                           Type
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
-                          Source
+                          Details
                         </th>
                         <th className="text-left py-3 px-4 font-medium text-gray-900">
                           Archived On
@@ -1870,9 +1870,29 @@ const WTFManagementContent = ({ onToggleView }) => {
                                 </div>
                               </td>
                               <td className="py-3 px-4 text-gray-700">
-                                {isCoachSuggestion
-                                  ? item?.metadata?.suggestedBy || "Coach"
-                                  : "Student Submission"}
+                                {isCoachSuggestion ? (
+                                  <div className="space-y-1">
+                                    <div>
+                                      Coach:{" "}
+                                      {item?.metadata?.suggestedBy || "Coach"}
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      Student: {item?.studentName || "-"}
+                                      {item?.balagruha
+                                        ? ` (${item.balagruha})`
+                                        : ""}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="space-y-1">
+                                    <div>
+                                      Student: {item?.studentName || "-"}
+                                    </div>
+                                    <div className="text-sm text-gray-600">
+                                      Balagruha: {item?.balagruha || "-"}
+                                    </div>
+                                  </div>
+                                )}
                               </td>
                               <td className="py-3 px-4 text-gray-700">
                                 {archivedAt
