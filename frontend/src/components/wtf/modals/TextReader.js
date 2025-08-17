@@ -9,10 +9,12 @@ const TextReader = ({
   title,
   content,
   author,
+  caption,
   likes,
   hearts,
   views,
   isOfficial,
+  officialCategory,
   onLike,
   onHeart,
   isStudent = false,
@@ -68,9 +70,27 @@ const TextReader = ({
               ...getPostageStampStyle(),
             }}
           >
-            {isOfficial && (
+            {isOfficial && officialCategory && (
               <div className="absolute -top-3 -left-3">
-                <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+                <Badge
+                  className={`text-white text-xs px-2 py-1 ${
+                    officialCategory === "mann-ki-baat"
+                      ? "bg-purple-700"
+                      : officialCategory === "op-ed"
+                      ? "bg-indigo-600"
+                      : officialCategory === "isf-updates"
+                      ? "bg-teal-600"
+                      : "bg-purple-600"
+                  }`}
+                >
+                  {officialCategory === "mann-ki-baat"
+                    ? "🎙️ Mann Ki Baat"
+                    : officialCategory === "op-ed"
+                    ? "📝 Op Ed"
+                    : officialCategory === "isf-updates"
+                    ? "📢 ISF Updates"
+                    : "ISF Official"}
+                </Badge>
               </div>
             )}
             <div className="h-full flex flex-col">
@@ -79,6 +99,11 @@ const TextReader = ({
                   <h3 className="font-handwriting text-xl text-gray-800 mb-1">
                     {title}
                   </h3>
+                  {caption && (
+                    <p className="text-sm text-gray-600 mb-2 italic">
+                      {caption}
+                    </p>
+                  )}
                   {author && (
                     <p className="text-sm text-gray-600">
                       Posted by{" "}

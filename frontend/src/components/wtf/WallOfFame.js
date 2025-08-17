@@ -1778,9 +1778,27 @@ HTML Font: ${htmlFont}`);
           handlePinClick(item);
         }}
       >
-        {item.isOfficial && (
+        {item.isOfficial && item.officialCategory && (
           <div className="absolute top-2 left-2 z-20">
-            <Badge className="bg-purple-600 text-white">ISF Official</Badge>
+            <Badge
+              className={`text-white text-xs px-2 py-1 ${
+                item.officialCategory === "mann-ki-baat"
+                  ? "bg-purple-700"
+                  : item.officialCategory === "op-ed"
+                  ? "bg-indigo-600"
+                  : item.officialCategory === "isf-updates"
+                  ? "bg-teal-600"
+                  : "bg-purple-600"
+              }`}
+            >
+              {item.officialCategory === "mann-ki-baat"
+                ? "🎙️ Mann Ki Baat"
+                : item.officialCategory === "op-ed"
+                ? "📝 Op Ed"
+                : item.officialCategory === "isf-updates"
+                ? "📢 ISF Updates"
+                : "ISF Official"}
+            </Badge>
           </div>
         )}
         {isViewed && (
@@ -2519,11 +2537,33 @@ Check console for detailed results.`);
               {/* Category Indicator */}
               {selectedCategory.isOfficial && (
                 <div className="mt-4">
-                  <Badge className="bg-purple-600 text-white text-lg px-4 py-2">
-                    📢 {selectedCategory.name}
+                  <Badge
+                    className={`text-white text-lg px-4 py-2 ${
+                      selectedCategory.category === "mann-ki-baat"
+                        ? "bg-purple-700"
+                        : selectedCategory.category === "op-ed"
+                        ? "bg-indigo-600"
+                        : selectedCategory.category === "isf-updates"
+                        ? "bg-teal-600"
+                        : "bg-purple-600"
+                    }`}
+                  >
+                    {selectedCategory.category === "mann-ki-baat"
+                      ? "🎙️ Mann Ki Baat"
+                      : selectedCategory.category === "op-ed"
+                      ? "📝 Op Ed"
+                      : selectedCategory.category === "isf-updates"
+                      ? "📢 ISF Updates"
+                      : "📢 Official Content"}
                   </Badge>
                   <p className="text-sm text-gray-600 mt-2">
-                    Official ISF content curated for the community
+                    {selectedCategory.category === "mann-ki-baat"
+                      ? "Official podcasts and audio content from ISF"
+                      : selectedCategory.category === "op-ed"
+                      ? "Opinion editorial content and articles"
+                      : selectedCategory.category === "isf-updates"
+                      ? "Official ISF announcements and updates"
+                      : "Official ISF content curated for the community"}
                   </p>
                 </div>
               )}
@@ -2797,10 +2837,12 @@ Check console for detailed results.`);
             imageSrc={selectedContent.mediaUrl || selectedContent.content}
             title={selectedContent.title}
             author={selectedContent.author}
+            caption={selectedContent.caption}
             likes={selectedContent.engagementMetrics?.likes || 0}
             hearts={selectedContent.engagementMetrics?.loves || 0}
             views={selectedContent.engagementMetrics?.seen || 0}
             isOfficial={selectedContent.isOfficial}
+            officialCategory={selectedContent.officialCategory}
             onLike={() =>
               handleLikePin(selectedContent.id || selectedContent._id)
             }
@@ -2819,10 +2861,12 @@ Check console for detailed results.`);
           videoSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
+          caption={selectedContent.caption}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
           onLike={() =>
             handleLikePin(selectedContent.id || selectedContent._id)
           }
@@ -2840,10 +2884,12 @@ Check console for detailed results.`);
           audioSrc={selectedContent.mediaUrl || selectedContent.content}
           title={selectedContent.title}
           author={selectedContent.author}
+          caption={selectedContent.caption}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
           onLike={() =>
             handleLikePin(selectedContent.id || selectedContent._id)
           }
@@ -2861,10 +2907,12 @@ Check console for detailed results.`);
           title={selectedContent.title}
           content={selectedContent.content}
           author={selectedContent.author}
+          caption={selectedContent.caption}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}
           isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
           onLike={() =>
             handleLikePin(selectedContent.id || selectedContent._id)
           }

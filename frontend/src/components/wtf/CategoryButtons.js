@@ -1,34 +1,57 @@
 import React, { useState } from "react";
 
 const categories = [
-  { name: "All", color: "bg-blue-500 hover:bg-blue-600" },
+  {
+    name: "All",
+    color: "bg-blue-500 hover:bg-blue-600",
+    selectedColor: "bg-blue-600",
+  },
   {
     name: "Mann Ki Baat",
     color: "bg-purple-600 hover:bg-purple-700",
+    selectedColor: "bg-purple-800",
     isOfficial: true,
     category: "mann-ki-baat",
   },
   {
     name: "Op Ed",
     color: "bg-indigo-600 hover:bg-indigo-700",
+    selectedColor: "bg-indigo-800",
     isOfficial: true,
     category: "op-ed",
   },
   {
     name: "ISF Updates",
     color: "bg-teal-600 hover:bg-teal-700",
+    selectedColor: "bg-teal-800",
     isOfficial: true,
     category: "isf-updates",
   },
-  { name: "Medical", color: "bg-green-500 hover:bg-green-600" },
-  { name: "Life Skills", color: "bg-green-500 hover:bg-green-600" },
-  { name: "Spoken Eng", color: "bg-green-500 hover:bg-green-600" },
+  {
+    name: "Medical",
+    color: "bg-green-500 hover:bg-green-600",
+    selectedColor: "bg-green-700",
+  },
+  {
+    name: "Life Skills",
+    color: "bg-green-500 hover:bg-green-600",
+    selectedColor: "bg-green-700",
+  },
+  {
+    name: "Spoken Eng",
+    color: "bg-green-500 hover:bg-green-600",
+    selectedColor: "bg-green-700",
+  },
   {
     name: "Comp Apps",
     color: "bg-orange-500 hover:bg-orange-600",
-    selectedColor: "bg-orange-500 hover:bg-orange-600",
+    selectedColor: "bg-orange-700",
   },
-  { name: "Art Therapy", color: "bg-green-500 hover:bg-green-600" },
+  {
+    name: "Art Therapy",
+    color: "bg-green-500 hover:bg-green-600",
+    selectedColor: "bg-green-700",
+  },
 ];
 
 const CategoryButtons = ({ onCategoryChange, selectedCategory = "All" }) => {
@@ -40,10 +63,9 @@ const CategoryButtons = ({ onCategoryChange, selectedCategory = "All" }) => {
     <div className="flex gap-2 overflow-x-auto px-4">
       {categories.map((category) => {
         const isSelected = selectedCategory === category.name;
-        const buttonColor =
-          isSelected && category.selectedColor
-            ? category.selectedColor
-            : category.color;
+        const buttonColor = isSelected
+          ? category.selectedColor
+          : category.color;
 
         return (
           <button

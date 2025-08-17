@@ -7,6 +7,11 @@ const wtfPinSchema = new mongoose.Schema(
       required: [true, "Title is required"],
       trim: true,
     },
+    caption: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Caption cannot exceed 500 characters"],
+    },
     content: {
       type: String,
       required: [true, "Content is required"],
