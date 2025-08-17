@@ -297,22 +297,18 @@ const AudioPlayer = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                {!isStudent && (
-                  <span className="text-sm font-bold">
-                    {likes.toLocaleString()}
-                  </span>
-                )}
+                <span className="text-sm font-bold">
+                  {likes.toLocaleString()}
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => onHeart && onHeart()}
-                className="flex items-center justify-center gap-2 text-pink-600 hover:opacity-80 transition-opacity mx-auto"
+                className="flex items-center justify-center gap-2 text-green-600 hover:opacity-80 transition-opacity mx-auto"
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                {!isStudent && (
-                  <span className="text-sm font-bold">{hearts}</span>
-                )}
+                <span className="text-sm font-bold">{hearts}</span>
               </button>
             </div>
           </div>

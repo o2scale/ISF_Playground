@@ -429,22 +429,18 @@ const ImageViewer = ({
                 aria-label="Like"
               >
                 <ThumbsUp className="w-5 h-5" />
-                {!isStudent && (
-                  <span className="font-bold text-lg">
-                    {likes.toLocaleString()}
-                  </span>
-                )}
+                <span className="font-bold text-lg">
+                  {likes.toLocaleString()}
+                </span>
               </button>
               <button
                 type="button"
                 onClick={() => onHeart && onHeart()}
-                className="flex items-center justify-center gap-2 text-pink-600 hover:opacity-80 transition-opacity mx-auto"
+                className="flex items-center justify-center gap-2 text-green-600 hover:opacity-80 transition-opacity mx-auto"
                 aria-label="Love"
               >
                 <Heart className="w-5 h-5" />
-                {!isStudent && (
-                  <span className="font-bold text-lg">{hearts}</span>
-                )}
+                <span className="font-bold text-lg">{hearts}</span>
               </button>
             </div>
           </div>

@@ -1648,7 +1648,7 @@ const WTFManagementContent = ({ onToggleView }) => {
                                 </span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <Heart className="w-4 h-4 text-red-500" />
+                                <Heart className="w-4 h-4 text-green-600" />
                                 <span className="text-gray-700">
                                   {pin.engagementMetrics?.loves ?? 0}
                                 </span>
