@@ -963,6 +963,18 @@ export const changeWtfPinStatus = async (pinId, status) => {
   }
 };
 
+export const reorderWtfPins = async (orderedPinIds) => {
+  try {
+    const response = await api.post(`/api/v1/wtf/pins/reorder`, {
+      orderedPinIds,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error reordering WTF pins:", error);
+    throw error;
+  }
+};
+
 // Interaction APIs
 export const likeWtfPin = async (pinId, likeType = "thumbs_up") => {
   try {

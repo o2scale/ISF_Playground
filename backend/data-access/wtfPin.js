@@ -49,8 +49,9 @@ exports.getActivePins = async ({
     if (isOfficial !== null) query.isOfficial = isOfficial;
     if (officialCategory !== null) query.officialCategory = officialCategory;
 
+    // Prefer manual position ordering when available, fallback to createdAt desc
     const pins = await WtfPin.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ position: 1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("author", "name role")
@@ -108,7 +109,7 @@ exports.getPinsByStatus = async ({
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ position: 1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("author", "name role")
@@ -347,7 +348,7 @@ exports.getPinsByStatus = async ({
     if (isOfficial !== null) query.isOfficial = isOfficial;
 
     const pins = await WtfPin.find(query)
-      .sort({ updatedAt: -1 })
+      .sort({ position: 1, updatedAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("author", "name role")
@@ -678,7 +679,7 @@ exports.getActivePinsForAdmin = async ({
     }
     if (isOfficial !== null) query.isOfficial = isOfficial;
     if (officialCategory !== null) query.officialCategory = officialCategory;
-    
+
     // Add date filters
     if (dateFrom || dateTo) {
       query.createdAt = {};
@@ -692,7 +693,7 @@ exports.getActivePinsForAdmin = async ({
         query.createdAt.$lte = endDate;
       }
     }
-    
+
     // Add source filter (for distinguishing between different content sources)
     if (source && source !== "all") {
       if (source === "wtf") {
@@ -701,14 +702,14 @@ exports.getActivePinsForAdmin = async ({
         query.isOfficial = true;
       }
     }
-    
+
     // Add pin type filter (alias for type, but more specific)
     if (pinType && pinType !== "all") {
       query.type = pinType;
     }
 
     const pins = await WtfPin.find(query)
-      .sort({ createdAt: -1 })
+      .sort({ position: 1, createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .populate("author", "name role")
@@ -736,6 +737,54 @@ exports.getActivePinsForAdmin = async ({
       { error: error.message },
       "Error in getActivePinsForAdmin"
     );
+    throw error;
+  }
+};
+
+// Bulk reorder pins by providing an ordered list of pinIds. Missing IDs are ignored.
+exports.reorderPins = async (orderedPinIds = []) => {
+  try {
+    if (!Array.isArray(orderedPinIds) || orderedPinIds.length === 0) {
+      return {
+        success: false,
+        data: null,
+        message: "orderedPinIds must be a non-empty array",
+      };
+    }
+
+    // Validate and convert to ObjectIds where possible; skip invalid
+    const validIds = orderedPinIds.filter((id) =>
+      mongoose.Types.ObjectId.isValid(id)
+    );
+    if (validIds.length === 0) {
+      return {
+        success: false,
+        data: null,
+        message: "No valid pin IDs provided",
+      };
+    }
+
+    // Assign positions starting from 1 in the provided order
+    // Use bulkWrite for efficiency
+    const bulkOps = validIds.map((id, idx) => ({
+      updateOne: {
+        filter: { _id: new mongoose.Types.ObjectId(id) },
+        update: { $set: { position: idx + 1 } },
+      },
+    }));
+
+    const result = await WtfPin.bulkWrite(bulkOps);
+
+    return {
+      success: true,
+      data: {
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+      },
+      message: "Pins reordered successfully",
+    };
+  } catch (error) {
+    errorLogger.error({ error: error.message }, "Error in reorderPins");
     throw error;
   }
 };

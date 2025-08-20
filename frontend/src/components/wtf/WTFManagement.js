@@ -33,6 +33,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import BackgroundSettings from "./BackgroundSettings";
 import showToast from "../../utils/toast";
 import { getWtfCoinReward, updateWtfCoinReward } from "../../api";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import {
   useWtfBackground,
   WtfBackgroundProvider,
@@ -51,6 +52,7 @@ import {
   getArchivedSubmissions,
   unarchiveSubmission,
   getAllCoinTransactions,
+  reorderWtfPins,
 } from "../../api";
 
 const WTFManagementContent = ({ onToggleView }) => {
@@ -116,6 +118,7 @@ const WTFManagementContent = ({ onToggleView }) => {
   });
   const [loading, setLoading] = useState(false); // reserved for loading states
   const [error, setError] = useState(null); // reserved for error toasts
+  const [isReordering, setIsReordering] = useState(false);
 
   // Archived lists
   const [archivedSubmissions, setArchivedSubmissions] = useState([]);
@@ -1064,10 +1067,11 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Pagination logic
   const paginatedPins = useMemo(() => {
+    if (isReordering) return filteredPins;
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredPins.slice(startIndex, endIndex);
-  }, [filteredPins, currentPage, itemsPerPage]);
+  }, [filteredPins, currentPage, itemsPerPage, isReordering]);
 
   const totalPages = Math.ceil(filteredPins.length / itemsPerPage);
 
@@ -1075,6 +1079,50 @@ const WTFManagementContent = ({ onToggleView }) => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, filterType]);
+
+  // Drag and drop: compute new order and persist
+  const onDragEnd = async (result) => {
+    const { source, destination } = result || {};
+    if (!destination) return;
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    )
+      return;
+
+    // Work on a copy of the currently displayed list (when reordering, this is all filtered pins)
+    const workingList = Array.from(paginatedPins);
+    const [moved] = workingList.splice(source.index, 1);
+    workingList.splice(destination.index, 0, moved);
+
+    // Rebuild activePins preserving non-filtered order, replacing filtered subset with workingList order
+    const reorderedIds = new Set(workingList.map((p) => p._id));
+    const rebuilt = activePins.map((p) => (reorderedIds.has(p._id) ? null : p));
+    // Fill nulls by iterating and placing reordered items in sequence where they originally appeared
+    let insertIdx = 0;
+    const finalList = rebuilt.map((p) => {
+      if (p === null) {
+        const next = workingList[insertIdx];
+        insertIdx += 1;
+        return next;
+      }
+      return p;
+    });
+
+    setActivePins(finalList);
+
+    // Persist full active pins order to backend so all visible active items get positions
+    try {
+      const orderedPinIds = finalList
+        .filter((p) => p?.status === "active")
+        .map((p) => p._id);
+      await reorderWtfPins(orderedPinIds);
+      showToast("Pins reordered", "success");
+    } catch (e) {
+      console.error("Failed to persist pin order", e);
+      showToast("Failed to save order", "error");
+    }
+  };
 
   // Update total items when filtered pins change
   useEffect(() => {
@@ -1575,122 +1623,170 @@ const WTFManagementContent = ({ onToggleView }) => {
                       </tr>
                     </thead>
                     <tbody>
-                      {paginatedPins.map((pin) => (
-                        <tr
-                          key={pin._id}
-                          className="border-b border-gray-100 hover:bg-gray-50"
-                        >
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-3">
-                              {pin.thumbnail ? (
-                                <img
-                                  src={pin.thumbnail}
-                                  alt=""
-                                  className="w-10 h-10 rounded object-cover"
-                                />
-                              ) : (
-                                <div className="w-10 h-10 rounded border border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400">
-                                  {getContentTypeIcon(pin.type)}
-                                </div>
-                              )}
-                              <div>
-                                <div className="font-medium text-gray-900">
-                                  {pin.title}
-                                </div>
-                                {pin.caption && (
-                                  <div className="text-sm text-gray-500">
-                                    {pin.caption}
-                                  </div>
-                                )}
-                                {pin.isOfficial && (
-                                  <Badge className="mt-1 bg-purple-100 text-purple-800">
-                                    ISF Official
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              {getContentTypeIcon(pin.type)}
-                              <span className="capitalize text-gray-700">
-                                {pin.type}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div>
-                              <div className="font-medium text-gray-900">
-                                {pin.author?.name || "Admin"}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                by {pin.author?.name || "Admin"}
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4 text-gray-700">
-                            {new Date(pin.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-1 text-orange-600">
-                              <Clock className="w-4 h-4" />
-                              <span className="text-sm">
-                                {new Date(pin.expiresAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-4 text-sm">
-                              <div className="flex items-center gap-1">
-                                <Eye className="w-4 h-4 text-gray-500" />
-                                <span className="text-gray-700">
-                                  {pin.engagementMetrics?.seen || 0}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Heart className="w-4 h-4 text-green-600" />
-                                <span className="text-gray-700">
-                                  {pin.engagementMetrics?.loves ?? 0}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <ThumbsUp className="w-4 h-4 text-blue-500" />
-                                <span className="text-gray-700">
-                                  {pin.engagementMetrics?.likes ?? 0}
-                                </span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-4 px-4">
-                            <div className="flex items-center gap-2">
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleEdit(pin)}
-                                className="text-gray-600 hover:text-gray-900"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleUnpin(pin._id)}
-                                className="text-gray-600 hover:text-gray-900"
-                              >
-                                <Archive className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => handleDelete(pin._id)}
-                                className="text-red-600 hover:text-red-700"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
+                      <DragDropContext onDragEnd={onDragEnd}>
+                        <Droppable droppableId="pins-table">
+                          {(provided) => (
+                            <tr>
+                              <td colSpan={7} className="p-0">
+                                <table className="w-full">
+                                  <tbody
+                                    ref={provided.innerRef}
+                                    {...provided.droppableProps}
+                                  >
+                                    {paginatedPins.map((pin, index) => (
+                                      <Draggable
+                                        key={pin._id}
+                                        draggableId={pin._id}
+                                        index={index}
+                                      >
+                                        {(draggableProvided, snapshot) => (
+                                          <tr
+                                            ref={draggableProvided.innerRef}
+                                            {...draggableProvided.draggableProps}
+                                            {...draggableProvided.dragHandleProps}
+                                            className={`border-b border-gray-100 hover:bg-gray-50 ${
+                                              snapshot.isDragging
+                                                ? "bg-purple-50"
+                                                : ""
+                                            }`}
+                                          >
+                                            <td className="py-4 px-4">
+                                              <div className="flex items-center gap-3">
+                                                {pin.thumbnail ? (
+                                                  <img
+                                                    src={pin.thumbnail}
+                                                    alt=""
+                                                    className="w-10 h-10 rounded object-cover"
+                                                  />
+                                                ) : (
+                                                  <div className="w-10 h-10 rounded border border-gray-300 bg-gray-50 flex items-center justify-center text-gray-400">
+                                                    {getContentTypeIcon(
+                                                      pin.type
+                                                    )}
+                                                  </div>
+                                                )}
+                                                <div>
+                                                  <div className="font-medium text-gray-900">
+                                                    {pin.title}
+                                                  </div>
+                                                  {pin.caption && (
+                                                    <div className="text-sm text-gray-500">
+                                                      {pin.caption}
+                                                    </div>
+                                                  )}
+                                                  {pin.isOfficial && (
+                                                    <Badge className="mt-1 bg-purple-100 text-purple-800">
+                                                      ISF Official
+                                                    </Badge>
+                                                  )}
+                                                </div>
+                                              </div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                              <div className="flex items-center gap-2">
+                                                {getContentTypeIcon(pin.type)}
+                                                <span className="capitalize text-gray-700">
+                                                  {pin.type}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                              <div>
+                                                <div className="font-medium text-gray-900">
+                                                  {pin.author?.name || "Admin"}
+                                                </div>
+                                                <div className="text-sm text-gray-500">
+                                                  by{" "}
+                                                  {pin.author?.name || "Admin"}
+                                                </div>
+                                              </div>
+                                            </td>
+                                            <td className="py-4 px-4 text-gray-700">
+                                              {new Date(
+                                                pin.createdAt
+                                              ).toLocaleDateString()}
+                                            </td>
+                                            <td className="py-4 px-4">
+                                              <div className="flex items-center gap-1 text-orange-600">
+                                                <Clock className="w-4 h-4" />
+                                                <span className="text-sm">
+                                                  {new Date(
+                                                    pin.expiresAt
+                                                  ).toLocaleDateString()}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                              <div className="flex items-center gap-4 text-sm">
+                                                <div className="flex items-center gap-1">
+                                                  <Eye className="w-4 h-4 text-gray-500" />
+                                                  <span className="text-gray-700">
+                                                    {pin.engagementMetrics
+                                                      ?.seen || 0}
+                                                  </span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                  <Heart className="w-4 h-4 text-green-600" />
+                                                  <span className="text-gray-700">
+                                                    {pin.engagementMetrics
+                                                      ?.loves ?? 0}
+                                                  </span>
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                  <ThumbsUp className="w-4 h-4 text-blue-500" />
+                                                  <span className="text-gray-700">
+                                                    {pin.engagementMetrics
+                                                      ?.likes ?? 0}
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            </td>
+                                            <td className="py-4 px-4">
+                                              <div className="flex items-center gap-2">
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    handleEdit(pin)
+                                                  }
+                                                  className="text-gray-600 hover:text-gray-900"
+                                                >
+                                                  <Edit className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    handleUnpin(pin._id)
+                                                  }
+                                                  className="text-gray-600 hover:text-gray-900"
+                                                >
+                                                  <Archive className="w-4 h-4" />
+                                                </Button>
+                                                <Button
+                                                  variant="outline"
+                                                  size="sm"
+                                                  onClick={() =>
+                                                    handleDelete(pin._id)
+                                                  }
+                                                  className="text-red-600 hover:text-red-700"
+                                                >
+                                                  <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        )}
+                                      </Draggable>
+                                    ))}
+                                    {provided.placeholder}
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          )}
+                        </Droppable>
+                      </DragDropContext>
                     </tbody>
                   </table>
 

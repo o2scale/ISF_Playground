@@ -84,6 +84,12 @@ const wtfPinSchema = new mongoose.Schema(
         min: [0, "Shares cannot be negative"],
       },
     },
+    // Manual ordering support for admin drag-and-drop
+    position: {
+      type: Number,
+      default: null,
+      index: true,
+    },
     // For link type pins
     linkUrl: {
       type: String,
@@ -118,6 +124,7 @@ const wtfPinSchema = new mongoose.Schema(
       { type: 1, status: 1 }, // For type-based queries
       { expiresAt: 1 }, // For expiration queries
       { isOfficial: 1, status: 1 }, // For official posts
+      { position: 1, status: 1 }, // For manual ordering
     ],
   }
 );

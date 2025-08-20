@@ -395,16 +395,6 @@ const WallOfFameContent = ({ onToggleView }) => {
     return activeTypeFilters.includes(canonical);
   });
 
-  const groupedByType = TYPE_OPTIONS.reduce((acc, opt) => {
-    acc[opt.key] = [];
-    return acc;
-  }, {});
-
-  filteredContent.forEach((item) => {
-    const canonical = canonicalizeType(item.type);
-    if (groupedByType[canonical]) groupedByType[canonical].push(item);
-  });
-
   // Dragging state
   const [isDragging, setIsDragging] = useState(false);
   const [dragPosition, setDragPosition] = useState({ x: null, y: null });
@@ -592,6 +582,39 @@ const WallOfFameContent = ({ onToggleView }) => {
       console.error("Error refreshing viewed pins:", error);
     }
   }, [user?.id]);
+
+  // Sort so that unseen items appear first and seen items shift to the end (students only)
+  const sortedContent = React.useMemo(() => {
+    // For admins/coaches, preserve original ordering
+    if (!isStudent) return filteredContent;
+
+    const items = [...filteredContent];
+    return items
+      .map((item) => ({
+        item,
+        seen: hasStudentViewedPin(item._id || item.id),
+        createdAtTs: item.createdAt ? new Date(item.createdAt).getTime() : 0,
+      }))
+      .sort((a, b) => {
+        // Unseen first, seen last
+        if (a.seen !== b.seen) return a.seen ? 1 : -1;
+        // Within same seen status, keep recent first (fallback to stable-ish by createdAt)
+        return b.createdAtTs - a.createdAtTs;
+      })
+      .map(({ item }) => item);
+    // Recompute when viewed pins set changes or the filtered list changes
+  }, [filteredContent, hasStudentViewedPin, isStudent]);
+
+  const groupedByType = TYPE_OPTIONS.reduce((acc, opt) => {
+    acc[opt.key] = [];
+    return acc;
+  }, {});
+
+  // Build groups using the sorted order so seen items are also last within each group
+  sortedContent.forEach((item) => {
+    const canonical = canonicalizeType(item.type);
+    if (groupedByType[canonical]) groupedByType[canonical].push(item);
+  });
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
@@ -2620,7 +2643,7 @@ Check console for detailed results.`);
               {filteredContent.length > 0 ? (
                 !groupByType ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 justify-items-center pb-8">
-                    {filteredContent.map((item, index) => (
+                    {sortedContent.map((item, index) => (
                       <div
                         key={item._id || item.id}
                         className="w-[180px]"
