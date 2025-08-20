@@ -65,7 +65,11 @@ const categories = [
   },
 ];
 
-const CategoryButtons = ({ onCategoryChange, selectedCategory = "All" }) => {
+const CategoryButtons = ({
+  onCategoryChange,
+  selectedCategory = "All",
+  hiddenNames = [],
+}) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   const handleCategoryClick = (category) => {
@@ -101,26 +105,28 @@ const CategoryButtons = ({ onCategoryChange, selectedCategory = "All" }) => {
         }`}
       >
         <div className="category-buttons-container flex gap-2 flex-wrap pb-2 px-4">
-          {categories.map((category) => {
-            const isSelected = selectedCategory === category.name;
-            const buttonColor = isSelected
-              ? category.selectedColor
-              : category.color;
+          {categories
+            .filter((category) => !hiddenNames.includes(category.name))
+            .map((category) => {
+              const isSelected = selectedCategory === category.name;
+              const buttonColor = isSelected
+                ? category.selectedColor
+                : category.color;
 
-            return (
-              <button
-                key={category.name}
-                onClick={() => handleCategoryClick(category)}
-                className={`${buttonColor} text-white px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 whitespace-nowrap min-w-fit border-0 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-500 flex-shrink-0 relative`}
-                style={{ height: "40px", minWidth: "100px" }}
-              >
-                {category.name}
-                {category.isOfficial && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-white"></div>
-                )}
-              </button>
-            );
-          })}
+              return (
+                <button
+                  key={category.name}
+                  onClick={() => handleCategoryClick(category)}
+                  className={`${buttonColor} text-white px-4 py-2 rounded-full font-medium text-sm transition-all duration-200 shadow-md hover:shadow-lg hover:scale-105 active:scale-95 whitespace-nowrap min-w-fit border-0 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-green-500 flex-shrink-0 relative`}
+                  style={{ height: "40px", minWidth: "100px" }}
+                >
+                  {category.name}
+                  {category.isOfficial && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-yellow-400 rounded-full border border-white"></div>
+                  )}
+                </button>
+              );
+            })}
         </div>
       </div>
     </div>

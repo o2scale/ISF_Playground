@@ -27,7 +27,6 @@ import {
 } from "../../contexts/WtfBackgroundContext";
 
 import CategoryButtons from "./CategoryButtons";
-import LevelIndicators from "./LevelIndicators";
 import CoursesSection from "./CoursesSection";
 import "./WtfDashboard.css";
 import CreateNewPinModal from "./CreateNewPinModal";
@@ -616,10 +615,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     if (groupedByType[canonical]) groupedByType[canonical].push(item);
   });
 
-  const handleCategoryChange = (category) => {
-    setSelectedCategory(category);
-    console.log("Selected category:", category);
-  };
+  // Categories UI removed; keeping state for compatibility but no handler needed
 
   const handlePinClick = async (item) => {
     // Find the most up-to-date version of this pin from the current content state
@@ -2456,38 +2452,86 @@ Check console for detailed results.`);
         <div className="flex flex-col h-screen w-full">
           {/* Fixed Header */}
           <div className="p-6 space-y-6 bg-white flex-shrink-0">
+            {/* Categories header retained with specific buttons hidden */}
             <div className="flex items-center gap-6">
               <div className="flex-1">
                 <CategoryButtons
-                  onCategoryChange={handleCategoryChange}
+                  onCategoryChange={(category) => setSelectedCategory(category)}
                   selectedCategory={selectedCategory.name}
+                  hiddenNames={["All", "Mann Ki Baat", "Op Ed", "ISF Updates"]}
                 />
               </div>
-              {isStudent && (
-                <div className="flex items-center gap-3">
-                  <button
-                    id="btn-wtf-share-voice"
-                    onClick={() => {
-                      setShowVoiceModal(true);
-                    }}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
-                    title="Suggest a Topic for a Talk!"
-                  >
-                    <Mic className="w-4 h-4" /> Suggest a Topic!
-                  </button>
-                  <button
-                    id="btn-wtf-write-story"
-                    onClick={() => setShowArticleEditor(true)}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
-                    title="Write a Story"
-                  >
-                    <FileText className="w-4 h-4" /> Write a Story
-                  </button>
-                </div>
-              )}
             </div>
-            <div>
-              <LevelIndicators />
+
+            {/* Moved type filter bar into the former Levels section and placed action buttons here */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setActiveTypeFilters([])}
+                className={`px-3 py-1 rounded-full border text-sm ${
+                  activeTypeFilters.length === 0
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300"
+                }`}
+              >
+                All
+              </button>
+              {TYPE_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => toggleTypeFilter(opt.key)}
+                  className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
+                    activeTypeFilters.includes(opt.key)
+                      ? "bg-blue-600 text-white border-blue-600"
+                      : "bg-white text-gray-700 border-gray-300"
+                  }`}
+                >
+                  {renderTypeIcon(opt.key === "image" ? "photo" : opt.key)}
+                  {opt.label}
+                </button>
+              ))}
+              <div className="ml-auto flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setGroupByType((v) => !v)}
+                  className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
+                    groupByType
+                      ? "bg-purple-600 text-white border-purple-600"
+                      : "bg-white text-gray-700 border-gray-300"
+                  }`}
+                  title="Group pins by type"
+                >
+                  {groupByType ? (
+                    <ChevronUp className="w-4 h-4" />
+                  ) : (
+                    <ChevronDown className="w-4 h-4" />
+                  )}
+                  {groupByType ? "Grouped by type" : "Group by type"}
+                </button>
+                {isStudent && (
+                  <>
+                    <button
+                      id="btn-wtf-share-voice"
+                      onClick={() => {
+                        setShowVoiceModal(true);
+                      }}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700"
+                      title="Suggest a Topic for a Talk!"
+                    >
+                      <Mic className="w-4 h-4" /> Suggest a Topic!
+                    </button>
+                    <button
+                      id="btn-wtf-write-story"
+                      onClick={() => setShowArticleEditor(true)}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700"
+                      title="Write a Story"
+                    >
+                      <FileText className="w-4 h-4" /> Write a Story
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
 
@@ -2589,54 +2633,7 @@ Check console for detailed results.`);
             </div>
 
             <div className="w-full mx-auto px-4 mb-8">
-              {/* Filter Bar (always visible) */}
-              <div className="flex flex-wrap items-center gap-2 mb-6">
-                <button
-                  type="button"
-                  onClick={() => setActiveTypeFilters([])}
-                  className={`px-3 py-1 rounded-full border text-sm ${
-                    activeTypeFilters.length === 0
-                      ? "bg-blue-600 text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-300"
-                  }`}
-                >
-                  All
-                </button>
-                {TYPE_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => toggleTypeFilter(opt.key)}
-                    className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
-                      activeTypeFilters.includes(opt.key)
-                        ? "bg-blue-600 text-white border-blue-600"
-                        : "bg-white text-gray-700 border-gray-300"
-                    }`}
-                  >
-                    {renderTypeIcon(opt.key === "image" ? "photo" : opt.key)}
-                    {opt.label}
-                  </button>
-                ))}
-                <div className="ml-auto flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setGroupByType((v) => !v)}
-                    className={`px-3 py-1 rounded-full border text-sm flex items-center gap-2 ${
-                      groupByType
-                        ? "bg-purple-600 text-white border-purple-600"
-                        : "bg-white text-gray-700 border-gray-300"
-                    }`}
-                    title="Group pins by type"
-                  >
-                    {groupByType ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
-                    {groupByType ? "Grouped by type" : "Group by type"}
-                  </button>
-                </div>
-              </div>
+              {/* Filter Bar moved to header; removed here */}
 
               {/* Content Count and Filter Status */}
 
