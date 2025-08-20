@@ -28,6 +28,7 @@ const {
   getWtfAnalytics,
   bulkUpdatePinStatus,
   getPinsByStatus,
+  reorderPins,
 } = require("../data-access/wtfPin");
 
 // getSubmissionsForReview is implemented as a static method in this service
@@ -886,6 +887,29 @@ class WtfService {
       errorLogger.error(
         { error: error.message },
         "Error in changePinStatus service"
+      );
+      throw error;
+    }
+  }
+
+  /**
+   * Reorder active pins by explicit order from admin
+   */
+  static async reorderPins(orderedPinIds = []) {
+    try {
+      if (!Array.isArray(orderedPinIds) || orderedPinIds.length === 0) {
+        return {
+          success: false,
+          data: null,
+          message: "orderedPinIds must be a non-empty array",
+        };
+      }
+      const result = await reorderPins(orderedPinIds);
+      return result;
+    } catch (error) {
+      errorLogger.error(
+        { error: error.message },
+        "Error in reorderPins service"
       );
       throw error;
     }

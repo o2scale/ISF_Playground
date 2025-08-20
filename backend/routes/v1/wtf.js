@@ -71,6 +71,7 @@ const {
   triggerPinExpiration,
   triggerFifoManagement,
   getSchedulerStatus,
+  reorderPins,
 } = require("../../controllers/wtfController");
 
 const router = express.Router();
@@ -119,6 +120,16 @@ router.get(
   wtfSecurityHeaders,
   wtfRateLimiters.admin,
   getDrafts
+);
+
+// Reorder pins (Admin only)
+router.post(
+  "/pins/reorder",
+  authenticate,
+  authorize(WtfPermissions.WTF_PIN_UPDATE, "Update"),
+  wtfSecurityHeaders,
+  wtfRateLimiters.admin,
+  reorderPins
 );
 
 // Get pin by ID (Public - requires authentication)

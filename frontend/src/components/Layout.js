@@ -39,6 +39,8 @@ const Layout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [coinBalance, setCoinBalance] = useState(null);
   const [notificationsList, setNotificationsList] = useState([]);
+  // Trigger a brief shake animation on the WTF menu item in child view
+  const [shouldShakeWtf, setShouldShakeWtf] = useState(false);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
 
   // Check if current route is WTF
@@ -353,15 +355,37 @@ const Layout = () => {
 
           {/* Top Menu */}
           <div className="top-menu scrollable-menu">
-            {visibleMenus.map((menu) => (
-              <div
-                key={menu.id}
-                className="menu-item"
-                onClick={() => navigate(menu?.link)}
-              >
-                {menu.name}
-              </div>
-            ))}
+            {visibleMenus.map((menu) => {
+              const isActive = location.pathname === menu.link;
+              const isWtf = menu.name === "WTF";
+              const wtfHighlight =
+                isWtf && (isWTFRoute || shouldShakeWtf) && role === "student";
+              const classes = [
+                "menu-item",
+                isActive ? "active" : "",
+                wtfHighlight ? "wtf-highlight" : "",
+                isWtf && shouldShakeWtf ? "shake" : "",
+              ]
+                .filter(Boolean)
+                .join(" ");
+
+              return (
+                <div
+                  key={menu.id}
+                  className={classes}
+                  onClick={() => {
+                    if (isWtf && role === "student") {
+                      // Briefly trigger shake on click
+                      setShouldShakeWtf(true);
+                      setTimeout(() => setShouldShakeWtf(false), 700);
+                    }
+                    navigate(menu?.link);
+                  }}
+                >
+                  {menu.name}
+                </div>
+              );
+            })}
           </div>
 
           {localStorage.getItem("role") === "student" && (

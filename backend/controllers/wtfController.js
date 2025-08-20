@@ -608,6 +608,35 @@ exports.changePinStatus = async (req, res) => {
   }
 };
 
+// Reorder pins (Admin only)
+exports.reorderPins = async (req, res) => {
+  try {
+    const { orderedPinIds } = req.body || {};
+
+    const result = await WtfService.reorderPins(orderedPinIds);
+
+    if (result.success) {
+      res.status(HTTP_STATUS_CODE.OK).json(result);
+    } else {
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+        userId: req.user?.id,
+      },
+      `Error occurred while reordering WTF pins`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
 // ==================== INTERACTION CONTROLLERS ====================
 
 // Like/unlike pin
