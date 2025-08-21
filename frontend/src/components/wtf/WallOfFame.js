@@ -55,6 +55,7 @@ import {
   getStudentInteractionHistory,
 } from "../../api";
 import showToast from "../../utils/toast";
+import isfWallOfFameImage from "../../assets/IsfWallOfFame.png";
 
 // Inline voice suggestion modal (see spec)
 const VoiceSuggestionModal = ({ open, onClose }) => {
@@ -2574,18 +2575,11 @@ Check console for detailed results.`);
                 </p>
               </div>
 
-              <h2
-                className="text-4xl font-bold mb-2 relative z-10"
-                style={{ color: previewBgSettings.fontColor || undefined }}
-              >
-                {isAdmin ? "Admin " : isCoach ? "Coach " : ""}Wall of{" "}
-                <span
-                  className="text-pink-600 bg-pink-200 px-2 py-1 rounded transform -rotate-1 inline-block border-4 border-purple-600 shadow-lg"
-                  style={{ fontFamily: "Comic Sans MS, cursive" }}
-                >
-                  FAME
-                </span>
-              </h2>
+              <img
+                src={isfWallOfFameImage}
+                alt="Wall of Fame"
+                className="mx-auto mb-2 relative z-10 w-[420px] max-w-full drop-shadow-lg"
+              />
               <p
                 className="text-lg"
                 style={{ color: previewBgSettings.fontColor || undefined }}
@@ -2738,7 +2732,7 @@ Check console for detailed results.`);
                         </div>
                       </>
                     )}
-                    {isStudent && (
+                    {/* {isStudent && (
                       <>
                         <button
                           onClick={() => setShowCreateModal(true)}
@@ -2751,7 +2745,7 @@ Check console for detailed results.`);
                           💡 Share your amazing work, voice notes, or articles!
                         </div>
                       </>
-                    )}
+                    )} */}
                     {!isAdmin && !isCoach && !isStudent && (
                       <div className="text-sm text-gray-500">
                         💡 Tip: Submit your voice notes or articles to be
@@ -2774,7 +2768,7 @@ Check console for detailed results.`);
                   </button>
                 </div>
               )}
-              {isStudent && (
+              {/* {isStudent && (
                 <div className="fixed bottom-8 right-8 z-50">
                   <button
                     onClick={() => setShowCreateModal(true)}
@@ -2784,7 +2778,7 @@ Check console for detailed results.`);
                     <Plus className="w-6 h-6" />
                   </button>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
           {/* Voice suggestion modal */}

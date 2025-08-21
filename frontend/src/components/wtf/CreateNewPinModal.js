@@ -296,6 +296,50 @@ const CreateNewPinModal = ({
         },
       ];
 
+  // Restrict allowed content types based on ISF Official category selection
+  const allowedTypeSet = (() => {
+    // Start with whatever is available for the current mode
+    const all = new Set(contentTypes.map((t) => t.value));
+    if (!formData.isOfficial || isStudentMode) return all;
+    switch (formData.officialCategory) {
+      case "mann-ki-baat":
+        return new Set(["audio"]);
+      case "op-ed":
+        return new Set(["text"]);
+      case "isf-updates":
+        return new Set(["image", "video"]);
+      default:
+        return all;
+    }
+  })();
+
+  // Admin + Mann Ki Baat allows long recordings without 1-minute cap
+  const isAdminMannKiBaat =
+    userRole === "admin" &&
+    formData.isOfficial &&
+    formData.officialCategory === "mann-ki-baat";
+
+  // Auto-adjust content type when official category changes
+  useEffect(() => {
+    if (!formData.isOfficial || isStudentMode) return;
+    if (
+      formData.officialCategory === "mann-ki-baat" &&
+      formData.contentType !== "audio"
+    ) {
+      setFormData((prev) => ({ ...prev, contentType: "audio" }));
+    } else if (
+      formData.officialCategory === "op-ed" &&
+      formData.contentType !== "text"
+    ) {
+      setFormData((prev) => ({ ...prev, contentType: "text" }));
+    } else if (
+      formData.officialCategory === "isf-updates" &&
+      !["image", "video"].includes(formData.contentType)
+    ) {
+      setFormData((prev) => ({ ...prev, contentType: "image" }));
+    }
+  }, [formData.isOfficial, formData.officialCategory]);
+
   const handleFileUpload = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -444,11 +488,11 @@ const CreateNewPinModal = ({
       setIsRecording(true);
       setRecordingTime(0);
 
-      // Start timer
+      // Start timer (no 60s cap for admin Mann Ki Baat)
       const timer = setInterval(() => {
         setRecordingTime((prev) => {
-          if (prev >= 59) {
-            // Auto-stop at 60 seconds
+          if (!isAdminMannKiBaat && prev >= 59) {
+            // Auto-stop at 60 seconds for others
             recorder.stop();
             setIsRecording(false);
             clearInterval(timer);
@@ -747,11 +791,13 @@ const CreateNewPinModal = ({
         );
 
       case "audio":
-        return isStudentMode ? (
+        return isStudentMode ||
+          (formData.isOfficial &&
+            formData.officialCategory === "mann-ki-baat") ? (
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium mb-2">
-                Record Voice Note (1 minute max)
+                Record Voice Note{userRole !== "admin" ? " (1 minute max)" : ""}
               </label>
               <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50">
                 {!recordedAudio ? (
@@ -765,7 +811,7 @@ const CreateNewPinModal = ({
                             {(recordingTime % 60).toString().padStart(2, "0")}
                           </>
                         ) : (
-                          "🎤 Hold down to record, release to stop (WhatsApp style)"
+                          "🎤 Hold down to record, release to stop"
                         )}
                       </p>
                     </div>
@@ -870,6 +916,40 @@ const CreateNewPinModal = ({
                 )}
               </div>
             </div>
+            {/* Upload option as well for admins */}
+            {!isStudentMode && (
+              <>
+                <div className="text-center text-gray-500">
+                  or upload an audio file
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Upload File
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                    <input
+                      type="file"
+                      onChange={handleFileUpload}
+                      accept="audio/*"
+                      className="hidden"
+                      id="audio-file-upload"
+                    />
+                    <label
+                      htmlFor="audio-file-upload"
+                      className="cursor-pointer flex flex-col items-center"
+                    >
+                      <Upload className="w-8 h-8 text-gray-400 mb-2" />
+                      <span className="text-sm text-gray-600">
+                        Click to upload or drag and drop
+                      </span>
+                      <span className="text-xs text-gray-500 mt-1">
+                        MP3, WAV, M4A up to 50MB
+                      </span>
+                    </label>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
@@ -1150,51 +1230,121 @@ const CreateNewPinModal = ({
               />
             </div>
 
+            {/* ISF Official controls moved to the top (above Content Type) */}
+            {!isStudentMode && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isOfficial"
+                    checked={formData.isOfficial}
+                    onChange={(e) => {
+                      setError("");
+                      setFormData((prev) => ({
+                        ...prev,
+                        isOfficial: e.target.checked,
+                        officialCategory: e.target.checked
+                          ? prev.officialCategory
+                          : null,
+                      }));
+                    }}
+                    className="rounded"
+                  />
+                  <label htmlFor="isOfficial" className="text-sm font-medium">
+                    Mark as "ISF Official Post"
+                  </label>
+                </div>
+
+                {formData.isOfficial && (
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor="officialCategory"
+                      className="text-sm font-medium"
+                    >
+                      Official Content Category
+                    </label>
+                    <select
+                      id="officialCategory"
+                      value={formData.officialCategory || ""}
+                      onChange={(e) => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          officialCategory: e.target.value || null,
+                        }));
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      required={formData.isOfficial}
+                    >
+                      <option value="">Select a category</option>
+                      <option value="mann-ki-baat">Mann Ki Baat</option>
+                      <option value="op-ed">Op Ed</option>
+                      <option value="isf-updates">ISF Updates</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium mb-3">
                 Content Type *
               </label>
               <div className="grid grid-cols-1 gap-3">
-                {contentTypes.map((type) => (
-                  <button
-                    key={type.value}
-                    type="button"
-                    onClick={() => {
-                      console.log("Setting content type to:", type.value);
-                      setError(""); // Clear errors when content type changes
-                      setFormData((prev) => ({
-                        ...prev,
-                        contentType: type.value,
-                      }));
-                    }}
-                    className={`p-4 border-2 rounded-lg text-left transition-colors ${
-                      formData.contentType === type.value
-                        ? isCoachMode
-                          ? "border-purple-500 bg-purple-50"
-                          : "border-blue-500 bg-blue-50"
-                        : "border-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    {isCoachMode ? (
-                      <div className="flex items-start gap-3">
-                        <div className="text-purple-600 mt-1">{type.icon}</div>
-                        <div>
-                          <span className="font-medium block">
-                            {type.label}
-                          </span>
-                          <span className="text-sm text-gray-600">
-                            {type.description}
-                          </span>
+                {contentTypes.map((type) => {
+                  const isDisabled = !allowedTypeSet.has(type.value);
+                  return (
+                    <button
+                      key={type.value}
+                      type="button"
+                      onClick={() => {
+                        if (isDisabled) return;
+                        console.log("Setting content type to:", type.value);
+                        setError("");
+                        setFormData((prev) => ({
+                          ...prev,
+                          contentType: type.value,
+                        }));
+                      }}
+                      disabled={isDisabled}
+                      className={`p-4 border-2 rounded-lg text-left transition-colors ${
+                        isDisabled
+                          ? "border-gray-200 bg-gray-50 text-gray-400 cursor-not-allowed opacity-60"
+                          : formData.contentType === type.value
+                          ? isCoachMode
+                            ? "border-purple-500 bg-purple-50"
+                            : "border-blue-500 bg-blue-50"
+                          : "border-gray-300 hover:border-gray-400"
+                      }`}
+                    >
+                      {isCoachMode ? (
+                        <div className="flex items-start gap-3">
+                          <div className="text-purple-600 mt-1">
+                            {type.icon}
+                          </div>
+                          <div>
+                            <span className="font-medium block">
+                              {type.label}
+                            </span>
+                            <span className="text-sm text-gray-600">
+                              {type.description}
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center gap-3">
-                        <div className="text-blue-600">{type.icon}</div>
-                        <span className="font-medium">{type.label}</span>
-                      </div>
-                    )}
-                  </button>
-                ))}
+                      ) : (
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`text-blue-600 ${
+                              isDisabled ? "opacity-50" : ""
+                            }`}
+                          >
+                            {type.icon}
+                          </div>
+                          <span className="font-medium">{type.label}</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -1239,55 +1389,7 @@ const CreateNewPinModal = ({
                   />
                 </div>
 
-                {/* Hide ISF Official controls for students */}
-                {!isStudentMode && (
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="isOfficial"
-                      checked={formData.isOfficial}
-                      onChange={(e) => {
-                        setError(""); // Clear errors when checkbox changes
-                        setFormData((prev) => ({
-                          ...prev,
-                          isOfficial: e.target.checked,
-                        }));
-                      }}
-                      className="rounded"
-                    />
-                    <label htmlFor="isOfficial" className="text-sm font-medium">
-                      Mark as "ISF Official Post"
-                    </label>
-                  </div>
-                )}
-
-                {formData.isOfficial && !isStudentMode && (
-                  <div className="flex flex-col gap-2">
-                    <label
-                      htmlFor="officialCategory"
-                      className="text-sm font-medium"
-                    >
-                      Official Content Category
-                    </label>
-                    <select
-                      id="officialCategory"
-                      value={formData.officialCategory || ""}
-                      onChange={(e) => {
-                        setFormData((prev) => ({
-                          ...prev,
-                          officialCategory: e.target.value || null,
-                        }));
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      required={formData.isOfficial}
-                    >
-                      <option value="">Select a category</option>
-                      <option value="mann-ki-baat">Mann Ki Baat</option>
-                      <option value="op-ed">Op Ed</option>
-                      <option value="isf-updates">ISF Updates</option>
-                    </select>
-                  </div>
-                )}
+                {/* Official controls moved above. Keeping this block removed. */}
               </>
             )}
 

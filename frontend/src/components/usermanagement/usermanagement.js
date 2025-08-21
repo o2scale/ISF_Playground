@@ -504,71 +504,16 @@ const UserManagement = () => {
     }
   };
 
-  // Filter and sort users
-  //   const filteredUsers = users
-  //     .filter((user) => {
-  //       // Filter by search term
-  //       if (
-  //         searchTerm &&
-  //         !user.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-  //         !user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  //       ) {
-  //         return false;
-  //       }
-
-  //       // Filter by role
-  //       if (filterRole !== "all" && user.role !== filterRole) {
-  //         return false;
-  //       }
-
-  //       // Filter by status
-  //       if (filterStatus !== "all" && user.status !== filterStatus) {
-  //         return false;
-  //       }
-
-  //       return true;
-  //     })
-  //     .sort((a, b) => {
-  //       // Sort by selected field
-  //       let valueA, valueB;
-
-  //       switch (sortBy) {
-  //         case "name":
-  //           valueA = a.name.toLowerCase();
-  //           valueB = b.name.toLowerCase();
-  //           break;
-  //         case "email":
-  //           valueA = a.email.toLowerCase();
-  //           valueB = b.email.toLowerCase();
-  //           break;
-  //         case "role":
-  //           valueA = a.role.toLowerCase();
-  //           valueB = b.role.toLowerCase();
-  //           break;
-  //         case "status":
-  //           valueA = a.status.toLowerCase();
-  //           valueB = b.status.toLowerCase();
-  //           break;
-  //         case "lastLogin":
-  //           valueA = a.lastLogin ? new Date(a.lastLogin) : new Date(0);
-  //           valueB = b.lastLogin ? new Date(b.lastLogin) : new Date(0);
-  //           break;
-  //         default:
-  //           valueA = a.name.toLowerCase();
-  //           valueB = b.name.toLowerCase();
-  //       }
-
-  //       // Apply sort order
-  //       if (sortOrder === "asc") {
-  //         return valueA > valueB ? 1 : -1;
-  //       } else {
-  //         return valueA < valueB ? 1 : -1;
-  //       }
-  //     });
-
+  // Filter and sort users - add debugging
   const filteredUsers = users
     .filter((user) => {
       const role = localStorage.getItem("role");
+
+      // Debug logging for filter values
+      if (filterBalagruha !== "all") {
+        console.log("🔍 Filtering by balagruha:", filterBalagruha);
+        console.log("🔍 User balagruhaIds:", user.balagruhaIds);
+      }
 
       // Filter by search term
       if (
@@ -597,8 +542,24 @@ const UserManagement = () => {
         (role === "music-coach" && filterBalagruha !== "all") ||
         (role === "admin" && filterBalagruha !== "all")
       ) {
-        const userBalagruhaIds = user.balagruhaIds?.map((bg) => bg._id) || [];
-        return userBalagruhaIds.includes(filterBalagruha);
+        const userBalagruhaIds = (user.balagruhaIds || [])
+          .map((bg) => {
+            if (!bg) return null;
+            if (typeof bg === "string") return bg;
+            if (typeof bg === "object") return bg._id || bg.id || null;
+            return String(bg);
+          })
+          .filter(Boolean);
+
+        const isMatch = userBalagruhaIds.includes(filterBalagruha);
+        if (filterBalagruha !== "all") {
+          console.log(
+            `🔍 User ${user.name}: balagruhaIds=${JSON.stringify(
+              userBalagruhaIds
+            )}, filter=${filterBalagruha}, match=${isMatch}`
+          );
+        }
+        return isMatch;
       }
 
       return true;
@@ -640,6 +601,25 @@ const UserManagement = () => {
         ? 1
         : -1;
     });
+
+  // Debug filter changes
+  useEffect(() => {
+    console.log("🔍 Filter changed:", {
+      filterBalagruha,
+      filterRole,
+      filterStatus,
+      searchTerm,
+    });
+    console.log("🔍 Total users:", users.length);
+    console.log("🔍 Filtered users:", filteredUsers.length);
+  }, [
+    filterBalagruha,
+    filterRole,
+    filterStatus,
+    searchTerm,
+    users.length,
+    filteredUsers.length,
+  ]);
 
   // Get unique roles for filter dropdown
   const uniqueRoles = [...new Set(users.map((user) => user.role))];
@@ -1233,7 +1213,7 @@ const UserManagement = () => {
                       className="filter-select"
                     >
                       <option value="all">All Balagruhas</option>
-                      {balagruhas.map((bg, index) => (
+                      {balagruhaOptions.map((bg, index) => (
                         <option key={index} value={bg._id}>
                           {bg.name}
                         </option>
@@ -1265,7 +1245,7 @@ const UserManagement = () => {
                     className="filter-select"
                   >
                     <option value="all">All Balagruhas</option>
-                    {balagruhas.map((bg, index) => (
+                    {balagruhaOptions.map((bg, index) => (
                       <option key={index} value={bg._id}>
                         {bg.name}
                       </option>
@@ -1298,6 +1278,9 @@ const UserManagement = () => {
               </div>
             </div>
             {/* )} */}
+          </div>
+          <div className="list-meta">
+            Showing {filteredUsers.length} of {users.length} users
           </div>
 
           <div className="user-table-container">
