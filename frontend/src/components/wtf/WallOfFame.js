@@ -2738,7 +2738,7 @@ Check console for detailed results.`);
                         </div>
                       </>
                     )}
-                    {isStudent && (
+                    {/* {isStudent && (
                       <>
                         <button
                           onClick={() => setShowCreateModal(true)}
@@ -2751,7 +2751,7 @@ Check console for detailed results.`);
                           💡 Share your amazing work, voice notes, or articles!
                         </div>
                       </>
-                    )}
+                    )} */}
                     {!isAdmin && !isCoach && !isStudent && (
                       <div className="text-sm text-gray-500">
                         💡 Tip: Submit your voice notes or articles to be
@@ -2774,7 +2774,7 @@ Check console for detailed results.`);
                   </button>
                 </div>
               )}
-              {isStudent && (
+              {/* {isStudent && (
                 <div className="fixed bottom-8 right-8 z-50">
                   <button
                     onClick={() => setShowCreateModal(true)}
@@ -2784,7 +2784,7 @@ Check console for detailed results.`);
                     <Plus className="w-6 h-6" />
                   </button>
                 </div>
-              )}
+              )} */}
             </div>
           </div>
           {/* Voice suggestion modal */}
