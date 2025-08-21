@@ -5,10 +5,13 @@ import {
   addUsers,
   deleteUsers,
   fetchUsers,
+  coachBasedUsers,
   getBalagruha,
   updateUsers,
   getMachines,
   getBalagruhaById,
+  getBalagruhaListByAssignedID,
+  getBalagruhaListbyUserID,
 } from "../../api";
 import { usePermission } from "../hooks/usePermission";
 import { useAuth } from "../../contexts/AuthContext";
@@ -374,28 +377,23 @@ const UserManagement = () => {
 
   const getUsers = async () => {
     try {
-      const response = await fetchUsers();
+      const role = (localStorage.getItem("role") || "").toLowerCase();
+      const isCoachLike = [
+        "coach",
+        "sports-coach",
+        "music-coach",
+        "medical-incharge",
+      ].includes(role);
 
-      if (
-        localStorage.getItem("role") === "sports-coach" ||
-        localStorage.getItem("role") === "coach" ||
-        localStorage.getItem("role") === "medical-incharge" ||
-        localStorage.getItem("role") === "music-coach"
-      ) {
-        const allowedBalagruhaIds =
-          localStorage.getItem("balagruhaIds")?.split(",") || [];
-        const filteredStudents = response?.filter((user) => {
-          if (user.role !== "student") return false;
-
-          // Check if any of the student's balagruhaIds match the allowed ones
-          return user.balagruhaIds?.some((b) =>
-            allowedBalagruhaIds.includes(b._id)
-          );
-        });
-        setUsers(filteredStudents);
-      } else {
+      if (isCoachLike) {
+        // Backend endpoint already enforces role and assigned balagruhas
+        const response = await coachBasedUsers();
         setUsers(response);
+        return;
       }
+
+      const response = await fetchUsers();
+      setUsers(response);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -414,6 +412,29 @@ const UserManagement = () => {
 
   const getBalagruhaList = async () => {
     try {
+      const role = (localStorage.getItem("role") || "").toLowerCase();
+      const isCoachLike = [
+        "coach",
+        "sports-coach",
+        "music-coach",
+        "medical-incharge",
+      ].includes(role);
+
+      if (isCoachLike) {
+        const userId = localStorage.getItem("userId");
+        const userResp = await getBalagruhaListbyUserID(userId);
+        let options = userResp?.data?.balagruhas || [];
+
+        if (!Array.isArray(options) || options.length === 0) {
+          const assignedResp = await getBalagruhaListByAssignedID(userId);
+          options = assignedResp?.data?.balagruhas || [];
+        }
+
+        console.log("Coach balagruha options:", options);
+        setBalagruhaOptions(options);
+        return;
+      }
+
       const response = await getBalagruha();
       console.log("Balagruha details:", response?.data?.balagruhas);
       setBalagruhaOptions(response?.data?.balagruhas);
@@ -1203,9 +1224,41 @@ const UserManagement = () => {
                   </select>
                 )} */}
 
-              <div style={{display: "flex", gap: "10px"}}>
-              {localStorage.getItem("role") === "admin" ? (
-                <>
+              <div style={{ display: "flex", gap: "10px" }}>
+                {localStorage.getItem("role") === "admin" ? (
+                  <>
+                    <select
+                      value={filterBalagruha}
+                      onChange={(e) => setFilterBalagruha(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Balagruhas</option>
+                      {balagruhas.map((bg, index) => (
+                        <option key={index} value={bg._id}>
+                          {bg.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={filterRole}
+                      onChange={(e) => setFilterRole(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Roles</option>
+                      {uniqueRoles.map((role, index) => (
+                        <option key={index} value={role}>
+                          {role.charAt(0).toUpperCase() + role.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : [
+                    "coach",
+                    "medical-incharge",
+                    "sports-coach",
+                    "music-coach",
+                  ].includes(localStorage.getItem("role")) ? (
                   <select
                     value={filterBalagruha}
                     onChange={(e) => setFilterBalagruha(e.target.value)}
@@ -1218,7 +1271,7 @@ const UserManagement = () => {
                       </option>
                     ))}
                   </select>
-
+                ) : (
                   <select
                     value={filterRole}
                     onChange={(e) => setFilterRole(e.target.value)}
@@ -1231,49 +1284,17 @@ const UserManagement = () => {
                       </option>
                     ))}
                   </select>
-                </>
-              ) : [
-                  "coach",
-                  "medical-incharge",
-                  "sports-coach",
-                  "music-coach",
-                ].includes(localStorage.getItem("role")) ? (
-                <select
-                  value={filterBalagruha}
-                  onChange={(e) => setFilterBalagruha(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Balagruhas</option>
-                  {balagruhas.map((bg, index) => (
-                    <option key={index} value={bg._id}>
-                      {bg.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Roles</option>
-                  {uniqueRoles.map((role, index) => (
-                    <option key={index} value={role}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              )}
+                )}
 
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
             </div>
             {/* )} */}
