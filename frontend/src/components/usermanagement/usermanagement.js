@@ -5,10 +5,13 @@ import {
   addUsers,
   deleteUsers,
   fetchUsers,
+  coachBasedUsers,
   getBalagruha,
   updateUsers,
   getMachines,
   getBalagruhaById,
+  getBalagruhaListByAssignedID,
+  getBalagruhaListbyUserID,
 } from "../../api";
 import { usePermission } from "../hooks/usePermission";
 import { useAuth } from "../../contexts/AuthContext";
@@ -374,28 +377,23 @@ const UserManagement = () => {
 
   const getUsers = async () => {
     try {
-      const response = await fetchUsers();
+      const role = (localStorage.getItem("role") || "").toLowerCase();
+      const isCoachLike = [
+        "coach",
+        "sports-coach",
+        "music-coach",
+        "medical-incharge",
+      ].includes(role);
 
-      if (
-        localStorage.getItem("role") === "sports-coach" ||
-        localStorage.getItem("role") === "coach" ||
-        localStorage.getItem("role") === "medical-incharge" ||
-        localStorage.getItem("role") === "music-coach"
-      ) {
-        const allowedBalagruhaIds =
-          localStorage.getItem("balagruhaIds")?.split(",") || [];
-        const filteredStudents = response?.filter((user) => {
-          if (user.role !== "student") return false;
-
-          // Check if any of the student's balagruhaIds match the allowed ones
-          return user.balagruhaIds?.some((b) =>
-            allowedBalagruhaIds.includes(b._id)
-          );
-        });
-        setUsers(filteredStudents);
-      } else {
+      if (isCoachLike) {
+        // Backend endpoint already enforces role and assigned balagruhas
+        const response = await coachBasedUsers();
         setUsers(response);
+        return;
       }
+
+      const response = await fetchUsers();
+      setUsers(response);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -414,6 +412,29 @@ const UserManagement = () => {
 
   const getBalagruhaList = async () => {
     try {
+      const role = (localStorage.getItem("role") || "").toLowerCase();
+      const isCoachLike = [
+        "coach",
+        "sports-coach",
+        "music-coach",
+        "medical-incharge",
+      ].includes(role);
+
+      if (isCoachLike) {
+        const userId = localStorage.getItem("userId");
+        const userResp = await getBalagruhaListbyUserID(userId);
+        let options = userResp?.data?.balagruhas || [];
+
+        if (!Array.isArray(options) || options.length === 0) {
+          const assignedResp = await getBalagruhaListByAssignedID(userId);
+          options = assignedResp?.data?.balagruhas || [];
+        }
+
+        console.log("Coach balagruha options:", options);
+        setBalagruhaOptions(options);
+        return;
+      }
+
       const response = await getBalagruha();
       console.log("Balagruha details:", response?.data?.balagruhas);
       setBalagruhaOptions(response?.data?.balagruhas);
@@ -1203,9 +1224,41 @@ const UserManagement = () => {
                   </select>
                 )} */}
 
-              <div style={{display: "flex", gap: "10px"}}>
-              {localStorage.getItem("role") === "admin" ? (
-                <>
+              <div style={{ display: "flex", gap: "10px" }}>
+                {localStorage.getItem("role") === "admin" ? (
+                  <>
+                    <select
+                      value={filterBalagruha}
+                      onChange={(e) => setFilterBalagruha(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Balagruhas</option>
+                      {balagruhas.map((bg, index) => (
+                        <option key={index} value={bg._id}>
+                          {bg.name}
+                        </option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={filterRole}
+                      onChange={(e) => setFilterRole(e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Roles</option>
+                      {uniqueRoles.map((role, index) => (
+                        <option key={index} value={role}>
+                          {role.charAt(0).toUpperCase() + role.slice(1)}
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : [
+                    "coach",
+                    "medical-incharge",
+                    "sports-coach",
+                    "music-coach",
+                  ].includes(localStorage.getItem("role")) ? (
                   <select
                     value={filterBalagruha}
                     onChange={(e) => setFilterBalagruha(e.target.value)}
@@ -1218,7 +1271,7 @@ const UserManagement = () => {
                       </option>
                     ))}
                   </select>
-
+                ) : (
                   <select
                     value={filterRole}
                     onChange={(e) => setFilterRole(e.target.value)}
@@ -1231,244 +1284,216 @@ const UserManagement = () => {
                       </option>
                     ))}
                   </select>
-                </>
-              ) : [
-                  "coach",
-                  "medical-incharge",
-                  "sports-coach",
-                  "music-coach",
-                ].includes(localStorage.getItem("role")) ? (
-                <select
-                  value={filterBalagruha}
-                  onChange={(e) => setFilterBalagruha(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Balagruhas</option>
-                  {balagruhas.map((bg, index) => (
-                    <option key={index} value={bg._id}>
-                      {bg.name}
-                    </option>
-                  ))}
-                </select>
-              ) : (
-                <select
-                  value={filterRole}
-                  onChange={(e) => setFilterRole(e.target.value)}
-                  className="filter-select"
-                >
-                  <option value="all">All Roles</option>
-                  {uniqueRoles.map((role, index) => (
-                    <option key={index} value={role}>
-                      {role.charAt(0).toUpperCase() + role.slice(1)}
-                    </option>
-                  ))}
-                </select>
-              )}
+                )}
 
-              <select
-                value={filterStatus}
-                onChange={(e) => setFilterStatus(e.target.value)}
-                className="filter-select"
-              >
-                <option value="all">All Statuses</option>
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="filter-select"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
               </div>
             </div>
             {/* )} */}
           </div>
 
           <div className="user-table-container">
-            <table className="user-table">
-              <thead>
-                <tr>
-                  <th
-                    onClick={() => {
-                      if (sortBy === "name") {
-                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                      } else {
-                        setSortBy("name");
-                        setSortOrder("asc");
-                      }
-                    }}
-                  >
-                    Name{" "}
-                    {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th
-                    onClick={() => {
-                      if (sortBy === "email") {
-                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                      } else {
-                        setSortBy("email");
-                        setSortOrder("asc");
-                      }
-                    }}
-                  >
-                    Email{" "}
-                    {sortBy === "email" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  <th
-                    onClick={() => {
-                      if (sortBy === "role") {
-                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                      } else {
-                        setSortBy("role");
-                        setSortOrder("asc");
-                      }
-                    }}
-                  >
-                    Role{" "}
-                    {sortBy === "role" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
-                  <th
-                    onClick={() => {
-                      if (sortBy === "status") {
-                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                      } else {
-                        setSortBy("status");
-                        setSortOrder("asc");
-                      }
-                    }}
-                  >
-                    Status{" "}
-                    {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  {/* )} */}
-                  {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
-                  <th
-                    onClick={() => {
-                      if (sortBy === "lastLogin") {
-                        setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                      } else {
-                        setSortBy("lastLogin");
-                        setSortOrder("desc");
-                      }
-                    }}
-                  >
-                    Last Login{" "}
-                    {sortBy === "lastLogin" &&
-                      (sortOrder === "asc" ? "↑" : "↓")}
-                  </th>
-                  {/* )} */}
-                  {(canUpdateUser || canDeleteUser) && <th>Actions</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filteredUsers.map((user) => (
-                  <tr
-                    key={user._id}
-                    className={user.status === "inactive" ? "inactive-row" : ""}
-                  >
-                    <td>
-                      <div className="user-name-cell">
-                        <div
-                          className="user-avatar"
-                          style={{ backgroundColor: getRoleColor(user.role) }}
-                        >
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{user.name}</span>
-                      </div>
-                    </td>
-                    <td>{user.email}</td>
-                    <td>
-                      <div
-                        className="role-badge"
-                        style={{ backgroundColor: getRoleColor(user.role) }}
-                      >
-                        <span className="role-emoji">
-                          {getRoleEmoji(user.role)}
-                        </span>
-                        <span className="role-text">
-                          {user.role.charAt(0).toUpperCase() +
-                            user.role.slice(1)}
-                        </span>
-                      </div>
-                    </td>
+            <div className="table-scroll-wrapper">
+              <table className="user-table">
+                <thead>
+                  <tr>
+                    <th
+                      onClick={() => {
+                        if (sortBy === "name") {
+                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                        } else {
+                          setSortBy("name");
+                          setSortOrder("asc");
+                        }
+                      }}
+                    >
+                      Name{" "}
+                      {sortBy === "name" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </th>
+                    <th
+                      onClick={() => {
+                        if (sortBy === "email") {
+                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                        } else {
+                          setSortBy("email");
+                          setSortOrder("asc");
+                        }
+                      }}
+                    >
+                      Email{" "}
+                      {sortBy === "email" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </th>
+                    <th
+                      onClick={() => {
+                        if (sortBy === "role") {
+                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                        } else {
+                          setSortBy("role");
+                          setSortOrder("asc");
+                        }
+                      }}
+                    >
+                      Role{" "}
+                      {sortBy === "role" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </th>
                     {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
-                    <td>
-                      <div
-                        className="user-status-indicator"
-                        style={{
-                          backgroundColor: getStatusColor(user.status),
-                        }}
-                      >
-                        {user.status === "active" ? "Active" : "Inactive"}
-                      </div>
-                    </td>
+                    <th
+                      onClick={() => {
+                        if (sortBy === "status") {
+                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                        } else {
+                          setSortBy("status");
+                          setSortOrder("asc");
+                        }
+                      }}
+                    >
+                      Status{" "}
+                      {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
+                    </th>
                     {/* )} */}
                     {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
-                    <td>{formatDate(user.lastLogin)}</td>
+                    <th
+                      onClick={() => {
+                        if (sortBy === "lastLogin") {
+                          setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+                        } else {
+                          setSortBy("lastLogin");
+                          setSortOrder("desc");
+                        }
+                      }}
+                    >
+                      Last Login{" "}
+                      {sortBy === "lastLogin" &&
+                        (sortOrder === "asc" ? "↑" : "↓")}
+                    </th>
                     {/* )} */}
-                    {(canUpdateUser || canDeleteUser) && (
+                    {(canUpdateUser || canDeleteUser) && <th>Actions</th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredUsers.map((user) => (
+                    <tr
+                      key={user._id}
+                      className={
+                        user.status === "inactive" ? "inactive-row" : ""
+                      }
+                    >
                       <td>
-                        <div className="action-buttons">
-                          {canUpdateUser && (
-                            <button
-                              className="action-button edit"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setFormData({
-                                  name: user.name,
-                                  email: user.email,
-                                  password: "",
-                                  role: user.role,
-                                  status: user.status,
-                                  age: user.age || "",
-                                  gender: user.gender || "",
-                                  balagruhaIds: user.balagruhaIds || "",
-                                  parentalStatus: user.parentalStatus || "",
-                                  guardianContact: user.guardianContact || "",
-                                });
-
-                                // Set file previews if they exist
-                                if (user.medicalHistoryUrl) {
-                                  setMedicalHistoryPreview(
-                                    user.medicalHistoryUrl
-                                  );
-                                } else {
-                                  setMedicalHistoryPreview(null);
-                                }
-
-                                if (user.facialDataUrl) {
-                                  setFacialDataPreview(user.facialDataUrl);
-                                } else {
-                                  setFacialDataPreview(null);
-                                }
-
-                                setMedicalHistoryFile(null);
-                                setFacialDataFile(null);
-                                setFormErrors({});
-                                setView("edit");
-                              }}
-                              title="Edit User"
-                            >
-                              ✏️
-                            </button>
-                          )}
-
-                          {canDeleteUser && (
-                            <button
-                              className="action-button delete"
-                              onClick={() => {
-                                setSelectedUser(user);
-                                setShowDeleteModal(true);
-                              }}
-                              title="Delete User"
-                            >
-                              🗑️
-                            </button>
-                          )}
+                        <div className="user-name-cell">
+                          <div
+                            className="user-avatar"
+                            style={{ backgroundColor: getRoleColor(user.role) }}
+                          >
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                          <span>{user.name}</span>
                         </div>
                       </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      <td>{user.email}</td>
+                      <td>
+                        <div
+                          className="role-badge"
+                          style={{ backgroundColor: getRoleColor(user.role) }}
+                        >
+                          <span className="role-emoji">
+                            {getRoleEmoji(user.role)}
+                          </span>
+                          <span className="role-text">
+                            {user.role.charAt(0).toUpperCase() +
+                              user.role.slice(1)}
+                          </span>
+                        </div>
+                      </td>
+                      {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
+                      <td>
+                        <div
+                          className="user-status-indicator"
+                          style={{
+                            backgroundColor: getStatusColor(user.status),
+                          }}
+                        >
+                          {user.status === "active" ? "Active" : "Inactive"}
+                        </div>
+                      </td>
+                      {/* )} */}
+                      {/* {localStorage.getItem("role") !== "sports-coach" && ( */}
+                      <td>{formatDate(user.lastLogin)}</td>
+                      {/* )} */}
+                      {(canUpdateUser || canDeleteUser) && (
+                        <td>
+                          <div className="action-buttons">
+                            {canUpdateUser && (
+                              <button
+                                className="action-button edit"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setFormData({
+                                    name: user.name,
+                                    email: user.email,
+                                    password: "",
+                                    role: user.role,
+                                    status: user.status,
+                                    age: user.age || "",
+                                    gender: user.gender || "",
+                                    balagruhaIds: user.balagruhaIds || "",
+                                    parentalStatus: user.parentalStatus || "",
+                                    guardianContact: user.guardianContact || "",
+                                  });
+
+                                  // Set file previews if they exist
+                                  if (user.medicalHistoryUrl) {
+                                    setMedicalHistoryPreview(
+                                      user.medicalHistoryUrl
+                                    );
+                                  } else {
+                                    setMedicalHistoryPreview(null);
+                                  }
+
+                                  if (user.facialDataUrl) {
+                                    setFacialDataPreview(user.facialDataUrl);
+                                  } else {
+                                    setFacialDataPreview(null);
+                                  }
+
+                                  setMedicalHistoryFile(null);
+                                  setFacialDataFile(null);
+                                  setFormErrors({});
+                                  setView("edit");
+                                }}
+                                title="Edit User"
+                              >
+                                ✏️
+                              </button>
+                            )}
+
+                            {canDeleteUser && (
+                              <button
+                                className="action-button delete"
+                                onClick={() => {
+                                  setSelectedUser(user);
+                                  setShowDeleteModal(true);
+                                }}
+                                title="Delete User"
+                              >
+                                🗑️
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
             {filteredUsers.length === 0 && (
               <div className="no-users">

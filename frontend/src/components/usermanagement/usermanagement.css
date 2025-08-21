@@ -17,7 +17,7 @@
   --border-radius: 12px;
   --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   --transition: all 0.3s ease;
-  --font-family: 'Nunito', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  --font-family: "Nunito", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
 /* Reset and Base Styles */
@@ -439,11 +439,17 @@ select {
   /* Adjust based on your metrics cards and controls height */
 }
 
+.table-scroll-wrapper {
+  overflow-x: auto;
+  overflow-y: hidden;
+  min-width: 100%;
+}
+
 .user-table {
   width: 100%;
   border-collapse: collapse;
-  display: flex;
-  flex-direction: column;
+  min-width: 800px; /* Ensure table has minimum width for scrolling */
+  white-space: nowrap;
 }
 
 .user-table thead {
@@ -474,6 +480,7 @@ select {
   cursor: pointer;
   transition: var(--transition);
   border-bottom: 1px solid var(--gray-light);
+  white-space: nowrap;
 }
 
 .user-table th:hover {
@@ -484,6 +491,7 @@ select {
   padding: 16px;
   border-bottom: 1px solid var(--gray-light);
   word-wrap: break-word;
+  white-space: nowrap;
 }
 
 .user-table tr:last-child td {
@@ -928,7 +936,7 @@ select {
 }
 
 .timeline-item:not(:last-child)::after {
-  content: '';
+  content: "";
   position: absolute;
   top: 40px;
   left: 20px;

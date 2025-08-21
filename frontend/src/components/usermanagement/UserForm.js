@@ -1,5 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import { addUsers, getBalagruha, getMachines, updateUsers } from "../../api";
+import {
+  addUsers,
+  getBalagruha,
+  getMachines,
+  updateUsers,
+  getBalagruhaListbyUserID,
+} from "../../api";
 import "./UserForm.css";
 import { Modal } from "./modal";
 import FaceCapture from "./FaceCapture";
@@ -43,7 +49,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
         },
         prescriptions: [],
         otherAttachments: [],
-        _id: ""
+        _id: "",
       },
     ],
   });
@@ -118,7 +124,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                 },
                 prescriptions: history.prescriptions || [],
                 otherAttachments: history.otherAttachments || [],
-                _id: history._id
+                _id: history._id,
               }))
             : [
                 {
@@ -135,7 +141,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                   },
                   prescriptions: [],
                   otherAttachments: [],
-                  _id: ''
+                  _id: "",
                 },
               ],
       });
@@ -192,26 +198,23 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
   const fetchBalagruhaOptions = async () => {
     try {
+      const role = (localStorage.getItem("role") || "").toLowerCase();
+      const isCoachLike = [
+        "coach",
+        "sports-coach",
+        "music-coach",
+        "medical-incharge",
+      ].includes(role);
 
-      if(localStorage.getItem('role') === 'coach') {
-        const response = await getBalagruha();
-        const allBalagruhas = response?.data?.balagruhas || [];
-
-        const storedIds = localStorage.getItem("balagruhaIds");
-        const allowedIds = storedIds ? storedIds.split(",") : [];
-
-        // Filter based on allowed IDs
-        const filteredBalagruhas = allBalagruhas.filter(bg =>
-          allowedIds.includes(bg._id)
-        );
-
-        console.log(filteredBalagruhas, "Filtered balagruha options");
-        setBalagruhaOptions(filteredBalagruhas);
+      if (isCoachLike) {
+        const userId = localStorage.getItem("userId");
+        const response = await getBalagruhaListbyUserID(userId);
+        const balagruhas = response?.data?.balagruhas || [];
+        setBalagruhaOptions(balagruhas);
       } else {
         const response = await getBalagruha();
         setBalagruhaOptions(response?.data?.balagruhas || []);
       }
-      
     } catch (error) {
       console.error("Error fetching balagruha options:", error);
     }
@@ -236,7 +239,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           },
           prescriptions: [],
           otherAttachments: [],
-          _id: ''
+          _id: "",
         },
       ],
     }));
@@ -559,7 +562,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     try {
       const formDataToSend = new FormData();
 
-    //   Add basic fields
+      //   Add basic fields
       formDataToSend.append("name", formData.name);
       formDataToSend.append("email", formData.email);
       formDataToSend.append("role", formData.role);
@@ -652,10 +655,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
             history.currentStatus.date
           );
 
-          formDataToSend.append(
-            `medicalHistory[${index}]._id`,
-            history._id
-          )
+          formDataToSend.append(`medicalHistory[${index}]._id`, history._id);
 
           // Add files if available
           if (files.medicalHistoryFiles[index]?.prescriptions) {
@@ -696,7 +696,6 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
             //         formDataToSend.append(`medicalHistory[${index}].existingOtherAttachments`, attachmentId);
             //     });
             // }
-            
           }
         });
       }
@@ -709,9 +708,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       }
 
       // Use the API functions with FormData
-      console.log(
-        files.facialData,
-      );
+      console.log(files.facialData);
       const response =
         mode === "add"
           ? await addUsers(formDataToSend)
@@ -722,7 +719,9 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       console.error("Error submitting form:", error);
       setErrors((prev) => ({
         ...prev,
-        submit: error.response.data.message || "An error occurred while saving the user",
+        submit:
+          error.response.data.message ||
+          "An error occurred while saving the user",
       }));
     } finally {
       setIsSubmitting(false);
@@ -792,198 +791,211 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
               onChange={handleInputChange}
               className={errors.name ? "error" : ""}
               placeholder="Enter full name"
-              disabled={localStorage.getItem('role') === 'medical-incharge'}
+              disabled={localStorage.getItem("role") === "medical-incharge"}
             />
             {errors.name && (
               <span className="error-message">{errors.name}</span>
             )}
           </div>
 
-          {localStorage.getItem('role') !== 'medical-incharge' && (
-          <>
-            <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleInputChange}
-              placeholder="Enter email address"
-            />
-          </div>
-
-          {localStorage.getItem("role") === "admin" && (
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
-              <div className="password-input-group">
+          {localStorage.getItem("role") !== "medical-incharge" && (
+            <>
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
                 <input
-                  type="text"
-                  id="password"
-                  name="password"
-                  value={formData.password}
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
-                  className={errors.password ? "error" : ""}
-                  placeholder={
-                    mode === "add"
-                      ? "Enter New Password"
-                      : "Retype to reset passoword"
-                  }
+                  placeholder="Enter email address"
                 />
-                <button
-                  type="button"
-                  className="generate-password-btn"
-                  onClick={() => {
-                    const password = generateRandomPassword();
-                    handleInputChange({
-                      target: { name: "password", value: password },
-                    });
-                  }}
-                >
-                  Generate
-                </button>
               </div>
-              {errors.password && (
-                <span className="error-message">{errors.password}</span>
-              )}
-            </div>
-          )}
 
-          <div className="form-group">
-            <label htmlFor="role">Role *</label>
-            <select
-              id="role"
-              name="role"
-              value={formData.role}
-              onChange={handleInputChange}
-              className={errors.role ? "error" : ""}
-              selected={localStorage?.getItem('role') === "coach" ? "student" : ""}
-              disabled={localStorage?.getItem('role') === "coach" ? true : false}
-            >
-              <option value="student">Student</option>
-              <option value="admin">Admin</option>
-              <option value="coach">Coach</option>
-              <option value="balagruha-incharge">Balagruha In-charge</option>
-              <option value="purchase-manager">Purchase Manager</option>
-              <option value="medical-incharge">Medical Incharge</option>
-              <option value="sports-coach">Sports Coach</option>
-              <option value="music-coach">Music Coach</option>
-              <option value="amma">Amma</option>
-            </select>
-            {errors.role && (
-              <span className="error-message">{errors.role}</span>
-            )}
-          </div>
-
-          <div className="form-group">
-            <label>Status</label>
-            <div className="status-toggle">
-              <label className={formData.status === "active" ? "active" : ""}>
-                <input
-                  type="radio"
-                  name="status"
-                  value="active"
-                  checked={formData.status === "active"}
-                  onChange={handleInputChange}
-                />
-                Active
-              </label>
-              <label
-                className={formData.status === "inactive" ? "inactive" : ""}
-              >
-                <input
-                  type="radio"
-                  name="status"
-                  value="inactive"
-                  checked={formData.status === "inactive"}
-                  onChange={handleInputChange}
-                />
-                Inactive
-              </label>
-            </div>
-          </div>
-
-          {formData.role !== "admin" && (
-            <div className="form-group">
-              <label>Balagruha *</label>
-              <div className="form-balagruha-selector">
-                <div
-                  className={`form-dropdown-header ${
-                    errors.balagruhaIds ? "form-error redbtndiv" : ""
-                  }`}
-                  onClick={() => setDropdownOpen((prev) => !prev)}
-                >
-                  <span>
-                    {formData.balagruhaIds.length
-                      ? `${formData.balagruhaIds
-                          .map((bg) => bg.name)
-                          .join(", ")}`
-                      : "Select Balagruha"}
-                  </span>
-                  <span className="form-dropdown-arrow">
-                    {dropdownOpen ? "▲" : "▼"}
-                  </span>
-                </div>
-                {dropdownOpen && (
-                  <div className="form-dropdown-options">
-                    {balagruhaOptions.map((option) => (
-                      <label key={option._id} className="form-checkbox-option">
-                        <input
-                          type={
-                            formData.role === "student" ? "radio" : "checkbox"
-                          }
-                          checked={
-                            formData.role === "student"
-                              ? formData.balagruhaIds.some(
-                                  (bg) => bg._id === option._id
-                                )
-                              : formData.balagruhaIds.some(
-                                  (bg) => bg._id === option._id
-                                )
-                          }
-                          onChange={(e) => {
-                            if (formData.role === "student") {
-                              // Single select for students
-                              setFormData((prev) => ({
-                                ...prev,
-                                balagruhaIds: [option],
-                              }));
-                            } else {
-                              // Multi select for other roles
-                              const isSelected = formData.balagruhaIds.some(
-                                (bg) => bg._id === option._id
-                              );
-                              const selectedBalagruhas = isSelected
-                                ? formData.balagruhaIds.filter(
-                                    (bg) => bg._id !== option._id
-                                  )
-                                : [...formData.balagruhaIds, option];
-                              setFormData((prev) => ({
-                                ...prev,
-                                balagruhaIds: selectedBalagruhas,
-                              }));
-                            }
-                            // Close dropdown if it's a student (single select)
-                            if (formData.role === "student") {
-                              setDropdownOpen(false);
-                            }
-                          }}
-                        />
-                        {option.name}
-                      </label>
-                    ))}
+              {localStorage.getItem("role") === "admin" && (
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <div className="password-input-group">
+                    <input
+                      type="text"
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      className={errors.password ? "error" : ""}
+                      placeholder={
+                        mode === "add"
+                          ? "Enter New Password"
+                          : "Retype to reset passoword"
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="generate-password-btn"
+                      onClick={() => {
+                        const password = generateRandomPassword();
+                        handleInputChange({
+                          target: { name: "password", value: password },
+                        });
+                      }}
+                    >
+                      Generate
+                    </button>
                   </div>
+                  {errors.password && (
+                    <span className="error-message">{errors.password}</span>
+                  )}
+                </div>
+              )}
+
+              <div className="form-group">
+                <label htmlFor="role">Role *</label>
+                <select
+                  id="role"
+                  name="role"
+                  value={formData.role}
+                  onChange={handleInputChange}
+                  className={errors.role ? "error" : ""}
+                  selected={
+                    localStorage?.getItem("role") === "coach" ? "student" : ""
+                  }
+                  disabled={
+                    localStorage?.getItem("role") === "coach" ? true : false
+                  }
+                >
+                  <option value="student">Student</option>
+                  <option value="admin">Admin</option>
+                  <option value="coach">Coach</option>
+                  <option value="balagruha-incharge">
+                    Balagruha In-charge
+                  </option>
+                  <option value="purchase-manager">Purchase Manager</option>
+                  <option value="medical-incharge">Medical Incharge</option>
+                  <option value="sports-coach">Sports Coach</option>
+                  <option value="music-coach">Music Coach</option>
+                  <option value="amma">Amma</option>
+                </select>
+                {errors.role && (
+                  <span className="error-message">{errors.role}</span>
                 )}
               </div>
-              {errors.balagruhaIds && (
-                <span className="form-error-message redbtn">
-                  {errors.balagruhaIds}
-                </span>
+
+              <div className="form-group">
+                <label>Status</label>
+                <div className="status-toggle">
+                  <label
+                    className={formData.status === "active" ? "active" : ""}
+                  >
+                    <input
+                      type="radio"
+                      name="status"
+                      value="active"
+                      checked={formData.status === "active"}
+                      onChange={handleInputChange}
+                    />
+                    Active
+                  </label>
+                  <label
+                    className={formData.status === "inactive" ? "inactive" : ""}
+                  >
+                    <input
+                      type="radio"
+                      name="status"
+                      value="inactive"
+                      checked={formData.status === "inactive"}
+                      onChange={handleInputChange}
+                    />
+                    Inactive
+                  </label>
+                </div>
+              </div>
+
+              {formData.role !== "admin" && (
+                <div className="form-group">
+                  <label>Balagruha *</label>
+                  <div className="form-balagruha-selector">
+                    <div
+                      className={`form-dropdown-header ${
+                        errors.balagruhaIds ? "form-error redbtndiv" : ""
+                      }`}
+                      onClick={() => setDropdownOpen((prev) => !prev)}
+                    >
+                      <span>
+                        {formData.balagruhaIds.length
+                          ? `${formData.balagruhaIds
+                              .map((bg) => bg.name)
+                              .join(", ")}`
+                          : "Select Balagruha"}
+                      </span>
+                      <span className="form-dropdown-arrow">
+                        {dropdownOpen ? "▲" : "▼"}
+                      </span>
+                    </div>
+                    {dropdownOpen && (
+                      <div className="form-dropdown-options">
+                        {balagruhaOptions.map((option) => (
+                          <label
+                            key={option._id}
+                            className="form-checkbox-option"
+                          >
+                            <input
+                              type={
+                                formData.role === "student"
+                                  ? "radio"
+                                  : "checkbox"
+                              }
+                              checked={
+                                formData.role === "student"
+                                  ? formData.balagruhaIds.some(
+                                      (bg) => bg._id === option._id
+                                    )
+                                  : formData.balagruhaIds.some(
+                                      (bg) => bg._id === option._id
+                                    )
+                              }
+                              onChange={(e) => {
+                                if (formData.role === "student") {
+                                  // Single select for students
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    balagruhaIds: [option],
+                                  }));
+                                } else {
+                                  // Multi select for other roles
+                                  const isSelected = formData.balagruhaIds.some(
+                                    (bg) => bg._id === option._id
+                                  );
+                                  const selectedBalagruhas = isSelected
+                                    ? formData.balagruhaIds.filter(
+                                        (bg) => bg._id !== option._id
+                                      )
+                                    : [...formData.balagruhaIds, option];
+                                  setFormData((prev) => ({
+                                    ...prev,
+                                    balagruhaIds: selectedBalagruhas,
+                                  }));
+                                }
+                                // Close dropdown if it's a student (single select)
+                                if (formData.role === "student") {
+                                  setDropdownOpen(false);
+                                }
+                              }}
+                            />
+                            {option.name}
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {errors.balagruhaIds && (
+                    <span className="form-error-message redbtn">
+                      {errors.balagruhaIds}
+                    </span>
+                  )}
+                </div>
               )}
-            </div>
+            </>
           )}
-          </>
-         )}
         </div>
 
         {/* Student Specific Fields */}
@@ -1000,289 +1012,297 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                 value={formData.userId}
                 onChange={handleInputChange}
                 placeholder="Enter User ID"
-                disabled={localStorage.getItem('role') === 'medical-incharge'}
+                disabled={localStorage.getItem("role") === "medical-incharge"}
               />
             </div>
 
-            {localStorage.getItem('role') !== 'medical-incharge' && (
+            {localStorage.getItem("role") !== "medical-incharge" && (
               <>
-              <div className="form-group">
-              <label>Assigned Machines</label>
-              <div className="form-machine-selector">
-                <div
-                  className={`form-dropdown-header ${
-                    errors.assignedMachines ? "form-error" : ""
-                  }`}
-                  onClick={() => setMachineDropdownOpen(!machineDropdownOpen)}
-                >
-                  <span>
-                    {formData.assignedMachines.length
-                      ? `${formData.assignedMachines
-                          .map((machine) => machine.machineId)
-                          .join(", ")}`
-                      : "Select Machines"}
-                  </span>
-                  <span className="form-dropdown-arrow">
-                    {machineDropdownOpen ? "▲" : "▼"}
-                  </span>
-                </div>
-                {machineDropdownOpen && (
-                  <div className="form-dropdown-options">
-                    {formData.balagruhaIds.length > 0 ? (
-                      formData.balagruhaIds.map((balagruha) => {
-                        const selectedBalagruha = balagruhaOptions.find(
-                          (bg) => bg._id === balagruha._id
-                        );
+                <div className="form-group">
+                  <label>Assigned Machines</label>
+                  <div className="form-machine-selector">
+                    <div
+                      className={`form-dropdown-header ${
+                        errors.assignedMachines ? "form-error" : ""
+                      }`}
+                      onClick={() =>
+                        setMachineDropdownOpen(!machineDropdownOpen)
+                      }
+                    >
+                      <span>
+                        {formData.assignedMachines.length
+                          ? `${formData.assignedMachines
+                              .map((machine) => machine.machineId)
+                              .join(", ")}`
+                          : "Select Machines"}
+                      </span>
+                      <span className="form-dropdown-arrow">
+                        {machineDropdownOpen ? "▲" : "▼"}
+                      </span>
+                    </div>
+                    {machineDropdownOpen && (
+                      <div className="form-dropdown-options">
+                        {formData.balagruhaIds.length > 0 ? (
+                          formData.balagruhaIds.map((balagruha) => {
+                            const selectedBalagruha = balagruhaOptions.find(
+                              (bg) => bg._id === balagruha._id
+                            );
 
-                        const availableMachines =
-                          selectedBalagruha?.assignedMachines?.filter(
-                            (machine) => {
-                              return true;
-                            }
-                          );
+                            const availableMachines =
+                              selectedBalagruha?.assignedMachines?.filter(
+                                (machine) => {
+                                  return true;
+                                }
+                              );
 
-                        return availableMachines?.map((machine) => {
-                          const isChecked = formData.assignedMachines.some(
-                            (m) => m._id === machine._id
-                          );
+                            return availableMachines?.map((machine) => {
+                              const isChecked = formData.assignedMachines.some(
+                                (m) => m._id === machine._id
+                              );
 
-                          return (
-                            <label
-                              key={machine._id}
-                              className={`form-checkbox-option`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                onChange={() => {
-                                  setFormData((prev) => ({
-                                    ...prev,
-                                    assignedMachines: isChecked
-                                      ? prev.assignedMachines.filter(
-                                          (m) => m._id !== machine._id
-                                        )
-                                      : [...prev.assignedMachines, machine],
-                                  }));
-                                }}
-                              />
-                              <span>
-                                {machine.machineId} - {machine.serialNumber}
-                                <small className="balagruha-name">
-                                  ({selectedBalagruha.name})
-                                </small>
-                              </span>
-                            </label>
-                          );
-                        });
-                      })
-                    ) : (
-                      <div className="no-balagruha-message">
-                        Please select a Balagruha first to view available
-                        machines
+                              return (
+                                <label
+                                  key={machine._id}
+                                  className={`form-checkbox-option`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isChecked}
+                                    onChange={() => {
+                                      setFormData((prev) => ({
+                                        ...prev,
+                                        assignedMachines: isChecked
+                                          ? prev.assignedMachines.filter(
+                                              (m) => m._id !== machine._id
+                                            )
+                                          : [...prev.assignedMachines, machine],
+                                      }));
+                                    }}
+                                  />
+                                  <span>
+                                    {machine.machineId} - {machine.serialNumber}
+                                    <small className="balagruha-name">
+                                      ({selectedBalagruha.name})
+                                    </small>
+                                  </span>
+                                </label>
+                              );
+                            });
+                          })
+                        ) : (
+                          <div className="no-balagruha-message">
+                            Please select a Balagruha first to view available
+                            machines
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
+                  {errors.assignedMachines && (
+                    <span className="form-error-message">
+                      {errors.assignedMachines}
+                    </span>
+                  )}
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label htmlFor="age">Age *</label>
+                    <input
+                      type="number"
+                      id="age"
+                      name="age"
+                      value={formData.age}
+                      onChange={handleInputChange}
+                      className={errors.age ? "error" : ""}
+                      min="1"
+                      max="100"
+                    />
+                    {errors.age && (
+                      <span className="error-message">{errors.age}</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label htmlFor="gender">Gender *</label>
+                    <select
+                      id="gender"
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      className={errors.gender ? "error" : ""}
+                    >
+                      <option value="">Select Gender</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </select>
+                    {errors.gender && (
+                      <span className="error-message">{errors.gender}</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="parentalStatus">Parental Status *</label>
+                  <select
+                    id="parentalStatus"
+                    name="parentalStatus"
+                    value={formData.parentalStatus}
+                    onChange={handleInputChange}
+                    className={errors.parentalStatus ? "error" : ""}
+                  >
+                    <option value="">Select Status</option>
+                    <option value="has both">Has Both Parents</option>
+                    <option value="has one">Has One Parent</option>
+                    <option value="has guardian">Has Guardian</option>
+                    <option value="has none">Has None</option>
+                  </select>
+                  {errors.parentalStatus && (
+                    <span className="error-message">
+                      {errors.parentalStatus}
+                    </span>
+                  )}
+                </div>
+
+                {((formData.parentalStatus && formData.parentalStatus) ===
+                  "has one" ||
+                  (formData.parentalStatus && formData.parentalStatus) ===
+                    "has guardian") && (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="guardianContact">
+                        {formData.parentalStatus === "has one"
+                          ? "Parent Name"
+                          : "Guardian Name"}{" "}
+                        *
+                      </label>
+                      <input
+                        type="text"
+                        id="guardianName1"
+                        name="guardianName1"
+                        value={formData.guardianName1}
+                        onChange={handleInputChange}
+                        className={errors.guardianName1 ? "error" : ""}
+                        placeholder={
+                          formData.parentalStatus === "has one"
+                            ? "Parent Name"
+                            : "Guardian Name"
+                        }
+                      />
+                      {errors.guardianName1 && (
+                        <span className="error-message">
+                          {errors.guardianName1}
+                        </span>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianContact">
+                        {formData.parentalStatus === "has one"
+                          ? "Parent Contact"
+                          : "Guardian Contact"}{" "}
+                        *
+                      </label>
+                      <input
+                        type="tel"
+                        id="guardianContact1"
+                        name="guardianContact1"
+                        value={formData.guardianContact1}
+                        onChange={handleInputChange}
+                        className={errors.guardianContact1 ? "error" : ""}
+                        placeholder="10-digit mobile number"
+                        pattern="[0-9]{10}"
+                      />
+                      {errors.guardianContact1 && (
+                        <span className="error-message">
+                          {errors.guardianContact1}
+                        </span>
+                      )}
+                    </div>
+                  </>
                 )}
-              </div>
-              {errors.assignedMachines && (
-                <span className="form-error-message">
-                  {errors.assignedMachines}
-                </span>
-              )}
-            </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label htmlFor="age">Age *</label>
-                <input
-                  type="number"
-                  id="age"
-                  name="age"
-                  value={formData.age}
-                  onChange={handleInputChange}
-                  className={errors.age ? "error" : ""}
-                  min="1"
-                  max="100"
-                />
-                {errors.age && (
-                  <span className="error-message">{errors.age}</span>
+                {(formData.parentalStatus && formData.parentalStatus) ===
+                  "has both" && (
+                  <>
+                    <div className="form-group">
+                      <label htmlFor="guardianName1">Fathers Name*</label>
+                      <input
+                        type="text"
+                        id="guardianName1"
+                        name="guardianName1"
+                        value={formData.guardianName1}
+                        onChange={handleInputChange}
+                        className={errors.guardianName1 ? "error" : ""}
+                        placeholder="Father's Name"
+                      />
+                      {errors.guardianName1 && (
+                        <span className="error-message">
+                          {errors.guardianName1}
+                        </span>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianContact">
+                        Father's Contact *
+                      </label>
+                      <input
+                        type="tel"
+                        id="guardianContact1"
+                        name="guardianContact1"
+                        value={formData.guardianContact1}
+                        onChange={handleInputChange}
+                        className={errors.guardianContact1 ? "error" : ""}
+                        placeholder="Contact No"
+                        pattern="[0-9]{10}"
+                      />
+                      {errors.guardianContact1 && (
+                        <span className="error-message">
+                          {errors.guardianContact1}
+                        </span>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianName2">Mother's Name *</label>
+                      <input
+                        type="text"
+                        id="guardianName2"
+                        name="guardianName2"
+                        value={formData.guardianName2}
+                        onChange={handleInputChange}
+                        className={errors.guardianName2 ? "error" : ""}
+                        placeholder="Mothers Name"
+                      />
+                      {errors.guardianName2 && (
+                        <span className="error-message">
+                          {errors.guardianName2}
+                        </span>
+                      )}
+                    </div>
+                    <div className="form-group">
+                      <label htmlFor="guardianContact2">
+                        Mother's Contact *
+                      </label>
+                      <input
+                        type="tel"
+                        id="guardianContact2"
+                        name="guardianContact2"
+                        value={formData.guardianContact2}
+                        onChange={handleInputChange}
+                        className={errors.guardianContact2 ? "error" : ""}
+                        placeholder="10-digit mobile number"
+                        pattern="[0-9]{10}"
+                      />
+                      {errors.guardianContact2 && (
+                        <span className="error-message">
+                          {errors.guardianContact2}
+                        </span>
+                      )}
+                    </div>
+                  </>
                 )}
-              </div>
 
-              <div className="form-group">
-                <label htmlFor="gender">Gender *</label>
-                <select
-                  id="gender"
-                  name="gender"
-                  value={formData.gender}
-                  onChange={handleInputChange}
-                  className={errors.gender ? "error" : ""}
-                >
-                  <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other</option>
-                </select>
-                {errors.gender && (
-                  <span className="error-message">{errors.gender}</span>
-                )}
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="parentalStatus">Parental Status *</label>
-              <select
-                id="parentalStatus"
-                name="parentalStatus"
-                value={formData.parentalStatus}
-                onChange={handleInputChange}
-                className={errors.parentalStatus ? "error" : ""}
-              >
-                <option value="">Select Status</option>
-                <option value="has both">Has Both Parents</option>
-                <option value="has one">Has One Parent</option>
-                <option value="has guardian">Has Guardian</option>
-                <option value="has none">Has None</option>
-              </select>
-              {errors.parentalStatus && (
-                <span className="error-message">{errors.parentalStatus}</span>
-              )}
-            </div>
-
-            {((formData.parentalStatus && formData.parentalStatus) ===
-              "has one" ||
-              (formData.parentalStatus && formData.parentalStatus) ===
-                "has guardian") && (
-              <>
-                <div className="form-group">
-                  <label htmlFor="guardianContact">
-                    {formData.parentalStatus === "has one"
-                      ? "Parent Name"
-                      : "Guardian Name"}{" "}
-                    *
-                  </label>
-                  <input
-                    type="text"
-                    id="guardianName1"
-                    name="guardianName1"
-                    value={formData.guardianName1}
-                    onChange={handleInputChange}
-                    className={errors.guardianName1 ? "error" : ""}
-                    placeholder={
-                      formData.parentalStatus === "has one"
-                        ? "Parent Name"
-                        : "Guardian Name"
-                    }
-                  />
-                  {errors.guardianName1 && (
-                    <span className="error-message">
-                      {errors.guardianName1}
-                    </span>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="guardianContact">
-                    {formData.parentalStatus === "has one"
-                      ? "Parent Contact"
-                      : "Guardian Contact"}{" "}
-                    *
-                  </label>
-                  <input
-                    type="tel"
-                    id="guardianContact1"
-                    name="guardianContact1"
-                    value={formData.guardianContact1}
-                    onChange={handleInputChange}
-                    className={errors.guardianContact1 ? "error" : ""}
-                    placeholder="10-digit mobile number"
-                    pattern="[0-9]{10}"
-                  />
-                  {errors.guardianContact1 && (
-                    <span className="error-message">
-                      {errors.guardianContact1}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-
-            {(formData.parentalStatus && formData.parentalStatus) ===
-              "has both" && (
-              <>
-                <div className="form-group">
-                  <label htmlFor="guardianName1">Fathers Name*</label>
-                  <input
-                    type="text"
-                    id="guardianName1"
-                    name="guardianName1"
-                    value={formData.guardianName1}
-                    onChange={handleInputChange}
-                    className={errors.guardianName1 ? "error" : ""}
-                    placeholder="Father's Name"
-                  />
-                  {errors.guardianName1 && (
-                    <span className="error-message">
-                      {errors.guardianName1}
-                    </span>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="guardianContact">Father's Contact *</label>
-                  <input
-                    type="tel"
-                    id="guardianContact1"
-                    name="guardianContact1"
-                    value={formData.guardianContact1}
-                    onChange={handleInputChange}
-                    className={errors.guardianContact1 ? "error" : ""}
-                    placeholder="Contact No"
-                    pattern="[0-9]{10}"
-                  />
-                  {errors.guardianContact1 && (
-                    <span className="error-message">
-                      {errors.guardianContact1}
-                    </span>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="guardianName2">Mother's Name *</label>
-                  <input
-                    type="text"
-                    id="guardianName2"
-                    name="guardianName2"
-                    value={formData.guardianName2}
-                    onChange={handleInputChange}
-                    className={errors.guardianName2 ? "error" : ""}
-                    placeholder="Mothers Name"
-                  />
-                  {errors.guardianName2 && (
-                    <span className="error-message">
-                      {errors.guardianName2}
-                    </span>
-                  )}
-                </div>
-                <div className="form-group">
-                  <label htmlFor="guardianContact2">Mother's Contact *</label>
-                  <input
-                    type="tel"
-                    id="guardianContact2"
-                    name="guardianContact2"
-                    value={formData.guardianContact2}
-                    onChange={handleInputChange}
-                    className={errors.guardianContact2 ? "error" : ""}
-                    placeholder="10-digit mobile number"
-                    pattern="[0-9]{10}"
-                  />
-                  {errors.guardianContact2 && (
-                    <span className="error-message">
-                      {errors.guardianContact2}
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* <div className="form-group">
+                {/* <div className="form-group">
                             <label htmlFor="nextActionDate">Next Action Date</label>
                             <input
                                 type="date"
@@ -1297,47 +1317,47 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                             {errors.guardianName1 && <span className="error-message">{errors.guardianName1}</span>}
                         </div> */}
 
-            <div className="form-group">
-              <label>Facial Photo {mode === "add" && "*"}</label>
-              <div className="file-upload-container">
-                <input
-                  type="file"
-                  ref={fileInputRefs.facialData}
-                  onChange={(e) => handleFileChange(e, "facialData")}
-                  accept="image/*"
-                  style={{ display: "none" }}
-                />
-                <button
-                  type="button"
-                  className="file-upload-btn"
-                  onClick={() => fileInputRefs.facialData.current.click()}
-                >
-                  {/* {files.facialData || previews.facialData ? 'Change Photo' : 'Upload Photo'} */}
-                  Upload Photo
-                </button>
-                <button
-                  type="button"
-                  className="file-upload-btn"
-                  onClick={() => setIsOpen(true)}
-                >
-                  Capture Photo
-                </button>
-                {(files.facialData || previews.facialData) && (
-                  <div className="file-preview">
-                    <img
-                      src={previews.facialData}
-                      alt="Facial photo preview"
-                      className="preview-image"
+                <div className="form-group">
+                  <label>Facial Photo {mode === "add" && "*"}</label>
+                  <div className="file-upload-container">
+                    <input
+                      type="file"
+                      ref={fileInputRefs.facialData}
+                      onChange={(e) => handleFileChange(e, "facialData")}
+                      accept="image/*"
+                      style={{ display: "none" }}
                     />
+                    <button
+                      type="button"
+                      className="file-upload-btn"
+                      onClick={() => fileInputRefs.facialData.current.click()}
+                    >
+                      {/* {files.facialData || previews.facialData ? 'Change Photo' : 'Upload Photo'} */}
+                      Upload Photo
+                    </button>
+                    <button
+                      type="button"
+                      className="file-upload-btn"
+                      onClick={() => setIsOpen(true)}
+                    >
+                      Capture Photo
+                    </button>
+                    {(files.facialData || previews.facialData) && (
+                      <div className="file-preview">
+                        <img
+                          src={previews.facialData}
+                          alt="Facial photo preview"
+                          className="preview-image"
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
-              {errors.facialData && (
-                <span className="error-message">{errors.facialData}</span>
-              )}
-            </div>
+                  {errors.facialData && (
+                    <span className="error-message">{errors.facialData}</span>
+                  )}
+                </div>
               </>
-            ) }
+            )}
           </div>
         )}
 

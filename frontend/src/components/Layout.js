@@ -63,7 +63,7 @@ const Layout = () => {
         "amma",
       ],
     },
-    { id: 2, name: "Users", link: "/users", roles: ["admin"] },
+    { id: 2, name: "Users", link: "/users", roles: ["admin", "coach"] },
     { id: 3, name: "Machines", link: "/machines", roles: ["admin"] },
     { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach"] },
     {
