@@ -597,7 +597,14 @@ const UserManagement = () => {
         (role === "music-coach" && filterBalagruha !== "all") ||
         (role === "admin" && filterBalagruha !== "all")
       ) {
-        const userBalagruhaIds = user.balagruhaIds?.map((bg) => bg._id) || [];
+        const userBalagruhaIds = (user.balagruhaIds || [])
+          .map((bg) => {
+            if (!bg) return null;
+            if (typeof bg === "string") return bg;
+            if (typeof bg === "object") return bg._id || bg.id || null;
+            return String(bg);
+          })
+          .filter(Boolean);
         return userBalagruhaIds.includes(filterBalagruha);
       }
 
@@ -1233,7 +1240,7 @@ const UserManagement = () => {
                       className="filter-select"
                     >
                       <option value="all">All Balagruhas</option>
-                      {balagruhas.map((bg, index) => (
+                      {balagruhaOptions.map((bg, index) => (
                         <option key={index} value={bg._id}>
                           {bg.name}
                         </option>
@@ -1265,7 +1272,7 @@ const UserManagement = () => {
                     className="filter-select"
                   >
                     <option value="all">All Balagruhas</option>
-                    {balagruhas.map((bg, index) => (
+                    {balagruhaOptions.map((bg, index) => (
                       <option key={index} value={bg._id}>
                         {bg.name}
                       </option>
@@ -1298,6 +1305,9 @@ const UserManagement = () => {
               </div>
             </div>
             {/* )} */}
+          </div>
+          <div className="list-meta">
+            Showing {filteredUsers.length} of {users.length} users
           </div>
 
           <div className="user-table-container">

@@ -374,6 +374,12 @@ select {
   margin-bottom: 16px;
 }
 
+.list-meta {
+  font-size: 14px;
+  color: var(--gray);
+  margin-top: -8px;
+}
+
 .search-box {
   position: relative;
   width: 100%;
@@ -428,20 +434,20 @@ select {
 
 /* User Table */
 .user-table-container {
-  background-color: var(--white);
-  border-radius: var(--border-radius);
-  box-shadow: var(--box-shadow);
-  overflow: auto;
+  /* Remove card look so table sits flush and fills available height */
+  background-color: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: hidden; /* delegate vertical scroll to inner wrapper */
   flex: 1;
   display: flex;
   flex-direction: column;
-  max-height: calc(100vh - 300px);
-  /* Adjust based on your metrics cards and controls height */
 }
 
 .table-scroll-wrapper {
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: auto; /* enable vertical scroll */
+  max-height: calc(100vh - 220px);
   min-width: 100%;
 }
 

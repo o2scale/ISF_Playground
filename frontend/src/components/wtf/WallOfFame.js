@@ -55,6 +55,7 @@ import {
   getStudentInteractionHistory,
 } from "../../api";
 import showToast from "../../utils/toast";
+import isfWallOfFameImage from "../../assets/IsfWallOfFame.png";
 
 // Inline voice suggestion modal (see spec)
 const VoiceSuggestionModal = ({ open, onClose }) => {
@@ -2574,18 +2575,11 @@ Check console for detailed results.`);
                 </p>
               </div>
 
-              <h2
-                className="text-4xl font-bold mb-2 relative z-10"
-                style={{ color: previewBgSettings.fontColor || undefined }}
-              >
-                {isAdmin ? "Admin " : isCoach ? "Coach " : ""}Wall of{" "}
-                <span
-                  className="text-pink-600 bg-pink-200 px-2 py-1 rounded transform -rotate-1 inline-block border-4 border-purple-600 shadow-lg"
-                  style={{ fontFamily: "Comic Sans MS, cursive" }}
-                >
-                  FAME
-                </span>
-              </h2>
+              <img
+                src={isfWallOfFameImage}
+                alt="Wall of Fame"
+                className="mx-auto mb-2 relative z-10 w-[420px] max-w-full drop-shadow-lg"
+              />
               <p
                 className="text-lg"
                 style={{ color: previewBgSettings.fontColor || undefined }}
