@@ -273,14 +273,51 @@ class Student {
       // check the key balagruhaId is an array or string
       if (typeof payload.assignedMachines === "string") {
         // convert the comma separated string to array
-        payload.assignedMachines = payload.assignedMachines.split(",");
+        payload.assignedMachines = payload.assignedMachines
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id && id.length === 24);
         assignedMachinesList = payload.assignedMachines.map((item) =>
           mongoose.Types.ObjectId.createFromHexString(item)
         );
       } else if (Array.isArray(payload.assignedMachines)) {
+        // Support array of strings or objects with _id
+        payload.assignedMachines = payload.assignedMachines
+          .map((m) => (typeof m === "object" ? m._id || m.id : m))
+          .map((id) => String(id || "").trim())
+          .filter((id) => id && id.length === 24);
         assignedMachinesList = payload.assignedMachines.map((item) =>
           mongoose.Types.ObjectId.createFromHexString(item)
         );
+      }
+
+      // Normalize balagruha IDs coming from form-data
+      // Accept: balagruhaIds as comma-separated string, array of strings, array of objects with _id, or single balagruhaId
+      if (payload.balagruhaIds && typeof payload.balagruhaIds === "string") {
+        payload.balagruhaIds = payload.balagruhaIds
+          .split(",")
+          .map((id) => id.trim())
+          .filter((id) => id && id.length === 24)
+          .map((id) => mongoose.Types.ObjectId.createFromHexString(id));
+      } else if (
+        payload.balagruhaIds &&
+        Array.isArray(payload.balagruhaIds) &&
+        payload.balagruhaIds.length > 0
+      ) {
+        // If array, support either strings or objects with _id
+        payload.balagruhaIds = payload.balagruhaIds
+          .map((bg) => (typeof bg === "object" ? bg._id || bg.id : bg))
+          .map((id) => String(id || "").trim())
+          .filter((id) => id && id.length === 24)
+          .map((id) => mongoose.Types.ObjectId.createFromHexString(String(id)));
+      } else if (payload.balagruhaId) {
+        // Backward compatibility: single balagruhaId
+        const id = String(payload.balagruhaId).trim();
+        payload.balagruhaIds =
+          id && id.length === 24
+            ? [mongoose.Types.ObjectId.createFromHexString(id)]
+            : [];
+        delete payload.balagruhaId;
       }
 
       let student = new Student(payload).toJSON();
