@@ -75,6 +75,25 @@ exports.registerUser = async (payload) => {
       { data: { error: error } },
       `Error occurred during user registration: ${error.message}`
     );
+    // Mirror older behavior: return friendly duplicate email error
+    if (error?.errors?.email?.path === "email") {
+      return {
+        success: false,
+        data: { user: null },
+        message: "Email already exists",
+      };
+    }
+    // Handle Mongo duplicate key error (e.g., unique index on email)
+    if (
+      error?.code === 11000 &&
+      (error?.keyPattern?.email || error?.keyValue?.email)
+    ) {
+      return {
+        success: false,
+        data: { user: null },
+        message: "Email already exists",
+      };
+    }
     throw error;
   }
 };
