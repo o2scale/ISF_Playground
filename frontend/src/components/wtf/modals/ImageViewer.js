@@ -26,6 +26,9 @@ const ImageViewer = ({
   onLike,
   onHeart,
   isStudent = false,
+  studentName,
+  balagruha,
+  metadata,
 }) => {
   const [imgError, setImgError] = useState(false);
   const [imgLoading, setImgLoading] = useState(true);
@@ -124,9 +127,59 @@ const ImageViewer = ({
     boxShadow: "0 8px 16px rgba(0, 0, 0, 0.15)",
   });
 
+  const getDisplayInfo = () => {
+    // Check if this is an admin post
+    if (author?.role === 'admin' || !author || !author.name) {
+      return {
+        line1: 'Created by Admin',
+        line2: ''
+      };
+    }
+    
+    // For coach suggestions or student posts, show student info if available
+    if (studentName && balagruha) {
+      return {
+        line1: studentName,
+        line2: balagruha
+      };
+    }
+    
+    // Fallback to author name
+    return {
+      line1: author?.name || 'Image Creator',
+      line2: 'Image Pin'
+    };
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-gray-100">
+      <DialogContent 
+        className="max-w-6xl max-h-[95vh] p-0 overflow-hidden" 
+        style={{ 
+          backgroundImage: `
+            linear-gradient(to right, 
+              #A1EBC6 50%, 
+              transparent 50%
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent 0px,
+              transparent 50px,
+              white 50px,
+              white 54px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent 0px,
+              transparent 50px,
+              white 50px,
+              white 54px
+            )
+          `,
+          backgroundColor: '#A1EBC6',
+          backgroundPosition: '0 0, 50% 0, 50% 0'
+        }}
+      >
         <DialogTitle className="sr-only">Image Viewer - {title}</DialogTitle>
 
         {/* Custom CSS for animations */}
@@ -155,11 +208,53 @@ const ImageViewer = ({
             <X className="w-6 h-6 text-purple-600" />
           </button>
 
+          {/* Student Detail Pin */}
+          <div className="absolute top-16 left-4 w-64">
+            <img 
+              src="/student-detail-pin.png" 
+              alt="Student Detail Pin" 
+              className="w-full h-auto"
+            />
+            {/* Student info text overlay */}
+            <div 
+              className="absolute text-center text-black font-bold text-sm"
+              style={{
+                transform: 'rotate(-28deg)',
+                top: '35%',
+                left: '25%',
+                width: '50%',
+                height: '40%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <div className="leading-tight">
+                {(() => {
+                  const displayInfo = getDisplayInfo();
+                  return (
+                    <>
+                      <div>{displayInfo.line1}</div>
+                      {displayInfo.line2 && (
+                        <div className="text-xs">{displayInfo.line2}</div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+
           {/* Main polaroid-style image */}
           <div
-            className="absolute top-12 left-12 bg-white p-4 transform -rotate-2 shadow-lg"
+            className="absolute bg-white p-4 transform -rotate-2 shadow-lg"
             style={{
-              width: "400px",
+              width: "500px",
+              height: "400px",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%) rotate(-2deg)",
               ...getPostageStampStyle(),
             }}
           >
@@ -354,52 +449,28 @@ const ImageViewer = ({
                 </div>
               )}
             </div>
-            <div className="text-center">
-              <h3 className="font-handwriting text-lg text-gray-800 mb-1">
-                {title}
-              </h3>
-              {caption && (
-                <p className="text-sm text-gray-600 mb-2 italic">{caption}</p>
-              )}
-              {author && (
-                <p className="text-sm text-gray-600">
-                  by{" "}
-                  {typeof author === "object"
-                    ? author.name ||
-                      author.displayName ||
-                      author.username ||
-                      "Unknown"
-                    : typeof author === "string"
-                    ? author
-                    : "Unknown"}
-                </p>
-              )}
 
-              {/* Fallback author display */}
-              {!author && (
-                <p className="text-sm text-gray-500 italic">
-                  by Unknown Author
-                </p>
-              )}
-            </div>
           </div>
 
-          {/* Sticky note with title */}
-          <div className="absolute top-16 right-16 w-64 h-64 bg-yellow-200 p-6 transform rotate-3 shadow-lg">
+          {/* Image sticky note */}
+          <div className="absolute top-16 right-8 w-64 h-64 bg-yellow-200 p-6 transform rotate-3 shadow-lg">
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-red-500 rounded-full shadow-md"></div>
             <div className="h-full flex flex-col justify-center items-center text-center">
+              <div className="text-4xl mb-4">🖼️</div>
               <h2
-                className="text-purple-700 font-bold text-2xl mb-4"
+                className="text-yellow-700 font-bold text-xl mb-2"
                 style={{ fontFamily: "Comic Sans MS, cursive" }}
               >
-                WTF
+                IMAGE
               </h2>
-              <p className="text-purple-600 font-semibold text-sm mb-2">
-                Wall for Thrust
+              <p className="text-yellow-600 font-semibold text-sm mb-2">
+                {title || "Image Title"}
               </p>
-              <p className="text-purple-600 font-semibold text-sm mb-4">
-                towards Fame
-              </p>
+              {caption && (
+                <p className="text-gray-700 text-xs mb-2 italic">
+                  {caption}
+                </p>
+              )}
               <p className="text-gray-700 text-sm">
                 {new Date().toLocaleDateString("en-US", {
                   month: "short",
@@ -407,28 +478,25 @@ const ImageViewer = ({
                   year: "numeric",
                 })}
               </p>
-              <p className="text-purple-600 text-xs mt-2">
-                #fame #success goals
-              </p>
             </div>
           </div>
 
           {/* Stats card */}
-          <div className="absolute bottom-16 right-12 bg-white p-6 transform rotate-1 shadow-lg border-2 border-gray-200 rounded-lg">
-            <div className="space-y-4 text-center min-w-[120px]">
-              <div className="flex items-center justify-center gap-2 text-gray-600">
-                <Eye className="w-5 h-5" />
-                <span className="font-bold text-lg">
+          <div className="absolute bottom-16 right-12 bg-white p-8 transform rotate-1 shadow-lg border-2 border-gray-200 rounded-lg">
+            <div className="space-y-6 text-center min-w-[160px]">
+              <div className="flex items-center justify-center gap-3 text-gray-600">
+                <Eye className="w-8 h-8" />
+                <span className="font-bold text-2xl">
                   {views.toLocaleString()}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onLike && onLike()}
-                className="flex items-center justify-center gap-2 text-pink-500 hover:opacity-80 transition-opacity mx-auto"
+                className="flex items-center justify-center gap-3 text-pink-500 hover:opacity-80 transition-opacity mx-auto"
                 aria-label="Like"
               >
-                <ThumbsUp className="w-5 h-5" />
+                <ThumbsUp className="w-8 h-8" />
                 <span className="font-bold text-lg">
                   {likes.toLocaleString()}
                 </span>
@@ -436,17 +504,25 @@ const ImageViewer = ({
               <button
                 type="button"
                 onClick={() => onHeart && onHeart()}
-                className="flex items-center justify-center gap-2 text-green-600 hover:opacity-80 transition-opacity mx-auto"
+                className="flex items-center justify-center gap-3 text-green-600 hover:opacity-80 transition-opacity mx-auto"
                 aria-label="Love"
               >
-                <Heart className="w-5 h-5" />
+                <Heart className="w-8 h-8" />
                 <span className="font-bold text-lg">{hearts}</span>
               </button>
             </div>
           </div>
 
-          {/* Decorative tape strips */}
-          <div className="absolute top-96 right-96 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-6 shadow-sm"></div>
+
+
+          {/* Camera image in bottom left */}
+          <div className="absolute bottom-16 left-16 w-56">
+            <img 
+              src="/cameraimage.png" 
+              alt="Vintage Camera" 
+              className="w-full h-auto"
+            />
+          </div>
         </div>
       </DialogContent>
     </Dialog>

@@ -2803,6 +2803,9 @@ Check console for detailed results.`);
               handleHeartPin(selectedContent.id || selectedContent._id)
             }
             isStudent={isStudent}
+            studentName={selectedContent.studentName}
+            balagruha={selectedContent.balagruha}
+            metadata={selectedContent.metadata}
           />
         </>
       )}
