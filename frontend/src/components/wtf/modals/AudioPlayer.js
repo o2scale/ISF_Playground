@@ -10,6 +10,7 @@ const AudioPlayer = ({
   title,
   author,
   caption,
+  durationSeconds, // optional persisted duration from backend
   likes,
   hearts,
   views,
@@ -25,10 +26,64 @@ const AudioPlayer = ({
   const [duration, setDuration] = useState(0);
   const [playbackRate, setPlaybackRate] = useState(1);
 
-  // Reset state when audioSrc changes
+  // Helpers
+  const isFiniteNumber = (val) =>
+    typeof val === "number" && Number.isFinite(val) && !Number.isNaN(val);
+
+  const canFetchForDuration = (src) => {
+    try {
+      if (!src) return false;
+      if (src.startsWith("blob:")) return true;
+      if (src.startsWith("data:")) return true;
+      const url = new URL(src, window.location.href);
+      return url.origin === window.location.origin; // same-origin only
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const computeDurationFallback = async (src) => {
+    try {
+      if (!src || !canFetchForDuration(src)) return 0;
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      return Math.round(audioBuffer.duration);
+    } catch (e) {
+      // Swallow errors to avoid noisy logs for cross-origin or blocked fetches
+      console.debug("AudioPlayer: duration fallback not available", e?.message || e);
+      return 0;
+    }
+  };
+
+  // Reset state when audioSrc changes and try to pre-compute duration
   useEffect(() => {
     setCurrentTime(0);
     setIsPlaying(false);
+    setDuration(
+      isFiniteNumber(durationSeconds) && durationSeconds > 0
+        ? durationSeconds
+        : 0
+    );
+    const tryCompute = async () => {
+      requestAnimationFrame(async () => {
+        const d = audioRef.current?.duration;
+        if (isFiniteNumber(d) && d > 0) {
+          setDuration(d);
+        } else if (
+          (!durationSeconds || durationSeconds <= 0) &&
+          audioSrc &&
+          canFetchForDuration(audioSrc)
+        ) {
+          const fallback = await computeDurationFallback(audioSrc);
+          if (fallback > 0) setDuration(fallback);
+        }
+      });
+    };
+    tryCompute();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [audioSrc]);
 
   // Ensure handle moves to 100% when audio finishes
@@ -61,9 +116,18 @@ const AudioPlayer = ({
     }
   };
 
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+  const handleLoadedMetadata = async () => {
+    if (!audioRef.current) return;
+    const metaDuration = audioRef.current.duration;
+    if (isFiniteNumber(metaDuration) && metaDuration > 0) {
+      setDuration(metaDuration);
+    } else if (
+      (!durationSeconds || durationSeconds <= 0) &&
+      audioSrc &&
+      canFetchForDuration(audioSrc)
+    ) {
+      const fallback = await computeDurationFallback(audioSrc);
+      if (fallback > 0) setDuration(fallback);
     }
   };
 
@@ -229,11 +293,15 @@ const AudioPlayer = ({
                 </div>
                 {/* Debug info */}
                 <div className="text-xs text-gray-400 text-center">
-                  Progress:{" "}
-                  {duration > 0
-                    ? Math.round((currentTime / duration) * 100)
-                    : 0}
-                  % ({currentTime.toFixed(3)} / {duration.toFixed(3)})
+                  {`Progress: ${
+                    duration > 0
+                      ? Math.round((currentTime / duration) * 100)
+                      : 0
+                  }% (${Number.isFinite(currentTime) ? currentTime.toFixed(2) : "0.00"} / ${
+                    Number.isFinite(duration) && duration > 0
+                      ? duration.toFixed(2)
+                      : "0.00"
+                  })`}
                 </div>
               </div>
 

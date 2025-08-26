@@ -2866,6 +2866,8 @@ Check console for detailed results.`);
           title={selectedContent.title}
           author={selectedContent.author}
           caption={selectedContent.caption}
+          // Pass persisted duration if available for accurate seekbar init
+          durationSeconds={selectedContent.duration}
           likes={selectedContent.engagementMetrics?.likes || 0}
           hearts={selectedContent.engagementMetrics?.loves || 0}
           views={selectedContent.engagementMetrics?.seen || 0}

@@ -397,6 +397,15 @@ class WtfService {
       const pinData = {
         ...mappedPayload,
         mediaUrl: mediaUrl, // Use S3 URL if uploaded, otherwise original content
+        // Persist duration for audio/video pins when provided by client
+        duration:
+          mappedPayload.duration != null
+            ? mappedPayload.duration
+            : mappedPayload.audioDuration != null
+            ? mappedPayload.audioDuration
+            : mappedPayload.type === "audio" || mappedPayload.type === "video"
+            ? mappedPayload.duration || null
+            : undefined,
         // For image pins, set thumbnailUrl to the same as mediaUrl for display purposes
         // For video pins, use the generated thumbnail if available
         thumbnailUrl:

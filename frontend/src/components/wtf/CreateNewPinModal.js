@@ -437,6 +437,19 @@ const CreateNewPinModal = ({
   }, []);
 
   // Audio recording functions
+  // Robustly compute duration for recorded blobs (fallback when HTMLAudioElement reports 0)
+  const getAudioDurationFromBlob = async (blob) => {
+    try {
+      const arrayBuffer = await blob.arrayBuffer();
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      return Math.round(audioBuffer.duration);
+    } catch (e) {
+      console.warn("Failed to decode audio for duration:", e);
+      return 0;
+    }
+  };
+
   const startRecording = async () => {
     try {
       // Clean up any existing audio first (overwrite previous recording)
@@ -459,7 +472,7 @@ const CreateNewPinModal = ({
         audioChunks.push(event.data);
       });
 
-      recorder.addEventListener("stop", () => {
+      recorder.addEventListener("stop", async () => {
         const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
         const audioFile = new File([audioBlob], "voice-note.wav", {
           type: "audio/wav",
@@ -468,8 +481,13 @@ const CreateNewPinModal = ({
 
         // Create audio element to get actual duration
         const audio = new Audio(url);
-        audio.addEventListener("loadedmetadata", () => {
-          setAudioDuration(Math.round(audio.duration));
+        audio.addEventListener("loadedmetadata", async () => {
+          let durationSec = Math.round(audio.duration || 0);
+          if (!durationSec || !isFinite(durationSec)) {
+            // Fallback to Web Audio API decode for accurate duration
+            durationSec = await getAudioDurationFromBlob(audioBlob);
+          }
+          setAudioDuration(durationSec || 0);
         });
 
         setRecordedAudio(audioFile);
@@ -675,11 +693,13 @@ const CreateNewPinModal = ({
     try {
       const newPin = {
         title: formData.title,
-        content: formData.content,
+        // Ensure backend validation passes even for media: fallback to title
+        content: formData.content || formData.title,
         caption: formData.caption, // Add the caption field
         type: formData.contentType, // Backend expects 'type' not 'contentType'
         contentType: formData.contentType, // Keep original for frontend flow branching
-        author: user?.name || "Unknown User", // Backend expects 'author' or 'pinnedBy'
+        // Send author as userId for backend ObjectId requirement
+        author: user?.id || user?._id || "",
         isOfficial: formData.isOfficial,
         officialCategory: formData.isOfficial
           ? formData.officialCategory
@@ -687,6 +707,10 @@ const CreateNewPinModal = ({
         status: isDraft ? "draft" : "active", // Backend expects lowercase enum values
         language: "english", // Default language
         tags: [], // Default empty tags
+        // Provide duration for audio types if available
+        ...(formData.contentType === "audio" && audioDuration
+          ? { duration: audioDuration }
+          : {}),
         // Coach suggestion specific fields needed by parent handler to route correctly
         ...(isCoachMode && {
           studentName: formData.studentName,
