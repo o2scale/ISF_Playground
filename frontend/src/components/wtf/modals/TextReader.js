@@ -18,6 +18,9 @@ const TextReader = ({
   onLike,
   onHeart,
   isStudent = false,
+  studentName,
+  balagruha,
+  metadata,
 }) => {
   const [isReading, setIsReading] = useState(false);
 
@@ -49,9 +52,59 @@ const TextReader = ({
     boxShadow: "0 8px 16px rgba(0, 0, 0, 0.15)",
   });
 
+  const getDisplayInfo = () => {
+    // Check if this is an admin post
+    if (author?.role === 'admin' || !author || !author.name) {
+      return {
+        line1: 'Created by Admin',
+        line2: ''
+      };
+    }
+    
+    // For coach suggestions or student posts, show student info if available
+    if (studentName && balagruha) {
+      return {
+        line1: studentName,
+        line2: balagruha
+      };
+    }
+    
+    // Fallback to author name
+    return {
+      line1: author?.name || 'Text Creator',
+      line2: 'Text Pin'
+    };
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-gray-100">
+      <DialogContent 
+        className="max-w-6xl max-h-[95vh] p-0 overflow-hidden" 
+        style={{ 
+          backgroundImage: `
+            linear-gradient(to right, 
+              #A1EBC6 50%, 
+              transparent 50%
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent 0px,
+              transparent 50px,
+              white 50px,
+              white 54px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent 0px,
+              transparent 50px,
+              white 50px,
+              white 54px
+            )
+          `,
+          backgroundColor: '#A1EBC6',
+          backgroundPosition: '0 0, 50% 0, 50% 0'
+        }}
+      >
         <div className="relative min-h-[600px] p-8">
           {/* Close button */}
           <button
@@ -61,12 +114,53 @@ const TextReader = ({
             <X className="w-6 h-6 text-purple-600" />
           </button>
 
+          {/* Student Detail Pin */}
+          <div className="absolute top-16 left-4 w-64">
+            <img 
+              src="/student-detail-pin.png" 
+              alt="Student Detail Pin" 
+              className="w-full h-auto"
+            />
+            {/* Student info text overlay */}
+            <div 
+              className="absolute text-center text-black font-bold text-sm"
+              style={{
+                transform: 'rotate(-28deg)',
+                top: '35%',
+                left: '25%',
+                width: '50%',
+                height: '40%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}
+            >
+              <div className="leading-tight">
+                {(() => {
+                  const displayInfo = getDisplayInfo();
+                  return (
+                    <>
+                      <div>{displayInfo.line1}</div>
+                      {displayInfo.line2 && (
+                        <div className="text-xs">{displayInfo.line2}</div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          </div>
+
           {/* Main text content card */}
           <div
-            className="absolute top-12 left-12 bg-white p-6 transform rotate-1 shadow-lg"
+            className="absolute bg-white p-6 transform rotate-1 shadow-lg"
             style={{
               width: "500px",
               height: "400px",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%) rotate(1deg)",
               ...getPostageStampStyle(),
             }}
           >
@@ -153,7 +247,7 @@ const TextReader = ({
           </div>
 
           {/* Text sticky note */}
-          <div className="absolute top-16 right-16 w-64 h-64 bg-orange-200 p-6 transform -rotate-2 shadow-lg">
+          <div className="absolute top-16 right-8 w-64 h-64 bg-orange-200 p-6 transform -rotate-2 shadow-lg">
             <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 bg-red-500 rounded-full shadow-md"></div>
             <div className="h-full flex flex-col justify-center items-center text-center">
               <div className="text-4xl mb-4">📝</div>
@@ -163,9 +257,14 @@ const TextReader = ({
               >
                 TEXT
               </h2>
-              <p className="text-orange-600 font-semibold text-sm mb-4">
-                Read & Share
+              <p className="text-orange-600 font-semibold text-sm mb-2">
+                {title || "Text Title"}
               </p>
+              {caption && (
+                <p className="text-gray-700 text-xs mb-2 italic">
+                  {caption}
+                </p>
+              )}
               <p className="text-gray-700 text-sm">
                 {new Date().toLocaleDateString("en-US", {
                   month: "short",
@@ -173,45 +272,51 @@ const TextReader = ({
                   year: "numeric",
                 })}
               </p>
-              <p className="text-orange-600 text-xs mt-2">#text #article</p>
             </div>
           </div>
 
+          {/* Ink Bottle and Pen Image */}
+          <div className="absolute bottom-16 left-16 w-56">
+            <img 
+              src="/inkbottle-pen.png" 
+              alt="Ink Bottle and Pen" 
+              className="w-full h-auto"
+            />
+          </div>
+
           {/* Stats card */}
-          <div className="absolute bottom-16 right-12 bg-white p-6 transform rotate-1 shadow-lg border-2 border-gray-200 rounded-lg">
-            <div className="space-y-4 text-center min-w-[120px]">
-              <div className="flex items-center justify-center gap-2 text-gray-600">
-                <Eye className="w-5 h-5" />
-                <span className="font-bold text-lg">
+          <div className="absolute bottom-16 right-12 bg-white p-8 transform rotate-1 shadow-lg border-2 border-gray-200 rounded-lg">
+            <div className="space-y-6 text-center min-w-[160px]">
+              <div className="flex items-center justify-center gap-3 text-gray-600">
+                <Eye className="w-8 h-8" />
+                <span className="font-bold text-2xl">
                   {views.toLocaleString()}
                 </span>
               </div>
               <button
                 type="button"
                 onClick={() => onLike && onLike()}
-                className="flex items-center justify-center gap-2 text-pink-500 hover:opacity-80 transition-opacity mx-auto"
+                className="flex items-center justify-center gap-3 text-pink-500 hover:opacity-80 transition-opacity mx-auto"
                 aria-label="Like"
               >
-                <ThumbsUp className="w-5 h-5" />
-                <span className="font-bold text-lg">
+                <ThumbsUp className="w-8 h-8" />
+                <span className="text-lg font-bold">
                   {likes.toLocaleString()}
                 </span>
               </button>
               <button
                 type="button"
                 onClick={() => onHeart && onHeart()}
-                className="flex items-center justify-center gap-2 text-green-600 hover:opacity-80 transition-opacity mx-auto"
+                className="flex items-center justify-center gap-3 text-green-600 hover:opacity-80 transition-opacity mx-auto"
                 aria-label="Love"
               >
-                <Heart className="w-5 h-5" />
-                <span className="font-bold text-lg">{hearts}</span>
+                <Heart className="w-8 h-8" />
+                <span className="text-lg font-bold">{hearts}</span>
               </button>
             </div>
           </div>
 
-          {/* Decorative tape strips */}
 
-          <div className="absolute bottom-48 right-80 w-32 h-6 bg-yellow-300 bg-opacity-70 transform -rotate-12 shadow-sm"></div>
         </div>
       </DialogContent>
     </Dialog>

@@ -117,7 +117,33 @@ const VideoPlayer = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[95vh] p-0 overflow-hidden bg-gray-100">
+      <DialogContent 
+        className="max-w-6xl max-h-[95vh] p-0 overflow-hidden" 
+        style={{ 
+          background: `
+            linear-gradient(to right, 
+              #A1EBC6 50%, 
+              transparent 50%
+            ),
+            repeating-linear-gradient(
+              90deg,
+              transparent 0px,
+              transparent 50px,
+              white 50px,
+              white 54px
+            ),
+            repeating-linear-gradient(
+              0deg,
+              transparent 0px,
+              transparent 50px,
+              white 50px,
+              white 54px
+            )
+          `,
+          backgroundColor: '#A1EBC6',
+          backgroundPosition: '0 0, 50% 0, 50% 0'
+        }}
+      >
         <div className="relative min-h-[600px] p-8">
           {/* Close button */}
           <button

@@ -2556,40 +2556,12 @@ Check console for detailed results.`);
             </div>
 
             <div className="text-center mb-8">
-              <div className="absolute top-16 left-1/2 transform -translate-x-1/2 w-32 h-6 bg-yellow-200 bg-opacity-70 rotate-3 rounded-sm shadow-md"></div>
-
-              {/* Monthly Theme Display */}
-              <div className="mb-4">
-                <div className="text-6xl mb-2">{monthlyTheme.emoji}</div>
-                <h3
-                  className="text-lg font-medium"
-                  style={{ color: previewBgSettings.fontColor || undefined }}
-                >
-                  {monthlyTheme.title}
-                </h3>
-                <p
-                  className="text-sm"
-                  style={{ color: previewBgSettings.fontColor || undefined }}
-                >
-                  {monthlyTheme.subtitle}
-                </p>
-              </div>
-
+              {/* My Wall of FAME Main Image */}
               <img
-                src={isfWallOfFameImage}
-                alt="Wall of Fame"
+                src="/mywalloffamemain.png"
+                alt="My Wall of FAME"
                 className="mx-auto mb-2 relative z-10 w-[420px] max-w-full drop-shadow-lg"
               />
-              <p
-                className="text-lg"
-                style={{ color: previewBgSettings.fontColor || undefined }}
-              >
-                {isAdmin
-                  ? "Manage and curate amazing content from our community"
-                  : isCoach
-                  ? "Discover and suggest amazing content from our community"
-                  : "Discover amazing content from our community"}
-              </p>
 
               {/* Category Indicator */}
               {selectedCategory.isOfficial && (
@@ -2883,6 +2855,9 @@ Check console for detailed results.`);
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
           isStudent={isStudent}
+          studentName={selectedContent.studentName}
+          balagruha={selectedContent.balagruha}
+          metadata={selectedContent.metadata}
         />
       )}
 
@@ -2906,6 +2881,9 @@ Check console for detailed results.`);
             handleHeartPin(selectedContent.id || selectedContent._id)
           }
           isStudent={isStudent}
+          studentName={selectedContent.studentName}
+          balagruha={selectedContent.balagruha}
+          metadata={selectedContent.metadata}
         />
       )}
 
