@@ -21,6 +21,7 @@ const VideoPlayer = ({
   studentName,
   balagruha,
   metadata,
+  createdAt,
 }) => {
   const videoRef = useRef(null);
 
@@ -290,11 +291,18 @@ const VideoPlayer = ({
                 </p>
               )}
               <p className="text-gray-700 text-sm">
-                {new Date().toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {createdAt 
+                  ? new Date(createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : new Date().toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                }
               </p>
               {/* Removed hashtags as requested */}
             </div>

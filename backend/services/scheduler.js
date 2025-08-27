@@ -81,7 +81,7 @@ class SchedulerService {
       },
       {
         scheduled: false, // Don't start immediately
-        timezone: "Asia/Kolkata", // IST timezone
+        // Removed timezone setting to use server's natural timezone
       }
     );
 
@@ -123,7 +123,7 @@ class SchedulerService {
       },
       {
         scheduled: false,
-        timezone: "Asia/Kolkata",
+        // Removed timezone setting to use server's natural timezone
       }
     );
 
@@ -165,7 +165,7 @@ class SchedulerService {
       },
       {
         scheduled: false,
-        timezone: "Asia/Kolkata",
+        // Removed timezone setting to use server's natural timezone
       }
     );
 
@@ -207,7 +207,7 @@ class SchedulerService {
       },
       {
         scheduled: false,
-        timezone: "Asia/Kolkata",
+        // Removed timezone setting to use server's natural timezone
       }
     );
 

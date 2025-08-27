@@ -22,6 +22,7 @@ const AudioPlayer = ({
   studentName,
   balagruha,
   metadata,
+  createdAt,
 }) => {
   const audioRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -504,11 +505,18 @@ const AudioPlayer = ({
                 </p>
               )}
               <p className="text-gray-700 text-sm">
-                {new Date().toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {createdAt 
+                  ? new Date(createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : new Date().toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                }
               </p>
             </div>
           </div>

@@ -1,6 +1,12 @@
-import React, { useState } from "react";
-import { X, Volume2, Eye, Heart, ThumbsUp } from "lucide-react";
-import { Dialog, DialogContent } from "../../ui/dialog.jsx";
+import React, { useState, useEffect } from "react";
+import {
+  X,
+  Eye,
+  Heart,
+  ThumbsUp,
+  Volume2,
+} from "lucide-react";
+import { Dialog, DialogContent, DialogTitle } from "../../ui/dialog.jsx";
 import { Badge } from "../../ui/badge.jsx";
 
 const TextReader = ({
@@ -21,22 +27,10 @@ const TextReader = ({
   studentName,
   balagruha,
   metadata,
+  createdAt,
 }) => {
   const [isReading, setIsReading] = useState(false);
-
-  const handleTextToSpeech = () => {
-    if ("speechSynthesis" in window) {
-      if (isReading) {
-        window.speechSynthesis.cancel();
-        setIsReading(false);
-      } else {
-        const utterance = new SpeechSynthesisUtterance(content);
-        utterance.onend = () => setIsReading(false);
-        window.speechSynthesis.speak(utterance);
-        setIsReading(true);
-      }
-    }
-  };
+  const [speechUtterance, setSpeechUtterance] = useState(null);
 
   const getPostageStampStyle = () => ({
     backgroundImage: `
@@ -72,9 +66,34 @@ const TextReader = ({
     // Fallback to author name
     return {
       line1: author?.name || 'Text Creator',
-      line2: 'Text Pin'
+      line2: 'Text Content'
     };
   };
+
+  const handleTextToSpeech = () => {
+    if (isReading) {
+      if (speechUtterance) {
+        speechUtterance.cancel();
+      }
+      setIsReading(false);
+      setSpeechUtterance(null);
+    } else {
+      const utterance = new SpeechSynthesisUtterance(content);
+      utterance.onend = () => setIsReading(false);
+      utterance.onerror = () => setIsReading(false);
+      setSpeechUtterance(utterance);
+      setIsReading(true);
+      speechSynthesis.speak(utterance);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (speechUtterance) {
+        speechUtterance.cancel();
+      }
+    };
+  }, [speechUtterance]);
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -105,6 +124,8 @@ const TextReader = ({
           backgroundPosition: '0 0, 50% 0, 50% 0'
         }}
       >
+        <DialogTitle className="sr-only">Text Reader - {title}</DialogTitle>
+
         <div className="relative min-h-[600px] p-8">
           {/* Close button */}
           <button
@@ -152,78 +173,42 @@ const TextReader = ({
             </div>
           </div>
 
-          {/* Main text content card */}
+          {/* Text content area.png image - full display without cropping */}
           <div
-            className="absolute bg-white p-6 transform rotate-1 shadow-lg"
+            className="absolute transform rotate-1"
             style={{
-              width: "500px",
-              height: "400px",
+              width: "800px",
+              height: "600px",
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%) rotate(1deg)",
-              ...getPostageStampStyle(),
             }}
           >
-            {isOfficial && (
-              <div className="absolute -top-3 -left-3 flex flex-col gap-1">
-                <Badge className="bg-purple-600 text-white text-xs px-2 py-1">
-                  ISF Official
-                </Badge>
-                {officialCategory && (
-                  <Badge
-                    className={`text-white text-xs px-2 py-1 ${
-                      officialCategory === "mann-ki-baat"
-                        ? "bg-purple-700"
-                        : officialCategory === "op-ed"
-                        ? "bg-indigo-600"
-                        : officialCategory === "isf-updates"
-                        ? "bg-teal-600"
-                        : "bg-gray-600"
-                    }`}
-                  >
-                    {officialCategory === "mann-ki-baat"
-                      ? "🎙️ Mann Ki Baat"
-                      : officialCategory === "op-ed"
-                      ? "📝 Op Ed"
-                      : officialCategory === "isf-updates"
-                      ? "📢 ISF Updates"
-                      : "Official"}
-                  </Badge>
-                )}
-              </div>
-            )}
-            <div className="h-full flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="font-handwriting text-xl text-gray-800 mb-1">
-                    {title}
-                  </h3>
-                  {caption && (
-                    <p className="text-sm text-gray-600 mb-2 italic">
-                      {caption}
-                    </p>
-                  )}
-                  {author && (
-                    <p className="text-sm text-gray-600">
-                      Posted by{" "}
-                      {typeof author === "object" ? author.name : author}
-                    </p>
-                  )}
-                </div>
-                <button
-                  onClick={handleTextToSpeech}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors ${
-                    isReading
-                      ? "bg-red-100 text-red-700 hover:bg-red-200"
-                      : "bg-green-100 text-green-700 hover:bg-green-200"
-                  }`}
+            {/* Text content area.png image - no white background, full image visible */}
+            <img 
+              src="/text-content-area.png" 
+              alt="Text Content Area" 
+              className="w-full h-full object-contain"
+            />
+            
+            {/* Scrollable text container positioned exactly in the blue rectangle */}
+            <div 
+              className="absolute"
+              style={{
+                top: '27%',
+                left: '35%',
+                right: '35%',
+                bottom: '18%'
+              }}
+            >
+                              <div 
+                  className="w-full h-full overflow-y-auto p-2"
+                  style={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.27)',
+                    borderRadius: '2px',
+                    border: '1px solid rgba(0, 0, 255, 0.2)'
+                  }}
                 >
-                  <Volume2 className="w-4 h-4" />
-                  {isReading ? "Stop" : "Read"}
-                </button>
-              </div>
-
-              <div className="flex-1 overflow-y-auto bg-gray-50 p-4 rounded border-2 border-gray-200">
                 <div
                   className="text-gray-800 leading-relaxed whitespace-pre-wrap text-sm break-words"
                   dangerouslySetInnerHTML={{
@@ -237,7 +222,7 @@ const TextReader = ({
                         (m) => {
                           const hasProtocol = /^https?:\/\//i.test(m);
                           const url = hasProtocol ? m : `https://${m}`;
-                          return `<a href="${url}" target="_blank" rel="noreferrer" class="text-blue-600 underline">${m}</a>`;
+                          return `<a href="${url}" target="_blank" rel="no-referrer" class="text-blue-600 underline">${m}</a>`;
                         }
                       ),
                   }}
@@ -266,11 +251,18 @@ const TextReader = ({
                 </p>
               )}
               <p className="text-gray-700 text-sm">
-                {new Date().toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
-                })}
+                {createdAt 
+                  ? new Date(createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                  : new Date().toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })
+                }
               </p>
             </div>
           </div>
@@ -315,8 +307,6 @@ const TextReader = ({
               </button>
             </div>
           </div>
-
-
         </div>
       </DialogContent>
     </Dialog>

@@ -93,6 +93,11 @@ exports.getPinsByStatus = async ({
     const skip = (page - 1) * limit;
     const query = { status };
 
+    // For active status, also filter by expiration to exclude expired pins
+    if (status === "active") {
+      query.expiresAt = { $gt: new Date() };
+    }
+
     // Add filters
     if (type) query.type = type;
     if (author) {
@@ -100,7 +105,7 @@ exports.getPinsByStatus = async ({
       if (mongoose.Types.ObjectId.isValid(author)) {
         query.author = new mongoose.Types.ObjectId(author);
       } else {
-        // If author is a string (name), we'll need to find the user first
+        // If author is a string (name), we'll need to find the author first
         // For now, we'll skip the author filter if it's not a valid ObjectId
         // This can be enhanced later to search by user name
         console.log(`Skipping author filter for non-ObjectId: ${author}`);
@@ -377,15 +382,14 @@ exports.getPinsByStatus = async ({
   }
 };
 
-// Get expired pins for cleanup (pins older than 7 days)
+// Get expired pins for cleanup (pins that have passed their expiration date)
 exports.getExpiredPins = async () => {
   try {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const now = new Date();
 
     const pins = await WtfPin.find({
       status: "active",
-      createdAt: { $lte: oneWeekAgo },
+      expiresAt: { $lte: now },
     })
       .populate("author", "name role")
       .lean();
@@ -394,7 +398,7 @@ exports.getExpiredPins = async () => {
       success: true,
       data: pins,
       message: "Expired pins fetched successfully",
-      expirationCutoff: oneWeekAgo,
+      expirationCutoff: now,
     };
   } catch (error) {
     errorLogger.error({ error: error.message }, "Error in getExpiredPins");
@@ -405,7 +409,10 @@ exports.getExpiredPins = async () => {
 // Get pins for FIFO management (limit active pins to 20)
 exports.getPinsForFifoManagement = async () => {
   try {
-    const activePinsCount = await WtfPin.countDocuments({ status: "active" });
+    const activePinsCount = await WtfPin.countDocuments({ 
+      status: "active",
+      expiresAt: { $gt: new Date() } // Only count non-expired pins
+    });
 
     if (activePinsCount <= 20) {
       return {
@@ -415,7 +422,10 @@ exports.getPinsForFifoManagement = async () => {
       };
     }
 
-    const pinsToUnpin = await WtfPin.find({ status: "active" })
+    const pinsToUnpin = await WtfPin.find({ 
+      status: "active",
+      expiresAt: { $gt: new Date() } // Only consider non-expired pins
+    })
       .sort({ createdAt: 1 }) // Oldest first
       .limit(activePinsCount - 20)
       .lean();

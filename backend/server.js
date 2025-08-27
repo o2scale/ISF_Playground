@@ -34,6 +34,9 @@ const faceapi = require("face-api.js");
 // Import cleanup function
 const { cleanupOrphanedFiles } = require("./middleware/upload");
 
+// Import WTF scheduler service for automatic initialization
+const schedulerService = require("./services/scheduler");
+
 // if (!process.env.JWT_SECRET) {
 //     console.error('JWT_SECRET is not defined in environment variables');
 //     process.exit(1);
@@ -78,12 +81,22 @@ const dbConnection =
 
 mongoose
   .connect(dbConnection, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(() => {
+  .then(async () => {
     console.log(
       `✅ MongoDB connected to ${
         process.env.NODE_ENV === "local" ? "local database" : "remote database"
       }`
     );
+    
+    // Initialize WTF scheduler automatically after database connection
+    try {
+      await schedulerService.initialize();
+      console.log("✅ WTF Scheduler initialized successfully - Pin expiration will run automatically");
+    } catch (error) {
+      console.error("❌ Failed to initialize WTF Scheduler:", error.message);
+      console.log("⚠️ Pin expiration will not run automatically. Admin must manually initialize scheduler.");
+    }
+    
     // loadMongoDump();
     // load the database with the dump into the local db if the node_env is local and dbConnection string have the localhost db connection
     if (

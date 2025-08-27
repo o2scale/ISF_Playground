@@ -2784,29 +2784,30 @@ Check console for detailed results.`);
               ? Object.keys(selectedContent.author)
               : null,
           })}
-          <ImageViewer
-            isOpen={true}
-            onClose={closeModal}
-            imageSrc={selectedContent.mediaUrl || selectedContent.content}
-            title={selectedContent.title}
-            author={selectedContent.author}
-            caption={selectedContent.caption}
-            likes={selectedContent.engagementMetrics?.likes || 0}
-            hearts={selectedContent.engagementMetrics?.loves || 0}
-            views={selectedContent.engagementMetrics?.seen || 0}
-            isOfficial={selectedContent.isOfficial}
-            officialCategory={selectedContent.officialCategory}
-            onLike={() =>
-              handleLikePin(selectedContent.id || selectedContent._id)
-            }
-            onHeart={() =>
-              handleHeartPin(selectedContent.id || selectedContent._id)
-            }
-            isStudent={isStudent}
-            studentName={selectedContent.studentName}
-            balagruha={selectedContent.balagruha}
-            metadata={selectedContent.metadata}
-          />
+                  <ImageViewer
+          isOpen={true}
+          onClose={closeModal}
+          imageSrc={selectedContent.mediaUrl || selectedContent.content}
+          title={selectedContent.title}
+          author={selectedContent.author}
+          caption={selectedContent.caption}
+          likes={selectedContent.engagementMetrics?.likes || 0}
+          hearts={selectedContent.engagementMetrics?.loves || 0}
+          views={selectedContent.engagementMetrics?.seen || 0}
+          isOfficial={selectedContent.isOfficial}
+          officialCategory={selectedContent.officialCategory}
+          onLike={() =>
+            handleLikePin(selectedContent.id || selectedContent._id)
+          }
+          onHeart={() =>
+            handleHeartPin(selectedContent.id || selectedContent._id)
+          }
+          isStudent={isStudent}
+          studentName={selectedContent.studentName}
+          balagruha={selectedContent.balagruha}
+          metadata={selectedContent.metadata}
+          createdAt={selectedContent.createdAt}
+        />
         </>
       )}
 
@@ -2833,6 +2834,7 @@ Check console for detailed results.`);
           studentName={selectedContent.studentName}
           balagruha={selectedContent.balagruha}
           metadata={selectedContent.metadata}
+          createdAt={selectedContent.createdAt}
         />
       )}
 
@@ -2861,6 +2863,7 @@ Check console for detailed results.`);
           studentName={selectedContent.studentName}
           balagruha={selectedContent.balagruha}
           metadata={selectedContent.metadata}
+          createdAt={selectedContent.createdAt}
         />
       )}
 
@@ -2887,6 +2890,7 @@ Check console for detailed results.`);
           studentName={selectedContent.studentName}
           balagruha={selectedContent.balagruha}
           metadata={selectedContent.metadata}
+          createdAt={selectedContent.createdAt}
         />
       )}
 
