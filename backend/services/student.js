@@ -14,6 +14,7 @@ const {
 const MedicalRecords = require("../services/medicalRecords");
 const { dateToString, getUploadedFilesFullPath } = require("../utils/helper");
 const { uploadFileToS3 } = require("./aws/s3");
+const { cleanupLocalFile } = require("../utils/fileCleanup");
 const canvas = require("canvas");
 const faceapi = require("face-api.js");
 const path = require("path");
@@ -177,6 +178,8 @@ class Student {
                     name: originalname,
                     date: new Date(),
                   });
+                  // Clean up local file after successful S3 upload
+                  cleanupLocalFile(fileItem, fileName);
                 }
               } else {
                 // if the isOfflineReq is true then just push the file name to the array
@@ -208,6 +211,8 @@ class Student {
                     name: originalname,
                     date: new Date(),
                   });
+                  // Clean up local file after successful S3 upload
+                  cleanupLocalFile(fileItem, fileName);
                 }
               } else {
                 // if the isOfflineReq is true then just push the file name to the array
@@ -787,6 +792,8 @@ class Student {
                     name: originalname,
                     date: new Date(),
                   });
+                  // Clean up local file after successful S3 upload
+                  cleanupLocalFile(fileItem, fileName);
                 }
               } else {
                 // if the isOfflineReq is true then just push the file name to the array
@@ -818,6 +825,8 @@ class Student {
                     name: originalname,
                     date: new Date(),
                   });
+                  // Clean up local file after successful S3 upload
+                  cleanupLocalFile(fileItem, fileName);
                 }
               } else {
                 // if the isOfflineReq is true then just push the file name to the array
