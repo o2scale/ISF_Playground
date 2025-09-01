@@ -658,8 +658,37 @@ exports.getUsersByRoleAndBalagruhaId = async ({ role, balagruhaId }) => {
     .select(
       "-password -passwordResetToken -loginAttempts -lockUntil -facialData -updatedAt -__v"
     )
+    .populate("balagruhaIds")
+    .populate("assignedMachines")
+    .populate("medicalRecords")
     .lean()
     .then((result) => {
+      // Process medical records similar to getAllUsers
+      if (result && result.length > 0) {
+        result = result.map((item) => {
+          let medicalHistoryItem = [];
+          let nextActionDate = null;
+          if (item?.medicalRecords?.length > 0) {
+            let medicalRecords = item?.medicalRecords.map((record) => {
+              if (record.nextActionDate && record.nextActionDate !== null) {
+                nextActionDate = record.nextActionDate;
+              }
+              return record.medicalHistory;
+            });
+            medicalRecords.forEach((item) => {
+              if (item.length > 0) {
+                item.forEach((medItem) => {
+                  medicalHistoryItem.push(medItem);
+                });
+              }
+            });
+          }
+          item.nextActionDate = nextActionDate;
+          item.medicalHistory = medicalHistoryItem;
+          delete item.medicalRecords;
+          return item;
+        });
+      }
       return {
         success: true,
         data: result,
@@ -1530,8 +1559,37 @@ exports.getUsersByRoleAndBalagruhaIdList = async ({ role, balagruhaId }) => {
     .select(
       "-password -passwordResetToken -loginAttempts -lockUntil -facialData -updatedAt -__v"
     )
+    .populate("balagruhaIds")
+    .populate("assignedMachines")
+    .populate("medicalRecords")
     .lean()
     .then((result) => {
+      // Process medical records similar to getAllUsers
+      if (result && result.length > 0) {
+        result = result.map((item) => {
+          let medicalHistoryItem = [];
+          let nextActionDate = null;
+          if (item?.medicalRecords?.length > 0) {
+            let medicalRecords = item?.medicalRecords.map((record) => {
+              if (record.nextActionDate && record.nextActionDate !== null) {
+                nextActionDate = record.nextActionDate;
+              }
+              return record.medicalHistory;
+            });
+            medicalRecords.forEach((item) => {
+              if (item.length > 0) {
+                item.forEach((medItem) => {
+                  medicalHistoryItem.push(medItem);
+                });
+              }
+            });
+          }
+          item.nextActionDate = nextActionDate;
+          item.medicalHistory = medicalHistoryItem;
+          delete item.medicalRecords;
+          return item;
+        });
+      }
       return {
         success: true,
         data: result,

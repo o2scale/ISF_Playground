@@ -335,6 +335,33 @@ exports.extractS3KeyFromUrl = (s3Url) => {
   }
 };
 
+// Delete file from S3 by bucket and key
+exports.deleteFileFromS3 = async (bucketName, key) => {
+  try {
+    const params = {
+      Bucket: bucketName,
+      Key: key,
+    };
+
+    const command = new DeleteObjectCommand(params);
+    await s3Client.send(command);
+
+    console.log(`File deleted successfully from S3: ${key}`);
+    return {
+      success: true,
+      message: "File deleted successfully",
+      key: key,
+    };
+  } catch (error) {
+    console.error("Error deleting file from S3:", error);
+    return {
+      success: false,
+      message: "File deletion failed",
+      error: error.message,
+    };
+  }
+};
+
 // Delete WTF media by URL or key
 exports.deleteWtfMedia = async (keyOrUrl) => {
   try {

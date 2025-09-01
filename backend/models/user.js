@@ -20,6 +20,12 @@ const userSchema = new mongoose.Schema(
         "Please enter a valid email",
       ],
     },
+    userId: {
+      type: Number,
+      unique: true,
+      sparse: true, // This allows multiple null values by indexing only non-null values
+      required: false, // Makes the field optional
+    },
     password: {
       type: String,
       required: false, // Changed from true to false to make it optional

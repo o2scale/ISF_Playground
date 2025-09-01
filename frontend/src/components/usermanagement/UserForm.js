@@ -90,6 +90,8 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
   useEffect(() => {
     if (mode === "edit" && user) {
+      console.log("🔍 Edit mode - User object:", user);
+      console.log("🔍 Edit mode - userId field:", user.userId);
       // Set basic user data
       setFormData({
         name: user.name || "",
@@ -619,6 +621,11 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           formDataToSend.append("facialData", files.facialData);
         }
 
+        // If medical history is empty, send a clear flag
+        if (formData.medicalHistory.length === 0) {
+          formDataToSend.append("clearMedicalHistory", "true");
+        }
+        
         // Add medical history fields individually
         formData.medicalHistory.forEach((history, index) => {
           // Add basic fields

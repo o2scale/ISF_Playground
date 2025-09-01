@@ -321,11 +321,31 @@ router.post("/student/login", async (req, res) => {
         .status(400)
         .json({ success: false, message: "userId is required" });
     }
-    // Find user by _id; if a custom userId field exists, adjust accordingly
+    // Find user by _id, userId field, or email
     const isValid = mongoose.Types.ObjectId.isValid(userId);
-    const user = isValid
-      ? await User.findById(userId)
-      : await User.findOne({ email: userId });
+    let user = null;
+    
+    if (isValid) {
+      // Try to find by MongoDB ObjectId first
+      user = await User.findById(userId);
+    }
+    
+    if (!user) {
+      // Try to find by custom userId field (for simple numeric IDs like "123")
+      // Try both string and number formats since the input could be either
+      const numericUserId = parseInt(userId);
+      if (!isNaN(numericUserId)) {
+        user = await User.findOne({ userId: numericUserId });
+      }
+      if (!user) {
+        user = await User.findOne({ userId: userId });
+      }
+    }
+    
+    if (!user) {
+      // Finally try to find by email
+      user = await User.findOne({ email: userId });
+    }
     if (!user || user.role !== UserTypes.STUDENT) {
       return res
         .status(400)

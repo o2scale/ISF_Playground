@@ -23,6 +23,7 @@ const { swaggerUi, swaggerDocs } = require("./swagger");
 // Newly added routes from deployed backend
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const medicalCheckInsRoutes = require("./routes/medicalCheckInsRoutes");
+const medicalRecordsRoutes = require("./routes/medicalRecordsRoutes");
 const offlineRequestQueueRoutes = require("./routes/offlineRequestQueue");
 const courseRoutes = require("./routes/courseRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
@@ -70,6 +71,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 // Newly added route mounts
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/medical-check-ins", medicalCheckInsRoutes);
+app.use("/api/medical-records", medicalRecordsRoutes);
 app.use("/api/offline-requests", offlineRequestQueueRoutes);
 app.use("/api/v1/courses", courseRoutes);
 app.use("/api/notifications", notificationRoutes);

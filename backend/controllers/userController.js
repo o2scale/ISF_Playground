@@ -780,23 +780,81 @@ exports.updateUserDetails = async (req, res) => {
     // check the request if from localhost/ offline case
     let isOfflineReq = isRequestFromLocalhost(req);
     req.body.isOfflineReq = isOfflineReq;
+    
     // Handle facial data if uploaded
     if (req.files && req.files.length > 0) {
       req.body.facialData = req.files.filter(
         (file) => file.fieldname === "facialData"
       )[0];
-
-      // Handle any other file uploads if needed
-      const medicalHistory = extractMedicalHistory(req);
-      if (medicalHistory.length > 0) {
-        req.body.medicalHistory = medicalHistory;
-        req.body.medicalHistory =
-          await Student.handleStudentMedicalRecordUpdate(req.body);
-      }
     }
-
-    if (req.body.nextActionDate && req.body.nextActionDate !== "") {
-      updateNextActionDate(userId, req.body.nextActionDate);
+    
+    // Handle medical history extraction from request
+    try {
+      const medicalHistory = extractMedicalHistory(req);
+      
+      // Check if we need to update medical records
+      // If medicalHistory fields were sent (even if empty), or if there's an explicit clear flag
+      const shouldUpdateMedicalRecords = req.body.clearMedicalHistory === 'true' || 
+                                         Object.keys(req.body).some(key => key.startsWith('medicalHistory')) ||
+                                         medicalHistory.length > 0;
+      
+      if (shouldUpdateMedicalRecords) {
+        const MedicalRecord = require("../models/medical");
+        const existingRecord = await MedicalRecord.findOne({ studentId: userId });
+        
+        if (medicalHistory.length > 0) {
+          // Process medical history (upload files to S3)
+          req.body.medicalHistory = medicalHistory;
+          req.body.medicalHistory =
+            await Student.handleStudentMedicalRecordUpdate(req.body);
+        } else {
+          // Empty medical history - clear it
+          req.body.medicalHistory = [];
+        }
+        
+        if (existingRecord) {
+          // Update existing medical record (including clearing if empty)
+          existingRecord.medicalHistory = req.body.medicalHistory;
+          if (req.body.nextActionDate) {
+            existingRecord.nextActionDate = req.body.nextActionDate;
+          }
+          // updatedBy field might not exist in the schema, so we'll skip it
+          await existingRecord.save();
+        } else if (req.body.medicalHistory.length > 0) {
+          // Only create new record if there's actual medical history
+          const { createMedicalRecords } = require("../data-access/medicalRecords");
+          const medicalRecordsEntry = {
+            studentId: userId,
+            healthCheckupDate: null,
+            vaccinations: null,
+            nextActionDate: req.body.nextActionDate || null,
+            medicalHistory: req.body.medicalHistory,
+            notes: "",
+            createdBy: req.user._id,
+          };
+          const medicalRecordsSaveResult = await createMedicalRecords(medicalRecordsEntry);
+          
+          if (medicalRecordsSaveResult && medicalRecordsSaveResult.success) {
+            // Update user's medicalRecords reference
+            const User = require("../models/user");
+            const user = await User.findById(userId);
+            if (user) {
+              if (!user.medicalRecords) {
+                user.medicalRecords = [];
+              }
+              user.medicalRecords.push(medicalRecordsSaveResult.data[0]._id);
+              await user.save();
+            }
+          }
+        }
+      } else if (req.body.nextActionDate && req.body.nextActionDate !== "") {
+        // Only update next action date if no medical history changes
+        updateNextActionDate(userId, req.body.nextActionDate);
+      }
+    } catch (medicalError) {
+      console.error("Error updating medical records:", medicalError);
+      // Continue with user update even if medical records fail
+      // You might want to log this error but not fail the entire update
     }
 
     logger.info(

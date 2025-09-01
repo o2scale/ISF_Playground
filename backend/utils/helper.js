@@ -28,8 +28,13 @@ exports.dateToString = (date) => {
 };
 
 exports.isRequestFromLocalhost = (req) => {
-  const ip = req.socket.remoteAddress;
-  return ip === "::1" || ip === "127.0.0.1" || ip?.includes("localhost");
+  // Always return false to force S3 upload during development
+  // Change this back to true if you want to work completely offline
+  return false;
+  
+  // Original logic (commented out):
+  // const ip = req.socket.remoteAddress;
+  // return ip === "::1" || ip === "127.0.0.1" || ip?.includes("localhost");
 };
 
 // get the file content type of the uploaded file

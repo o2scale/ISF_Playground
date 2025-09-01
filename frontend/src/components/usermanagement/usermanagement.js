@@ -1417,19 +1417,8 @@ const UserManagement = () => {
                               <button
                                 className="action-button edit"
                                 onClick={() => {
+                                  console.log("🔍 Edit button clicked - User data:", user);
                                   setSelectedUser(user);
-                                  setFormData({
-                                    name: user.name,
-                                    email: user.email,
-                                    password: "",
-                                    role: user.role,
-                                    status: user.status,
-                                    age: user.age || "",
-                                    gender: user.gender || "",
-                                    balagruhaIds: user.balagruhaIds || "",
-                                    parentalStatus: user.parentalStatus || "",
-                                    guardianContact: user.guardianContact || "",
-                                  });
 
                                   // Set file previews if they exist
                                   if (user.medicalHistoryUrl) {
