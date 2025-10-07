@@ -27,6 +27,7 @@ const medicalRecordsRoutes = require("./routes/medicalRecordsRoutes");
 const offlineRequestQueueRoutes = require("./routes/offlineRequestQueue");
 const courseRoutes = require("./routes/courseRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
+const shopRoutes = require("./routes/v2/shop"); // Sprint 5: ISF Shop
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -75,6 +76,7 @@ app.use("/api/medical-records", medicalRecordsRoutes);
 app.use("/api/offline-requests", offlineRequestQueueRoutes);
 app.use("/api/v1/courses", courseRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/v2/shop", shopRoutes); // Sprint 5: ISF Shop routes
 
 const dbConnection =
   process.env.NODE_ENV === "local"
