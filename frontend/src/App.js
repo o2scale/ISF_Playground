@@ -28,6 +28,7 @@ import BalagruhaDashboard from "./components/dashboard/balagruha";
 import AttendanceComponent from "./components/Attendance/attendance";
 import BalagruhaManagement from "./components/balagruhaManagement/balagruhamanagement";
 import WtfDashboard from "./components/wtf/WtfDashboard";
+import ShopHome from "./components/shop/ShopHome";
 
 const App = () => {
   return (
@@ -123,6 +124,16 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <WtfDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Shop Route */}
+                <Route
+                  path="/shop"
+                  element={
+                    <ProtectedRoute>
+                      <ShopHome />
                     </ProtectedRoute>
                   }
                 />

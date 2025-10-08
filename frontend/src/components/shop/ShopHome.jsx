@@ -43,7 +43,7 @@ const ShopHome = () => {
       if (filters.category) params.category = filters.category;
       if (filters.search) params.search = filters.search;
       if (filters.minPrice) params.minPrice = filters.minPrice;
-      if (filters.maxPrice < 500) params.maxPrice = filters.maxPrice;
+      if (filters.maxPrice !== null && filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
       if (filters.inStock !== undefined) params.inStock = filters.inStock;
 
       const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
