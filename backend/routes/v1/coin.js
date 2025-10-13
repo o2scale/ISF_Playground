@@ -4,6 +4,7 @@ const {
   getUserBalance,
   getUserCoinStats,
   getUserTransactionHistory,
+  exportTransactionHistory,
   getWtfTransactionHistory,
   getTopEarners,
   checkFirstPinBonusEligibility,
@@ -21,11 +22,15 @@ router.get("/balance", authenticate, getUserBalance);
 // Get user coin statistics (Authenticated users)
 router.get("/stats", authenticate, getUserCoinStats);
 
-// Get user transaction history (Authenticated users)
-router.get("/transactions", authenticate, getUserTransactionHistory);
+// Export transaction history as CSV (Sprint5-Story-09: AC7)
+// IMPORTANT: Must be BEFORE /transactions route to avoid route shadowing
+router.get("/transactions/export", authenticate, exportTransactionHistory);
 
 // Get WTF transaction history (Authenticated users)
 router.get("/transactions/wtf", authenticate, getWtfTransactionHistory);
+
+// Get user transaction history (Authenticated users)
+router.get("/transactions", authenticate, getUserTransactionHistory);
 
 // ==================== BONUS ELIGIBILITY ROUTES ====================
 

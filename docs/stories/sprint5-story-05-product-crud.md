@@ -18,7 +18,7 @@
 **Story Completed:** October 8, 2025 - 9:30 PM
 **QA Status:** ✅ APPROVED FOR PRODUCTION (100% test coverage, 100% pass rate)
 **QA Assigned To:** QA Agent Quinn
-**E2E Test Scenarios:** `.e2e-test-scenarios-story05.md`
+**E2E Test Scenarios:** `docs/qa/e2e/story-05-product-crud.md`
 **QA Report:** `docs/qa/Story05-QA-Report.md`
 
 ---

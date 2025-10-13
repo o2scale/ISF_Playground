@@ -45,6 +45,7 @@ const coinSchema = new mongoose.Schema(
             "sports",
             "music",
             "general",
+            "shop", // Sprint5-Story-08: Added for shop purchases
           ],
           required: true,
         },
@@ -62,10 +63,13 @@ const coinSchema = new mongoose.Schema(
           ref: "wtf_student_interaction",
         },
         // Metadata for transaction tracking
+        // Using Mixed type to allow flexible metadata for different transaction types
+        // Shop transactions: orderId, orderNumber, itemCount
+        // WTF transactions: wtfPinId, wtfSubmissionId, wtfInteractionId
+        // Other transactions: ipAddress, userAgent, sessionId, etc.
         metadata: {
-          ipAddress: String,
-          userAgent: String,
-          sessionId: String,
+          type: mongoose.Schema.Types.Mixed,
+          default: {},
         },
         createdAt: {
           type: Date,
@@ -239,11 +243,17 @@ coinSchema.methods.getWtfTransactionHistory = function (limit = 50) {
 
 // Static method to find or create coin record for user
 coinSchema.statics.findOrCreateForUser = async function (userId) {
-  let coinRecord = await this.findOne({ userId });
+  // Convert userId to ObjectId if it's a string (from req.user.id or req.user._id)
+  // This ensures Mongoose can properly match the userId field in the database
+  const userObjectId = mongoose.Types.ObjectId.isValid(userId)
+    ? (typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId)
+    : userId;
+
+  let coinRecord = await this.findOne({ userId: userObjectId });
 
   if (!coinRecord) {
     coinRecord = new this({
-      userId,
+      userId: userObjectId,
       balance: 0,
       transactions: [],
       weeklyStats: {

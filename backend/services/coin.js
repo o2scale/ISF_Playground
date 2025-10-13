@@ -400,17 +400,65 @@ class CoinService {
     }
   }
 
-  // Get user transaction history
-  static async getUserTransactionHistory(userId, limit = 50, skip = 0) {
+  // Get user transaction history (Sprint5-Story-09: Enhanced with filtering)
+  static async getUserTransactionHistory(userId, filters = {}) {
     try {
+      const { type, source, startDate, endDate, page = 1, limit = 50 } = filters;
+      const skip = (page - 1) * limit;
+
       const coinRecord = await Coin.findOrCreateForUser(userId);
-      const transactions = coinRecord.getTransactionHistory(limit, skip);
+      let transactions = [...coinRecord.transactions];
+
+      // Apply filters
+      if (type) {
+        transactions = transactions.filter(t => t.type === type);
+      }
+
+      if (source) {
+        transactions = transactions.filter(t => t.source === source);
+      }
+
+      if (startDate) {
+        const start = new Date(startDate);
+        transactions = transactions.filter(t => new Date(t.createdAt) >= start);
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // End of day
+        transactions = transactions.filter(t => new Date(t.createdAt) <= end);
+      }
+
+      // Sort by date (newest first)
+      transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      const totalTransactions = transactions.length;
+
+      // Apply pagination
+      const paginatedTransactions = transactions.slice(skip, skip + limit);
+
+      // Calculate summary
+      const summary = {
+        totalEarned: transactions
+          .filter(t => t.type === 'earned')
+          .reduce((sum, t) => sum + t.amount, 0),
+        totalSpent: transactions
+          .filter(t => t.type === 'spent')
+          .reduce((sum, t) => sum + t.amount, 0),
+        currentBalance: coinRecord.balance
+      };
 
       return {
         success: true,
         data: {
-          transactions: transactions,
-          totalTransactions: coinRecord.transactions.length,
+          transactions: paginatedTransactions,
+          pagination: {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            total: totalTransactions,
+            pages: Math.ceil(totalTransactions / limit)
+          },
+          summary
         },
         message: "User transaction history retrieved successfully",
       };
@@ -418,6 +466,84 @@ class CoinService {
       errorLogger.error(
         { userId, error: error.message },
         "Error getting user transaction history"
+      );
+      throw error;
+    }
+  }
+
+  // Export user transaction history as CSV (Sprint5-Story-09: AC7)
+  static async exportTransactionHistory(userId, filters = {}) {
+    try {
+      const { type, source, startDate, endDate } = filters;
+
+      const coinRecord = await Coin.findOrCreateForUser(userId);
+      let transactions = [...coinRecord.transactions];
+
+      // Apply same filters as getUserTransactionHistory
+      if (type) {
+        transactions = transactions.filter(t => t.type === type);
+      }
+
+      if (source) {
+        transactions = transactions.filter(t => t.source === source);
+      }
+
+      if (startDate) {
+        const start = new Date(startDate);
+        transactions = transactions.filter(t => new Date(t.createdAt) >= start);
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        transactions = transactions.filter(t => new Date(t.createdAt) <= end);
+      }
+
+      // Sort by date (newest first)
+      transactions.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      // Build CSV content
+      const csvHeaders = ['Date', 'Type', 'Source', 'Description', 'Amount', 'Balance After'];
+      const csvRows = [csvHeaders.join(',')];
+
+      let runningBalance = coinRecord.balance;
+
+      // Reverse to calculate balance after each transaction
+      const reversedTransactions = [...transactions].reverse();
+      const transactionBalances = [];
+
+      for (const txn of reversedTransactions) {
+        transactionBalances.push(runningBalance);
+        if (txn.type === 'earned') {
+          runningBalance -= txn.amount;
+        } else {
+          runningBalance += txn.amount;
+        }
+      }
+
+      transactionBalances.reverse();
+
+      // Generate CSV rows
+      transactions.forEach((txn, index) => {
+        const date = new Date(txn.createdAt).toLocaleString('en-US');
+        const type = txn.type.charAt(0).toUpperCase() + txn.type.slice(1);
+        const source = txn.source.toUpperCase();
+        const description = `"${txn.description.replace(/"/g, '""')}"`;
+        const amount = txn.type === 'spent' ? `-${txn.amount}` : `+${txn.amount}`;
+        const balanceAfter = transactionBalances[index];
+
+        csvRows.push([date, type, source, description, amount, balanceAfter].join(','));
+      });
+
+      return {
+        success: true,
+        data: csvRows.join('\n'),
+        message: "Transaction history exported successfully",
+      };
+    } catch (error) {
+      errorLogger.error(
+        { userId, error: error.message },
+        "Error exporting transaction history"
       );
       throw error;
     }

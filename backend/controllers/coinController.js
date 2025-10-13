@@ -38,6 +38,10 @@ exports.getUserBalance = async (req, res) => {
         },
         `Successfully fetched user coin balance`
       );
+      // Set cache-control headers to prevent caching of balance data
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
       res.status(HTTP_STATUS_CODE.OK).json(result);
     } else {
       errorLogger.error(
@@ -134,11 +138,11 @@ exports.getUserCoinStats = async (req, res) => {
   }
 };
 
-// Get user transaction history
+// Get user transaction history (Sprint5-Story-09: Enhanced with filtering)
 exports.getUserTransactionHistory = async (req, res) => {
   try {
     const userId = req.user?.id;
-    const { page = 1, limit = 50 } = req.query;
+    const { type, source, startDate, endDate, page, limit } = req.query;
 
     if (!userId) {
       return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
@@ -158,11 +162,14 @@ exports.getUserTransactionHistory = async (req, res) => {
       `Request received to fetch user transaction history`
     );
 
-    const result = await CoinService.getUserTransactionHistory(
-      userId,
-      parseInt(limit),
-      (parseInt(page) - 1) * parseInt(limit)
-    );
+    const result = await CoinService.getUserTransactionHistory(userId, {
+      type,
+      source,
+      startDate,
+      endDate,
+      page,
+      limit
+    });
 
     if (result.success) {
       logger.info(
@@ -199,6 +206,83 @@ exports.getUserTransactionHistory = async (req, res) => {
         error: error.message,
       },
       `Error occurred while fetching user transaction history`
+    );
+    res
+      .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)
+      .json({ success: false, message: error.message });
+  }
+};
+
+// Export user transaction history as CSV (Sprint5-Story-09: AC7)
+exports.exportTransactionHistory = async (req, res) => {
+  try {
+    const userId = req.user?.id;
+    const { type, source, startDate, endDate } = req.query;
+
+    if (!userId) {
+      return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
+        success: false,
+        message: "User authentication required",
+      });
+    }
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId,
+        query: req.query,
+      },
+      `Request received to export transaction history`
+    );
+
+    const result = await CoinService.exportTransactionHistory(userId, {
+      type,
+      source,
+      startDate,
+      endDate
+    });
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId,
+        },
+        `Successfully exported transaction history`
+      );
+
+      // Set headers for CSV download
+      const filename = `transaction-history-${new Date().toISOString().split('T')[0]}.csv`;
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.status(HTTP_STATUS_CODE.OK).send(result.data);
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId,
+          error: result.message,
+        },
+        `Failed to export transaction history`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?.id,
+        error: error.message,
+      },
+      `Error occurred while exporting transaction history`
     );
     res
       .status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR)

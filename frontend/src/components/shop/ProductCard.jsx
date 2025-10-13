@@ -1,15 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
+import useShopStore from '../../store/shopStore';
 
 /**
- * ProductCard Component - Story-01
+ * ProductCard Component - Story-01, Story-02 AC1
  * Displays individual product with image, name, price, and add-to-cart button
  * Design System: WTF Module pin card pattern
  */
-const ProductCard = ({ product, onAddToCart }) => {
-  const handleAddToCart = () => {
-    if (product.inStock && onAddToCart) {
-      onAddToCart(product);
+const ProductCard = ({ product }) => {
+  const { addToCart } = useShopStore();
+  const [isAdding, setIsAdding] = useState(false);
+
+  const handleAddToCart = async () => {
+    if (!product.inStock || isAdding) return;
+
+    setIsAdding(true);
+    try {
+      await addToCart(product, 1);
+    } catch (error) {
+      // Error toast is handled in the store
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -81,16 +92,25 @@ const ProductCard = ({ product, onAddToCart }) => {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={!product.inStock}
+          disabled={!product.inStock || isAdding}
           className={`w-full px-4 py-2 rounded-md font-medium flex items-center justify-center gap-2 transition-colors ${
-            product.inStock
+            product.inStock && !isAdding
               ? 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'
               : 'bg-slate-300 text-slate-500 cursor-not-allowed'
           }`}
           aria-label={`Add ${product.name} to cart`}
         >
-          <ShoppingCart className="w-5 h-5" />
-          {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+          {isAdding ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Adding...
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="w-5 h-5" />
+              {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+            </>
+          )}
         </button>
       </div>
     </div>

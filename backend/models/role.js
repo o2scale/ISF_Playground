@@ -5,9 +5,9 @@ const roleSchema = new mongoose.Schema(
     roleName: { type: String, required: true, unique: true },
     permissions: [
       {
-        module: { type: String, required: true }, // Module name (e.g., User Management)
+        module: { type: String, required: true }, // Module name (e.g., User Management, shop)
         actions: [
-          { type: String, enum: ["Create", "Read", "Update", "Delete"] }, // Allowed actions
+          { type: String, enum: ["Create", "Read", "Update", "Delete", "Manage"] }, // Allowed actions (Manage added for shop module)
         ],
       },
     ],

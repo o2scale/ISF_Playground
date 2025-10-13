@@ -15,7 +15,7 @@ export const RBACProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchPermissions = async () => {
-      if (!isAuthenticated || authLoading) {
+      if (!isAuthenticated || authLoading || !user?.id) {
         setIsLoading(false);
         return;
       }
@@ -26,8 +26,6 @@ export const RBACProvider = ({ children }) => {
         const response = await axios.get(
           `${config.API_BASE_URL}/api/roles/getAllRolePermissions`
         );
-
-        console.log("Roles API response:", response.data);
 
         // Check if the response has the expected format
         if (response.data) {
@@ -71,11 +69,17 @@ export const RBACProvider = ({ children }) => {
               // Transform permissions to our format for easier access
               const formattedPermissions = {};
 
-              roleData.permissions.forEach((permission) => {
+              console.log("DEBUG: roleData.permissions array:", roleData.permissions);
+              console.log("DEBUG: roleData.permissions length:", roleData.permissions.length);
+
+              roleData.permissions.forEach((permission, index) => {
+                console.log(`DEBUG: Processing permission ${index}:`, permission);
+                console.log(`DEBUG: Module: "${permission.module}", Actions:`, permission.actions);
                 formattedPermissions[permission.module] = permission.actions;
               });
 
               console.log("Formatted permissions:", formattedPermissions);
+              console.log("Formatted permissions keys:", Object.keys(formattedPermissions));
               setPermissions(formattedPermissions);
             } else {
               console.warn(`Role '${userRole}' not found in permissions data`);
@@ -101,21 +105,10 @@ export const RBACProvider = ({ children }) => {
     };
 
     fetchPermissions();
-  }, [user, isAuthenticated, authLoading]);
+  }, [user?.id, isAuthenticated, authLoading]);
 
   const hasPermission = (module, action) => {
-    console.log(`Checking permission for ${module}:${action}`, permissions);
     if (!permissions || !permissions[module]) return false;
-    if (module === "Role Management" && action == "Read") {
-      console.log(
-        "black baccc",
-        module,
-        "-",
-        action,
-        ":",
-        permissions[module].includes(action)
-      );
-    }
     return permissions[module].includes(action);
   };
 
