@@ -1698,3 +1698,47 @@ export const exportReport = async (type, filters = {}) => {
     throw error;
   }
 };
+
+// ==================== COACH DELIVERY MANAGEMENT (Sprint5-Story-13) ====================
+
+// Get coach delivery statistics
+export const getCoachDeliveryStats = async () => {
+  try {
+    const response = await api.get(`/api/v2/shop/coach/deliveries/stats`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coach delivery stats:", error);
+    throw error;
+  }
+};
+
+// Get coach deliveries list (with pagination and filters)
+export const getCoachDeliveries = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+
+    const response = await api.get(`/api/v2/shop/coach/deliveries?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coach deliveries:", error);
+    throw error;
+  }
+};
+
+// Mark order as delivered (coach only)
+export const markOrderDelivered = async (orderId, deliveryNotes = '') => {
+  try {
+    const response = await api.patch(`/api/v2/shop/coach/deliveries/${orderId}/deliver`, {
+      deliveryNotes
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error marking order as delivered:", error);
+    throw error;
+  }
+};

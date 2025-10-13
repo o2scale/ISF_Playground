@@ -5,8 +5,10 @@ import "./Layout.css";
 import { useAuth } from "../contexts/AuthContext";
 import { useRBAC } from "../contexts/RBACContext";
 import { usePermission } from "./hooks/usePermission";
+import { useCoinBalance } from "../contexts/CoinBalanceContext";
+import CartIcon from "./shop/CartIcon";
+import FloatingDeliveriesButton from "./shop/FloatingDeliveriesButton";
 import {
-  getUserCoinBalance,
   getUserNotifications,
   getUnreadNotificationCount,
   markNotificationAsRead,
@@ -29,6 +31,7 @@ const Layout = () => {
   const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const { isLoading: rbacLoading } = useRBAC();
   const { canRead } = usePermission();
+  const { balance: coinBalance } = useCoinBalance(); // Sprint5-Story-08: Use context for coin balance
   const navigate = useNavigate();
   const location = useLocation(); // Get current location
   const [visibleMenus, setVisibleMenus] = useState([]);
@@ -37,7 +40,6 @@ const Layout = () => {
   const [showChatWindow, setShowChatWindow] = useState(null); // null, "coach", or "admin"
   const [showNotifications, setShowNotifications] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const [coinBalance, setCoinBalance] = useState(null);
   const [notificationsList, setNotificationsList] = useState([]);
   // Trigger a brief shake animation on the WTF menu item in child view
   const [shouldShakeWtf, setShouldShakeWtf] = useState(false);
@@ -88,6 +90,12 @@ const Layout = () => {
     },
     {
       id: 10,
+      name: "Shop",
+      link: "/shop",
+      roles: ["student", "admin", "coach"],
+    },
+    {
+      id: 11,
       name: "WTF",
       link: "/wtf",
       roles: [
@@ -270,21 +278,8 @@ const Layout = () => {
 
     setVisibleMenus(filteredMenus);
 
-    // Fetch coin balance and notifications for student
+    // Fetch notifications for student (coin balance now handled by CoinBalanceContext)
     if (userRole === "student") {
-      (async () => {
-        try {
-          const res = await getUserCoinBalance();
-          // API returns { success, data: { balance } }
-          const balance = res?.data?.balance ?? null;
-          setCoinBalance(typeof balance === "number" ? balance : 0);
-        } catch (err) {
-          console.error("Failed to fetch coin balance:", err);
-          setCoinBalance(0);
-        }
-      })();
-
-      // Fetch notifications
       fetchNotifications();
       fetchUnreadCount();
     }
@@ -390,7 +385,12 @@ const Layout = () => {
 
           {localStorage.getItem("role") === "student" && (
             <>
-              <div className="coins">
+              <div
+                className="coins"
+                onClick={() => navigate('/coins/history')}
+                style={{ cursor: 'pointer' }}
+                title="View transaction history"
+              >
                 <span className="coins-label">
                   ISF COINS
                   <br />
@@ -404,6 +404,7 @@ const Layout = () => {
                 </div>
               </div>
               <div className="notifications-container">
+                <CartIcon />
                 <div
                   className="notification-bell"
                   onClick={handleNotificationClick}
@@ -436,6 +437,9 @@ const Layout = () => {
           </SidebarContext.Provider>
         </main>
       </div>
+
+      {/* Floating Deliveries Button for Coaches - Sprint5-Story-13 */}
+      <FloatingDeliveriesButton />
     </div>
   );
 };

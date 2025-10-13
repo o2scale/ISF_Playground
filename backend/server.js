@@ -34,6 +34,7 @@ const adminProductRoutes = require("./routes/v2/adminProducts"); // Sprint 5: Ad
 const inventoryRoutes = require("./routes/v2/inventory"); // Sprint 5: Inventory Management
 const analyticsRoutes = require("./routes/v2/analytics"); // Sprint 5: Shop Analytics
 const reportsRoutes = require("./routes/v2/reports"); // Sprint 5: Transaction Reports
+const coachDeliveryRoutes = require("./routes/v2/coachDelivery"); // Sprint 5: Coach Delivery Management
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -89,6 +90,7 @@ app.use("/api/v2/shop/admin", adminProductRoutes); // Sprint 5: Admin Product CR
 app.use("/api/v2/shop/admin/inventory", inventoryRoutes); // Sprint 5: Inventory Management routes (requires admin auth)
 app.use("/api/v2/shop/admin/analytics", analyticsRoutes); // Sprint 5: Shop Analytics routes (requires admin auth)
 app.use("/api/v2/shop/admin/reports", reportsRoutes); // Sprint 5: Transaction Reports routes (requires admin auth)
+app.use("/api/v2/shop/coach/deliveries", coachDeliveryRoutes); // Sprint 5: Coach Delivery Management routes (requires coach auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"

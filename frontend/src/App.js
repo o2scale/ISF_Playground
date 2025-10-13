@@ -41,6 +41,7 @@ import OutOfStockReport from "./pages/OutOfStockReport";
 import TransactionHistory from "./pages/TransactionHistory";
 import ShopAnalytics from "./pages/ShopAnalytics";
 import TransactionReports from "./pages/TransactionReports";
+import CoachDeliveries from "./pages/CoachDeliveries";
 
 const App = () => {
   return (
@@ -237,6 +238,16 @@ const App = () => {
                   element={
                     <ProtectedRoute module="Shop Management" action="Manage">
                       <TransactionReports />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Coach Delivery Routes - Sprint5-Story-13 */}
+                <Route
+                  path="/coach/deliveries"
+                  element={
+                    <ProtectedRoute>
+                      <CoachDeliveries />
                     </ProtectedRoute>
                   }
                 />
