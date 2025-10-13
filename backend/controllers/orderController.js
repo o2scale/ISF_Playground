@@ -1,0 +1,247 @@
+const orderService = require('../services/order');
+
+/**
+ * Order Controller - Sprint5-Story-03
+ * HTTP handlers for order/checkout operations
+ *
+ * All routes require authentication
+ */
+
+/**
+ * Create order from cart
+ * POST /api/v2/shop/orders
+ * @access Private
+ */
+async function createOrder(req, res) {
+  try {
+    const userId = req.user.id;
+
+    const result = await orderService.createOrder(userId);
+
+    res.status(201).json({
+      success: true,
+      message: result.message,
+      order: result.order,
+      coinsSpent: result.coinsSpent,
+      remainingBalance: result.remainingBalance
+    });
+  } catch (error) {
+    console.error('Create order error:', error);
+
+    // Send appropriate error status
+    if (error.message.includes('Cart is empty')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Insufficient stock')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Insufficient coin balance')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('no longer available')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('concurrent modification')) {
+      return res.status(409).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create order',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Get order by order number
+ * GET /api/v2/shop/orders/:orderNumber
+ * @access Private
+ */
+async function getOrder(req, res) {
+  try {
+    const { orderNumber } = req.params;
+    const userId = req.user.id;
+
+    const order = await orderService.getOrderByNumber(orderNumber, userId);
+
+    res.status(200).json({
+      success: true,
+      order
+    });
+  } catch (error) {
+    console.error('Get order error:', error);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Unauthorized')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve order',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Get user's order history
+ * GET /api/v2/shop/orders
+ * Query params: page, limit, status
+ * @access Private
+ */
+async function getUserOrders(req, res) {
+  try {
+    const userId = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const status = req.query.status || null;
+
+    const result = await orderService.getUserOrders(userId, page, limit, status);
+
+    res.status(200).json({
+      success: true,
+      orders: result.orders,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    console.error('Get user orders error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve orders',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Get order by ID
+ * GET /api/v2/shop/orders/id/:orderId
+ * @access Private
+ */
+async function getOrderById(req, res) {
+  try {
+    const { orderId } = req.params;
+    const userId = req.user.id;
+
+    const order = await orderService.getOrderById(orderId, userId);
+
+    res.status(200).json({
+      success: true,
+      order
+    });
+  } catch (error) {
+    console.error('Get order by ID error:', error);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Unauthorized')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve order',
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Cancel order (within 5 minutes)
+ * POST /api/v2/shop/orders/:orderNumber/cancel
+ * @access Private
+ * @body reason (optional) - Reason for cancellation
+ */
+async function cancelOrder(req, res) {
+  try {
+    const { orderNumber } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.id;
+
+    const result = await orderService.cancelOrder(orderNumber, userId, reason);
+
+    res.status(200).json({
+      success: true,
+      message: result.message,
+      order: result.order,
+      refundedAmount: result.refundedAmount,
+      newBalance: result.newBalance
+    });
+  } catch (error) {
+    console.error('Cancel order error:', error);
+
+    if (error.message.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Unauthorized')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('cannot be cancelled')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to cancel order',
+      error: error.message
+    });
+  }
+}
+
+module.exports = {
+  createOrder,
+  getOrder,
+  getUserOrders,
+  getOrderById,
+  cancelOrder
+};
