@@ -14,13 +14,13 @@ import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RBACProvider } from "./contexts/RBACContext";
+import { CoinBalanceProvider } from "./contexts/CoinBalanceContext";
 import LoginCard from "./components/login/logincard";
 import StudentLogin from "./components/login/StudentLogin";
 import UserManagement from "./components/usermanagement/usermanagement";
 import RBACManagement from "./components/RBAC/RBACManagement";
 import MachineManagement from "./components/machineManagement/machineManagement";
 import Dashboard from "./components/dashboard/dashboard";
-import PermissionDebugger from "./PermissionDebugger";
 import CourseManagement from "./components/courseManagement/CourseManagement";
 import RepairManagement from "./components/repairManagement/RepairManagement";
 import PurchaseManagement from "./components/purchaseManagement/PurchaseManagement";
@@ -29,6 +29,18 @@ import AttendanceComponent from "./components/Attendance/attendance";
 import BalagruhaManagement from "./components/balagruhaManagement/balagruhamanagement";
 import WtfDashboard from "./components/wtf/WtfDashboard";
 import ShopHome from "./components/shop/ShopHome";
+import Cart from "./components/shop/Cart";
+import Checkout from "./pages/Checkout";
+import OrderHistory from "./pages/OrderHistory";
+import OrderDetail from "./pages/OrderDetail";
+import OrderReceipt from "./pages/OrderReceipt";
+import ProductManagement from "./pages/ProductManagement";
+import InventoryManagement from "./pages/InventoryManagement";
+import LowStockReport from "./pages/LowStockReport";
+import OutOfStockReport from "./pages/OutOfStockReport";
+import TransactionHistory from "./pages/TransactionHistory";
+import ShopAnalytics from "./pages/ShopAnalytics";
+import TransactionReports from "./pages/TransactionReports";
 
 const App = () => {
   return (
@@ -36,9 +48,10 @@ const App = () => {
       <Router>
         <AuthProvider>
           <RBACProvider>
-            <PermissionDebugger />
-            <Toaster position="top-right" />
-            <Routes>
+            <CoinBalanceProvider>
+              <Toaster position="top-right" />
+              <Cart />
+              <Routes>
               {/* Public route for login */}
               <Route path="/login" element={<StudentLogin />} />
               <Route path="/admin/login" element={<LoginCard />} />
@@ -128,7 +141,7 @@ const App = () => {
                   }
                 />
 
-                {/* Shop Route */}
+                {/* Shop Routes */}
                 <Route
                   path="/shop"
                   element={
@@ -137,12 +150,103 @@ const App = () => {
                     </ProtectedRoute>
                   }
                 />
+                <Route
+                  path="/shop/checkout"
+                  element={
+                    <ProtectedRoute>
+                      <Checkout />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/orders"
+                  element={
+                    <ProtectedRoute>
+                      <OrderHistory />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/orders/:orderNumber"
+                  element={
+                    <ProtectedRoute>
+                      <OrderDetail />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/orders/:orderNumber/receipt"
+                  element={
+                    <ProtectedRoute>
+                      <OrderReceipt />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/coins/history"
+                  element={
+                    <ProtectedRoute>
+                      <TransactionHistory />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Admin Shop Routes */}
+                <Route
+                  path="/shop/admin/products"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <ProductManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/inventory"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <InventoryManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/inventory/low-stock"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <LowStockReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/inventory/out-of-stock"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <OutOfStockReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/analytics"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <ShopAnalytics />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/reports"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <TransactionReports />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* Error pages */}
                 <Route path="/access-denied" element={<AccessDenied />} />
                 <Route path="*" element={<NotFound />} />
               </Route>
-            </Routes>
+              </Routes>
+            </CoinBalanceProvider>
           </RBACProvider>
         </AuthProvider>
       </Router>

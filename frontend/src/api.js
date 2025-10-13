@@ -1302,6 +1302,17 @@ export const getUserCoinBalance = async () => {
   }
 };
 
+// Get user transaction history (Sprint5-Story-09)
+export const getUserTransactionHistory = async (params) => {
+  try {
+    const response = await api.get(`/api/v1/coin/transactions?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching user transaction history:", error);
+    throw error;
+  }
+};
+
 // Get pending submissions count
 export const getPendingSubmissionsCount = async () => {
   try {
@@ -1551,6 +1562,139 @@ export const debugUserPermissions = async () => {
     return response.data;
   } catch (error) {
     console.error("Error checking user permissions:", error);
+    throw error;
+  }
+};
+
+// ==================== SHOP ORDERS ====================
+
+// Cancel order (Sprint5-Story-10)
+export const cancelOrder = async (orderNumber, reason) => {
+  try {
+    const response = await api.post(`/api/v2/shop/orders/${orderNumber}/cancel`, {
+      reason
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error cancelling order:", error);
+    throw error;
+  }
+};
+
+// ==================== SHOP ANALYTICS (Sprint5-Story-11) ====================
+
+// Get shop analytics dashboard data
+export const getShopAnalytics = async (startDate, endDate) => {
+  try {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const response = await api.get(`/api/v2/shop/admin/analytics?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching shop analytics:", error);
+    throw error;
+  }
+};
+
+// Get student participation details (students who never purchased)
+export const getStudentParticipationDetails = async (startDate, endDate) => {
+  try {
+    const params = new URLSearchParams();
+    if (startDate) params.append('startDate', startDate);
+    if (endDate) params.append('endDate', endDate);
+
+    const response = await api.get(`/api/v2/shop/admin/analytics/participation?${params.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student participation details:", error);
+    throw error;
+  }
+};
+
+// ==================== SHOP REPORTS (Sprint5-Story-12) ====================
+
+// Get transaction log with filters and pagination
+export const getTransactionLog = async (params) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+
+    const response = await api.get(`/api/v2/shop/admin/reports/transactions?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching transaction log:", error);
+    throw error;
+  }
+};
+
+// Get student leaderboard (top earners or top spenders)
+export const getStudentLeaderboard = async (type = 'earners', limit = 10) => {
+  try {
+    const response = await api.get(`/api/v2/shop/admin/reports/leaderboard?type=${type}&limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student leaderboard:", error);
+    throw error;
+  }
+};
+
+// Get students with zero purchases
+export const getZeroPurchaseStudents = async () => {
+  try {
+    const response = await api.get(`/api/v2/shop/admin/reports/zero-purchases`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching zero-purchase students:", error);
+    throw error;
+  }
+};
+
+// Get coin economy health metrics
+export const getCoinEconomyHealth = async () => {
+  try {
+    const response = await api.get(`/api/v2/shop/admin/reports/coin-economy`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coin economy health:", error);
+    throw error;
+  }
+};
+
+// Export report as CSV
+export const exportReport = async (type, filters = {}) => {
+  try {
+    const params = new URLSearchParams();
+    params.append('type', type);
+    params.append('format', 'csv');
+
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== null && filters[key] !== undefined && filters[key] !== '') {
+        params.append(key, filters[key]);
+      }
+    });
+
+    const response = await api.get(`/api/v2/shop/admin/reports/export?${params.toString()}`, {
+      responseType: 'blob' // Important for file downloads
+    });
+
+    // Create blob link to download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `${type}-report-${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+
+    return { success: true, message: 'Export successful' };
+  } catch (error) {
+    console.error("Error exporting report:", error);
     throw error;
   }
 };

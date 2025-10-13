@@ -28,6 +28,12 @@ const offlineRequestQueueRoutes = require("./routes/offlineRequestQueue");
 const courseRoutes = require("./routes/courseRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
 const shopRoutes = require("./routes/v2/shop"); // Sprint 5: ISF Shop
+const cartRoutes = require("./routes/v2/cart"); // Sprint 5: Shopping Cart
+const orderRoutes = require("./routes/v2/orders"); // Sprint 5: Checkout & Orders
+const adminProductRoutes = require("./routes/v2/adminProducts"); // Sprint 5: Admin Product CRUD
+const inventoryRoutes = require("./routes/v2/inventory"); // Sprint 5: Inventory Management
+const analyticsRoutes = require("./routes/v2/analytics"); // Sprint 5: Shop Analytics
+const reportsRoutes = require("./routes/v2/reports"); // Sprint 5: Transaction Reports
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -77,6 +83,12 @@ app.use("/api/offline-requests", offlineRequestQueueRoutes);
 app.use("/api/v1/courses", courseRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/v2/shop", shopRoutes); // Sprint 5: ISF Shop routes
+app.use("/api/v2/shop/cart", cartRoutes); // Sprint 5: Shopping Cart routes (requires auth)
+app.use("/api/v2/shop/orders", orderRoutes); // Sprint 5: Checkout & Orders routes (requires auth)
+app.use("/api/v2/shop/admin", adminProductRoutes); // Sprint 5: Admin Product CRUD routes (requires admin auth)
+app.use("/api/v2/shop/admin/inventory", inventoryRoutes); // Sprint 5: Inventory Management routes (requires admin auth)
+app.use("/api/v2/shop/admin/analytics", analyticsRoutes); // Sprint 5: Shop Analytics routes (requires admin auth)
+app.use("/api/v2/shop/admin/reports", reportsRoutes); // Sprint 5: Transaction Reports routes (requires admin auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"
