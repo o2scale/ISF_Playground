@@ -68,12 +68,23 @@ const shopItemSchema = new mongoose.Schema(
     imageUrl: {
       type: String,
       required: false,
-      default: null
+      default: null,
+      // DEPRECATED: Keep for backward compatibility, use images array instead
     },
-    images: {
-      type: [String],
-      default: []
-    },
+    images: [{
+      url: {
+        type: String,
+        required: true
+      },
+      isPrimary: {
+        type: Boolean,
+        default: false
+      },
+      uploadedAt: {
+        type: Date,
+        default: Date.now
+      }
+    }],
     isActive: {
       type: Boolean,
       default: true,
@@ -121,6 +132,15 @@ shopItemSchema.virtual('lowStock').get(function() {
 // Virtual: currentPrice (returns discountPrice if available, otherwise price)
 shopItemSchema.virtual('currentPrice').get(function() {
   return this.discountPrice !== null ? this.discountPrice : this.price;
+});
+
+// Virtual: primaryImageUrl (returns primary image or first image or legacy imageUrl)
+shopItemSchema.virtual('primaryImageUrl').get(function() {
+  if (this.images && this.images.length > 0) {
+    const primaryImage = this.images.find(img => img.isPrimary);
+    return primaryImage ? primaryImage.url : this.images[0].url;
+  }
+  return this.imageUrl || '';
 });
 
 // Pre-save hook: Validate discount price is less than regular price

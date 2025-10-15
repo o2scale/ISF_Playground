@@ -29,7 +29,7 @@ const ProductCard = ({ product }) => {
       {/* Product Image */}
       <div className="relative aspect-square">
         <img
-          src={product.imageUrl || '/placeholder-product.png'}
+          src={product.primaryImageUrl || product.imageUrl || '/placeholder-product.png'}
           alt={product.name}
           className="w-full h-full object-cover"
           loading="lazy"

@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const shopController = require('../../controllers/shopController');
-const { authenticate } = require('../../middleware/auth');
+const shopProductImageController = require('../../controllers/shopProductImageController');
+const { authenticate, authorize } = require('../../middleware/auth');
+const { upload } = require('../../middleware/upload');
 
 /**
  * @route GET /api/v2/shop/products
@@ -30,5 +32,44 @@ router.get('/products/:id', shopController.getProductById);
  * @access Public
  */
 router.get('/categories', shopController.getCategories);
+
+// ==================== PRODUCT IMAGE MANAGEMENT (Story-14) ====================
+
+/**
+ * @route POST /api/v2/shop/products/:productId/images
+ * @desc Upload product images (max 5 images)
+ * @access Private (Coach, Admin)
+ */
+router.post(
+  '/products/:productId/images',
+  authenticate,
+  authorize('shop', 'manage'),
+  upload.array('images', 5),
+  shopProductImageController.uploadProductImages
+);
+
+/**
+ * @route DELETE /api/v2/shop/products/:productId/images/:imageId
+ * @desc Delete a product image
+ * @access Private (Coach, Admin)
+ */
+router.delete(
+  '/products/:productId/images/:imageId',
+  authenticate,
+  authorize('shop', 'manage'),
+  shopProductImageController.deleteProductImage
+);
+
+/**
+ * @route PUT /api/v2/shop/products/:productId/images/:imageId/primary
+ * @desc Set primary product image
+ * @access Private (Coach, Admin)
+ */
+router.put(
+  '/products/:productId/images/:imageId/primary',
+  authenticate,
+  authorize('shop', 'manage'),
+  shopProductImageController.setPrimaryImage
+);
 
 module.exports = router;

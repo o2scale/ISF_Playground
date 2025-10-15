@@ -330,6 +330,7 @@ export default function ProductManagement() {
             setSelectedProduct(null);
           }}
           onSubmit={handleFormSubmit}
+          onRefresh={fetchProducts}
         />
       )}
 

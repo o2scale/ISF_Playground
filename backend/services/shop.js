@@ -63,12 +63,22 @@ class ShopService {
       ]);
 
       // Add computed fields (since virtuals don't work with .lean())
-      const enrichedProducts = products.map(product => ({
-        ...product,
-        inStock: product.stock > 0,
-        lowStock: product.stock > 0 && product.stock <= (product.lowStockThreshold || 10),
-        currentPrice: product.discountPrice !== null ? product.discountPrice : product.price
-      }));
+      const enrichedProducts = products.map(product => {
+        // Compute primaryImageUrl (virtual field logic)
+        let primaryImageUrl = product.imageUrl; // fallback
+        if (product.images && product.images.length > 0) {
+          const primaryImage = product.images.find(img => img.isPrimary);
+          primaryImageUrl = primaryImage ? primaryImage.url : product.images[0].url;
+        }
+
+        return {
+          ...product,
+          primaryImageUrl,
+          inStock: product.stock > 0,
+          lowStock: product.stock > 0 && product.stock <= (product.lowStockThreshold || 10),
+          currentPrice: product.discountPrice !== null ? product.discountPrice : product.price
+        };
+      });
 
       logger.info({
         filters,
@@ -157,12 +167,22 @@ class ShopService {
         .select('-__v')
         .lean();
 
-      const enrichedProducts = products.map(product => ({
-        ...product,
-        inStock: product.stock > 0,
-        lowStock: product.stock > 0 && product.stock <= (product.lowStockThreshold || 10),
-        currentPrice: product.discountPrice !== null ? product.discountPrice : product.price
-      }));
+      const enrichedProducts = products.map(product => {
+        // Compute primaryImageUrl (virtual field logic)
+        let primaryImageUrl = product.imageUrl; // fallback
+        if (product.images && product.images.length > 0) {
+          const primaryImage = product.images.find(img => img.isPrimary);
+          primaryImageUrl = primaryImage ? primaryImage.url : product.images[0].url;
+        }
+
+        return {
+          ...product,
+          primaryImageUrl,
+          inStock: product.stock > 0,
+          lowStock: product.stock > 0 && product.stock <= (product.lowStockThreshold || 10),
+          currentPrice: product.discountPrice !== null ? product.discountPrice : product.price
+        };
+      });
 
       logger.info({ count: products.length }, 'Featured products retrieved');
 

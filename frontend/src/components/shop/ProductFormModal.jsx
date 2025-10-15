@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import ImageUpload from './ImageUpload';
+import ProductImageUpload from '../admin/ProductImageUpload';
 
 /**
  * ProductFormModal Component - Sprint5-Story-05
  * Modal form for creating and editing products
+ * Enhanced with Story-14: Product Image Upload
  */
 
-export default function ProductFormModal({ product, onClose, onSubmit }) {
+export default function ProductFormModal({ product, onClose, onSubmit, onRefresh }) {
   const isEditing = Boolean(product);
 
   const [formData, setFormData] = useState({
@@ -330,16 +332,28 @@ export default function ProductFormModal({ product, onClose, onSubmit }) {
             </div>
           </div>
 
-          {/* Image Upload */}
+          {/* Image Upload (Legacy - for backward compatibility) */}
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Product Image
+              Product Image (Legacy)
             </label>
             <ImageUpload
               currentImageUrl={formData.imageUrl}
               onUpload={handleImageUpload}
             />
+            <p className="mt-1 text-xs text-slate-500">
+              {isEditing ? 'Use the image manager below for multiple images' : 'Save product first to upload multiple images'}
+            </p>
           </div>
+
+          {/* Story-14: Product Image Management (Only for existing products) */}
+          {isEditing && product._id && (
+            <ProductImageUpload
+              productId={product._id}
+              existingImages={product.images || []}
+              onUploadSuccess={onRefresh}
+            />
+          )}
 
           {/* Active Status */}
           <div className="flex items-center gap-2">

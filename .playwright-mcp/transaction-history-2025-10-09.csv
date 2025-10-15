@@ -1,0 +1,7 @@
+Date,Type,Source,Description,Amount,Balance After
+10/9/2025, 4:51:55 PM,Spent,GENERAL,"Shop purchase - Order ORD-20251009-87767",-10,-10
+10/9/2025, 4:50:25 PM,Earned,GENERAL,"Manual coin addition for QA testing",+1000,990
+10/8/2025, 5:05:11 PM,Earned,GENERAL,"Refund for cancelled order ORD-20251008-99097",+10,1000
+10/8/2025, 5:04:26 PM,Spent,GENERAL,"Shop purchase - Order ORD-20251008-99097",-10,990
+10/8/2025, 4:32:55 PM,Spent,GENERAL,"Shop purchase - Order ORD-20251008-25587",-25,965
+10/8/2025, 3:46:39 PM,Earned,GENERAL,"Manual coin addition for QA testing",+500,1465

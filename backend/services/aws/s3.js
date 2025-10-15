@@ -433,3 +433,98 @@ exports.getWtfMediaUrl = async (key) => {
     };
   }
 };
+
+// ==================== SHOP-SPECIFIC METHODS ====================
+
+// Upload shop product image
+exports.uploadShopProductImage = async (filePath, productId) => {
+  try {
+    const fileContent = fs.readFileSync(filePath);
+    const contentType = getContentType(filePath);
+    const fileExtension = path.extname(filePath);
+    const fileName = `shop/products/${productId}_${Date.now()}${fileExtension}`;
+
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME_SHOP_PRODUCTS,
+      Key: fileName,
+      Body: fileContent,
+      ContentType: contentType,
+      Metadata: {
+        "product-id": productId,
+        "upload-timestamp": new Date().toISOString(),
+      },
+    };
+
+    const command = new PutObjectCommand(params);
+    await s3Client.send(command);
+
+    const url = `https://${process.env.AWS_S3_BUCKET_NAME_SHOP_PRODUCTS}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
+    console.log(`Shop product image uploaded successfully: ${url}`);
+
+    return {
+      success: true,
+      message: "Shop product image uploaded successfully",
+      url: url,
+      key: fileName,
+      contentType: contentType,
+    };
+  } catch (error) {
+    console.error("Error uploading shop product image:", error);
+    return {
+      success: false,
+      message: "Failed to upload shop product image",
+      error: error.message,
+    };
+  }
+};
+
+// Delete shop product image by URL or key
+exports.deleteShopProductImage = async (keyOrUrl) => {
+  try {
+    let key = keyOrUrl;
+
+    // If it's a full URL, extract the key
+    if (keyOrUrl && keyOrUrl.startsWith("http")) {
+      key = exports.extractS3KeyFromUrl(keyOrUrl);
+      if (!key) {
+        return {
+          success: false,
+          message: "Could not extract S3 key from URL",
+          keyOrUrl: keyOrUrl,
+        };
+      }
+    }
+
+    if (!key) {
+      return {
+        success: false,
+        message: "No valid S3 key or URL provided",
+        keyOrUrl: keyOrUrl,
+      };
+    }
+
+    const params = {
+      Bucket: process.env.AWS_S3_BUCKET_NAME_SHOP_PRODUCTS,
+      Key: key,
+    };
+
+    const command = new DeleteObjectCommand(params);
+    await s3Client.send(command);
+
+    console.log(`Shop product image deleted successfully: ${key}`);
+    return {
+      success: true,
+      message: "Shop product image deleted successfully",
+      key: key,
+      originalInput: keyOrUrl,
+    };
+  } catch (error) {
+    console.error("Error deleting shop product image:", error);
+    return {
+      success: false,
+      message: "Shop product image deletion failed",
+      error: error.message,
+      keyOrUrl: keyOrUrl,
+    };
+  }
+};
