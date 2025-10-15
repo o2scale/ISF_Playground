@@ -1094,3 +1094,88 @@ import FloatingDeliveriesButton from './components/shop/FloatingDeliveriesButton
 - ✅ Backend: http://localhost:5001 (MongoDB connected)
 - ✅ Frontend: http://localhost:3000 (Compiled successfully)
 - ✅ All routes tested and responding correctly
+
+---
+
+## CRITICAL FIX: Routing Registration (October 15, 2025 9:33 PM)
+
+### Issue Discovered
+During Sprint5 development, all 13 shop stories were fully implemented and QA-tested using Playwright E2E tests with direct URL navigation. However, **routes were never registered in `AppRoutes.js`**, making all shop features inaccessible through normal UI navigation.
+
+### Root Cause
+- QA testing performed via Playwright used direct URL navigation (e.g., `page.goto('http://localhost:3000/coach/deliveries')`)
+- This bypassed the need for route registration in React Router
+- Components existed and worked perfectly, but weren't accessible through app navigation
+- Navigation menus/links were never added
+
+### Fix Applied
+**File:** `frontend/src/AppRoutes.js`
+
+**Added Routes (October 15, 2025 9:33 PM):**
+
+```javascript
+// Shop Home - All authenticated users
+<Route element={<ProtectedRoute />}>
+  <Route path="/shop" element={<ShopHome />} />
+</Route>
+
+// Student Shopping Cart & Checkout
+<Route element={<ProtectedRoute />}>
+  <Route path="/shop/cart" element={<Cart />} />
+  <Route path="/shop/checkout" element={<Checkout />} />
+  <Route path="/shop/orders" element={<OrderHistory />} />
+  <Route path="/shop/orders/:orderId" element={<OrderDetail />} />
+  <Route path="/shop/orders/:orderId/receipt" element={<OrderReceipt />} />
+</Route>
+
+// Transaction History - All Users
+<Route element={<ProtectedRoute />}>
+  <Route path="/shop/transactions" element={<TransactionHistory />} />
+</Route>
+
+// Coach Delivery Management (Story-13)
+<Route element={<ProtectedRoute />}>
+  <Route path="/coach/deliveries" element={<CoachDeliveries />} />
+</Route>
+
+// Admin: Shop Management Routes
+<Route element={<ProtectedRoute module="Shop Management" action="Manage" />}>
+  <Route path="/shop/admin/products" element={<ProductManagement />} />
+  <Route path="/shop/admin/inventory" element={<InventoryManagement />} />
+  <Route path="/shop/admin/stock/low" element={<LowStockReport />} />
+  <Route path="/shop/admin/stock/out" element={<OutOfStockReport />} />
+  <Route path="/shop/admin/analytics" element={<ShopAnalytics />} />
+  <Route path="/shop/admin/reports/transactions" element={<TransactionReports />} />
+</Route>
+```
+
+**Added Imports:**
+```javascript
+import ShopHome from './components/shop/ShopHome';
+import Cart from './components/shop/Cart';
+import Checkout from './pages/Checkout';
+import OrderHistory from './pages/OrderHistory';
+import OrderDetail from './pages/OrderDetail';
+import OrderReceipt from './pages/OrderReceipt';
+import TransactionHistory from './pages/TransactionHistory';
+import CoachDeliveries from './pages/CoachDeliveries';
+import ProductManagement from './pages/ProductManagement';
+import InventoryManagement from './pages/InventoryManagement';
+import LowStockReport from './pages/LowStockReport';
+import OutOfStockReport from './pages/OutOfStockReport';
+import ShopAnalytics from './pages/ShopAnalytics';
+import TransactionReports from './pages/TransactionReports';
+```
+
+### Verification Status
+- ✅ All 14 shop component imports resolved successfully
+- ✅ Frontend compiled without errors
+- ✅ Coach delivery route `/coach/deliveries` now accessible
+- ✅ All shop routes properly protected with RBAC
+- ✅ Admin routes protected with `module="Shop Management" action="Manage"`
+
+### Remaining Tasks
+- 🔲 Add shop navigation menu to sidebar
+- 🔲 Add shop menu items with role-based visibility
+- 🔲 Integrate FloatingDeliveriesButton in main Layout for coaches
+- 🔲 Complete end-to-end navigation testing (manual QA)
