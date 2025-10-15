@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import FilterPanel from './FilterPanel';
 import ProductGrid from './ProductGrid';
-import axios from 'axios';
+import { api } from '../../api';
 
 /**
  * ShopHome Component - Story-01
@@ -46,8 +46,7 @@ const ShopHome = () => {
       if (filters.maxPrice !== null && filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
       if (filters.inStock !== undefined) params.inStock = filters.inStock;
 
-      const baseURL = process.env.REACT_APP_API_URL || 'http://localhost:5001';
-      const response = await axios.get(`${baseURL}/api/v2/shop/products`, { params });
+      const response = await api.get(`/api/v2/shop/products`, { params });
 
       setProducts(response.data.products);
       setPagination(response.data.pagination);
