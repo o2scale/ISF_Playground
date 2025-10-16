@@ -371,28 +371,44 @@ This script creates the "Shop Management" module with "Manage" action and assign
 
 ## ⚠️ 9. KNOWN ISSUES & LIMITATIONS
 
-### Issue 1: Navigation Menu Not Integrated ⚠️ MEDIUM PRIORITY
+### Issue 1: Nginx Configuration Not Updated 🔴 CRITICAL - BLOCKING
+
+**Problem:** Nginx `try_files` directive not properly serving React Router routes
+**Impact:** Admin routes (`/shop/admin/*`) return blank pages with manifest errors
+**Root Cause:** Nginx trying to load static files from wrong paths (e.g., `/shop/admin/static/js/...` instead of `/static/js/...`)
+**Workaround:** None - requires nginx configuration fix
+**Fix Required:** Update nginx config to explicitly handle static files before catch-all location
+**Documentation:** `docs/NGINX-FIX-DETAILED.md` (comprehensive fix guide created October 15, 2025 10:15 PM)
+**Status:** 🔴 BLOCKING - Must fix before admin routes are usable
+
+**Evidence:**
+- Shop homepage (`/shop`) works perfectly ✅
+- Direct navigation to `/shop/admin/products` shows blank page ❌
+- Network requests show files being requested from wrong paths ❌
+- Console errors: "Unexpected token '<'" and "Manifest: Syntax error" ❌
+
+### Issue 2: Navigation Menu Not Integrated ⚠️ MEDIUM PRIORITY
 
 **Problem:** Routes work via direct URL but no menu links exist
 **Impact:** Users must know URLs or use bookmarks
 **Workaround:** Direct URL access works perfectly
 **Planned Fix:** Phase 2 - Add shop menu to sidebar (2 hours of work)
 
-### Issue 2: FloatingDeliveriesButton Not in Layout ⚠️ LOW PRIORITY
+### Issue 3: FloatingDeliveriesButton Not in Layout ⚠️ LOW PRIORITY
 
 **Problem:** Component exists but not rendered for coaches
 **Impact:** Coaches can't see pending delivery count badge
 **Workaround:** Direct access to `/coach/deliveries` works
 **Planned Fix:** Phase 3 - Integrate in Layout.js (30 minutes)
 
-### Issue 3: Story-14 Not Deployed ℹ️ INFORMATIONAL
+### Issue 4: Story-14 Not Deployed ℹ️ INFORMATIONAL
 
 **Problem:** Product image upload not included in this deployment
 **Impact:** Products use placeholder images
 **Workaround:** Single `imageUrl` field still works
 **Planned Fix:** Deploy Story-14 separately when AWS S3 bucket is created
 
-**Status:** ⚠️ Non-blocking issues, system fully functional
+**Status:** 🔴 Issue 1 is CRITICAL and BLOCKING. Issues 2-4 are non-blocking.
 
 ---
 

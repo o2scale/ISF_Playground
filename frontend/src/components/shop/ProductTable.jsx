@@ -61,9 +61,15 @@ export default function ProductTable({ products, onEdit, onDelete }) {
                 {/* Product */}
                 <td className="px-4 py-4">
                   <div className="flex items-center gap-3">
-                    {product.imageUrl ? (
+                    {(product.imageUrl || product.primaryImageUrl || product.images?.length > 0) ? (
                       <img
-                        src={product.imageUrl}
+                        src={
+                          product.imageUrl ||
+                          product.primaryImageUrl ||
+                          product.images?.find(img => img.isPrimary)?.url ||
+                          product.images?.[0]?.url ||
+                          'https://via.placeholder.com/48'
+                        }
                         alt={product.name}
                         className="w-12 h-12 rounded-lg object-cover"
                       />

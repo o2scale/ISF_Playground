@@ -42,15 +42,18 @@ const TransactionFilters = ({ filters, onFilterChange }) => {
   };
 
   return (
-    <div className="transaction-filters">
-      <div className="filter-row">
-        <div className="filter-group">
-          <label htmlFor="type">Type</label>
+    <div className="bg-white rounded-lg border border-slate-200 p-6 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+        <div>
+          <label htmlFor="type" className="block text-sm font-medium text-slate-700 mb-2">
+            Type
+          </label>
           <select
             id="type"
             name="type"
             value={localFilters.type}
             onChange={handleInputChange}
+            className="w-full px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
           >
             <option value="">All Types</option>
             <option value="earned">Earned</option>
@@ -58,13 +61,16 @@ const TransactionFilters = ({ filters, onFilterChange }) => {
           </select>
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="source">Source</label>
+        <div>
+          <label htmlFor="source" className="block text-sm font-medium text-slate-700 mb-2">
+            Source
+          </label>
           <select
             id="source"
             name="source"
             value={localFilters.source}
             onChange={handleInputChange}
+            className="w-full px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
           >
             <option value="">All Sources</option>
             <option value="shop">Shop</option>
@@ -78,40 +84,52 @@ const TransactionFilters = ({ filters, onFilterChange }) => {
           </select>
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="startDate">Start Date</label>
+        <div>
+          <label htmlFor="startDate" className="block text-sm font-medium text-slate-700 mb-2">
+            Start Date
+          </label>
           <input
             type="date"
             id="startDate"
             name="startDate"
             value={localFilters.startDate}
             onChange={handleInputChange}
+            className="w-full px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
           />
         </div>
 
-        <div className="filter-group">
-          <label htmlFor="endDate">End Date</label>
+        <div>
+          <label htmlFor="endDate" className="block text-sm font-medium text-slate-700 mb-2">
+            End Date
+          </label>
           <input
             type="date"
             id="endDate"
             name="endDate"
             value={localFilters.endDate}
             onChange={handleInputChange}
+            className="w-full px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
           />
         </div>
       </div>
 
       {dateError && (
-        <div className="date-error-message" style={{ color: '#ef4444', fontSize: '14px', marginTop: '8px', marginBottom: '8px' }}>
-          ⚠️ {dateError}
+        <div className="bg-red-50 border border-red-200 rounded-md p-3 mb-4">
+          <p className="text-red-800 text-sm">⚠️ {dateError}</p>
         </div>
       )}
 
-      <div className="filter-actions">
-        <button className="apply-btn" onClick={handleApplyFilters}>
+      <div className="flex gap-3">
+        <button
+          onClick={handleApplyFilters}
+          className="px-6 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 transition-colors font-medium"
+        >
           Apply Filters
         </button>
-        <button className="clear-btn" onClick={handleClearFilters}>
+        <button
+          onClick={handleClearFilters}
+          className="px-6 py-2 bg-slate-100 text-slate-700 rounded-md hover:bg-slate-200 transition-colors font-medium"
+        >
           Clear Filters
         </button>
       </div>

@@ -4,7 +4,8 @@ import config from '../config';
 import TransactionFilters from '../components/shop/TransactionFilters';
 import TransactionList from '../components/shop/TransactionList';
 import TransactionDetailModal from '../components/shop/TransactionDetailModal';
-import '../styles/TransactionHistory.css';
+import ShopNavigation from '../components/shop/ShopNavigation';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
 
 const TransactionHistory = () => {
   const [transactions, setTransactions] = useState([]);
@@ -140,58 +141,80 @@ const TransactionHistory = () => {
   };
 
   return (
-    <div className="transaction-history-page">
-      <div className="transaction-history-header">
-        <h1>Transaction History</h1>
-        <button
-          className="export-btn"
-          onClick={handleExport}
-          disabled={loading || transactions.length === 0}
-        >
-          Export CSV
-        </button>
-      </div>
-
-      <div className="transaction-summary">
-        <div className="summary-card">
-          <span className="summary-label">Current Balance</span>
-          <span className="summary-value balance">{summary.currentBalance} coins</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-label">Total Earned</span>
-          <span className="summary-value earned">+{summary.totalEarned} coins</span>
-        </div>
-        <div className="summary-card">
-          <span className="summary-label">Total Spent</span>
-          <span className="summary-value spent">-{summary.totalSpent} coins</span>
+    <div className="w-full min-h-screen bg-slate-50">
+      {/* Page Header */}
+      <div className="bg-white border-b border-slate-200">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900">Transaction History</h1>
+              <p className="text-slate-600 mt-1">View all your ISF Coin transactions</p>
+            </div>
+            <button
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleExport}
+              disabled={loading || transactions.length === 0}
+            >
+              Export CSV
+            </button>
+          </div>
         </div>
       </div>
 
-      <TransactionFilters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-      />
+      {/* Shop Navigation */}
+      <ShopNavigation />
 
-      {error && (
-        <div className="error-message">
-          {error}
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      {/* Main Content */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Transaction Summary */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <p className="text-sm text-slate-600 mb-2">Current Balance</p>
+            <p className="text-3xl font-bold text-blue-600">{summary.currentBalance} coins</p>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <p className="text-sm text-slate-600 mb-2">Total Earned</p>
+            <p className="text-3xl font-bold text-green-600">+{summary.totalEarned} coins</p>
+          </div>
+          <div className="bg-white rounded-lg border border-slate-200 p-6">
+            <p className="text-sm text-slate-600 mb-2">Total Spent</p>
+            <p className="text-3xl font-bold text-red-600">-{summary.totalSpent} coins</p>
+          </div>
         </div>
-      )}
 
-      <TransactionList
-        transactions={transactions}
-        loading={loading}
-        pagination={pagination}
-        onPageChange={handlePageChange}
-        onTransactionClick={handleTransactionClick}
-      />
-
-      {showDetailModal && selectedTransaction && (
-        <TransactionDetailModal
-          transaction={selectedTransaction}
-          onClose={handleCloseDetailModal}
+        {/* Filters */}
+        <TransactionFilters
+          filters={filters}
+          onFilterChange={handleFilterChange}
         />
-      )}
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+            <p className="text-red-800">{error}</p>
+          </div>
+        )}
+
+        {/* Transaction List */}
+        <TransactionList
+          transactions={transactions}
+          loading={loading}
+          pagination={pagination}
+          onPageChange={handlePageChange}
+          onTransactionClick={handleTransactionClick}
+        />
+
+        {/* Detail Modal */}
+        {showDetailModal && selectedTransaction && (
+          <TransactionDetailModal
+            transaction={selectedTransaction}
+            onClose={handleCloseDetailModal}
+          />
+        )}
+      </div>
     </div>
   );
 };

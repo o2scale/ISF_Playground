@@ -34,9 +34,15 @@ export default function DeleteConfirmModal({ product, onClose, onConfirm }) {
 
           <div className="bg-slate-50 rounded-lg p-4 mb-4">
             <div className="flex items-center gap-3">
-              {product.imageUrl ? (
+              {(product.imageUrl || product.primaryImageUrl || product.images?.length > 0) ? (
                 <img
-                  src={product.imageUrl}
+                  src={
+                    product.imageUrl ||
+                    product.primaryImageUrl ||
+                    product.images?.find(img => img.isPrimary)?.url ||
+                    product.images?.[0]?.url ||
+                    'https://via.placeholder.com/64'
+                  }
                   alt={product.name}
                   className="w-16 h-16 rounded-lg object-cover"
                 />

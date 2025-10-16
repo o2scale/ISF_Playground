@@ -39,7 +39,7 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
         discountPrice: product.discountPrice?.toString() || '',
         stock: product.stock?.toString() || '',
         lowStockThreshold: product.lowStockThreshold?.toString() || '10',
-        imageUrl: product.imageUrl || '',
+        imageUrl: product.imageUrl || product.primaryImageUrl || '',
         isActive: product.isActive !== undefined ? product.isActive : true
       });
     }

@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import FilterPanel from './FilterPanel';
 import ProductGrid from './ProductGrid';
+import ShopNavigation from './ShopNavigation';
+import Breadcrumbs from './Breadcrumbs';
+import ShopAdminControls from './ShopAdminControls';
+import { useAuth } from '../../contexts/AuthContext';
 import { api } from '../../api';
 
 /**
@@ -9,6 +13,7 @@ import { api } from '../../api';
  * Design System: WTF Module layout pattern
  */
 const ShopHome = () => {
+  const { user } = useAuth();
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -110,9 +115,12 @@ const ShopHome = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Admin Controls - Draggable floating panel for admins only */}
+      {user?.role?.toLowerCase() === 'admin' && <ShopAdminControls />}
+
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
           <h1 className="text-3xl font-bold text-slate-900">ISF Shop</h1>
           <p className="text-slate-600 mt-1">
             Browse and purchase items with your earned ISF Coins
@@ -120,8 +128,14 @@ const ShopHome = () => {
         </div>
       </div>
 
+      {/* Shop Navigation */}
+      <ShopNavigation />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         <div className="flex gap-6">
           {/* Filter Sidebar */}
           <FilterPanel

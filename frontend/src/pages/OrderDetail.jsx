@@ -5,6 +5,8 @@ import StatusBadge from '../components/shop/StatusBadge';
 import OrderTimeline from '../components/shop/OrderTimeline';
 import CancellationTimer from '../components/shop/CancellationTimer';
 import CancelOrderModal from '../components/shop/CancelOrderModal';
+import ShopNavigation from '../components/shop/ShopNavigation';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
 import toast from 'react-hot-toast';
 
 /**
@@ -94,7 +96,7 @@ export default function OrderDetail() {
   if (error || !order) {
     return (
       <div className="min-h-screen bg-slate-50">
-        <div className="max-w-4xl mx-auto px-4 py-16">
+        <div className="w-full px-4 py-16">
           <div className="bg-white rounded-lg p-8 text-center">
             <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -116,10 +118,10 @@ export default function OrderDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
+        <div className="w-full px-4 py-6">
           <button
             onClick={() => navigate('/shop/orders')}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
@@ -133,7 +135,13 @@ export default function OrderDetail() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      {/* Shop Navigation */}
+      <ShopNavigation />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      <div className="w-full px-4 py-6">
         <div className="bg-white rounded-lg border border-slate-200 p-6">
           {/* Order Info Section */}
           <div className="bg-slate-50 rounded-lg p-4 mb-6">
@@ -164,12 +172,19 @@ export default function OrderDetail() {
               {order.items?.map((item) => (
                 <div key={item._id} className="flex items-center gap-4 bg-slate-50 rounded-lg p-4">
                   <img
-                    src={item.product?.imageUrl || item.imageUrl || 'https://via.placeholder.com/80'}
-                    alt={item.product?.name || item.name}
+                    src={
+                      item.shopItemId?.imageUrl ||
+                      item.shopItemId?.images?.find(img => img.isPrimary)?.url ||
+                      item.shopItemId?.images?.[0]?.url ||
+                      item.product?.imageUrl ||
+                      item.imageUrl ||
+                      'https://via.placeholder.com/80'
+                    }
+                    alt={item.shopItemId?.name || item.product?.name || item.name}
                     className="w-16 h-16 rounded border border-slate-200 object-cover"
                   />
                   <div className="flex-1">
-                    <h4 className="font-semibold text-slate-900">{item.product?.name || item.name}</h4>
+                    <h4 className="font-semibold text-slate-900">{item.shopItemId?.name || item.product?.name || item.name}</h4>
                     <p className="text-sm text-slate-600">
                       Qty: {item.quantity} × {item.price} coins
                     </p>

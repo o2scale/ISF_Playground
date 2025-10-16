@@ -305,9 +305,14 @@ export default function CoachDeliveries() {
                   <div className="space-y-2">
                     {order.items?.map((item, idx) => (
                       <div key={idx} className="flex items-center gap-3 text-sm">
-                        {item.shopItemId?.imageUrl && (
+                        {(item.shopItemId?.imageUrl || item.shopItemId?.images?.length > 0) && (
                           <img
-                            src={item.shopItemId.imageUrl}
+                            src={
+                              item.shopItemId?.imageUrl ||
+                              item.shopItemId?.images?.find(img => img.isPrimary)?.url ||
+                              item.shopItemId?.images?.[0]?.url ||
+                              'https://via.placeholder.com/48'
+                            }
                             alt={item.name}
                             className="w-12 h-12 object-cover rounded border border-slate-200"
                           />

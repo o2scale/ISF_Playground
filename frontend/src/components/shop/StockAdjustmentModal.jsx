@@ -71,7 +71,13 @@ export default function StockAdjustmentModal({ product, onClose, onSuccess }) {
           <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
             <div className="flex items-center gap-3 mb-3">
               <img
-                src={product.imageUrl || '/placeholder-product.png'}
+                src={
+                  product.imageUrl ||
+                  product.primaryImageUrl ||
+                  product.images?.find(img => img.isPrimary)?.url ||
+                  product.images?.[0]?.url ||
+                  '/placeholder-product.png'
+                }
                 alt={product.name}
                 className="w-16 h-16 object-cover rounded border border-slate-200"
                 onError={(e) => {

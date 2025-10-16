@@ -62,7 +62,13 @@ const CartItem = ({ item }) => {
         {/* Product Image */}
         <div className="flex-shrink-0 w-20 h-20 bg-slate-100 rounded-md overflow-hidden">
           <img
-            src={product.imageUrl || 'https://via.placeholder.com/150'}
+            src={
+              product.imageUrl ||
+              product.images?.find(img => img.isPrimary)?.url ||
+              product.images?.[0]?.url ||
+              product.primaryImageUrl ||
+              'https://via.placeholder.com/150'
+            }
             alt={product.name}
             className="w-full h-full object-cover"
           />

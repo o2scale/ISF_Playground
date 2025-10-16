@@ -7,6 +7,8 @@ import { useRBAC } from '../contexts/RBACContext';
 import StockAdjustmentModal from '../components/shop/StockAdjustmentModal';
 import BulkStockUploadModal from '../components/shop/BulkStockUploadModal';
 import AuditTrailModal from '../components/shop/AuditTrailModal';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
+import ShopAdminControls from '../components/shop/ShopAdminControls';
 
 /**
  * InventoryManagement Page - Sprint5-Story-06
@@ -203,9 +205,12 @@ export default function InventoryManagement() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Admin Floating Controls */}
+      <ShopAdminControls />
+
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="w-full px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Inventory Management</h1>
@@ -231,7 +236,10 @@ export default function InventoryManagement() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      <div className="w-full px-4 py-6">
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           {/* Total Products */}

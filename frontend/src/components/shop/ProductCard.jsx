@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ShoppingCart } from 'lucide-react';
 import useShopStore from '../../store/shopStore';
+import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * ProductCard Component - Story-01, Story-02 AC1
@@ -9,10 +10,14 @@ import useShopStore from '../../store/shopStore';
  */
 const ProductCard = ({ product }) => {
   const { addToCart } = useShopStore();
+  const { user } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
 
+  // Check if user is admin - admins cannot purchase from shop
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
+
   const handleAddToCart = async () => {
-    if (!product.inStock || isAdding) return;
+    if (!product.inStock || isAdding || isAdmin) return;
 
     setIsAdding(true);
     try {
@@ -92,13 +97,14 @@ const ProductCard = ({ product }) => {
         {/* Add to Cart Button */}
         <button
           onClick={handleAddToCart}
-          disabled={!product.inStock || isAdding}
+          disabled={!product.inStock || isAdding || isAdmin}
           className={`w-full px-4 py-2 rounded-md font-medium flex items-center justify-center gap-2 transition-colors ${
-            product.inStock && !isAdding
+            product.inStock && !isAdding && !isAdmin
               ? 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'
               : 'bg-slate-300 text-slate-500 cursor-not-allowed'
           }`}
           aria-label={`Add ${product.name} to cart`}
+          title={isAdmin ? 'Admins cannot purchase from the shop' : ''}
         >
           {isAdding ? (
             <>
@@ -108,7 +114,7 @@ const ProductCard = ({ product }) => {
           ) : (
             <>
               <ShoppingCart className="w-5 h-5" />
-              {product.inStock ? 'Add to Cart' : 'Out of Stock'}
+              {isAdmin ? 'Admin View Only' : product.inStock ? 'Add to Cart' : 'Out of Stock'}
             </>
           )}
         </button>

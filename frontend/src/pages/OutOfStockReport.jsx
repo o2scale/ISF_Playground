@@ -4,6 +4,7 @@ import { XCircle, Package, RefreshCw, ArrowLeft, Clock } from 'lucide-react';
 import { api } from '../api';
 import toast from 'react-hot-toast';
 import StockAdjustmentModal from '../components/shop/StockAdjustmentModal';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
 
 /**
  * OutOfStockReport Component - Sprint5-Story-07
@@ -61,7 +62,7 @@ export default function OutOfStockReport() {
     <div className="min-h-screen bg-slate-50">
       {/* Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="w-full px-4 py-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
@@ -92,8 +93,11 @@ export default function OutOfStockReport() {
         </div>
       </div>
 
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 py-8">
         {loading ? (
           <div className="flex items-center justify-center py-12">
             <div className="text-center">
@@ -163,9 +167,15 @@ export default function OutOfStockReport() {
                     >
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          {product.imageUrl ? (
+                          {(product.imageUrl || product.primaryImageUrl || product.images?.length > 0) ? (
                             <img
-                              src={product.imageUrl}
+                              src={
+                                product.imageUrl ||
+                                product.primaryImageUrl ||
+                                product.images?.find(img => img.isPrimary)?.url ||
+                                product.images?.[0]?.url ||
+                                'https://via.placeholder.com/40'
+                              }
                               alt={product.name}
                               className="w-10 h-10 rounded-lg object-cover"
                             />

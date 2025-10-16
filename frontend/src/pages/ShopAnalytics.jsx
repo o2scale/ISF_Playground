@@ -9,6 +9,8 @@ import RevenueChart from '../components/shop/RevenueChart';
 import CategoryPieChart from '../components/shop/CategoryPieChart';
 import TopProductsTable from '../components/shop/TopProductsTable';
 import { getShopAnalytics } from '../api';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
+import ShopAdminControls from '../components/shop/ShopAdminControls';
 
 const ShopAnalytics = () => {
   // State management
@@ -62,7 +64,13 @@ const ShopAnalytics = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Admin Floating Controls */}
+      <ShopAdminControls />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      <div className="w-full px-4 py-8">
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-2">

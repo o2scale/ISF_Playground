@@ -211,8 +211,8 @@ async function createOrder(userId) {
  * @returns {Promise<Object>} Order details
  */
 async function getOrderByNumber(orderNumber, userId) {
-  const order = await Order.findOne({ orderNumber })
-    .populate('userId', 'name email userId');
+  // Use the static method which properly populates shopItemId with images
+  const order = await Order.getByOrderNumber(orderNumber);
 
   if (!order) {
     throw new Error('Order not found');
@@ -246,7 +246,8 @@ async function getUserOrders(userId, page = 1, limit = 10, status = null) {
  */
 async function getOrderById(orderId, userId) {
   const order = await Order.findById(orderId)
-    .populate('userId', 'name email userId');
+    .populate('userId', 'name email userId')
+    .populate('items.shopItemId', 'name imageUrl images category price');
 
   if (!order) {
     throw new Error('Order not found');

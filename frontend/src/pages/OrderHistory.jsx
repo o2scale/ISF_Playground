@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '../api';
 import OrderCard from '../components/shop/OrderCard';
 import OrdersEmptyState from '../components/shop/OrdersEmptyState';
+import ShopNavigation from '../components/shop/ShopNavigation';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
 
 /**
  * OrderHistory Page - Sprint5-Story-04
@@ -59,16 +61,23 @@ export default function OrderHistory() {
   const sortedOrders = getSortedOrders();
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-h-screen bg-slate-50">
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-slate-900">My Orders</h1>
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+          <h1 className="text-3xl font-bold text-slate-900">My Orders</h1>
           <p className="text-slate-600 mt-1">Track all your purchases</p>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      {/* Shop Navigation */}
+      <ShopNavigation />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      {/* Main Content */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
         {/* Filter & Sort Bar */}
         <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">

@@ -29,6 +29,30 @@ router.post(
 );
 
 /**
+ * @route GET /api/v2/shop/admin/stock-alerts
+ * @desc Get stock alert counts for admin panel (Sprint5-Story-15)
+ * @access Admin only
+ */
+router.get(
+  '/stock-alerts',
+  authenticate,
+  authorize('Shop Management', 'Manage'),
+  inventoryController.getStockAlerts
+);
+
+/**
+ * @route GET /api/v2/shop/admin/quick-stats
+ * @desc Get quick stats for admin panel (Sprint5-Story-15)
+ * @access Admin only
+ */
+router.get(
+  '/quick-stats',
+  authenticate,
+  authorize('Shop Management', 'Manage'),
+  inventoryController.getQuickStats
+);
+
+/**
  * @route GET /api/v2/shop/admin/inventory/low-stock
  * @desc Get products with stock <= lowStockThreshold (Sprint5-Story-07)
  * @access Admin only

@@ -42,8 +42,16 @@ const OrderSummary = ({ cart }) => {
           return (
             <div key={item._id} className="order-summary-item">
               <div className="order-summary-item-image">
-                {product.imageUrl ? (
-                  <img src={product.imageUrl} alt={product.name} />
+                {(product.imageUrl || product.images?.length > 0 || product.primaryImageUrl) ? (
+                  <img
+                    src={
+                      product.imageUrl ||
+                      product.images?.find(img => img.isPrimary)?.url ||
+                      product.images?.[0]?.url ||
+                      product.primaryImageUrl
+                    }
+                    alt={product.name}
+                  />
                 ) : (
                   <div className="order-summary-item-placeholder">
                     {product.name.charAt(0)}

@@ -15,6 +15,8 @@ import {
   getCoinEconomyHealth,
   exportReport
 } from '../api';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
+import ShopAdminControls from '../components/shop/ShopAdminControls';
 
 const TransactionReports = () => {
   const navigate = useNavigate();
@@ -177,9 +179,15 @@ const TransactionReports = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Admin Floating Controls */}
+      <ShopAdminControls />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
       {/* Header */}
       <div className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="w-full px-4 py-6">
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
             <FileText className="w-8 h-8 text-purple-600" />
             Transaction Reports & Analytics
@@ -191,7 +199,7 @@ const TransactionReports = () => {
       </div>
 
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
+      <div className="w-full px-4 py-6 space-y-6">
         {/* Coin Economy Health Dashboard */}
         <CoinEconomyHealth economyData={economyHealth} />
 

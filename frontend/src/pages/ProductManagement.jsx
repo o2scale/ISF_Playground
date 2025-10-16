@@ -7,6 +7,8 @@ import { useRBAC } from '../contexts/RBACContext';
 import ProductTable from '../components/shop/ProductTable';
 import ProductFormModal from '../components/shop/ProductFormModal';
 import DeleteConfirmModal from '../components/shop/DeleteConfirmModal';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
+import ShopAdminControls from '../components/shop/ShopAdminControls';
 
 /**
  * ProductManagement Page - Sprint5-Story-05
@@ -178,9 +180,12 @@ export default function ProductManagement() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Admin Floating Controls */}
+      <ShopAdminControls />
+
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
+        <div className="w-full px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-slate-900">Product Management</h1>
@@ -197,7 +202,10 @@ export default function ProductManagement() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      <div className="w-full px-4 py-6">
         {/* Filter & Search Bar */}
         <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">

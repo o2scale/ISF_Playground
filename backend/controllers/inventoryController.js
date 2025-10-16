@@ -453,3 +453,67 @@ exports.getOutOfStockProducts = async (req, res) => {
     });
   }
 };
+
+/**
+ * @route   GET /api/v2/shop/admin/stock-alerts
+ * @desc    Get stock alert counts for admin floating panel (Sprint5-Story-15)
+ * @access  Admin (Shop Management: Manage)
+ */
+exports.getStockAlerts = async (req, res) => {
+  try {
+    // Count low stock products (stock > 0 AND stock <= lowStockThreshold)
+    const lowStockCount = await ShopItem.countDocuments({
+      isActive: true,
+      stock: { $gt: 0 },
+      $expr: { $lte: ['$stock', '$lowStockThreshold'] }
+    });
+
+    // Count out of stock products
+    const outOfStockCount = await ShopItem.countDocuments({
+      isActive: true,
+      stock: 0
+    });
+
+    res.status(200).json({
+      lowStock: lowStockCount,
+      outOfStock: outOfStockCount,
+      total: lowStockCount + outOfStockCount
+    });
+  } catch (error) {
+    console.error('Error fetching stock alerts:', error);
+    res.status(500).json({
+      message: 'Failed to fetch stock alerts',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   GET /api/v2/shop/admin/quick-stats
+ * @desc    Get quick statistics for admin floating panel (Sprint5-Story-15)
+ * @access  Admin (Shop Management: Manage)
+ */
+exports.getQuickStats = async (req, res) => {
+  try {
+    const Order = require('../models/order');
+
+    // Get total active products
+    const totalProducts = await ShopItem.countDocuments({ isActive: true });
+
+    // Get total orders (completed and pending)
+    const totalOrders = await Order.countDocuments({
+      status: { $in: ['completed', 'pending', 'processing'] }
+    });
+
+    res.status(200).json({
+      totalProducts,
+      totalOrders
+    });
+  } catch (error) {
+    console.error('Error fetching quick stats:', error);
+    res.status(500).json({
+      message: 'Failed to fetch quick stats',
+      error: error.message
+    });
+  }
+};
