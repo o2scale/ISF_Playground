@@ -21,6 +21,19 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
 
   // Handle filter changes
   const handleFilterChange = (key, value) => {
+    // Validate date inputs
+    if ((key === 'startDate' || key === 'endDate') && value) {
+      const dateObj = new Date(value);
+      if (isNaN(dateObj.getTime())) return; // Invalid date
+
+      const year = dateObj.getFullYear();
+      if (year < 2000 || year > 2100) return; // Out of reasonable range
+
+      // Check logical ordering
+      if (key === 'startDate' && filters.endDate && value > filters.endDate) return;
+      if (key === 'endDate' && filters.startDate && value < filters.startDate) return;
+    }
+
     onFilterChange({ ...filters, [key]: value });
   };
 
@@ -86,6 +99,8 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
                 type="date"
                 value={filters.startDate || ''}
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                min="2000-01-01"
+                max="2100-12-31"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -95,6 +110,8 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
                 type="date"
                 value={filters.endDate || ''}
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                min="2000-01-01"
+                max="2100-12-31"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>

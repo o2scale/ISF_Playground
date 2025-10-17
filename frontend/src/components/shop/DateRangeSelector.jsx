@@ -20,9 +20,23 @@ const DateRangeSelector = ({ startDate, endDate, onDateRangeChange }) => {
   };
 
   const handleCustomDateChange = (type, value) => {
+    // Validate date format and range
+    if (!value) return;
+
+    // Check if date is valid
+    const dateObj = new Date(value);
+    if (isNaN(dateObj.getTime())) return;
+
+    // Restrict to reasonable year range (2000-2100)
+    const year = dateObj.getFullYear();
+    if (year < 2000 || year > 2100) return;
+
+    // Check logical date ordering
     if (type === 'start') {
+      if (endDate && value > endDate) return;
       onDateRangeChange(value, endDate);
     } else {
+      if (startDate && value < startDate) return;
       onDateRangeChange(startDate, value);
     }
   };
@@ -51,6 +65,8 @@ const DateRangeSelector = ({ startDate, endDate, onDateRangeChange }) => {
               type="date"
               value={startDate}
               onChange={(e) => handleCustomDateChange('start', e.target.value)}
+              min="2000-01-01"
+              max="2100-12-31"
               className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
             <span className="text-gray-500">to</span>
@@ -58,6 +74,8 @@ const DateRangeSelector = ({ startDate, endDate, onDateRangeChange }) => {
               type="date"
               value={endDate}
               onChange={(e) => handleCustomDateChange('end', e.target.value)}
+              min="2000-01-01"
+              max="2100-12-31"
               className="px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>

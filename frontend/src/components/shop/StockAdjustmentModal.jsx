@@ -135,7 +135,7 @@ export default function StockAdjustmentModal({ product, onClose, onSuccess }) {
             >
               <option value="purchase">Purchase / Restock</option>
               <option value="adjustment">Inventory Adjustment</option>
-              <option value="return">Customer Return</option>
+              <option value="return">Student Return</option>
               <option value="correction">Stock Correction</option>
               <option value="damaged">Damaged Items</option>
               <option value="other">Other</option>

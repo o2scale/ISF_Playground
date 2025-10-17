@@ -204,7 +204,7 @@ export default function InventoryManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-h-screen bg-slate-50">
       {/* Admin Floating Controls */}
       <ShopAdminControls />
 
@@ -451,7 +451,13 @@ export default function InventoryManagement() {
                         <td className="px-6 py-4 whitespace-nowrap">
                           <div className="flex items-center gap-3">
                             <img
-                              src={item.imageUrl || '/placeholder-product.png'}
+                              src={
+                                item.imageUrl ||
+                                item.primaryImageUrl ||
+                                item.images?.find(img => img.isPrimary)?.url ||
+                                item.images?.[0]?.url ||
+                                '/placeholder-product.png'
+                              }
                               alt={item.name}
                               className="w-12 h-12 object-cover rounded border border-slate-200"
                               onError={(e) => {

@@ -63,7 +63,7 @@ const ShopAnalytics = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="w-full min-h-screen bg-gray-50">
       {/* Admin Floating Controls */}
       <ShopAdminControls />
 
