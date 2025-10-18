@@ -20,7 +20,7 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
   const mockCoachUser = {
     _id: new mongoose.Types.ObjectId(),
     role: 'coach',
-    balagruhIds: [
+    balagruhaIds: [
       new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
       new mongoose.Types.ObjectId('507f1f77bcf86cd799439012'),
     ],
@@ -29,13 +29,13 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
   const mockSingleBalagruhCoach = {
     _id: new mongoose.Types.ObjectId(),
     role: 'balagruha-incharge',
-    balagruhId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
+    balagruhaId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
   };
 
   const mockStudentUser = {
     _id: new mongoose.Types.ObjectId('507f1f77bcf86cd799439099'),
     role: 'student',
-    balagruhId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
+    balagruhaId: new mongoose.Types.ObjectId('507f1f77bcf86cd799439011'),
   };
 
   describe('Scope: "all" (Admin/Global Access)', () => {
@@ -51,31 +51,31 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
   });
 
   describe('Scope: "balagruh" (Balagruh-Level Access)', () => {
-    test('should filter by balagruhIds array for multi-Balagruh users', () => {
+    test('should filter by balagruhaIds array for multi-Balagruh users', () => {
       const filter = getScopeFilter(mockCoachUser, 'balagruh');
 
-      expect(filter).toHaveProperty('balagruhId');
-      expect(filter.balagruhId).toHaveProperty('$in');
-      expect(filter.balagruhId.$in).toHaveLength(2);
-      expect(filter.balagruhId.$in).toEqual(mockCoachUser.balagruhIds);
+      expect(filter).toHaveProperty('balagruhaId');
+      expect(filter.balagruhaId).toHaveProperty('$in');
+      expect(filter.balagruhaId.$in).toHaveLength(2);
+      expect(filter.balagruhaId.$in).toEqual(mockCoachUser.balagruhaIds);
     });
 
-    test('should filter by single balagruhId for users with balagruhId field', () => {
+    test('should filter by single balagruhaId for users with balagruhaId field', () => {
       const filter = getScopeFilter(mockSingleBalagruhCoach, 'balagruh');
 
-      expect(filter).toHaveProperty('balagruhId');
-      expect(filter.balagruhId).toEqual(mockSingleBalagruhCoach.balagruhId);
+      expect(filter).toHaveProperty('balagruhaId');
+      expect(filter.balagruhaId).toEqual(mockSingleBalagruhCoach.balagruhaId);
     });
 
     test('should return null filter if user has no assigned Balagruh', () => {
       const userWithNoBalagruh = {
         _id: new mongoose.Types.ObjectId(),
         role: 'coach',
-        // No balagruhId or balagruhIds
+        // No balagruhaId or balagruhaIds
       };
 
       const filter = getScopeFilter(userWithNoBalagruh, 'balagruh');
-      expect(filter).toEqual({ balagruhId: null });
+      expect(filter).toEqual({ balagruhaId: null });
     });
   });
 
@@ -136,7 +136,7 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
     test('Coach can query only assigned Balagruh students', () => {
       const filter = getScopeFilter(mockCoachUser, 'balagruh');
       // Query: Student.find(filter) -> returns only students in Balagruh 1 & 2
-      expect(filter.balagruhId.$in).toEqual(mockCoachUser.balagruhIds);
+      expect(filter.balagruhaId.$in).toEqual(mockCoachUser.balagruhaIds);
     });
 
     test('Student can query only own data', () => {
@@ -151,7 +151,7 @@ describe('Integration Test: Scope Filter with MongoDB Queries', () => {
   test('should construct valid MongoDB query with scope filter', () => {
     const mockCoach = {
       _id: new mongoose.Types.ObjectId(),
-      balagruhIds: [new mongoose.Types.ObjectId('507f1f77bcf86cd799439011')],
+      balagruhaIds: [new mongoose.Types.ObjectId('507f1f77bcf86cd799439011')],
     };
 
     const filter = getScopeFilter(mockCoach, 'balagruh');
@@ -160,7 +160,7 @@ describe('Integration Test: Scope Filter with MongoDB Queries', () => {
     const query = { ...filter, status: 'active' };
 
     expect(query).toEqual({
-      balagruhId: { $in: mockCoach.balagruhIds },
+      balagruhaId: { $in: mockCoach.balagruhaIds },
       status: 'active',
     });
   });

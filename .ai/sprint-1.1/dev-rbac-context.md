@@ -4,17 +4,17 @@
 **Story:** `docs/stories/sprint-1.1/epic-01-story-01-rbac-refactor.md`
 **Epic:** `docs/epics/sprint-1.1/epic-01-rbac-system-refactor.md`
 **Created:** 2025-10-18 20:43:28
-**Last Updated:** 2025-10-18 21:36:05 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
+**Last Updated:** 2025-10-18 22:22:00 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
 **Updated By:** Dev Agent (James) - Session 1
 
 ---
 
 ## 🎯 Current Status
 
-**Current Task:** Task 3 - Create UserBalagruhMapping Model
-**Completion:** 20% (2/10 tasks complete)
+**Current Task:** Task 4 - Update Controllers to Use Scope Filters
+**Completion:** 30% (3/10 tasks complete)
 **Session:** 1 of 3-4 (estimated)
-**Approach:** Option A - Refactor (5-7 days estimated)
+**Approach:** Option A - Refactor (3-5 days revised, 2 hrs saved)
 
 ---
 
@@ -62,6 +62,42 @@
 **Validation:**
 - ✅ All code syntax validated
 - ✅ Comprehensive unit tests (edge cases + real-world scenarios)
+- ✅ Ready for controller integration
+
+### Task 3: Fix Middleware & Enhance User Model ✅ COMPLETE (REVISED)
+**Completed:** 2025-10-18 22:22:00
+**Time Taken:** ~45 minutes
+**Original Plan:** Create new UserBalagruhMapping model (3 hours)
+**Actual:** Fix bugs + enhance existing User model (1 hour)
+
+**Files Modified:**
+- `backend/middleware/checkPermission.js` - Fixed field naming bug
+- `backend/models/user.js` - Added index and helper methods
+- `backend/tests/checkPermission.test.js` - Updated with correct field names
+
+**Files Created:**
+- `.ai/sprint-1.1/user-model-quality-assessment.md` - Quality assessment report
+
+**Critical Bug Fixed:**
+- Middleware used `balagruhIds` (wrong) → Fixed to `balagruhaIds` (correct)
+- Middleware used `balagruhId` (wrong) → Fixed to `balagruhaId` (correct)
+- Total: 5 field name corrections in middleware + tests
+
+**Enhancements to User Model:**
+- Added index: `userSchema.index({ balagruhaIds: 1 })`
+- Added method: `hasBalagruhaAccess(balagruhaId)` - Check access to specific Balagruh
+- Added method: `getAllBalagruhaIds()` - Get all assigned Balagruhs
+- Added method: `getBalagruhaIdsAsStrings()` - Get IDs as strings for comparison
+
+**Decision:**
+- User model (line 77: `balagruhaIds` array) already supports multi-Balagruh
+- No need for separate UserBalagruhMapping model
+- Time saved: ~2 hours
+- Risk reduced: No migration, no new model
+
+**Validation:**
+- ✅ All code syntax validated
+- ✅ Field names match codebase convention (balagruha with 'a')
 - ✅ Ready for controller integration
 
 ---
@@ -214,14 +250,15 @@ _None yet_
 ## 📊 Progress Tracking
 
 **Total Tasks:** 10
-**Completed:** 2 (Tasks 1-2)
-**In Progress:** 1 (Task 3)
+**Completed:** 3 (Tasks 1-3)
+**In Progress:** 0
 **Pending:** 7
-**Overall Progress:** 20%
+**Overall Progress:** 30%
 
-**Estimated Total Time:** 40-45 hours (5-7 days)
-**Time Spent:** ~3.1 hours
-**Estimated Remaining Time:** 36-42 hours
+**Estimated Total Time:** 38-43 hours (3-5 days revised)
+**Time Spent:** ~4 hours
+**Time Saved:** ~2 hours (Task 3 optimization)
+**Estimated Remaining Time:** 34-39 hours
 
 ---
 
@@ -254,6 +291,6 @@ Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
 
 ---
 
-**Last Updated:** 2025-10-18 21:36:05
-**Next Checkpoint:** After Task 3 complete (expected: ~3 hours)
+**Last Updated:** 2025-10-18 22:22:00
+**Next Checkpoint:** After Task 4 complete (expected: ~8 hours for controller updates)
 **Session ID:** dev-session-1

@@ -19,14 +19,14 @@ function getScopeFilter(user, scope) {
 
     case 'balagruh':
       // Balagruh-level access - filter by user's assigned Balagruh(s)
-      // Support both single balagruhId and multiple balagruhIds array
-      if (user.balagruhIds && user.balagruhIds.length > 0) {
-        return { balagruhId: { $in: user.balagruhIds } };
-      } else if (user.balagruhId) {
-        return { balagruhId: user.balagruhId };
+      // Support both single balagruhaId and multiple balagruhaIds array
+      if (user.balagruhaIds && user.balagruhaIds.length > 0) {
+        return { balagruhaId: { $in: user.balagruhaIds } };
+      } else if (user.balagruhaId) {
+        return { balagruhaId: user.balagruhaId };
       } else {
         // User has no assigned Balagruh - return filter that matches nothing
-        return { balagruhId: null };
+        return { balagruhaId: null };
       }
 
     case 'own':

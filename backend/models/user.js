@@ -154,6 +154,27 @@ userSchema.methods.resetLoginAttempts = async function () {
   });
 };
 
+// RBAC Refactor: Helper methods for Balagruh access control
+userSchema.methods.hasBalagruhaAccess = function (balagruhaId) {
+  if (!this.balagruhaIds || this.balagruhaIds.length === 0) {
+    return false;
+  }
+  return this.balagruhaIds.some(
+    (id) => id.toString() === balagruhaId.toString()
+  );
+};
+
+userSchema.methods.getAllBalagruhaIds = function () {
+  return this.balagruhaIds || [];
+};
+
+userSchema.methods.getBalagruhaIdsAsStrings = function () {
+  return (this.balagruhaIds || []).map((id) => id.toString());
+};
+
+// RBAC Refactor: Add index on balagruhaIds for performance
+userSchema.index({ balagruhaIds: 1 });
+
 const User = mongoose.model("User", userSchema);
 
 module.exports = User;
