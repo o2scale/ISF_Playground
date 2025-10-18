@@ -55,6 +55,14 @@ const validateOrderQuery = [
 router.post('/', authenticate, orderController.createOrder);
 
 /**
+ * @route   GET /api/v2/shop/orders/all
+ * @desc    Get all orders (Admin only) with filters
+ * @access  Private (Admin)
+ * @query   page, limit, status, coachId, balagruhaId (optional)
+ */
+router.get('/all', authenticate, orderController.getAllOrders);
+
+/**
  * @route   GET /api/v2/shop/orders
  * @desc    Get user's order history with pagination
  * @access  Private

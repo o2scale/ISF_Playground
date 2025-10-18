@@ -352,10 +352,85 @@ async function cancelOrder(orderNumber, userId, cancellationReason = '') {
   }
 }
 
+/**
+ * Get all orders (Admin view) with filters
+ * @param {number} page - Page number (default: 1)
+ * @param {number} limit - Items per page (default: 10)
+ * @param {string} status - Filter by status (optional)
+ * @param {string} coachId - Filter by coach ID (optional)
+ * @param {string} balagruhaId - Filter by balagruha ID (optional)
+ * @returns {Promise<Object>} All orders with pagination
+ */
+async function getAllOrders(page = 1, limit = 10, status = null, coachId = null, balagruhaId = null) {
+  const skip = (page - 1) * limit;
+  const query = {};
+
+  // Filter by status if provided
+  if (status) {
+    query.status = status;
+  }
+
+  // Build the query
+  let ordersQuery = Order.find(query)
+    .populate({
+      path: 'userId',
+      select: 'name email userId balagruhaIds coachIds',
+      populate: [
+        {
+          path: 'balagruhaIds',
+          select: 'name _id'
+        },
+        {
+          path: 'coachIds',
+          select: 'name _id'
+        }
+      ]
+    })
+    .populate('items.shopItemId', 'name imageUrl images category price')
+    .populate('deliveredBy', 'name')
+    .sort({ placedAt: -1 })
+    .skip(skip)
+    .limit(limit);
+
+  const orders = await ordersQuery;
+
+  // Filter by balagruha if provided
+  let filteredOrders = orders;
+  if (balagruhaId) {
+    filteredOrders = orders.filter(order => {
+      if (!order.userId || !order.userId.balagruhaIds) return false;
+      return order.userId.balagruhaIds.some(b => b._id.toString() === balagruhaId);
+    });
+  }
+
+  // Filter by coach if provided
+  if (coachId) {
+    filteredOrders = filteredOrders.filter(order => {
+      if (!order.userId || !order.userId.coachIds) return false;
+      return order.userId.coachIds.some(c => c._id.toString() === coachId);
+    });
+  }
+
+  // Get total count for pagination
+  const totalQuery = Order.find(query);
+  const total = await Order.countDocuments(totalQuery);
+
+  return {
+    orders: filteredOrders,
+    pagination: {
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      limit
+    }
+  };
+}
+
 module.exports = {
   createOrder,
   getOrderByNumber,
   getUserOrders,
   getOrderById,
-  cancelOrder
+  cancelOrder,
+  getAllOrders
 };

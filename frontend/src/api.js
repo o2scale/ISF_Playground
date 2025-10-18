@@ -1581,6 +1581,35 @@ export const cancelOrder = async (orderNumber, reason) => {
   }
 };
 
+// Get all orders (Admin only) with filters
+export const getAllOrdersAdmin = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+
+    const response = await api.get(`/api/v2/shop/orders/all?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all orders:", error);
+    throw error;
+  }
+};
+
+// Get all coaches for filters (uses existing user endpoint)
+export const getAllCoaches = async () => {
+  try {
+    const response = await api.get(`/api/v1/users/role/coach`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coaches:", error);
+    throw error;
+  }
+};
+
 // ==================== SHOP ANALYTICS (Sprint5-Story-11) ====================
 
 // Get shop analytics dashboard data
