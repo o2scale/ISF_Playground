@@ -4,15 +4,15 @@
 **Story:** `docs/stories/sprint-1.1/epic-01-story-01-rbac-refactor.md`
 **Epic:** `docs/epics/sprint-1.1/epic-01-rbac-system-refactor.md`
 **Created:** 2025-10-18 20:43:28
-**Last Updated:** 2025-10-18 21:31:19 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
+**Last Updated:** 2025-10-18 21:36:05 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
 **Updated By:** Dev Agent (James) - Session 1
 
 ---
 
 ## 🎯 Current Status
 
-**Current Task:** Task 2 - Implement Scope Filtering Middleware
-**Completion:** 10% (1/10 tasks complete)
+**Current Task:** Task 3 - Create UserBalagruhMapping Model
+**Completion:** 20% (2/10 tasks complete)
 **Session:** 1 of 3-4 (estimated)
 **Approach:** Option A - Refactor (5-7 days estimated)
 
@@ -41,6 +41,28 @@
 - Admin → scope='all' (global access to all Balagruhs)
 - Coach/In-Charge → scope='balagruh' (assigned Balagruh only)
 - Student → scope='own' (own data only)
+
+### Task 2: Implement Scope Filtering Middleware ✅ COMPLETE
+**Completed:** 2025-10-18 21:36:05
+**Time Taken:** ~5 minutes
+**Files Modified:**
+- `backend/middleware/checkPermission.js` - Added getScopeFilter() and scope injection
+
+**Files Created:**
+- `backend/tests/checkPermission.test.js` - Comprehensive unit tests (20+ cases)
+
+**Implementation Details:**
+- `getScopeFilter(user, scope)` function generates MongoDB query filters
+- Middleware injects `req.scopeFilter` for controller usage
+- Supports all three scopes: own, balagruh, all
+- Multi-Balagruh coach support (balagruhIds array)
+- Backward compatibility (defaults to 'own' if undefined)
+- Error handling for invalid scopes
+
+**Validation:**
+- ✅ All code syntax validated
+- ✅ Comprehensive unit tests (edge cases + real-world scenarios)
+- ✅ Ready for controller integration
 
 ---
 
@@ -192,14 +214,14 @@ _None yet_
 ## 📊 Progress Tracking
 
 **Total Tasks:** 10
-**Completed:** 1 (Task 1)
-**In Progress:** 1 (Task 2)
-**Pending:** 8
-**Overall Progress:** 10%
+**Completed:** 2 (Tasks 1-2)
+**In Progress:** 1 (Task 3)
+**Pending:** 7
+**Overall Progress:** 20%
 
 **Estimated Total Time:** 40-45 hours (5-7 days)
-**Time Spent:** ~3 hours
-**Estimated Remaining Time:** 37-42 hours
+**Time Spent:** ~3.1 hours
+**Estimated Remaining Time:** 36-42 hours
 
 ---
 
@@ -232,6 +254,6 @@ Timestamp: $(date '+%Y-%m-%d %H:%M:%S')"
 
 ---
 
-**Last Updated:** 2025-10-18 21:31:19
-**Next Checkpoint:** After Task 2 complete (expected: ~2 hours)
+**Last Updated:** 2025-10-18 21:36:05
+**Next Checkpoint:** After Task 3 complete (expected: ~3 hours)
 **Session ID:** dev-session-1

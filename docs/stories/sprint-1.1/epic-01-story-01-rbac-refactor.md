@@ -104,14 +104,14 @@ As a **System Administrator**, I need to **refactor the RBAC system to add scope
 **Estimated:** 6 hours
 
 #### Subtasks:
-- [ ] Update `backend/middleware/checkPermission.js` to read scope field
-- [ ] Create `getScopeFilter()` function to generate query filters
-- [ ] Inject `req.scopeFilter` for use in controllers
-- [ ] Handle scope='all' (Admin) - no filter applied
-- [ ] Handle scope='balagruh' - filter by user's balagruhIds
-- [ ] Handle scope='own' - filter by user._id
-- [ ] Add error handling for invalid scope values
-- [ ] Write unit tests for scope filter logic
+- [x] Update `backend/middleware/checkPermission.js` to read scope field
+- [x] Create `getScopeFilter()` function to generate query filters
+- [x] Inject `req.scopeFilter` for use in controllers
+- [x] Handle scope='all' (Admin) - no filter applied
+- [x] Handle scope='balagruh' - filter by user's balagruhIds
+- [x] Handle scope='own' - filter by user._id
+- [x] Add error handling for invalid scope values
+- [x] Write unit tests for scope filter logic
 
 ---
 
@@ -394,11 +394,13 @@ git push origin feature/sprint-1.1-rbac-refactor
 ### File List
 **Modified:**
 - `backend/models/role.js` - Added scope field to permissions schema
+- `backend/middleware/checkPermission.js` - Added scope filtering logic and getScopeFilter function
 
 **Created:**
 - `backend/migrations/add-scope-to-permissions.js` - Migration script with rollback support
 - `backend/migrations/README.md` - Migration documentation
 - `backend/tests/migration-scope.test.js` - Unit tests for scope field and migration logic
+- `backend/tests/checkPermission.test.js` - Unit tests for scope filtering middleware
 
 ### Change Log
 **2025-10-18 21:31:19 - Task 1 Complete**
@@ -411,12 +413,28 @@ git push origin feature/sprint-1.1-rbac-refactor
 - Created comprehensive unit tests
 - All code validated (syntax checks passed)
 
+**2025-10-18 21:36:05 - Task 2 Complete**
+- Updated checkPermission middleware to extract scope from permissions
+- Created getScopeFilter() function with full support for all scopes:
+  - scope='all': No filter (Admin global access)
+  - scope='balagruh': Filter by balagruhIds array (multi-Balagruh support)
+  - scope='own': Filter by userId (user's own data)
+- Injected req.scopeFilter for controller usage
+- Added backward compatibility (defaults to 'own' if scope undefined)
+- Error handling for invalid scope values (defaults to most restrictive)
+- Comprehensive unit tests with 20+ test cases
+- All code validated (syntax checks passed)
+
 ### Completion Notes
 **Task 1:** ✅ Complete (2025-10-18 21:31:19)
 - Scope field successfully added to permission model
 - Migration script ready for staging database deployment
 - Tests created and code validated
-- Ready to proceed with Task 2
+
+**Task 2:** ✅ Complete (2025-10-18 21:36:05)
+- Scope filtering middleware implemented
+- Ready for controller integration (Task 4)
+- Tests cover all edge cases and real-world scenarios
 
 ### Debug Log References
 _No issues encountered_
@@ -430,7 +448,7 @@ _Will be populated by QA Agent after review_
 ---
 
 **Created:** 2025-10-18 20:51:03 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
-**Last Updated:** 2025-10-18 21:31:19
-**Status:** IN PROGRESS (Task 1 complete, starting Task 2)
+**Last Updated:** 2025-10-18 21:36:05
+**Status:** IN PROGRESS (Tasks 1-2 complete, starting Task 3)
 **Approach:** Option A - Refactor (5-7 days)
 **Reference:** `docs/INTERNAL - RBAC and FR System Rebuild.md` Section 2.2
