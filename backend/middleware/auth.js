@@ -76,17 +76,8 @@ exports.authorize = (module, action) => {
       console.log("auth res: ", req.user);
       const userRole = req.user.role;
 
-      // DEVELOPMENT BYPASS: Skip role checks in development mode
-      if (
-        process.env.NODE_ENV === "development" ||
-        process.env.NODE_ENV === "local"
-      ) {
-        console.log(
-          `🚀 DEV MODE: Bypassing role check for ${module}:${action}`
-        );
-        console.log(`👤 User: ${req.user.name} (${userRole})`);
-        return next();
-      }
+      // RBAC Refactor: Development bypass REMOVED for production security
+      // All environments now enforce permission checks
 
       const role = await Role.findOne({ roleName: userRole });
 
