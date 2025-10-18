@@ -16,9 +16,12 @@ const { UserTypes } = require("../constants/users");
 const { updateNextActionDate } = require("../data-access/medicalRecords");
 const { isRequestFromLocalhost } = require("../utils/helper");
 
-exports.getAllUsers = async (_, res) => {
+exports.getAllUsers = async (req, res) => {
   try {
-    let users = await User.find()
+    // RBAC: Apply scope filtering based on user's permission scope
+    let users = await User.find({
+      ...(req.scopeFilter || {}), // Inject scope filter from middleware
+    })
       .lean()
       .select("-facialData -password")
       .populate("balagruhaIds")

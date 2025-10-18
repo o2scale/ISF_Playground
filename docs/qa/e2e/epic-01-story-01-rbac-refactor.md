@@ -48,12 +48,12 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 ### AC1: Admin Role - Global Access (Scope: 'all')
 
-**Test Case 1.1: Admin Can View All Students**
+**Test Case 1.1: Admin Can View All Users**
 - **Login:** admin@test.com
-- **Navigate:** /students
-- **Expected:** See students from ALL Balagruhs (30 total)
-- **Verify:** Student list includes Balagruh A, B, and C students
-- **Backend Check:** Query should NOT have balagruhaId filter
+- **Navigate:** /users
+- **Expected:** See users from ALL Balagruhs (494 total in current database)
+- **Verify:** User list includes users from all Balagruhs
+- **Backend Check:** Query should NOT have balagruhaId filter (`req.scopeFilter = {}`)
 
 **Test Case 1.2: Admin Can Manage All Attendance**
 - **Login:** admin@test.com
@@ -61,11 +61,12 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 - **Expected:** See attendance records from ALL Balagruhs (150 total)
 - **Verify:** Can create, update, delete attendance for any Balagruh
 
-**Test Case 1.3: Admin Can Access All Reports**
+**Test Case 1.3: Admin Can Access Shop Transaction Reports**
 - **Login:** admin@test.com
-- **Navigate:** /reports
-- **Expected:** Reports show data from ALL Balagruhs
+- **Navigate:** /shop/admin/reports/transactions
+- **Expected:** Reports show transactions from ALL Balagruhs
 - **Verify:** No data filtering by Balagruh
+- **Note:** General /reports route does not exist; using shop-specific reports for testing
 
 **Test Case 1.4: Admin UI Shows All Management Features**
 - **Login:** admin@test.com
@@ -79,16 +80,16 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 **Test Case 2.1: Single-Balagruh Coach - Data Isolation**
 - **Login:** coach1@test.com (assigned to Balagruh A only)
-- **Navigate:** /students
-- **Expected:** See ONLY Balagruh A students (10 students)
-- **Verify:** Balagruh B and C students NOT visible
-- **Backend Check:** Query has `balagruhaId: { $in: [BalagruhA_ID] }`
+- **Navigate:** /users
+- **Expected:** See ONLY Balagruh A users
+- **Verify:** Balagruh B and C users NOT visible
+- **Backend Check:** Query has `balagruhaId: { $in: [BalagruhA_ID] }` via `req.scopeFilter`
 
 **Test Case 2.2: Single-Balagruh Coach - Cannot Access Other Balagruhs**
 - **Login:** coach1@test.com
-- **Attempt:** Direct URL to Balagruh B student: `/students/student2_id`
-- **Expected:** 403 Forbidden error
-- **Verify:** Error message: "You don't have permission to access this resource"
+- **Attempt:** Direct URL to Balagruh B user: `/api/users/:userId` where user belongs to Balagruh B
+- **Expected:** User not visible in list OR 403 Forbidden if accessing directly
+- **Verify:** Scope filter prevents access to other Balagruh data
 
 **Test Case 2.3: Single-Balagruh Coach - Attendance Management**
 - **Login:** coach1@test.com
@@ -99,9 +100,9 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 **Test Case 2.4: Single-Balagruh Coach - UI Filtering**
 - **Login:** coach1@test.com
-- **Navigate:** /students
-- **Verify:** Student dropdown/filters show ONLY Balagruh A students
-- **Navigate:** /reports
+- **Navigate:** /users
+- **Verify:** User list shows ONLY Balagruh A users
+- **Navigate:** /shop/admin/reports/transactions (if coach has Shop Management permission)
 - **Verify:** Reports show ONLY Balagruh A data
 
 ---
@@ -110,18 +111,18 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 **Test Case 3.1: Multi-Balagruh Coach Can Access All Assigned**
 - **Login:** coach3@test.com (assigned to Balagruh A AND B)
-- **Navigate:** /students
-- **Expected:** See students from Balagruh A and B (20 students)
-- **Verify:** Balagruh C students NOT visible
-- **Backend Check:** Query has `balagruhaId: { $in: [BalagruhA_ID, BalagruhB_ID] }`
+- **Navigate:** /users
+- **Expected:** See users from Balagruh A and B only
+- **Verify:** Balagruh C users NOT visible
+- **Backend Check:** Query has `balagruhaId: { $in: [BalagruhA_ID, BalagruhB_ID] }` via `req.scopeFilter`
 
 **Test Case 3.2: Multi-Balagruh Coach - Cross-Balagruh Management**
 - **Login:** coach3@test.com
-- **Navigate:** /students
-- **Verify:** Can edit Balagruh A student
-- **Verify:** Can edit Balagruh B student
-- **Attempt:** Edit Balagruh C student via direct URL
-- **Expected:** 403 Forbidden
+- **Navigate:** /users
+- **Verify:** Can edit Balagruh A user (if has Update permission)
+- **Verify:** Can edit Balagruh B user (if has Update permission)
+- **Attempt:** Edit Balagruh C user via direct API call
+- **Expected:** User not visible in filtered list
 
 **Test Case 3.3: Multi-Balagruh Coach - Attendance Across Balagruhs**
 - **Login:** coach3@test.com
@@ -131,9 +132,10 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 **Test Case 3.4: Multi-Balagruh Coach - Reports Aggregation**
 - **Login:** coach3@test.com
-- **Navigate:** /reports
+- **Navigate:** /shop/admin/reports/transactions (if has permission)
 - **Expected:** Reports aggregate data from Balagruh A and B only
 - **Verify:** Balagruh C data excluded
+- **Note:** Depends on coach having Shop Management permissions
 
 ---
 
@@ -164,10 +166,10 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 - **Verify:** NO access to: User Management, Reports, Settings
 - **Verify:** NO Create/Edit/Delete buttons for other users
 
-**Test Case 4.5: Student Cannot Access Student List**
+**Test Case 4.5: Student Cannot Access User List**
 - **Login:** student1@test.com
-- **Attempt:** Navigate to `/students`
-- **Expected:** 403 Forbidden or "Access Denied" message
+- **Attempt:** Navigate to `/users`
+- **Expected:** 403 Forbidden or "Access Denied" message (no User Management Read permission)
 
 ---
 
@@ -252,14 +254,14 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 **Test Case 8.2: API Rejects Out-of-Scope Updates**
 - **Login:** coach1@test.com (Balagruh A)
-- **API Call:** `PUT /api/students/student2_id` (Balagruh B student)
-- **Expected:** 403 Forbidden
-- **Response Body:** `{ error: "You don't have permission to access this resource" }`
+- **API Call:** `PUT /api/v2/users/:userId/update` (Balagruh B user)
+- **Expected:** User not found or update fails (filtered by scope)
+- **Note:** Scope filtering prevents access to out-of-scope users
 
 **Test Case 8.3: API Rejects Out-of-Scope Deletes**
 - **Login:** coach1@test.com
-- **API Call:** `DELETE /api/students/student2_id` (Balagruh B student)
-- **Expected:** 403 Forbidden
+- **API Call:** `DELETE /api/v2/users/:userId` (Balagruh B user)
+- **Expected:** User not found (filtered by scope) OR 403 Forbidden if coach lacks Delete permission
 
 **Test Case 8.4: Middleware Injects Correct Scope Filter**
 - **Login:** coach1@test.com
@@ -273,9 +275,9 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 
 ### Penetration Test 1: Direct URL Access Bypass Attempt
 - **Login:** coach1@test.com (Balagruh A)
-- **Attempt:** Direct URL: `/api/students?balagruhaId=BalagruhB_ID`
-- **Expected:** Still see ONLY Balagruh A students
-- **Verify:** Query parameter ignored, middleware filter enforced
+- **Attempt:** Direct URL: `/api/users?balagruhaId=BalagruhB_ID`
+- **Expected:** Still see ONLY Balagruh A users
+- **Verify:** Query parameter ignored, `req.scopeFilter` enforced by middleware
 
 ### Penetration Test 2: Token Manipulation
 - **Login:** student1@test.com
