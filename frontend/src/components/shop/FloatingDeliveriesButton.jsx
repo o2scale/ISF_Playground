@@ -4,10 +4,10 @@ import { getCoachDeliveryStats } from '../../api';
 
 /**
  * FloatingDeliveriesButton - Sprint5-Story-13
- * Floating action button for coaches showing pending delivery count
+ * Floating action button for admins showing pending delivery count
  *
  * Features:
- * - Visible only to coaches
+ * - Visible only to admins (removed from coaches - they use shop navigation instead)
  * - Shows real-time pending delivery count
  * - Pulses when there are pending deliveries
  * - Auto-refreshes every 30 seconds
@@ -19,9 +19,10 @@ export default function FloatingDeliveriesButton() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  // Check if user is coach
+  // Check if user is admin
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const isCoach = user.role === 'coach';
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName;
+  const isAdmin = userRole?.toLowerCase() === 'admin';
 
   // Fetch pending count
   const fetchPendingCount = async () => {
@@ -38,7 +39,7 @@ export default function FloatingDeliveriesButton() {
   };
 
   useEffect(() => {
-    if (!isCoach) return;
+    if (!isAdmin) return;
 
     // Initial fetch
     fetchPendingCount();
@@ -47,10 +48,10 @@ export default function FloatingDeliveriesButton() {
     const interval = setInterval(fetchPendingCount, 30000);
 
     return () => clearInterval(interval);
-  }, [isCoach]);
+  }, [isAdmin]);
 
-  // Don't render if not a coach
-  if (!isCoach) return null;
+  // Don't render if not an admin
+  if (!isAdmin) return null;
 
   // Don't render during loading
   if (loading) return null;

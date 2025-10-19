@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getAllOrdersAdmin, getAllCoaches, getBalagruha } from '../api';
+import { getAllOrdersAdmin, getBalagruha, fetchUsers } from '../api';
 import { api } from '../api';
 import OrderCard from '../components/shop/OrderCard';
 import OrdersEmptyState from '../components/shop/OrdersEmptyState';
@@ -10,7 +10,7 @@ import { useAuth } from '../contexts/AuthContext';
 /**
  * OrderHistory Page - Sprint5-Story-04
  * Displays user's order history with filtering and sorting
- * Admin Enhancement: Shows all student orders with coach and balagruha filters
+ * Admin Enhancement: Shows all student orders with balagruha and student filters
  */
 
 export default function OrderHistory() {
@@ -24,37 +24,27 @@ export default function OrderHistory() {
   const [sortBy, setSortBy] = useState('newest');
 
   // Admin-specific filters
-  const [coachFilter, setCoachFilter] = useState('all');
   const [balagruhaFilter, setBalagruhaFilter] = useState('all');
-  const [coaches, setCoaches] = useState([]);
+  const [studentFilter, setStudentFilter] = useState('all');
   const [balagruhas, setBalagruhas] = useState([]);
+  const [students, setStudents] = useState([]);
   const [filtersLoading, setFiltersLoading] = useState(false);
 
-  // Fetch coaches and balagruhas for admin filters
+  // Fetch balagruhas for admin filters
   useEffect(() => {
     if (isAdmin) {
       const fetchFilterOptions = async () => {
         try {
           setFiltersLoading(true);
-          const [coachesResponse, balagruhasResponse] = await Promise.all([
-            getAllCoaches(),
-            getBalagruha()
-          ]);
+          const balagruhasResponse = await getBalagruha();
 
-          // Handle different response structures
-          const coachesData = Array.isArray(coachesResponse?.data)
-            ? coachesResponse.data
-            : (Array.isArray(coachesResponse) ? coachesResponse : []);
+          // Extract balagruhas from response: response.data.balagruhas
+          const balagruhasData = balagruhasResponse?.data?.balagruhas || [];
 
-          const balagruhasData = Array.isArray(balagruhasResponse?.data)
-            ? balagruhasResponse.data
-            : (Array.isArray(balagruhasResponse) ? balagruhasResponse : []);
-
-          setCoaches(coachesData);
+          console.log('Fetched balagruhas:', balagruhasData.length);
           setBalagruhas(balagruhasData);
         } catch (err) {
           console.error('Error fetching filter options:', err);
-          setCoaches([]);
           setBalagruhas([]);
         } finally {
           setFiltersLoading(false);
@@ -63,6 +53,44 @@ export default function OrderHistory() {
       fetchFilterOptions();
     }
   }, [isAdmin]);
+
+  // Fetch students when balagruha changes (cascading filter)
+  useEffect(() => {
+    if (isAdmin && balagruhaFilter !== 'all') {
+      const fetchStudents = async () => {
+        try {
+          setFiltersLoading(true);
+          // Fetch all users and filter by role=student and balagruha
+          const response = await fetchUsers();
+          const allUsers = response?.data?.users || response?.data || [];
+
+          // Filter for students in the selected balagruha
+          const studentsInBalagruha = allUsers.filter(user => {
+            const isStudent = user.role?.toLowerCase() === 'student';
+            const userBalagruhaIds = (user.balagruhaIds || []).map(id =>
+              typeof id === 'object' ? id._id : id
+            );
+            const inBalagruha = userBalagruhaIds.includes(balagruhaFilter);
+            return isStudent && inBalagruha;
+          });
+
+          console.log(`Found ${studentsInBalagruha.length} students in balagruha`);
+          setStudents(studentsInBalagruha);
+          setStudentFilter('all'); // Reset student filter when balagruha changes
+        } catch (err) {
+          console.error('Error fetching students:', err);
+          setStudents([]);
+        } finally {
+          setFiltersLoading(false);
+        }
+      };
+      fetchStudents();
+    } else {
+      // Reset students when "All Balagruhas" is selected
+      setStudents([]);
+      setStudentFilter('all');
+    }
+  }, [isAdmin, balagruhaFilter]);
 
   const fetchOrders = useCallback(async () => {
     try {
@@ -76,11 +104,11 @@ export default function OrderHistory() {
 
       // Admin-specific filters
       if (isAdmin) {
-        if (coachFilter !== 'all') {
-          params.coachId = coachFilter;
-        }
         if (balagruhaFilter !== 'all') {
           params.balagruhaId = balagruhaFilter;
+        }
+        if (studentFilter !== 'all') {
+          params.studentId = studentFilter;
         }
 
         const response = await getAllOrdersAdmin(params);
@@ -95,7 +123,7 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, isAdmin, coachFilter, balagruhaFilter]);
+  }, [statusFilter, isAdmin, balagruhaFilter, studentFilter]);
 
   useEffect(() => {
     fetchOrders();
@@ -179,44 +207,48 @@ export default function OrderHistory() {
               </div>
             </div>
 
-            {/* Second Row: Admin Filters (Coach & Balagruha) */}
+            {/* Second Row: Admin Filters (Balagruha) */}
             {isAdmin && (
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-3 border-t border-slate-200">
-                {/* Coach Filter */}
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-slate-700">Coach:</label>
-                  <select
-                    value={coachFilter}
-                    onChange={(e) => setCoachFilter(e.target.value)}
-                    className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none min-w-[200px]"
-                    disabled={filtersLoading}
-                  >
-                    <option value="all">All Coaches</option>
-                    {coaches.map((coach) => (
-                      <option key={coach._id} value={coach._id}>
-                        {coach.name}
-                      </option>
-                    ))}
-                  </select>
+              <div className="flex flex-col gap-3 pt-3 border-t border-slate-200">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                  {/* Balagruha Filter */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-slate-700">Balagruha:</label>
+                    <select
+                      value={balagruhaFilter}
+                      onChange={(e) => setBalagruhaFilter(e.target.value)}
+                      className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none min-w-[200px]"
+                      disabled={filtersLoading}
+                    >
+                      <option value="all">All Balagruhas</option>
+                      {balagruhas.map((balagruha) => (
+                        <option key={balagruha._id} value={balagruha._id}>
+                          {balagruha.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
-                {/* Balagruha Filter */}
-                <div className="flex items-center gap-3">
-                  <label className="text-sm font-medium text-slate-700">Balagruha:</label>
-                  <select
-                    value={balagruhaFilter}
-                    onChange={(e) => setBalagruhaFilter(e.target.value)}
-                    className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none min-w-[200px]"
-                    disabled={filtersLoading}
-                  >
-                    <option value="all">All Balagruhas</option>
-                    {balagruhas.map((balagruha) => (
-                      <option key={balagruha._id} value={balagruha._id}>
-                        {balagruha.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Student Filter - Only show when balagruha is selected */}
+                {balagruhaFilter !== 'all' && students.length > 0 && (
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-slate-700">Student:</label>
+                    <select
+                      value={studentFilter}
+                      onChange={(e) => setStudentFilter(e.target.value)}
+                      className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none min-w-[200px]"
+                      disabled={filtersLoading}
+                    >
+                      <option value="all">All Students</option>
+                      {students.map((student) => (
+                        <option key={student._id} value={student._id}>
+                          {student.name} ({student.userId || student.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
             )}
           </div>

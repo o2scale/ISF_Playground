@@ -15,18 +15,18 @@ const { authenticate, authorize } = require('../../middleware/auth');
 // Apply authentication to all coach delivery routes
 router.use(authenticate);
 
-// Role-based authorization middleware for coaches
-const coachOnly = (req, res, next) => {
-  if (req.user.role !== 'coach') {
+// Role-based authorization middleware for coaches and admins
+const coachOrAdmin = (req, res, next) => {
+  if (req.user.role !== 'coach' && req.user.role !== 'admin') {
     return res.status(403).json({
       success: false,
-      error: 'Access denied. Coach role required.'
+      error: 'Access denied. Coach or Admin role required.'
     });
   }
   next();
 };
 
-router.use(coachOnly);
+router.use(coachOrAdmin);
 
 /**
  * GET /api/v2/shop/coach/deliveries/stats

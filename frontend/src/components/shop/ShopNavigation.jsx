@@ -6,6 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * ShopNavigation Component - Sprint5-Story-15
  * Simple navigation buttons for shop pages
  * - Students: Shop Home | My Orders | Transactions
+ * - Coaches: Shop Home | My Orders | Deliveries | Transactions
  * - Admins: Shop Home | All Orders | All Transactions
  * - Clean, minimal design (no draggable panel for students)
  */
@@ -14,28 +15,45 @@ const ShopNavigation = () => {
   const location = useLocation();
   const { user } = useAuth();
 
-  const isAdmin = user?.role?.roleName === 'admin';
+  // Handle both role formats: user.role (string) or user.role.roleName (object)
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName;
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  const isCoach = userRole?.toLowerCase() === 'coach';
 
   const navItems = [
     {
       label: 'Shop Home',
       icon: '🏠',
       path: '/shop',
-      description: 'Browse products'
+      description: 'Browse products',
+      roles: ['student', 'coach', 'admin']
     },
     {
       label: isAdmin ? 'All Orders' : 'My Orders',
       icon: '📦',
       path: '/shop/orders',
-      description: isAdmin ? 'View all orders' : 'View your orders'
+      description: isAdmin ? 'View all orders' : 'View your orders',
+      roles: ['student', 'coach', 'admin']
+    },
+    {
+      label: 'Deliveries',
+      icon: '🚚',
+      path: '/coach/deliveries',
+      description: 'Manage order deliveries',
+      roles: ['coach', 'admin']
     },
     {
       label: isAdmin ? 'All Transactions' : 'Transactions',
       icon: '💰',
       path: isAdmin ? '/coins/history' : '/coins/history',
-      description: isAdmin ? 'View all transactions' : 'View your coin history'
+      description: isAdmin ? 'View all transactions' : 'View your coin history',
+      roles: ['student', 'coach', 'admin']
     }
-  ];
+  ].filter(item => {
+    // Filter items based on user role
+    if (!userRole) return false;
+    return item.roles.includes(userRole.toLowerCase());
+  });
 
   const isActive = (path) => {
     if (path === '/shop') {
@@ -46,7 +64,7 @@ const ShopNavigation = () => {
 
   return (
     <div className="bg-white border-b border-slate-200 sticky top-16 z-[5]">
-      <div className="w-full max-w-7xl mx-auto px-4 py-3">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-3">
         <div className="flex items-center gap-2 overflow-x-auto">
           {navItems.map((item) => (
             <button

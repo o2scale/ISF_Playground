@@ -81,8 +81,9 @@ async function getOrder(req, res) {
   try {
     const { orderNumber } = req.params;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    const order = await orderService.getOrderByNumber(orderNumber, userId);
+    const order = await orderService.getOrderByNumber(orderNumber, userId, userRole);
 
     res.status(200).json({
       success: true,
@@ -153,8 +154,9 @@ async function getOrderById(req, res) {
   try {
     const { orderId } = req.params;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    const order = await orderService.getOrderById(orderId, userId);
+    const order = await orderService.getOrderById(orderId, userId, userRole);
 
     res.status(200).json({
       success: true,
@@ -241,7 +243,7 @@ async function cancelOrder(req, res) {
 /**
  * Get all orders (Admin view) with filters
  * GET /api/v2/shop/orders/all
- * Query params: page, limit, status, coachId, balagruhaId
+ * Query params: page, limit, status, coachId, balagruhaId, studentId
  * @access Private (Admin only)
  */
 async function getAllOrders(req, res) {
@@ -259,8 +261,9 @@ async function getAllOrders(req, res) {
     const status = req.query.status || null;
     const coachId = req.query.coachId || null;
     const balagruhaId = req.query.balagruhaId || null;
+    const studentId = req.query.studentId || null;
 
-    const result = await orderService.getAllOrders(page, limit, status, coachId, balagruhaId);
+    const result = await orderService.getAllOrders(page, limit, status, coachId, balagruhaId, studentId);
 
     res.status(200).json({
       success: true,

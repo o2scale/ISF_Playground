@@ -26,29 +26,48 @@ const Notification = require('../models/notification');
  */
 exports.getCoachDeliveries = async (req, res) => {
   try {
-    const coachId = req.user._id;
-    const { balagruhaId, status, page = 1, limit = 20 } = req.query;
+    const userId = req.user._id;
+    const userRole = req.user.role;
+    const { balagruhaId, coachId, status, page = 1, limit = 20 } = req.query;
 
     // 1. Check and confirm any orders ready for delivery
     await Order.checkAndConfirmOrders();
 
-    // 2. Get coach's balagruhaIds
-    const coach = await User.findById(coachId).select('balagruhaIds name');
-    if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
-      return res.status(404).json({
-        success: false,
-        error: 'No Balagruhas assigned to this coach'
-      });
+    // 2. Determine balagruhaIds based on role
+    let balagruhaIds = [];
+    let targetStudentIds = [];
+
+    if (userRole === 'admin') {
+      // Admin can see all deliveries or filter by balagruha/coach
+      if (balagruhaId) {
+        balagruhaIds = [balagruhaId];
+      } else if (coachId) {
+        // Get coach's balagruhas
+        const coach = await User.findById(coachId).select('balagruhaIds');
+        if (coach && coach.balagruhaIds && coach.balagruhaIds.length > 0) {
+          balagruhaIds = coach.balagruhaIds;
+        }
+      }
+      // If no filters, balagruhaIds stays empty and we'll get all students
+    } else {
+      // Coach - get their assigned balagruhas
+      const coach = await User.findById(userId).select('balagruhaIds name');
+      if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: 'No Balagruhas assigned to this coach'
+        });
+      }
+      balagruhaIds = balagruhaId ? [balagruhaId] : coach.balagruhaIds;
     }
 
-    // 3. Filter by specific Balagruha if provided
-    const balagruhaIds = balagruhaId ? [balagruhaId] : coach.balagruhaIds;
+    // 3. Find students
+    const studentQuery = { role: 'student' };
+    if (balagruhaIds.length > 0) {
+      studentQuery.balagruhaIds = { $in: balagruhaIds };
+    }
 
-    // 4. Find students in these Balagruhas
-    const students = await User.find({
-      role: 'student',
-      balagruhaIds: { $in: balagruhaIds }
-    }).select('_id name balagruhaIds');
+    const students = await User.find(studentQuery).select('_id name balagruhaIds');
 
     const studentIds = students.map(s => s._id);
 
@@ -241,28 +260,40 @@ exports.markOrderDelivered = async (req, res) => {
  */
 exports.getCoachDeliveryStats = async (req, res) => {
   try {
-    const coachId = req.user._id;
+    const userId = req.user._id;
+    const userRole = req.user.role;
 
     // Check and confirm orders first (updates pending counts)
     await Order.checkAndConfirmOrders();
 
-    // Get coach's balagruhaIds
-    const coach = await User.findById(coachId).select('balagruhaIds');
-    if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
-      return res.json({
-        success: true,
-        pendingCount: 0,
-        deliveredToday: 0,
-        deliveredThisWeek: 0,
-        totalDelivered: 0
-      });
+    // Determine balagruhaIds based on role
+    let balagruhaIds = [];
+
+    if (userRole === 'admin') {
+      // Admin sees stats for all deliveries (no balagruha filter for stats)
+      // Could add balagruhaId/coachId query params here if needed
+    } else {
+      // Coach - get their assigned balagruhas
+      const coach = await User.findById(userId).select('balagruhaIds');
+      if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
+        return res.json({
+          success: true,
+          pendingCount: 0,
+          deliveredToday: 0,
+          deliveredThisWeek: 0,
+          totalDelivered: 0
+        });
+      }
+      balagruhaIds = coach.balagruhaIds;
     }
 
-    // Find students in coach's Balagruhas
-    const students = await User.find({
-      role: 'student',
-      balagruhaIds: { $in: coach.balagruhaIds }
-    }).select('_id');
+    // Find students
+    const studentQuery = { role: 'student' };
+    if (balagruhaIds.length > 0) {
+      studentQuery.balagruhaIds = { $in: balagruhaIds };
+    }
+
+    const students = await User.find(studentQuery).select('_id');
 
     const studentIds = students.map(s => s._id);
 
@@ -283,6 +314,31 @@ exports.getCoachDeliveryStats = async (req, res) => {
     const weekStart = new Date(today);
     weekStart.setDate(today.getDate() - today.getDay()); // Start of week (Sunday)
 
+    // Build query filters based on role
+    const deliveredTodayQuery = {
+      userId: { $in: studentIds },
+      deliveryStatus: 'delivered',
+      deliveredAt: { $gte: today }
+    };
+
+    const deliveredWeekQuery = {
+      userId: { $in: studentIds },
+      deliveryStatus: 'delivered',
+      deliveredAt: { $gte: weekStart }
+    };
+
+    const totalDeliveredQuery = {
+      userId: { $in: studentIds },
+      deliveryStatus: 'delivered'
+    };
+
+    // For coaches, filter by deliveredBy
+    if (userRole !== 'admin') {
+      deliveredTodayQuery.deliveredBy = userId;
+      deliveredWeekQuery.deliveredBy = userId;
+      totalDeliveredQuery.deliveredBy = userId;
+    }
+
     // Get stats in parallel
     const [pendingCount, deliveredToday, deliveredThisWeek, totalDelivered] = await Promise.all([
       // Pending deliveries
@@ -291,26 +347,12 @@ exports.getCoachDeliveryStats = async (req, res) => {
         status: 'completed',
         deliveryStatus: 'pending_delivery'
       }),
-      // Delivered today by this coach
-      Order.countDocuments({
-        userId: { $in: studentIds },
-        deliveryStatus: 'delivered',
-        deliveredAt: { $gte: today },
-        deliveredBy: coachId
-      }),
-      // Delivered this week by this coach
-      Order.countDocuments({
-        userId: { $in: studentIds },
-        deliveryStatus: 'delivered',
-        deliveredAt: { $gte: weekStart },
-        deliveredBy: coachId
-      }),
-      // Total delivered by this coach (all-time)
-      Order.countDocuments({
-        userId: { $in: studentIds },
-        deliveryStatus: 'delivered',
-        deliveredBy: coachId
-      })
+      // Delivered today
+      Order.countDocuments(deliveredTodayQuery),
+      // Delivered this week
+      Order.countDocuments(deliveredWeekQuery),
+      // Total delivered (all-time)
+      Order.countDocuments(totalDeliveredQuery)
     ]);
 
     res.json({

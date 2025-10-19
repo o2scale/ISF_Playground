@@ -179,7 +179,7 @@ export default function ProductManagement() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-h-screen bg-slate-50">
       {/* Admin Floating Controls */}
       <ShopAdminControls />
 
@@ -208,20 +208,26 @@ export default function ProductManagement() {
       <div className="w-full px-4 py-6">
         {/* Filter & Search Bar */}
         <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Search */}
-            <form onSubmit={handleSearch} className="flex-1">
-              <div className="relative">
+            <div className="relative">
+              {!searchTerm && (
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by SKU, name, or description..."
-                  className="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-            </form>
+              )}
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    setCurrentPage(1);
+                  }
+                }}
+                placeholder="Search by SKU, name, or description..."
+                className={`w-full ${searchTerm ? 'pl-4' : 'pl-12'} pr-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent`}
+              />
+            </div>
 
             {/* Category Filter */}
             <select
@@ -230,7 +236,7 @@ export default function ProductManagement() {
                 setCategoryFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="all">All Categories</option>
               <option value="stationery">Stationery</option>
@@ -248,7 +254,7 @@ export default function ProductManagement() {
                 setStatusFilter(e.target.value);
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
               <option value="all">All Status</option>
               <option value="active">Active</option>

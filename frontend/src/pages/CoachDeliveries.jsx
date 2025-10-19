@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getCoachDeliveryStats, getCoachDeliveries, markOrderDelivered } from '../api';
+import { getCoachDeliveryStats, getCoachDeliveries, markOrderDelivered, getBalagruha, fetchUsers } from '../api';
+import ShopNavigation from '../components/shop/ShopNavigation';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * CoachDeliveries Page - Sprint5-Story-13
- * Coach interface for managing order deliveries
+ * Coach/Admin interface for managing order deliveries
  *
  * Features:
  * - Stats cards (pending, delivered today/week/all-time)
  * - Delivery list with pagination
  * - On-demand confirmation (auto-triggered when page loads)
  * - Mark as delivered with optional notes
+ * - Admin filters: Balagruha and Coach
  */
 
 export default function CoachDeliveries() {
+  const { user } = useAuth();
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName;
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+
   const [stats, setStats] = useState({
     pendingCount: 0,
     deliveredToday: 0,
@@ -27,6 +35,41 @@ export default function CoachDeliveries() {
   const [showNotesModal, setShowNotesModal] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deliveryNotes, setDeliveryNotes] = useState('');
+
+  // Admin filters
+  const [balagruhas, setBalagruhas] = useState([]);
+  const [coaches, setCoaches] = useState([]);
+  const [balagruhaFilter, setBalagruhaFilter] = useState('all');
+  const [coachFilter, setCoachFilter] = useState('all');
+  const [filtersLoading, setFiltersLoading] = useState(false);
+
+  // Fetch filter options (admin only)
+  const fetchFilterOptions = useCallback(async () => {
+    if (!isAdmin) return;
+
+    try {
+      setFiltersLoading(true);
+
+      // Fetch balagruhas
+      const balagruhasResponse = await getBalagruha();
+      const balagruhasData = balagruhasResponse?.data?.balagruhas || [];
+      console.log('Fetched balagruhas:', balagruhasData.length);
+      setBalagruhas(balagruhasData);
+
+      // Fetch coaches
+      const usersResponse = await fetchUsers();
+      const allUsers = usersResponse?.data?.users || usersResponse?.data || [];
+      const coachesData = allUsers.filter(u => u.role?.toLowerCase() === 'coach');
+      console.log('Fetched coaches:', coachesData.length);
+      setCoaches(coachesData);
+    } catch (err) {
+      console.error('Error fetching filter options:', err);
+      setBalagruhas([]);
+      setCoaches([]);
+    } finally {
+      setFiltersLoading(false);
+    }
+  }, [isAdmin]);
 
   // Fetch stats
   const fetchStats = useCallback(async () => {
@@ -54,8 +97,24 @@ export default function CoachDeliveries() {
       setLoading(true);
       setError(null);
 
+      // Build params based on filters
+      const params = {
+        status: 'pending_delivery',
+        limit: 50
+      };
+
+      // Add admin filters if applicable
+      if (isAdmin) {
+        if (balagruhaFilter !== 'all') {
+          params.balagruhaId = balagruhaFilter;
+        }
+        if (coachFilter !== 'all') {
+          params.coachId = coachFilter;
+        }
+      }
+
       // On-demand confirmation happens in backend when this endpoint is called
-      const response = await getCoachDeliveries({ status: 'pending_delivery', limit: 50 });
+      const response = await getCoachDeliveries(params);
 
       if (response.success) {
         setDeliveries(response.orders || []);
@@ -66,9 +125,14 @@ export default function CoachDeliveries() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, balagruhaFilter, coachFilter]);
 
   useEffect(() => {
+    // Fetch filter options for admin
+    if (isAdmin) {
+      fetchFilterOptions();
+    }
+
     fetchStats();
     fetchDeliveries();
 
@@ -79,7 +143,7 @@ export default function CoachDeliveries() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchStats, fetchDeliveries]);
+  }, [fetchStats, fetchDeliveries, fetchFilterOptions, isAdmin]);
 
   const handleMarkDelivered = async (order, withNotes = false) => {
     if (withNotes) {
@@ -126,16 +190,71 @@ export default function CoachDeliveries() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-h-screen bg-slate-50">
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-slate-900">Delivery Management</h1>
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+          <h1 className="text-3xl font-bold text-slate-900">Delivery Management</h1>
           <p className="text-slate-600 mt-1">Manage student orders waiting for delivery</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Shop Navigation */}
+      <ShopNavigation />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      {/* Main Content */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Admin Filters */}
+        {isAdmin && (
+          <div className="bg-white rounded-lg border border-slate-200 p-5 mb-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Filter Deliveries</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Balagruha Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Filter by Balagruha
+                </label>
+                <select
+                  value={balagruhaFilter}
+                  onChange={(e) => setBalagruhaFilter(e.target.value)}
+                  disabled={filtersLoading}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:bg-slate-100"
+                >
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map((balagruha) => (
+                    <option key={balagruha._id} value={balagruha._id}>
+                      {balagruha.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Coach Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Filter by Coach
+                </label>
+                <select
+                  value={coachFilter}
+                  onChange={(e) => setCoachFilter(e.target.value)}
+                  disabled={filtersLoading}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:bg-slate-100"
+                >
+                  <option value="all">All Coaches</option>
+                  {coaches.map((coach) => (
+                    <option key={coach._id} value={coach._id}>
+                      {coach.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Pending Deliveries */}

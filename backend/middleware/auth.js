@@ -63,9 +63,28 @@ exports.authenticate = async (req, res, next) => {
     next();
   } catch (err) {
     console.error(err);
+
+    // Handle JWT-specific errors
+    if (err.name === 'TokenExpiredError') {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired. Please login again.",
+        code: "TOKEN_EXPIRED"
+      });
+    }
+
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token. Please login again.",
+        code: "INVALID_TOKEN"
+      });
+    }
+
+    // Generic authentication error
     res.status(401).json({
       success: false,
-      message: "Invalid token or MAC Address",
+      message: "Authentication failed. Please login again.",
     });
   }
 };

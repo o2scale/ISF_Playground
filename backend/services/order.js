@@ -208,9 +208,10 @@ async function createOrder(userId) {
  * Get order by order number
  * @param {string} orderNumber - Order number
  * @param {string} userId - User ID (for authorization)
+ * @param {string} userRole - User role (for admin access)
  * @returns {Promise<Object>} Order details
  */
-async function getOrderByNumber(orderNumber, userId) {
+async function getOrderByNumber(orderNumber, userId, userRole = null) {
   // Use the static method which properly populates shopItemId with images
   const order = await Order.getByOrderNumber(orderNumber);
 
@@ -218,8 +219,11 @@ async function getOrderByNumber(orderNumber, userId) {
     throw new Error('Order not found');
   }
 
-  // Verify order belongs to user
-  if (order.userId._id.toString() !== userId.toString()) {
+  // Admin can view any order, regular users can only view their own orders
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  const isOwner = order.userId._id.toString() === userId.toString();
+
+  if (!isAdmin && !isOwner) {
     throw new Error('Unauthorized to view this order');
   }
 
@@ -242,9 +246,10 @@ async function getUserOrders(userId, page = 1, limit = 10, status = null) {
  * Get order by ID
  * @param {string} orderId - Order ID
  * @param {string} userId - User ID (for authorization)
+ * @param {string} userRole - User role (for admin access)
  * @returns {Promise<Object>} Order details
  */
-async function getOrderById(orderId, userId) {
+async function getOrderById(orderId, userId, userRole = null) {
   const order = await Order.findById(orderId)
     .populate('userId', 'name email userId')
     .populate('items.shopItemId', 'name imageUrl images category price');
@@ -253,8 +258,11 @@ async function getOrderById(orderId, userId) {
     throw new Error('Order not found');
   }
 
-  // Verify order belongs to user
-  if (order.userId._id.toString() !== userId.toString()) {
+  // Admin can view any order, regular users can only view their own orders
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+  const isOwner = order.userId._id.toString() === userId.toString();
+
+  if (!isAdmin && !isOwner) {
     throw new Error('Unauthorized to view this order');
   }
 
@@ -359,9 +367,10 @@ async function cancelOrder(orderNumber, userId, cancellationReason = '') {
  * @param {string} status - Filter by status (optional)
  * @param {string} coachId - Filter by coach ID (optional)
  * @param {string} balagruhaId - Filter by balagruha ID (optional)
+ * @param {string} studentId - Filter by student ID (optional)
  * @returns {Promise<Object>} All orders with pagination
  */
-async function getAllOrders(page = 1, limit = 10, status = null, coachId = null, balagruhaId = null) {
+async function getAllOrders(page = 1, limit = 10, status = null, coachId = null, balagruhaId = null, studentId = null) {
   const skip = (page - 1) * limit;
   const query = {};
 
@@ -370,18 +379,19 @@ async function getAllOrders(page = 1, limit = 10, status = null, coachId = null,
     query.status = status;
   }
 
+  // Filter by studentId if provided (direct filter on userId field)
+  if (studentId) {
+    query.userId = studentId;
+  }
+
   // Build the query
   let ordersQuery = Order.find(query)
     .populate({
       path: 'userId',
-      select: 'name email userId balagruhaIds coachIds',
+      select: 'name email userId balagruhaIds',
       populate: [
         {
           path: 'balagruhaIds',
-          select: 'name _id'
-        },
-        {
-          path: 'coachIds',
           select: 'name _id'
         }
       ]
@@ -403,13 +413,13 @@ async function getAllOrders(page = 1, limit = 10, status = null, coachId = null,
     });
   }
 
-  // Filter by coach if provided
-  if (coachId) {
-    filteredOrders = filteredOrders.filter(order => {
-      if (!order.userId || !order.userId.coachIds) return false;
-      return order.userId.coachIds.some(c => c._id.toString() === coachId);
-    });
-  }
+  // Note: Coach filter not implemented as User schema doesn't have coachIds field
+  // if (coachId) {
+  //   filteredOrders = filteredOrders.filter(order => {
+  //     if (!order.userId || !order.userId.coachIds) return false;
+  //     return order.userId.coachIds.some(c => c._id.toString() === coachId);
+  //   });
+  // }
 
   // Get total count for pagination
   const totalQuery = Order.find(query);
