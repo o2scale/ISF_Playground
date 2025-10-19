@@ -19,6 +19,9 @@ router.get('/leaderboard', reportsController.getStudentLeaderboard);
 // GET /api/v2/shop/admin/reports/zero-purchases - Get students with zero purchases
 router.get('/zero-purchases', reportsController.getZeroPurchaseStudents);
 
+// POST /api/v2/shop/admin/reports/send-zero-purchase-reminder - Send reminder to student
+router.post('/send-zero-purchase-reminder', reportsController.sendZeroPurchaseReminder);
+
 // GET /api/v2/shop/admin/reports/coin-economy - Get coin economy health metrics
 router.get('/coin-economy', reportsController.getCoinEconomyHealth);
 

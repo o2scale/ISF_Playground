@@ -124,6 +124,49 @@ exports.getZeroPurchaseStudents = async (req, res) => {
 };
 
 /**
+ * Send reminder notification to student with zero purchases
+ * POST /api/v2/shop/admin/reports/send-zero-purchase-reminder
+ */
+exports.sendZeroPurchaseReminder = async (req, res) => {
+  try {
+    const { userId, studentName } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Import WebSocket service
+    const wtfWebSocketService = require('../services/wtfWebSocket');
+
+    // Send notification via WebSocket
+    wtfWebSocketService.sendToUser(userId, {
+      type: 'zero_purchase_reminder',
+      data: {
+        title: 'Shop Reminder',
+        message: 'You haven\'t made any shop purchases yet! Start completing tasks to earn coins and explore the shop.',
+        timestamp: new Date().toISOString(),
+        priority: 'normal'
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Reminder sent successfully${studentName ? ` to ${studentName}` : ''}`
+    });
+  } catch (error) {
+    console.error('Error sending zero-purchase reminder:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send reminder',
+      error: error.message
+    });
+  }
+};
+
+/**
  * Get coin economy health metrics
  * GET /api/v2/shop/admin/reports/coin-economy
  */

@@ -1,12 +1,45 @@
 // Sprint5-Story-12: Zero Purchases Report Component
 // Displays students who have never made a purchase
 
-import React from 'react';
+import React, { useState } from 'react';
 import { AlertTriangle, UserX, DollarSign, Calendar, Download } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { api } from '../../api';
+import toast from 'react-hot-toast';
 
 const ZeroPurchasesReport = ({ students, onExport }) => {
+  const navigate = useNavigate();
+  const [sendingReminder, setSendingReminder] = useState({});
+
   // Highlight students with high balances
   const isHighBalance = (balance) => balance > 100;
+
+  // Send reminder to student
+  const handleSendReminder = async (student) => {
+    try {
+      setSendingReminder(prev => ({ ...prev, [student.userId]: true }));
+
+      const response = await api.post('/api/v2/shop/admin/reports/send-zero-purchase-reminder', {
+        userId: student.userId,
+        studentName: student.name
+      });
+
+      if (response.data.success) {
+        toast.success(`Reminder sent to ${student.name}!`);
+      }
+    } catch (error) {
+      console.error('Error sending reminder:', error);
+      toast.error(error.response?.data?.message || 'Failed to send reminder');
+    } finally {
+      setSendingReminder(prev => ({ ...prev, [student.userId]: false }));
+    }
+  };
+
+  // View student profile
+  const handleViewProfile = (student) => {
+    // Navigate to student profile page
+    navigate(`/admin/students/${student.userId}`);
+  };
 
   // Format date
   const formatDate = (dateString) => {
@@ -127,13 +160,14 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <button
-                      onClick={() => {/* TODO: Implement send reminder */}}
-                      className="text-purple-600 hover:text-purple-800 font-medium mr-3"
+                      onClick={() => handleSendReminder(student)}
+                      disabled={sendingReminder[student.userId]}
+                      className="text-purple-600 hover:text-purple-800 font-medium mr-3 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Send Reminder
+                      {sendingReminder[student.userId] ? 'Sending...' : 'Send Reminder'}
                     </button>
                     <button
-                      onClick={() => {/* TODO: Implement view profile */}}
+                      onClick={() => handleViewProfile(student)}
                       className="text-gray-600 hover:text-gray-800 font-medium"
                     >
                       View Profile
