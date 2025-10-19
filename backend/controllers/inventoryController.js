@@ -42,10 +42,22 @@ exports.adjustStock = async (req, res) => {
     product.stock = newStock;
     await product.save();
 
+    // Map user-friendly reason to transactionType enum
+    const transactionTypeMap = {
+      'Purchase / Restock': 'purchase',
+      'Inventory Adjustment': 'adjustment',
+      'Student Return': 'return',
+      'Stock Correction': 'correction',
+      'Damaged Items': 'adjustment',
+      'Other': 'adjustment'
+    };
+
+    const transactionType = transactionTypeMap[reason] || 'adjustment';
+
     // Create audit trail entry
     const transaction = await InventoryTransaction.create({
       productId: product._id,
-      transactionType: reason,
+      transactionType,
       quantity: adjustment,
       previousStock,
       newStock,
