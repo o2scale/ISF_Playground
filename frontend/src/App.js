@@ -42,6 +42,7 @@ import TransactionHistory from "./pages/TransactionHistory";
 import ShopAnalytics from "./pages/ShopAnalytics";
 import TransactionReports from "./pages/TransactionReports";
 import CoachDeliveries from "./pages/CoachDeliveries";
+import StudentProfile from "./pages/StudentProfile";
 
 const App = () => {
   return (
@@ -248,6 +249,24 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <CoachDeliveries />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Student Profile Routes - Sprint5-Story-16 */}
+                <Route
+                  path="/profile"
+                  element={
+                    <ProtectedRoute>
+                      <StudentProfile />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/students/:userId"
+                  element={
+                    <ProtectedRoute>
+                      <StudentProfile />
                     </ProtectedRoute>
                   }
                 />

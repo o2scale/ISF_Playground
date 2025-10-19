@@ -15,6 +15,7 @@ const {
   deleteUserById,
   getUserListByAssignedBalagruhaByRole,
 } = require("../../controllers/userController");
+const { getStudentProfile } = require("../../controllers/profileController");
 // const upload = require('../../middleware/upload'); // Multer middleware for file uploads
 const router = express.Router();
 const { upload } = require("../../middleware/upload");
@@ -94,6 +95,13 @@ router.put(
   authenticate,
   authorize("User Management", "Update"),
   assignBalagruhaToUser
+);
+// API for get student profile with aggregated data (Sprint5-Story-16)
+// IMPORTANT: Must be BEFORE generic /:userId routes to avoid route shadowing
+router.get(
+  "/:userId/profile",
+  authenticate,
+  getStudentProfile
 );
 // API for update user details by userId
 router.put(
