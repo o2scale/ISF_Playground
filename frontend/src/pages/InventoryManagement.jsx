@@ -341,7 +341,7 @@ export default function InventoryManagement() {
         <div className="bg-white rounded-lg border border-slate-200 p-4 mb-6">
           <div className="flex flex-col lg:flex-row gap-4">
             {/* Search */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-[300px] lg:min-w-[400px]">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
