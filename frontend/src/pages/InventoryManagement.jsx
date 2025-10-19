@@ -452,10 +452,10 @@ export default function InventoryManagement() {
                           <div className="flex items-center gap-3">
                             <img
                               src={
-                                item.imageUrl ||
-                                item.primaryImageUrl ||
                                 item.images?.find(img => img.isPrimary)?.url ||
                                 item.images?.[0]?.url ||
+                                item.primaryImageUrl ||
+                                item.imageUrl ||
                                 '/placeholder-product.png'
                               }
                               alt={item.name}
