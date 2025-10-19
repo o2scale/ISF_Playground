@@ -309,7 +309,7 @@ exports.getInventoryDashboard = async (req, res) => {
         .sort(sort)
         .limit(parseInt(limit))
         .skip(skip)
-        .select('sku name category stock lowStockThreshold price imageUrl isActive updatedAt'),
+        .select('sku name category stock lowStockThreshold price imageUrl images isActive updatedAt'),
       ShopItem.countDocuments(filter)
     ]);
 
@@ -412,7 +412,7 @@ exports.getLowStockProducts = async (req, res) => {
       $expr: { $lte: ['$stock', '$lowStockThreshold'] }
     })
       .sort({ stock: 1 })
-      .select('sku name category stock lowStockThreshold price imageUrl');
+      .select('sku name category stock lowStockThreshold price imageUrl images');
 
     res.status(200).json({
       count: products.length,
