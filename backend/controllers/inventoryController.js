@@ -220,7 +220,7 @@ exports.bulkUpdateStock = async (req, res) => {
 exports.getAuditTrail = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50, page = 1, reason } = req.query;
 
     // Validate product exists
     const product = await ShopItem.findById(productId);
@@ -230,14 +230,20 @@ exports.getAuditTrail = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
+    // Build filter for transactions
+    const filter = { productId };
+    if (reason && reason !== 'all') {
+      filter.reason = reason;
+    }
+
     // Get transactions for this product
     const [transactions, total] = await Promise.all([
-      InventoryTransaction.find({ productId })
+      InventoryTransaction.find(filter)
         .populate('performedBy', 'name email role')
         .sort({ createdAt: -1 })
         .limit(parseInt(limit))
         .skip(skip),
-      InventoryTransaction.countDocuments({ productId })
+      InventoryTransaction.countDocuments(filter)
     ]);
 
     res.status(200).json({
