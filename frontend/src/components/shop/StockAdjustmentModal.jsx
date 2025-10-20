@@ -10,7 +10,7 @@ import toast from 'react-hot-toast';
 
 export default function StockAdjustmentModal({ product, onClose, onSuccess }) {
   const [adjustment, setAdjustment] = useState('');
-  const [reason, setReason] = useState('adjustment');
+  const [reason, setReason] = useState('Inventory Adjustment');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -133,12 +133,12 @@ export default function StockAdjustmentModal({ product, onClose, onSuccess }) {
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               disabled={submitting}
             >
-              <option value="purchase">Purchase / Restock</option>
-              <option value="adjustment">Inventory Adjustment</option>
-              <option value="return">Student Return</option>
-              <option value="correction">Stock Correction</option>
-              <option value="damaged">Damaged Items</option>
-              <option value="other">Other</option>
+              <option value="Purchase / Restock">Purchase / Restock</option>
+              <option value="Inventory Adjustment">Inventory Adjustment</option>
+              <option value="Student Return">Student Return</option>
+              <option value="Stock Correction">Stock Correction</option>
+              <option value="Damaged Items">Damaged Items</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 
