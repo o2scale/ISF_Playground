@@ -33,7 +33,7 @@ const ShopNavigation = () => {
       icon: '📦',
       path: '/shop/orders',
       description: isAdmin ? 'View all orders' : 'View your orders',
-      roles: ['student', 'coach', 'admin']
+      roles: ['student', 'admin']
     },
     {
       label: 'Deliveries',

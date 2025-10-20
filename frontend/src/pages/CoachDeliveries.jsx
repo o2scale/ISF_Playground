@@ -36,32 +36,33 @@ export default function CoachDeliveries() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
-  // Admin filters
+  // Filters (for both admin and coach)
   const [balagruhas, setBalagruhas] = useState([]);
   const [coaches, setCoaches] = useState([]);
   const [balagruhaFilter, setBalagruhaFilter] = useState('all');
   const [coachFilter, setCoachFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending_delivery');
   const [filtersLoading, setFiltersLoading] = useState(false);
 
-  // Fetch filter options (admin only)
+  // Fetch filter options (for both admin and coach)
   const fetchFilterOptions = useCallback(async () => {
-    if (!isAdmin) return;
-
     try {
       setFiltersLoading(true);
 
-      // Fetch balagruhas
+      // Fetch balagruhas for both admin and coach
       const balagruhasResponse = await getBalagruha();
       const balagruhasData = balagruhasResponse?.data?.balagruhas || [];
       console.log('Fetched balagruhas:', balagruhasData.length);
       setBalagruhas(balagruhasData);
 
-      // Fetch coaches
-      const usersResponse = await fetchUsers();
-      const allUsers = usersResponse?.data?.users || usersResponse?.data || [];
-      const coachesData = allUsers.filter(u => u.role?.toLowerCase() === 'coach');
-      console.log('Fetched coaches:', coachesData.length);
-      setCoaches(coachesData);
+      // Fetch coaches (admin only)
+      if (isAdmin) {
+        const usersResponse = await fetchUsers();
+        const allUsers = usersResponse?.data?.users || usersResponse?.data || [];
+        const coachesData = allUsers.filter(u => u.role?.toLowerCase() === 'coach');
+        console.log('Fetched coaches:', coachesData.length);
+        setCoaches(coachesData);
+      }
     } catch (err) {
       console.error('Error fetching filter options:', err);
       setBalagruhas([]);
@@ -99,18 +100,18 @@ export default function CoachDeliveries() {
 
       // Build params based on filters
       const params = {
-        status: 'pending_delivery',
+        status: statusFilter,
         limit: 50
       };
 
-      // Add admin filters if applicable
-      if (isAdmin) {
-        if (balagruhaFilter !== 'all') {
-          params.balagruhaId = balagruhaFilter;
-        }
-        if (coachFilter !== 'all') {
-          params.coachId = coachFilter;
-        }
+      // Add balagruha filter (for both admin and coach)
+      if (balagruhaFilter !== 'all') {
+        params.balagruhaId = balagruhaFilter;
+      }
+
+      // Add coach filter (admin only)
+      if (isAdmin && coachFilter !== 'all') {
+        params.coachId = coachFilter;
       }
 
       // On-demand confirmation happens in backend when this endpoint is called
@@ -125,14 +126,11 @@ export default function CoachDeliveries() {
     } finally {
       setLoading(false);
     }
-  }, [isAdmin, balagruhaFilter, coachFilter]);
+  }, [isAdmin, balagruhaFilter, coachFilter, statusFilter]);
 
   useEffect(() => {
-    // Fetch filter options for admin
-    if (isAdmin) {
-      fetchFilterOptions();
-    }
-
+    // Fetch filter options for both admin and coach
+    fetchFilterOptions();
     fetchStats();
     fetchDeliveries();
 
@@ -143,7 +141,7 @@ export default function CoachDeliveries() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchStats, fetchDeliveries, fetchFilterOptions, isAdmin]);
+  }, [fetchStats, fetchDeliveries, fetchFilterOptions]);
 
   const handleMarkDelivered = async (order, withNotes = false) => {
     if (withNotes) {

@@ -1,0 +1,615 @@
+# ISF Playground - Shop System URL Routing Map
+
+**Document Version:** 1.0
+**Last Updated:** October 15, 2025
+**Sprint:** Sprint 5 - ISF Shop (Stories 01-14)
+**Status:** Complete - Ready for Implementation
+
+---
+
+## Overview
+
+This document provides a comprehensive mapping of all shop-related URLs, their access permissions by user role, and implementation status.
+
+---
+
+## Role-Based Access Summary
+
+| Role | Shop Access | Cart/Checkout | Order History | Product Admin | Inventory Admin | Analytics | Deliveries | Reports |
+|------|-------------|---------------|---------------|---------------|-----------------|-----------|------------|---------|
+| **Student** | ✅ Browse/Purchase | ✅ Full Access | ✅ Own Orders | ❌ | ❌ | ❌ | ❌ | ❌ |
+| **Coach** | ✅ Browse Only | ❌ | ✅ Own Orders | ❌ | ❌ | ❌ | ✅ Delivery Management | ❌ |
+| **Admin** | ✅ Browse/Purchase | ✅ Full Access | ✅ All Orders | ✅ CRUD Operations | ✅ Stock Management | ✅ Full Access | ❌ | ✅ Full Access |
+
+---
+
+## 📦 1. STUDENT-FACING URLS (Stories 01-04, 08-10)
+
+### Story 01: Shop Home / Product Catalog
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop` | `ShopHome` | Any authenticated user | Main shop page with product grid | ✅ Implemented |
+| `/shop?category=stationery` | `ShopHome` | Any authenticated user | Filtered by category | ✅ Implemented |
+| `/shop?search=notebook` | `ShopHome` | Any authenticated user | Search products | ✅ Implemented |
+| `/shop?minPrice=10&maxPrice=100` | `ShopHome` | Any authenticated user | Price range filter | ✅ Implemented |
+
+**RBAC:** No specific module permission required (accessible to all authenticated users)
+
+**Implementation Status:** ✅ COMPLETE
+**Component Location:** `frontend/src/components/shop/ShopHome.jsx`
+
+---
+
+### Story 02: Shopping Cart
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/cart` | `Cart` | Student only | View and manage cart | ⚠️ MISSING ROUTE |
+
+**RBAC:** Students only (Coaches cannot purchase)
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/Cart.jsx` (needs verification)
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  path="/shop/cart"
+  element={
+    <ProtectedRoute roleCheck={['student', 'admin']}>
+      <Cart />
+    </ProtectedRoute>
+  }
+/>
+```
+
+---
+
+### Story 03: Checkout
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/checkout` | `Checkout` | Student only | Checkout and payment page | ✅ Implemented |
+
+**RBAC:** Students only
+
+**Implementation Status:** ✅ COMPLETE
+**Component Location:** `frontend/src/pages/Checkout.jsx`
+
+---
+
+### Story 04: Order History
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/orders` | `OrderHistory` | Student/Admin | Student's order list | ✅ Implemented |
+| `/shop/orders/:orderId` | `OrderDetail` | Student/Admin | Individual order details | ✅ Implemented |
+| `/shop/orders/:orderId/receipt` | `OrderReceipt` | Student/Admin | Printable order receipt | ✅ Implemented |
+
+**RBAC:** Students see own orders, Admins see all orders
+
+**Implementation Status:** ✅ COMPLETE
+**Component Locations:**
+- `frontend/src/pages/OrderHistory.jsx`
+- `frontend/src/pages/OrderDetail.jsx`
+- `frontend/src/pages/OrderReceipt.jsx`
+
+---
+
+### Story 08: Coin Spending System
+
+**Note:** Integrated into checkout flow - no separate URLs
+
+**Implementation Status:** ✅ COMPLETE (integrated in Checkout component)
+
+---
+
+### Story 09: Transaction History
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/transactions` | `TransactionHistory` | Any authenticated user | View coin transaction history | ⚠️ MISSING ROUTE |
+
+**RBAC:** All authenticated users (view own transactions)
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/TransactionHistory.jsx`
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  path="/shop/transactions"
+  element={
+    <ProtectedRoute>
+      <TransactionHistory />
+    </ProtectedRoute>
+  }
+/>
+```
+
+---
+
+### Story 10: Order Cancellation
+
+**Note:** Integrated into Order History/Detail pages - no separate URLs
+
+**Implementation Status:** ✅ COMPLETE (Cancel button in OrderDetail component)
+
+---
+
+## 🎓 2. COACH-FACING URLS (Story 13)
+
+### Story 13: Coach Delivery Management
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/coach/deliveries` | `CoachDeliveries` | Coach only | Full-page delivery management dashboard | ⚠️ MISSING ROUTE |
+
+**RBAC:** Coach role only
+
+**Features:**
+- Stats cards (pending, delivered today, week, total)
+- Delivery queue filtered by coach's Balagruha(s)
+- Mark as delivered functionality
+- Balagruha filter dropdown
+- Delivery notes
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/CoachDeliveries.jsx`
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  path="/coach/deliveries"
+  element={
+    <ProtectedRoute requiredRole="coach">
+      <CoachDeliveries />
+    </ProtectedRoute>
+  }
+/>
+```
+
+**Additional Component:** Floating Deliveries Button
+- Component: `FloatingDeliveriesButton`
+- Visibility: Coaches only, on all `/shop/*` pages
+- Shows: Real-time pending delivery count
+- Location: `frontend/src/components/shop/FloatingDeliveriesButton.jsx`
+- Status: ⚠️ **NOT INTEGRATED IN LAYOUT**
+
+---
+
+## 🛠️ 3. ADMIN-FACING URLS (Stories 05-07, 11-12, 14)
+
+### Story 05: Product CRUD Management
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/admin/products` | `ProductManagement` | Shop Management: Manage | Product CRUD operations page | ⚠️ MISSING ROUTE |
+
+**RBAC:** Module `Shop Management` + Action `Manage`
+
+**Features:**
+- Product list with search/filters
+- Create new product
+- Edit existing product
+- Soft delete product
+- Image upload (Story 14)
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/ProductManagement.jsx`
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  element={<ProtectedRoute module="Shop Management" action="Manage" />}
+>
+  <Route path="/shop/admin/products" element={<ProductManagement />} />
+</Route>
+```
+
+---
+
+### Story 06: Inventory Management
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/admin/inventory` | `InventoryManagement` | Shop Management: Manage | Stock management and bulk upload | ⚠️ MISSING ROUTE |
+
+**RBAC:** Module `Shop Management` + Action `Manage`
+
+**Features:**
+- Manual stock adjustments
+- Bulk stock upload via CSV
+- Stock history tracking
+- Low stock indicators
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/InventoryManagement.jsx`
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  element={<ProtectedRoute module="Shop Management" action="Manage" />}
+>
+  <Route path="/shop/admin/inventory" element={<InventoryManagement />} />
+</Route>
+```
+
+---
+
+### Story 07: Stock Alerts
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/admin/stock/low` | `LowStockReport` | Shop Management: Manage | Low stock products report | ⚠️ MISSING ROUTE |
+| `/shop/admin/stock/out` | `OutOfStockReport` | Shop Management: Manage | Out of stock products report | ⚠️ MISSING ROUTE |
+
+**RBAC:** Module `Shop Management` + Action `Manage`
+
+**Implementation Status:** ⚠️ **COMPONENTS EXIST BUT ROUTES NOT REGISTERED**
+**Component Locations:**
+- `frontend/src/pages/LowStockReport.jsx`
+- `frontend/src/pages/OutOfStockReport.jsx`
+
+**Required Action:** Add routes to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  element={<ProtectedRoute module="Shop Management" action="Manage" />}
+>
+  <Route path="/shop/admin/stock/low" element={<LowStockReport />} />
+  <Route path="/shop/admin/stock/out" element={<OutOfStockReport />} />
+</Route>
+```
+
+---
+
+### Story 11: Analytics Dashboard
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/admin/analytics` | `ShopAnalytics` | Shop Management: Manage | Shop performance analytics dashboard | ⚠️ MISSING ROUTE |
+
+**RBAC:** Module `Shop Management` + Action `Manage`
+
+**Features:**
+- Overview cards (revenue, orders, customers, products)
+- Date range selector (7 days, 30 days, custom)
+- Top products by revenue/quantity
+- Category breakdown
+- Recent orders list
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/ShopAnalytics.jsx`
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  element={<ProtectedRoute module="Shop Management" action="Manage" />}
+>
+  <Route path="/shop/admin/analytics" element={<ShopAnalytics />} />
+</Route>
+```
+
+---
+
+### Story 12: Transaction Reports
+
+| URL | Component | Permission | Description | Status |
+|-----|-----------|------------|-------------|--------|
+| `/shop/admin/reports/transactions` | `TransactionReports` | Shop Management: Manage | Coin transaction reports and export | ⚠️ MISSING ROUTE |
+
+**RBAC:** Module `Shop Management` + Action `Manage`
+
+**Features:**
+- Transaction list with filters
+- Date range selector
+- CSV export
+- Coin economy health metrics
+- Student leaderboard
+
+**Implementation Status:** ⚠️ **COMPONENT EXISTS BUT ROUTE NOT REGISTERED**
+**Component Location:** `frontend/src/pages/TransactionReports.jsx`
+**Required Action:** Add route to `AppRoutes.js`
+
+```jsx
+// TO ADD:
+<Route
+  element={<ProtectedRoute module="Shop Management" action="Manage" />}
+>
+  <Route path="/shop/admin/reports/transactions" element={<TransactionReports />} />
+</Route>
+```
+
+---
+
+### Story 14: Product Image Upload
+
+**Note:** Integrated into Product Management page - no separate URLs
+
+**Implementation Status:** ✅ COMPLETE (integrated in ProductManagement component)
+
+**Component Location:** `frontend/src/components/admin/ProductImageUpload.jsx`
+
+---
+
+## 🔄 4. API ENDPOINTS SUMMARY
+
+### Student/Public Endpoints
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v2/shop/products` | Authenticated | Get products with filters |
+| GET | `/api/v2/shop/products/:id` | Authenticated | Get single product |
+| GET | `/api/v2/shop/categories` | Authenticated | Get categories |
+| GET | `/api/v2/cart` | Student | Get cart |
+| POST | `/api/v2/cart` | Student | Add to cart |
+| PUT | `/api/v2/cart/:id` | Student | Update cart item |
+| DELETE | `/api/v2/cart/:id` | Student | Remove cart item |
+| POST | `/api/v2/shop/checkout` | Student | Process checkout |
+| GET | `/api/v2/shop/orders` | Student | Get order history |
+| GET | `/api/v2/shop/orders/:id` | Student | Get order details |
+| POST | `/api/v2/shop/orders/:id/cancel` | Student | Cancel order |
+| GET | `/api/v2/transactions` | Authenticated | Get transactions |
+
+### Coach Endpoints
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v2/shop/coach/deliveries` | Coach | Get pending deliveries |
+| GET | `/api/v2/shop/coach/deliveries/stats` | Coach | Get delivery stats |
+| PATCH | `/api/v2/shop/coach/deliveries/:orderId/deliver` | Coach | Mark as delivered |
+
+### Admin Endpoints
+
+| Method | Endpoint | Permission | Description |
+|--------|----------|------------|-------------|
+| GET | `/api/v2/shop/admin/products` | Shop Management: Manage | Get all products (admin view) |
+| POST | `/api/v2/shop/admin/products` | Shop Management: Manage | Create product |
+| PUT | `/api/v2/shop/admin/products/:id` | Shop Management: Manage | Update product |
+| DELETE | `/api/v2/shop/admin/products/:id` | Shop Management: Manage | Delete product |
+| POST | `/api/v2/shop/admin/inventory/bulk-update` | Shop Management: Manage | Bulk stock update |
+| POST | `/api/v2/shop/admin/inventory/adjust` | Shop Management: Manage | Manual stock adjustment |
+| GET | `/api/v2/shop/admin/stock/low` | Shop Management: Manage | Get low stock report |
+| GET | `/api/v2/shop/admin/stock/out` | Shop Management: Manage | Get out of stock report |
+| GET | `/api/v2/shop/admin/analytics` | Shop Management: Manage | Get analytics data |
+| GET | `/api/v2/shop/admin/reports/transactions` | Shop Management: Manage | Get transaction reports |
+| POST | `/api/v2/shop/products/:id/images` | Shop Management: Manage | Upload product images |
+| DELETE | `/api/v2/shop/products/:id/images/:imageId` | Shop Management: Manage | Delete product image |
+| PUT | `/api/v2/shop/products/:id/images/:imageId/primary` | Shop Management: Manage | Set primary image |
+
+---
+
+## 📋 5. MISSING ROUTES - IMPLEMENTATION CHECKLIST
+
+### Critical Routes to Add in `AppRoutes.js`
+
+1. ✅ **Already Registered:**
+   - `/shop` (ShopHome)
+   - `/shop/checkout` (Checkout)
+   - `/shop/orders` (OrderHistory)
+   - `/shop/orders/:orderId` (OrderDetail)
+   - `/shop/orders/:orderId/receipt` (OrderReceipt)
+
+2. ⚠️ **MISSING - Need to Add:**
+
+```jsx
+import Cart from './pages/Cart';
+import TransactionHistory from './pages/TransactionHistory';
+import CoachDeliveries from './pages/CoachDeliveries';
+import ProductManagement from './pages/ProductManagement';
+import InventoryManagement from './pages/InventoryManagement';
+import LowStockReport from './pages/LowStockReport';
+import OutOfStockReport from './pages/OutOfStockReport';
+import ShopAnalytics from './pages/ShopAnalytics';
+import TransactionReports from './pages/TransactionReports';
+import FloatingDeliveriesButton from './components/shop/FloatingDeliveriesButton';
+
+// Inside <Routes>:
+
+{/* Student Shopping Cart */}
+<Route
+  path="/shop/cart"
+  element={
+    <ProtectedRoute roleCheck={['student', 'admin']}>
+      <Cart />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Transaction History - All Users */}
+<Route
+  path="/shop/transactions"
+  element={
+    <ProtectedRoute>
+      <TransactionHistory />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Coach Delivery Management */}
+<Route
+  path="/coach/deliveries"
+  element={
+    <ProtectedRoute requiredRole="coach">
+      <CoachDeliveries />
+    </ProtectedRoute>
+  }
+/>
+
+{/* Admin: Shop Management Routes */}
+<Route element={<ProtectedRoute module="Shop Management" action="Manage" />}>
+  <Route path="/shop/admin/products" element={<ProductManagement />} />
+  <Route path="/shop/admin/inventory" element={<InventoryManagement />} />
+  <Route path="/shop/admin/stock/low" element={<LowStockReport />} />
+  <Route path="/shop/admin/stock/out" element={<OutOfStockReport />} />
+  <Route path="/shop/admin/analytics" element={<ShopAnalytics />} />
+  <Route path="/shop/admin/reports/transactions" element={<TransactionReports />} />
+</Route>
+
+{/* Outside Routes - Floating Button Integration */}
+{user?.role === 'coach' && location.pathname.startsWith('/shop') && (
+  <FloatingDeliveriesButton />
+)}
+```
+
+---
+
+## 🎨 6. NAVIGATION / SIDEBAR MENU STRUCTURE
+
+### Suggested Menu Structure by Role
+
+#### STUDENT
+```
+ISF Shop
+├── 🛒 Browse Shop (/shop)
+├── 🛍️ My Cart (/shop/cart)
+├── 📦 My Orders (/shop/orders)
+└── 💰 Transactions (/shop/transactions)
+```
+
+#### COACH
+```
+ISF Shop
+├── 🛒 Browse Shop (/shop) [Read-only]
+├── 📦 My Orders (/shop/orders)
+├── 🚚 Deliveries (/coach/deliveries) [Badge with count]
+└── 💰 Transactions (/shop/transactions)
+```
+
+#### ADMIN
+```
+ISF Shop
+├── 🛒 Browse Shop (/shop)
+├── 🛍️ My Cart (/shop/cart)
+├── 📦 Orders (/shop/orders) [All orders]
+└── 💰 Transactions (/shop/transactions)
+
+Shop Management [Requires "Shop Management: Manage"]
+├── 📦 Product Management (/shop/admin/products)
+├── 📊 Inventory Management (/shop/admin/inventory)
+├── ⚠️ Stock Alerts
+│   ├── Low Stock (/shop/admin/stock/low)
+│   └── Out of Stock (/shop/admin/stock/out)
+├── 📈 Analytics (/shop/admin/analytics)
+└── 📄 Reports
+    └── Transactions (/shop/admin/reports/transactions)
+```
+
+---
+
+## 🔐 7. RBAC PERMISSIONS MATRIX
+
+| Permission Module | Permission Action | Required For |
+|-------------------|-------------------|--------------|
+| *None* | *None* | Browse shop, view products, student cart/checkout |
+| *None* | *None* | View own orders (student/coach) |
+| *None* | *None* | View own transactions |
+| **Coach Role** | *Role Check* | `/coach/deliveries` and FloatingDeliveriesButton |
+| **Shop Management** | **Manage** | All `/shop/admin/*` routes |
+
+---
+
+## 🚨 8. CRITICAL ISSUES IDENTIFIED
+
+### Issue 1: Routes Not Registered ⚠️ HIGH PRIORITY
+
+**Problem:** All admin and coach shop pages exist but routes are missing from `AppRoutes.js`
+
+**Impact:**
+- Admins cannot access Product Management, Inventory, Analytics, Reports
+- Coaches cannot access Delivery Management
+- Students cannot access Cart or Transaction History
+
+**Affected URLs:**
+- `/shop/cart`
+- `/shop/transactions`
+- `/coach/deliveries`
+- `/shop/admin/products`
+- `/shop/admin/inventory`
+- `/shop/admin/stock/low`
+- `/shop/admin/stock/out`
+- `/shop/admin/analytics`
+- `/shop/admin/reports/transactions`
+
+**Solution:** Add all missing routes to `frontend/src/AppRoutes.js` (see Section 5)
+
+---
+
+### Issue 2: FloatingDeliveriesButton Not Integrated ⚠️ MEDIUM PRIORITY
+
+**Problem:** Component exists but not rendered in Layout for coaches
+
+**Impact:** Coaches cannot easily access delivery queue
+
+**Solution:** Add conditional rendering in App.js or Layout.js:
+
+```jsx
+{user?.role === 'coach' && location.pathname.startsWith('/shop') && (
+  <FloatingDeliveriesButton />
+)}
+```
+
+---
+
+### Issue 3: No Navigation Menu Links ⚠️ HIGH PRIORITY
+
+**Problem:** Users have no way to discover or navigate to shop pages
+
+**Impact:** Features are inaccessible through UI (only via direct URL)
+
+**Solution:**
+1. Add shop menu items to sidebar/navigation based on role
+2. Update `frontend/src/components/Sidebar.jsx` or navigation component
+3. Implement role-based menu visibility
+
+---
+
+## 📝 9. NEXT STEPS - ACTION PLAN
+
+### Phase 1: Critical Routes (Priority 1) - 1 hour
+1. ✅ Update `AppRoutes.js` with all missing routes
+2. ✅ Test each route with proper RBAC
+3. ✅ Verify ProtectedRoute wrappers working
+
+### Phase 2: Navigation Integration (Priority 2) - 2 hours
+1. ✅ Add shop menu section to sidebar
+2. ✅ Implement role-based menu visibility
+3. ✅ Add active route highlighting
+4. ✅ Test navigation flow for all roles
+
+### Phase 3: Coach Features (Priority 3) - 30 minutes
+1. ✅ Integrate FloatingDeliveriesButton in Layout
+2. ✅ Test coach delivery workflow end-to-end
+3. ✅ Verify badge count updates
+
+### Phase 4: QA Testing (Priority 4) - 2 hours
+1. ✅ Test all URLs with each role (Student, Coach, Admin)
+2. ✅ Verify RBAC denies unauthorized access
+3. ✅ Test navigation from menu to pages
+4. ✅ Test browser back/forward navigation
+5. ✅ Test direct URL access
+
+---
+
+## 📚 10. REFERENCE DOCUMENTATION
+
+- **Architecture:** `docs/sprint5-brownfield-architecture.md`
+- **Stories:** `docs/stories/sprint5-story-*.md`
+- **QA Reports:** `docs/qa/Story*-QA-Report.md`
+- **Backend Routes:** `backend/routes/v2/shop.js`
+- **Frontend Components:** `frontend/src/components/shop/`, `frontend/src/pages/`
+
+---
+
+**Document Owner:** QA Agent Quinn
+**Review Date:** October 15, 2025
+**Status:** Ready for Dev Implementation
