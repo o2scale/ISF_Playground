@@ -346,6 +346,6 @@ coinSchema.statics.getTopEarners = async function (
   ]);
 };
 
-const Coin = mongoose.model("Coin", coinSchema);
+const Coin = mongoose.models.Coin || mongoose.model("Coin", coinSchema);
 
 module.exports = Coin;

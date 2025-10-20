@@ -172,6 +172,6 @@ shopItemSchema.statics.search = function(searchTerm, options = {}) {
     .sort({ score: { $meta: 'textScore' } });
 };
 
-const ShopItem = mongoose.model('ShopItem', shopItemSchema);
+const ShopItem = mongoose.models.ShopItem || mongoose.model('ShopItem', shopItemSchema);
 
 module.exports = ShopItem;
