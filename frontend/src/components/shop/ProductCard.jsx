@@ -30,9 +30,9 @@ const ProductCard = ({ product }) => {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden">
+    <div className="bg-white border border-slate-200 rounded-lg hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden flex flex-col h-full">
       {/* Product Image */}
-      <div className="relative aspect-square">
+      <div className="relative aspect-square flex-shrink-0">
         <img
           src={product.primaryImageUrl || product.imageUrl || '/placeholder-product.png'}
           alt={product.name}
@@ -60,7 +60,7 @@ const ProductCard = ({ product }) => {
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
+      <div className="p-4 flex flex-col flex-1">
         {/* Category Badge */}
         <span className="inline-block bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded-full mb-2">
           {product.category}
@@ -72,9 +72,12 @@ const ProductCard = ({ product }) => {
         </h3>
 
         {/* Description */}
-        <p className="text-sm text-slate-600 mb-3 line-clamp-2">
+        <p className="text-sm text-slate-600 mb-3 line-clamp-2 min-h-[2.5rem]">
           {product.description}
         </p>
+
+        {/* Spacer to push button to bottom */}
+        <div className="flex-1"></div>
 
         {/* Price */}
         <div className="flex items-center justify-between mb-3">
