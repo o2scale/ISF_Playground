@@ -962,3 +962,250 @@ const response = await api.get('/api/v2/shop/admin/inventory/quick-stats');
 **Story Completed:** October 16, 2025 2:21 PM
 **Status:** ✅ READY FOR PRODUCTION DEPLOYMENT
 **Next Story:** Coach Delivery Flow Testing
+
+---
+
+## 🔄 STORY UPDATE - COACH DELIVERIES FILTERS
+
+**Update Date:** 2025-10-20 23:35:00 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent (Claude)
+**Context:** Sprint5-Story-13 Enhancement
+
+### New Features Added for Coach Deliveries Page
+
+#### Enhancement Overview
+Extended the Coach Deliveries page with comprehensive filtering capabilities specifically for coaches to manage deliveries across their assigned Balagruhas.
+
+### Features Implemented
+
+#### 1. **Balagruha Filter** (Coach-Specific)
+**Location:** `frontend/src/pages/CoachDeliveries.jsx`
+
+**Functionality:**
+- Dropdown showing **only** the coach's assigned Balagruhas
+- Filters orders to show only students from selected Balagruha
+- Default: "All Balagruhas"
+- Client-side filtering based on `user.balagruhaIds`
+
+**Implementation Details:**
+```javascript
+// Filter balagruhas based on user role
+if (!isAdmin && user?.balagruhaIds) {
+  // For coaches, only show their assigned balagruhas
+  const coachBalagruhaIds = user.balagruhaIds.map(id => id.toString());
+  filteredBalagruhas = allBalagruhas.filter(b =>
+    coachBalagruhaIds.includes(b._id.toString())
+  );
+}
+```
+
+#### 2. **Delivery Status Filter**
+**Location:** `frontend/src/pages/CoachDeliveries.jsx:302-317`
+
+**Options:**
+- **Pending Delivery** (default) - Orders awaiting delivery
+- **Delivered Today** - Orders delivered today
+- **Delivered Last 7 Days** - Orders delivered in last 7 days (changed from "This Week")
+- **Total Delivered** - All delivered orders
+
+**Backend Mapping:**
+```javascript
+pending_delivery → status=pending_delivery
+delivered_today → status=delivered_today
+delivered_last_7_days → status=delivered_last_7_days
+all_delivered → status=all_delivered
+```
+
+#### 3. **Date Range Filters**
+**Location:** `frontend/src/pages/CoachDeliveries.jsx:319-343`
+
+**Components:**
+- **Start Date** - HTML5 date input, filters orders from specific date
+- **End Date** - HTML5 date input, filters orders until specific date
+- Both work together with status and balagruha filters
+
+**API Integration:**
+```javascript
+if (startDate) params.startDate = startDate;
+if (endDate) params.endDate = endDate;
+```
+
+#### 4. **Clear All Filters Button**
+**Location:** `frontend/src/pages/CoachDeliveries.jsx:347-361`
+
+**Behavior:**
+- Appears only when any filter is changed from defaults
+- Resets: Balagruha → 'all', Status → 'pending_delivery', clears both dates
+- Purple text styling (brand consistency)
+
+**Conditional Display:**
+```javascript
+{(balagruhaFilter !== 'all' || statusFilter !== 'pending_delivery' || startDate || endDate) && (
+  <button onClick={clearAllFilters}>Clear All Filters</button>
+)}
+```
+
+### UI/UX Improvements
+
+#### Stats Card Update
+**Location:** `frontend/src/pages/CoachDeliveries.jsx:321`
+- Changed: "Delivered This Week" → "Delivered Last 7 Days"
+- **Rationale:** More accurate description (calendar week vs last 7 days)
+
+#### Filter Layout
+**Design:** 4-column responsive grid
+```jsx
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+  <Balagruha Filter />
+  <Status Filter />
+  <Start Date />
+  <End Date />
+</div>
+```
+
+**Responsive Behavior:**
+- Desktop (lg): 4 columns
+- Tablet (md): 2 columns
+- Mobile: 1 column (stacked)
+
+### Technical Implementation
+
+#### State Management
+**New State Variables:**
+```javascript
+const [statusFilter, setStatusFilter] = useState('pending_delivery');
+const [startDate, setStartDate] = useState('');
+const [endDate, setEndDate] = useState('');
+```
+
+#### Filter Combination Logic
+All filters work together via API params:
+```javascript
+const params = {
+  status: statusFilter,
+  limit: 50
+};
+
+if (balagruhaFilter !== 'all') params.balagruhaId = balagruhaFilter;
+if (isAdmin && coachFilter !== 'all') params.coachId = coachFilter;
+if (startDate) params.startDate = startDate;
+if (endDate) params.endDate = endDate;
+```
+
+#### Dependency Management
+Updated `useCallback` dependencies:
+```javascript
+}, [isAdmin, balagruhaFilter, coachFilter, statusFilter, startDate, endDate]);
+```
+
+#### Auto-Refresh
+Filters maintain state during 30-second auto-refresh:
+```javascript
+const interval = setInterval(() => {
+  fetchStats();
+  fetchDeliveries(); // Uses current filter state
+}, 30000);
+```
+
+### Testing Results
+
+#### Manual Testing (Playwright MCP)
+**Test Environment:** Coach account (coach@gmail.com)
+**Browser:** Chromium, localhost:3000
+
+**Test Cases Executed:**
+
+1. ✅ **Filter Panel Display**
+   - 4 filters visible in grid layout
+   - Balagruha dropdown populated with coach's assigned Balagruhas
+   - Status dropdown showing 4 options
+   - Date inputs functional
+
+2. ✅ **Status Filter Functionality**
+   - Changed to "Delivered Today"
+   - Page showed "All caught up!" (no orders delivered today)
+   - API called with correct status param
+
+3. ✅ **Clear All Filters Button**
+   - Appeared when status changed
+   - Clicking reset all filters to defaults
+   - Button disappeared after reset
+
+4. ✅ **Filter Combination**
+   - All filters work together
+   - API receives combined params
+   - Results update correctly
+
+5. ✅ **Stats Card Label**
+   - "Delivered Last 7 Days" displays correctly
+   - Count shows accurate number (2 orders)
+
+### Files Modified
+
+**Frontend:**
+1. `frontend/src/pages/CoachDeliveries.jsx`
+   - Added state for statusFilter, startDate, endDate (lines 44-46)
+   - Updated fetchFilterOptions to filter balagruhas for coaches (lines 60-67)
+   - Updated fetchDeliveries to include date params (lines 130-136)
+   - Updated dependency array (line 150)
+   - Added coach filters UI section (lines 277-363)
+   - Changed stats card label (line 321)
+
+**Backend:**
+- No backend changes required
+- Existing `/api/v2/shop/admin/orders/deliveries` endpoint already supports all filter params
+
+### Screenshots Captured
+
+1. `coach-deliveries-with-filters.png` - Filter panel with all 4 filters
+2. `coach-deliveries-filters-working.png` - Filters in action after clearing
+
+### Production Readiness
+
+**Status:** ✅ READY FOR PRODUCTION
+
+**Commit:** `d391371`
+**Branch:** `develop`
+**Pushed:** 2025-10-20 23:32:10
+
+**Risk Assessment:** LOW
+- No breaking changes
+- Only affects coach users
+- Backend already supports all filter params
+- Thoroughly tested
+
+**Deployment Notes:**
+- Frontend-only changes
+- No database migrations needed
+- No new dependencies added
+- Existing APIs used
+
+### User Impact
+
+**Benefits for Coaches:**
+1. Can filter by specific Balagruha (only their assigned ones)
+2. Can view different delivery statuses quickly
+3. Can search by date range for historical data
+4. All filters work together for precise filtering
+5. Clear visual feedback (Clear All Filters button)
+
+**Example Use Case:**
+> Coach wants to see all orders delivered in the last week from "Samparc Girls" Balagruha:
+> - Select "Samparc Girls" from Balagruha dropdown
+> - Select "Delivered Last 7 Days" from Status dropdown
+> - Optionally set date range for specific week
+> - Results update automatically
+
+### Future Enhancements (Not in this update)
+
+1. Export filtered results to CSV
+2. Save filter presets
+3. Quick filter buttons (Today, This Week, etc.)
+4. Filter persistence across page reloads
+5. Advanced search (order number, student name)
+
+---
+
+**Update Completed:** 2025-10-20 23:35:00
+**Status:** ✅ DEPLOYED TO ORIGIN/DEVELOP
+**Next Task:** Fix Inventory Management modal scrolling issue
