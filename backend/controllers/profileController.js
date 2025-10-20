@@ -1,8 +1,8 @@
 // Sprint5-Story-16: Student Profile Controller
 // HTTP handlers for student profile data aggregation
 
-const User = require('../models/User');
-const Coin = require('../models/Coin');
+const User = require('../models/user');
+const Coin = require('../models/coin');
 const Order = require('../models/order');
 const { errorLogger, logger } = require('../config/pino-config');
 const { HTTP_STATUS_CODE } = require('../constants/general');
