@@ -587,9 +587,15 @@ export default function CoachDeliveries() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold text-slate-900">{order.orderNumber}</h3>
-                      <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                        Pending Delivery
-                      </span>
+                      {order.deliveryStatus === 'delivered' ? (
+                        <span className="px-2.5 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                          Delivered
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                          Pending Delivery
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-600">
                       <span className="flex items-center gap-1.5">
@@ -648,23 +654,56 @@ export default function CoachDeliveries() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleMarkDelivered(order, false)}
-                    disabled={delivering === order._id}
-                    className="flex-1 bg-purple-600 text-white px-4 py-2.5 rounded-md hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    {delivering === order._id ? 'Delivering...' : 'Mark as Delivered'}
-                  </button>
-                  <button
-                    onClick={() => handleMarkDelivered(order, true)}
-                    disabled={delivering === order._id}
-                    className="px-4 py-2.5 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 disabled:border-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    Add Notes & Deliver
-                  </button>
-                </div>
+                {/* Action Buttons or Delivery Info */}
+                {order.deliveryStatus === 'pending_delivery' ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleMarkDelivered(order, false)}
+                      disabled={delivering === order._id}
+                      className="flex-1 bg-purple-600 text-white px-4 py-2.5 rounded-md hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      {delivering === order._id ? 'Delivering...' : 'Mark as Delivered'}
+                    </button>
+                    <button
+                      onClick={() => handleMarkDelivered(order, true)}
+                      disabled={delivering === order._id}
+                      className="px-4 py-2.5 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 disabled:border-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      Add Notes & Deliver
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-900 mb-1">Delivered Successfully</p>
+                        <div className="text-sm text-green-700 space-y-1">
+                          {order.deliveredAt && (
+                            <p>
+                              <span className="font-medium">Delivered on:</span>{' '}
+                              {new Date(order.deliveredAt).toLocaleString()}
+                            </p>
+                          )}
+                          {order.deliveredBy && (
+                            <p>
+                              <span className="font-medium">Delivered by:</span>{' '}
+                              {typeof order.deliveredBy === 'object' ? order.deliveredBy.name : order.deliveredBy}
+                            </p>
+                          )}
+                          {order.deliveryNotes && (
+                            <p>
+                              <span className="font-medium">Notes:</span>{' '}
+                              {order.deliveryNotes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

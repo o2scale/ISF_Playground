@@ -153,6 +153,7 @@ exports.getCoachDeliveries = async (req, res) => {
       Order.find(orderQuery)
         .populate('userId', 'name userId balagruhaIds')
         .populate('items.shopItemId', 'name sku imageUrl')
+        .populate('deliveredBy', 'name')
         .sort({ placedAt: 1 })  // Oldest first
         .skip(skip)
         .limit(parseInt(limit))
