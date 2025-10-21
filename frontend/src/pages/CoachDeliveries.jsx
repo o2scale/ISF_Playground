@@ -276,7 +276,7 @@ export default function CoachDeliveries() {
         {isAdmin && (
           <div className="bg-white rounded-lg border border-slate-200 p-5 mb-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Filter Deliveries</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Balagruha Filter */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">

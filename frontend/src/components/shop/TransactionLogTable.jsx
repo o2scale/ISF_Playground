@@ -23,6 +23,13 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
   const handleFilterChange = (key, value) => {
     // Validate date inputs
     if ((key === 'startDate' || key === 'endDate') && value) {
+      // Check if value matches YYYY-MM-DD format
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(value)) {
+        console.warn('Invalid date format. Expected YYYY-MM-DD');
+        return;
+      }
+
       const dateObj = new Date(value);
       if (isNaN(dateObj.getTime())) return; // Invalid date
 
@@ -101,6 +108,8 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
                 onChange={(e) => handleFilterChange('startDate', e.target.value)}
                 min="2000-01-01"
                 max="2100-12-31"
+                pattern="\d{4}-\d{2}-\d{2}"
+                placeholder="yyyy-mm-dd"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
@@ -112,6 +121,8 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
                 onChange={(e) => handleFilterChange('endDate', e.target.value)}
                 min="2000-01-01"
                 max="2100-12-31"
+                pattern="\d{4}-\d{2}-\d{2}"
+                placeholder="yyyy-mm-dd"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
               />
             </div>
