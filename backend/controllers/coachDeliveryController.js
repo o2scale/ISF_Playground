@@ -28,7 +28,7 @@ exports.getCoachDeliveries = async (req, res) => {
   try {
     const userId = req.user._id;
     const userRole = req.user.role;
-    const { balagruhaId, coachId, status, page = 1, limit = 20 } = req.query;
+    const { balagruhaId, coachId, status, startDate, endDate, page = 1, limit = 20 } = req.query;
 
     // 1. Check and confirm any orders ready for delivery
     await Order.checkAndConfirmOrders();
@@ -84,12 +84,68 @@ exports.getCoachDeliveries = async (req, res) => {
       });
     }
 
-    // 5. Build query
+    // 5. Build query based on status filter
     const orderQuery = {
       userId: { $in: studentIds },
-      status: 'completed',
-      deliveryStatus: status || 'pending_delivery'
+      status: 'completed'
     };
+
+    // Handle special status filter values
+    const statusFilter = status || 'pending_delivery';
+
+    switch (statusFilter) {
+      case 'pending_delivery':
+        orderQuery.deliveryStatus = 'pending_delivery';
+        break;
+
+      case 'delivered_today':
+        orderQuery.deliveryStatus = 'delivered';
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        orderQuery.deliveredAt = { $gte: today };
+        break;
+
+      case 'delivered_last_7_days':
+        orderQuery.deliveryStatus = 'delivered';
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        sevenDaysAgo.setHours(0, 0, 0, 0);
+        orderQuery.deliveredAt = { $gte: sevenDaysAgo };
+        break;
+
+      case 'all_delivered':
+        orderQuery.deliveryStatus = 'delivered';
+        break;
+
+      default:
+        // Fallback to exact match for backward compatibility
+        orderQuery.deliveryStatus = statusFilter;
+    }
+
+    // Add custom date range filters if provided
+    if (startDate || endDate) {
+      // Only apply date filters for delivered orders
+      if (orderQuery.deliveryStatus === 'delivered') {
+        const dateFilter = {};
+
+        if (startDate) {
+          const start = new Date(startDate);
+          start.setHours(0, 0, 0, 0);
+          dateFilter.$gte = start;
+        }
+
+        if (endDate) {
+          const end = new Date(endDate);
+          end.setHours(23, 59, 59, 999);
+          dateFilter.$lte = end;
+        }
+
+        // Override or merge with existing deliveredAt filter
+        if (Object.keys(dateFilter).length > 0) {
+          orderQuery.deliveredAt = dateFilter;
+        }
+      }
+    }
 
     // 6. Get orders with pagination
     const skip = (page - 1) * limit;

@@ -6,7 +6,7 @@ import { useAuth } from '../../contexts/AuthContext';
  * ShopNavigation Component - Sprint5-Story-15
  * Simple navigation buttons for shop pages
  * - Students: Shop Home | My Orders | Transactions
- * - Coaches: Shop Home | My Orders | Deliveries | Transactions
+ * - Coaches: Shop Home | Deliveries (Transactions removed - coaches don't need it)
  * - Admins: Shop Home | All Orders | All Transactions
  * - Clean, minimal design (no draggable panel for students)
  */
@@ -47,7 +47,7 @@ const ShopNavigation = () => {
       icon: '💰',
       path: isAdmin ? '/coins/history' : '/coins/history',
       description: isAdmin ? 'View all transactions' : 'View your coin history',
-      roles: ['student', 'coach', 'admin']
+      roles: ['student', 'admin']
     }
   ].filter(item => {
     // Filter items based on user role

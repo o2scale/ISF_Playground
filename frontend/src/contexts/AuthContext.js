@@ -16,10 +16,12 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const initializeAuth = () => {
       const storedToken = localStorage.getItem("token");
+      const storedBalagruhaIds = localStorage.getItem("balagruhaIds");
       const storedUser = {
         name: localStorage.getItem("name"),
         role: localStorage.getItem("role"),
         id: localStorage.getItem("userId"),
+        balagruhaIds: storedBalagruhaIds ? JSON.parse(storedBalagruhaIds) : [],
       };
 
       if (storedToken && storedUser.name && storedUser.role) {
@@ -53,6 +55,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem("name", user.name);
     localStorage.setItem("role", user.role);
     if (user.id) localStorage.setItem("userId", user.id);
+    if (user.balagruhaIds) localStorage.setItem("balagruhaIds", JSON.stringify(user.balagruhaIds));
 
     // Set up axios default headers
     axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
@@ -70,6 +73,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("name");
     localStorage.removeItem("role");
     localStorage.removeItem("userId");
+    localStorage.removeItem("balagruhaIds");
 
     // Clear axios headers
     delete axios.defaults.headers.common["Authorization"];
