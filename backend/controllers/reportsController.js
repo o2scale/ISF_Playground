@@ -336,8 +336,16 @@ exports.exportReport = async (req, res) => {
       }
 
       case 'zero-purchases': {
-        const result = await AnalyticsService.getZeroPurchaseStudents();
-        data = result;
+        // Build filters from query params
+        const exportFilters = {};
+        if (filters.balagruhaId) exportFilters.balagruhaId = filters.balagruhaId;
+        if (filters.startDate) exportFilters.startDate = filters.startDate;
+        if (filters.endDate) exportFilters.endDate = filters.endDate;
+        if (filters.minBalance) exportFilters.minBalance = filters.minBalance;
+
+        // Export all students (use high limit to get all records)
+        const result = await AnalyticsService.getZeroPurchaseStudents(exportFilters, 1, 10000);
+        data = result.students;
         filename = `zero-purchases-report-${new Date().toISOString().split('T')[0]}.csv`;
         headers = ['Student Name', 'Email', 'Balance', 'Last Activity', 'Balagruha', 'Coach'];
         rows = data.map(s => [

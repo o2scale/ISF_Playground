@@ -237,6 +237,16 @@ const TransactionReports = () => {
     }
   };
 
+  const handleExportTransactionLog = async () => {
+    try {
+      const response = await exportReport('transactions', transactionFilters);
+      console.log('Export successful:', response);
+    } catch (err) {
+      console.error('Error exporting transaction log:', err);
+      alert('Failed to export transaction log. Please try again.');
+    }
+  };
+
   const handleZeroPurchaseFilterChange = (newFilters) => {
     setZeroPurchaseFilters(newFilters);
     setZeroPurchasePage(1); // Reset to first page when filters change
@@ -341,6 +351,7 @@ const TransactionReports = () => {
           onFilterChange={handleFilterChange}
           onPageChange={handlePageChange}
           onViewOrder={handleViewOrder}
+          onExport={handleExportTransactionLog}
         />
       </div>
     </div>

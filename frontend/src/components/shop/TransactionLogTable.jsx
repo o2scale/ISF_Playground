@@ -2,10 +2,10 @@
 // Displays complete transaction log with filters and pagination
 
 import React, { useState } from 'react';
-import { Search, Calendar, Filter, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { Search, Calendar, Filter, ChevronLeft, ChevronRight, FileText, Download } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-const TransactionLogTable = ({ transactions, pagination, filters, balagruhas = [], students = [], onFilterChange, onPageChange, onViewOrder }) => {
+const TransactionLogTable = ({ transactions, pagination, filters, balagruhas = [], students = [], onFilterChange, onPageChange, onViewOrder, onExport }) => {
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm || '');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -75,13 +75,22 @@ const TransactionLogTable = ({ transactions, pagination, filters, balagruhas = [
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900">Transaction Log</h2>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </button>
+            <button
+              onClick={onExport}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
