@@ -276,11 +276,11 @@ export default function CoachDeliveries() {
         {isAdmin && (
           <div className="bg-white rounded-lg border border-slate-200 p-5 mb-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Filter Deliveries</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Balagruha Filter */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Filter by Balagruha
+                  Balagruha
                 </label>
                 <select
                   value={balagruhaFilter}
@@ -315,6 +315,49 @@ export default function CoachDeliveries() {
                     </option>
                   ))}
                 </select>
+              </div>
+
+              {/* Delivery Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Delivery Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                >
+                  <option value="pending_delivery">Pending Delivery</option>
+                  <option value="delivered_today">Delivered Today</option>
+                  <option value="delivered_last_7_days">Delivered Last 7 Days</option>
+                  <option value="all_delivered">Total Delivered</option>
+                </select>
+              </div>
+
+              {/* Start Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              {/* End Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
               </div>
             </div>
           </div>
