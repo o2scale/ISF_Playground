@@ -368,9 +368,11 @@ async function cancelOrder(orderNumber, userId, cancellationReason = '') {
  * @param {string} coachId - Filter by coach ID (optional)
  * @param {string} balagruhaId - Filter by balagruha ID (optional)
  * @param {string} studentId - Filter by student ID (optional)
+ * @param {string} startDate - Filter by start date (optional)
+ * @param {string} endDate - Filter by end date (optional)
  * @returns {Promise<Object>} All orders with pagination
  */
-async function getAllOrders(page = 1, limit = 10, status = null, coachId = null, balagruhaId = null, studentId = null) {
+async function getAllOrders(page = 1, limit = 10, status = null, coachId = null, balagruhaId = null, studentId = null, startDate = null, endDate = null) {
   const skip = (page - 1) * limit;
   const query = {};
 
@@ -382,6 +384,23 @@ async function getAllOrders(page = 1, limit = 10, status = null, coachId = null,
   // Filter by studentId if provided (direct filter on userId field)
   if (studentId) {
     query.userId = studentId;
+  }
+
+  // Filter by date range if provided
+  if (startDate || endDate) {
+    query.placedAt = {};
+
+    if (startDate) {
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0);
+      query.placedAt.$gte = start;
+    }
+
+    if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      query.placedAt.$lte = end;
+    }
   }
 
   // Build the query

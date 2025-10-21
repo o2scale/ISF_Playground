@@ -30,6 +30,10 @@ export default function OrderHistory() {
   const [students, setStudents] = useState([]);
   const [filtersLoading, setFiltersLoading] = useState(false);
 
+  // Date filters (Admin only)
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+
   // Fetch balagruhas for admin filters
   useEffect(() => {
     if (isAdmin) {
@@ -110,6 +114,12 @@ export default function OrderHistory() {
         if (studentFilter !== 'all') {
           params.studentId = studentFilter;
         }
+        if (startDate) {
+          params.startDate = startDate;
+        }
+        if (endDate) {
+          params.endDate = endDate;
+        }
 
         const response = await getAllOrdersAdmin(params);
         setOrders(response.orders || []);
@@ -123,7 +133,7 @@ export default function OrderHistory() {
     } finally {
       setLoading(false);
     }
-  }, [statusFilter, isAdmin, balagruhaFilter, studentFilter]);
+  }, [statusFilter, isAdmin, balagruhaFilter, studentFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchOrders();
@@ -207,7 +217,7 @@ export default function OrderHistory() {
               </div>
             </div>
 
-            {/* Second Row: Admin Filters (Balagruha) */}
+            {/* Second Row: Admin Filters (Balagruha and Date) */}
             {isAdmin && (
               <div className="flex flex-col gap-3 pt-3 border-t border-slate-200">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
@@ -227,6 +237,28 @@ export default function OrderHistory() {
                         </option>
                       ))}
                     </select>
+                  </div>
+
+                  {/* Start Date Filter */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-slate-700">From:</label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    />
+                  </div>
+
+                  {/* End Date Filter */}
+                  <div className="flex items-center gap-3">
+                    <label className="text-sm font-medium text-slate-700">To:</label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                    />
                   </div>
                 </div>
 

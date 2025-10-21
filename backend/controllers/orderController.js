@@ -243,7 +243,7 @@ async function cancelOrder(req, res) {
 /**
  * Get all orders (Admin view) with filters
  * GET /api/v2/shop/orders/all
- * Query params: page, limit, status, coachId, balagruhaId, studentId
+ * Query params: page, limit, status, coachId, balagruhaId, studentId, startDate, endDate
  * @access Private (Admin only)
  */
 async function getAllOrders(req, res) {
@@ -262,8 +262,10 @@ async function getAllOrders(req, res) {
     const coachId = req.query.coachId || null;
     const balagruhaId = req.query.balagruhaId || null;
     const studentId = req.query.studentId || null;
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
 
-    const result = await orderService.getAllOrders(page, limit, status, coachId, balagruhaId, studentId);
+    const result = await orderService.getAllOrders(page, limit, status, coachId, balagruhaId, studentId, startDate, endDate);
 
     res.status(200).json({
       success: true,
