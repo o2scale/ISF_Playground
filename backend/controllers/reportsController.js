@@ -57,11 +57,11 @@ exports.getTransactionLog = async (req, res) => {
 /**
  * Get student leaderboard (top earners or top spenders)
  * GET /api/v2/shop/admin/reports/leaderboard
- * Query params: ?type=earners|spenders&limit=10
+ * Query params: ?type=earners|spenders&limit=10&startDate&endDate
  */
 exports.getStudentLeaderboard = async (req, res) => {
   try {
-    const { type = 'earners', limit = 10 } = req.query;
+    const { type = 'earners', limit = 10, startDate, endDate } = req.query;
 
     // Validate type
     if (!['earners', 'spenders'].includes(type)) {
@@ -80,7 +80,12 @@ exports.getStudentLeaderboard = async (req, res) => {
       });
     }
 
-    const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum);
+    // Build filters
+    const filters = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+
+    const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum, filters);
 
     res.status(200).json({
       success: true,
@@ -102,17 +107,42 @@ exports.getStudentLeaderboard = async (req, res) => {
 /**
  * Get students with zero purchases
  * GET /api/v2/shop/admin/reports/zero-purchases
+ * Query params: ?balagruhaId&startDate&endDate&minBalance&page&limit
  */
 exports.getZeroPurchaseStudents = async (req, res) => {
   try {
-    const students = await AnalyticsService.getZeroPurchaseStudents();
+    const { balagruhaId, startDate, endDate, minBalance, page = 1, limit = 10 } = req.query;
+
+    // Validate pagination params
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid page parameter'
+      });
+    }
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid limit parameter (must be 1-100)'
+      });
+    }
+
+    // Build filters
+    const filters = {};
+    if (balagruhaId) filters.balagruhaId = balagruhaId;
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    if (minBalance) filters.minBalance = minBalance;
+
+    const result = await AnalyticsService.getZeroPurchaseStudents(filters, pageNum, limitNum);
 
     res.status(200).json({
       success: true,
-      data: {
-        students,
-        count: students.length
-      }
+      data: result
     });
   } catch (error) {
     console.error('Error fetching zero-purchase students:', error);

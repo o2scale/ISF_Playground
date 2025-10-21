@@ -1,15 +1,34 @@
 // Sprint5-Story-12: Zero Purchases Report Component
-// Displays students who have never made a purchase
+// Displays students who have never made a purchase with pagination and filters
 
 import React, { useState } from 'react';
-import { AlertTriangle, UserX, DollarSign, Calendar, Download } from 'lucide-react';
+import { AlertTriangle, UserX, DollarSign, Calendar, Download, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
 
-const ZeroPurchasesReport = ({ students, onExport }) => {
+const ZeroPurchasesReport = ({
+  students = [],
+  pagination = {},
+  filters = {},
+  balagruhas = [],
+  onFilterChange,
+  onPageChange,
+  onPageSizeChange,
+  onExport
+}) => {
   const navigate = useNavigate();
   const [sendingReminder, setSendingReminder] = useState({});
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Provide default pagination values
+  const paginationData = {
+    page: 1,
+    limit: 10,
+    total: 0,
+    pages: 0,
+    ...pagination
+  };
 
   // Highlight students with high balances
   const isHighBalance = (balance) => balance > 100;
@@ -41,6 +60,24 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
     navigate(`/admin/students/${student.userId}`);
   };
 
+  // Handle filter changes
+  const handleFilterChange = (key, value) => {
+    onFilterChange({ ...filters, [key]: value });
+  };
+
+  // Handle page change
+  const handlePrevPage = () => {
+    if (paginationData.page > 1) {
+      onPageChange(paginationData.page - 1);
+    }
+  };
+
+  const handleNextPage = () => {
+    if (paginationData.page < paginationData.pages) {
+      onPageChange(paginationData.page + 1);
+    }
+  };
+
   // Format date
   const formatDate = (dateString) => {
     if (!dateString) return 'Never';
@@ -56,7 +93,7 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
           <AlertTriangle className="w-6 h-6 text-red-500 mr-3 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-red-800">
-              {students.length} students have never made a purchase
+              {paginationData.total} students have never made a purchase
             </h3>
             <p className="text-sm text-red-700 mt-1">
               Engage these students to increase shop participation and coin economy health
@@ -72,15 +109,84 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
         </div>
       </div>
 
-      {/* Header */}
+      {/* Header with Filters Button */}
       <div className="px-6 pb-4">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <UserX className="w-6 h-6 text-red-500" />
-          Zero Purchases Report
-        </h2>
-        <p className="text-sm text-gray-600 mt-1">
-          Students who have earned coins but haven't made any shop purchases yet
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+              <UserX className="w-6 h-6 text-red-500" />
+              Zero Purchases Report
+            </h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Students who have earned coins but haven't made any shop purchases yet
+            </p>
+          </div>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+          >
+            <Filter className="w-4 h-4" />
+            Filters
+          </button>
+        </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="mt-4 p-4 bg-gray-50 rounded-md space-y-4">
+            {/* First Row: Balagruha, Min Balance */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Balagruha Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Balagruha</label>
+                <select
+                  value={filters.balagruhaId || 'all'}
+                  onChange={(e) => handleFilterChange('balagruhaId', e.target.value === 'all' ? '' : e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map(bal => (
+                    <option key={bal._id} value={bal._id}>{bal.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Min Balance Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Minimum Balance</label>
+                <input
+                  type="number"
+                  value={filters.minBalance || ''}
+                  onChange={(e) => handleFilterChange('minBalance', e.target.value)}
+                  placeholder="Enter minimum balance"
+                  min="0"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+
+            {/* Second Row: Date Range */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Activity - Start Date</label>
+                <input
+                  type="date"
+                  value={filters.startDate || ''}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Last Activity - End Date</label>
+                <input
+                  type="date"
+                  value={filters.endDate || ''}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Table */}
@@ -113,8 +219,8 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
               <tr>
                 <td colSpan="6" className="px-6 py-12 text-center text-gray-500">
                   <UserX className="w-12 h-12 mx-auto mb-2 text-gray-400" />
-                  <p className="text-lg font-medium">All students have made purchases!</p>
-                  <p className="text-sm">This is great news for shop engagement</p>
+                  <p className="text-lg font-medium">No students found</p>
+                  <p className="text-sm">Try adjusting your filters</p>
                 </td>
               </tr>
             ) : (
@@ -180,17 +286,68 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
         </table>
       </div>
 
-      {/* Summary Footer */}
-      {students.length > 0 && (
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Pagination and Page Size Selector */}
+      {paginationData.total > 0 && (
+        <div className="px-6 py-4 border-t border-gray-200">
+          <div className="flex items-center justify-between mb-4">
+            {/* Page Size Selector */}
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-700">Show:</label>
+              <select
+                value={paginationData.limit}
+                onChange={(e) => onPageSizeChange(parseInt(e.target.value, 10))}
+                className="px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+              >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-sm text-gray-700">per page</span>
+            </div>
+
+            {/* Pagination Info */}
+            <div className="text-sm text-gray-700">
+              Showing <span className="font-medium">{(paginationData.page - 1) * paginationData.limit + 1}</span> to{' '}
+              <span className="font-medium">
+                {Math.min(paginationData.page * paginationData.limit, paginationData.total)}
+              </span>{' '}
+              of <span className="font-medium">{paginationData.total}</span> students
+            </div>
+
+            {/* Pagination Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePrevPage}
+                disabled={paginationData.page === 1}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Previous
+              </button>
+              <span className="px-4 py-2 text-sm font-medium text-gray-700">
+                Page {paginationData.page} of {paginationData.pages}
+              </span>
+              <button
+                onClick={handleNextPage}
+                disabled={paginationData.page === paginationData.pages}
+                className="flex items-center gap-1 px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Next
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Summary Footer */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-200">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-red-100 rounded-lg">
                 <UserX className="w-5 h-5 text-red-600" />
               </div>
               <div>
                 <p className="text-xs text-gray-600">Never Purchased</p>
-                <p className="text-lg font-bold text-gray-900">{students.length} students</p>
+                <p className="text-lg font-bold text-gray-900">{paginationData.total} students</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -198,7 +355,7 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
                 <DollarSign className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-600">Total Balance (Unused)</p>
+                <p className="text-xs text-gray-600">Total Balance (Current Page)</p>
                 <p className="text-lg font-bold text-purple-600">
                   {students.reduce((sum, s) => sum + s.balance, 0)} coins
                 </p>
@@ -209,7 +366,7 @@ const ZeroPurchasesReport = ({ students, onExport }) => {
                 <AlertTriangle className="w-5 h-5 text-yellow-600" />
               </div>
               <div>
-                <p className="text-xs text-gray-600">High Balance (>100)</p>
+                <p className="text-xs text-gray-600">High Balance (Current Page)</p>
                 <p className="text-lg font-bold text-yellow-600">
                   {students.filter(s => isHighBalance(s.balance)).length} students
                 </p>

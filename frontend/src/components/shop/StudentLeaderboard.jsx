@@ -2,12 +2,20 @@
 // Displays top earners and top spenders with tabbed interface
 
 import React, { useState } from 'react';
-import { Trophy, TrendingUp, TrendingDown, Medal, Download } from 'lucide-react';
+import { Trophy, TrendingUp, TrendingDown, Medal, Download, Filter } from 'lucide-react';
 
-const StudentLeaderboard = ({ earnersData, spendersData, onExport }) => {
+const StudentLeaderboard = ({ earnersData, spendersData, onExport, filters = {}, onFilterChange }) => {
   const [activeTab, setActiveTab] = useState('spenders'); // Default to spenders
+  const [showFilters, setShowFilters] = useState(false);
 
   const currentData = activeTab === 'earners' ? earnersData : spendersData;
+
+  // Handle filter changes
+  const handleFilterChange = (key, value) => {
+    if (onFilterChange) {
+      onFilterChange({ ...filters, [key]: value });
+    }
+  };
 
   // Get medal icon for rank
   const getMedalIcon = (rank) => {
@@ -33,14 +41,51 @@ const StudentLeaderboard = ({ earnersData, spendersData, onExport }) => {
             <Trophy className="w-6 h-6 text-yellow-500" />
             Student Leaderboard
           </h2>
-          <button
-            onClick={() => onExport(activeTab)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
-          >
-            <Download className="w-4 h-4" />
-            Export CSV
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </button>
+            <button
+              onClick={() => onExport(activeTab)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
         </div>
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="px-6 pb-4">
+            <div className="p-4 bg-gray-50 rounded-md">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                  <input
+                    type="date"
+                    value={filters.startDate || ''}
+                    onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                  <input
+                    type="date"
+                    value={filters.endDate || ''}
+                    onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-0">

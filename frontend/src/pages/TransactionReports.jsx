@@ -31,7 +31,7 @@ const TransactionReports = () => {
   const [transactionLog, setTransactionLog] = useState({ transactions: [], pagination: {} });
   const [earnersLeaderboard, setEarnersLeaderboard] = useState([]);
   const [spendersLeaderboard, setSpendersLeaderboard] = useState([]);
-  const [zeroPurchases, setZeroPurchases] = useState([]);
+  const [zeroPurchases, setZeroPurchases] = useState({ students: [], pagination: {} });
   const [economyHealth, setEconomyHealth] = useState(null);
   const [balagruhas, setBalagruhas] = useState([]);
   const [students, setStudents] = useState([]);
@@ -47,6 +47,22 @@ const TransactionReports = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Zero Purchases Filter states
+  const [zeroPurchaseFilters, setZeroPurchaseFilters] = useState({
+    balagruhaId: '',
+    startDate: '',
+    endDate: '',
+    minBalance: ''
+  });
+  const [zeroPurchasePage, setZeroPurchasePage] = useState(1);
+  const [zeroPurchasePageSize, setZeroPurchasePageSize] = useState(10);
+
+  // Leaderboard Filter states
+  const [leaderboardFilters, setLeaderboardFilters] = useState({
+    startDate: '',
+    endDate: ''
+  });
+
   // Fetch all data on component mount
   useEffect(() => {
     fetchAllData();
@@ -59,15 +75,50 @@ const TransactionReports = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactionFilters, currentPage]);
 
+  // Fetch zero purchases when filters, page, or page size change
+  useEffect(() => {
+    fetchZeroPurchases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zeroPurchaseFilters, zeroPurchasePage, zeroPurchasePageSize]);
+
+  // Fetch leaderboard when filters change
+  useEffect(() => {
+    fetchLeaderboards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaderboardFilters]);
+
+  const fetchLeaderboards = async () => {
+    try {
+      // Build params with filters
+      const params = {};
+      if (leaderboardFilters.startDate) params.startDate = leaderboardFilters.startDate;
+      if (leaderboardFilters.endDate) params.endDate = leaderboardFilters.endDate;
+
+      const [earnersRes, spendersRes] = await Promise.all([
+        getStudentLeaderboard('earners', 10, params),
+        getStudentLeaderboard('spenders', 10, params)
+      ]);
+
+      if (earnersRes.success) {
+        setEarnersLeaderboard(earnersRes.data.leaderboard);
+      }
+
+      if (spendersRes.success) {
+        setSpendersLeaderboard(spendersRes.data.leaderboard);
+      }
+    } catch (err) {
+      console.error('Error fetching leaderboards:', err);
+    }
+  };
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [earnersRes, spendersRes, zeroPurchasesRes, economyRes, balagruhasRes, usersRes] = await Promise.all([
-        getStudentLeaderboard('earners', 10),
-        getStudentLeaderboard('spenders', 10),
-        getZeroPurchaseStudents(),
+      const [earnersRes, spendersRes, economyRes, balagruhasRes, usersRes] = await Promise.all([
+        getStudentLeaderboard('earners', 10, {}),
+        getStudentLeaderboard('spenders', 10, {}),
         getCoinEconomyHealth(),
         getBalagruha(),
         fetchUsers()
@@ -79,10 +130,6 @@ const TransactionReports = () => {
 
       if (spendersRes.success) {
         setSpendersLeaderboard(spendersRes.data.leaderboard);
-      }
-
-      if (zeroPurchasesRes.success) {
-        setZeroPurchases(zeroPurchasesRes.data.students);
       }
 
       if (economyRes.success) {
@@ -104,6 +151,30 @@ const TransactionReports = () => {
       setError(err.response?.data?.message || err.message || 'Failed to load reports');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchZeroPurchases = async () => {
+    try {
+      const params = {
+        page: zeroPurchasePage,
+        limit: zeroPurchasePageSize,
+        ...zeroPurchaseFilters
+      };
+
+      // Remove empty filters
+      Object.keys(params).forEach(key => {
+        if (params[key] === '' || params[key] === null) {
+          delete params[key];
+        }
+      });
+
+      const response = await getZeroPurchaseStudents(params);
+      if (response.success) {
+        setZeroPurchases(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching zero purchase students:', err);
     }
   };
 
@@ -166,6 +237,24 @@ const TransactionReports = () => {
     }
   };
 
+  const handleZeroPurchaseFilterChange = (newFilters) => {
+    setZeroPurchaseFilters(newFilters);
+    setZeroPurchasePage(1); // Reset to first page when filters change
+  };
+
+  const handleZeroPurchasePageChange = (newPage) => {
+    setZeroPurchasePage(newPage);
+  };
+
+  const handleZeroPurchasePageSizeChange = (newSize) => {
+    setZeroPurchasePageSize(newSize);
+    setZeroPurchasePage(1); // Reset to first page when page size changes
+  };
+
+  const handleLeaderboardFilterChange = (newFilters) => {
+    setLeaderboardFilters(newFilters);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -225,12 +314,20 @@ const TransactionReports = () => {
         <StudentLeaderboard
           earnersData={earnersLeaderboard}
           spendersData={spendersLeaderboard}
+          filters={leaderboardFilters}
+          onFilterChange={handleLeaderboardFilterChange}
           onExport={handleExportLeaderboard}
         />
 
         {/* Zero Purchases Report */}
         <ZeroPurchasesReport
-          students={zeroPurchases}
+          students={zeroPurchases.students}
+          pagination={zeroPurchases.pagination}
+          filters={zeroPurchaseFilters}
+          balagruhas={balagruhas}
+          onFilterChange={handleZeroPurchaseFilterChange}
+          onPageChange={handleZeroPurchasePageChange}
+          onPageSizeChange={handleZeroPurchasePageSizeChange}
           onExport={handleExportZeroPurchases}
         />
 

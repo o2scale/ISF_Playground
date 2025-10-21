@@ -1663,9 +1663,11 @@ export const getTransactionLog = async (params) => {
 };
 
 // Get student leaderboard (top earners or top spenders)
-export const getStudentLeaderboard = async (type = 'earners', limit = 10) => {
+export const getStudentLeaderboard = async (type = 'earners', limit = 10, params = {}) => {
   try {
-    const response = await api.get(`/api/v2/shop/admin/reports/leaderboard?type=${type}&limit=${limit}`);
+    const response = await api.get(`/api/v2/shop/admin/reports/leaderboard`, {
+      params: { type, limit, ...params }
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching student leaderboard:", error);
@@ -1674,9 +1676,9 @@ export const getStudentLeaderboard = async (type = 'earners', limit = 10) => {
 };
 
 // Get students with zero purchases
-export const getZeroPurchaseStudents = async () => {
+export const getZeroPurchaseStudents = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v2/shop/admin/reports/zero-purchases`);
+    const response = await api.get(`/api/v2/shop/admin/reports/zero-purchases`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching zero-purchase students:", error);
