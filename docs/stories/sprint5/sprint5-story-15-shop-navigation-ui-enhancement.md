@@ -2704,13 +2704,16 @@ WARNING: The specified value "12345678901234" does not conform to the required f
 
 ### Git Commit
 
-**Commit Hash:** TBD
+**Commit Hash:** `9da55a4`
 **Branch:** `develop`
+**Push Status:** ✅ Pushed to `origin/develop`
 
 **Files Modified:**
 - `frontend/src/pages/CoachDeliveries.jsx` (1 line changed)
 - `frontend/src/components/shop/TransactionFilters.jsx` (23 lines added/modified)
 - `frontend/src/components/shop/TransactionLogTable.jsx` (8 lines added/modified)
+- `docs/stories/sprint5/sprint5-story-15-shop-navigation-ui-enhancement.md` (309 lines added)
+- `.playwright-mcp/.playwright-mcp/transaction-history-date-validation-working.png` (new file)
 
 ### Production Readiness
 
@@ -2736,5 +2739,5 @@ WARNING: The specified value "12345678901234" does not conform to the required f
 **Update Completed:** 2025-10-21 15:28:08
 **Updated By:** Dev Agent (Claude Code)
 **Status:** ✅ DATE VALIDATION & GRID LAYOUT FIXES COMPLETED & TESTED
-**Commit:** Pending
-**Branch:** develop
+**Commit:** 9da55a4
+**Branch:** develop (pushed)
