@@ -308,16 +308,21 @@ exports.markOrderDelivered = async (req, res) => {
  * Get delivery statistics for coach
  * GET /api/v2/shop/coach/deliveries/stats
  *
+ * Query params:
+ * - balagruhaId: Filter by specific Balagruha (optional, admin only)
+ * - coachId: Filter by specific coach (optional, admin only)
+ *
  * Returns:
  * - pendingCount: Number of pending deliveries
- * - deliveredToday: Number delivered by coach today
- * - deliveredThisWeek: Number delivered by coach this week
- * - totalDelivered: Total delivered by coach all-time
+ * - deliveredToday: Number delivered today (by coach if coach role, or total if admin)
+ * - deliveredThisWeek: Number delivered this week (by coach if coach role, or total if admin)
+ * - totalDelivered: Total delivered all-time (by coach if coach role, or total if admin)
  */
 exports.getCoachDeliveryStats = async (req, res) => {
   try {
     const userId = req.user._id;
     const userRole = req.user.role;
+    const { balagruhaId, coachId } = req.query;
 
     // Check and confirm orders first (updates pending counts)
     await Order.checkAndConfirmOrders();
@@ -326,8 +331,17 @@ exports.getCoachDeliveryStats = async (req, res) => {
     let balagruhaIds = [];
 
     if (userRole === 'admin') {
-      // Admin sees stats for all deliveries (no balagruha filter for stats)
-      // Could add balagruhaId/coachId query params here if needed
+      // Admin can filter stats by balagruha or coach
+      if (balagruhaId) {
+        balagruhaIds = [balagruhaId];
+      } else if (coachId) {
+        // Get coach's balagruhas
+        const coach = await User.findById(coachId).select('balagruhaIds');
+        if (coach && coach.balagruhaIds && coach.balagruhaIds.length > 0) {
+          balagruhaIds = coach.balagruhaIds;
+        }
+      }
+      // If no filters, balagruhaIds stays empty and we'll get all students
     } else {
       // Coach - get their assigned balagruhas
       const coach = await User.findById(userId).select('balagruhaIds');

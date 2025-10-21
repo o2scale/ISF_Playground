@@ -38,7 +38,8 @@ export default function CoachDeliveries() {
 
   // Filters (for both admin and coach)
   const [balagruhas, setBalagruhas] = useState([]);
-  const [coaches, setCoaches] = useState([]);
+  const [allCoaches, setAllCoaches] = useState([]); // Unfiltered coaches list
+  const [coaches, setCoaches] = useState([]); // Filtered coaches list (by balagruha)
   const [balagruhaFilter, setBalagruhaFilter] = useState('all');
   const [coachFilter, setCoachFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('pending_delivery');
@@ -71,14 +72,18 @@ export default function CoachDeliveries() {
       // Fetch coaches (admin only)
       if (isAdmin) {
         const usersResponse = await fetchUsers();
-        const allUsers = usersResponse?.data?.users || usersResponse?.data || [];
+        // fetchUsers returns response.data, which could be { users: [...] } or [...]
+        const allUsers = usersResponse?.users || usersResponse || [];
         const coachesData = allUsers.filter(u => u.role?.toLowerCase() === 'coach');
-        console.log('Fetched coaches:', coachesData.length);
+        console.log('Fetched all coaches:', coachesData.length);
+        setAllCoaches(coachesData);
+        // Initial coaches list is all coaches (will be filtered by useEffect when balagruha is selected)
         setCoaches(coachesData);
       }
     } catch (err) {
       console.error('Error fetching filter options:', err);
       setBalagruhas([]);
+      setAllCoaches([]);
       setCoaches([]);
     } finally {
       setFiltersLoading(false);
@@ -89,7 +94,23 @@ export default function CoachDeliveries() {
   const fetchStats = useCallback(async () => {
     try {
       setStatsLoading(true);
-      const response = await getCoachDeliveryStats();
+
+      // Build params based on filters (admin only - coaches always see their own stats)
+      const params = {};
+
+      if (isAdmin) {
+        // Add balagruha filter
+        if (balagruhaFilter !== 'all') {
+          params.balagruhaId = balagruhaFilter;
+        }
+
+        // Add coach filter
+        if (coachFilter !== 'all') {
+          params.coachId = coachFilter;
+        }
+      }
+
+      const response = await getCoachDeliveryStats(params);
       if (response.success) {
         setStats({
           pendingCount: response.pendingCount || 0,
@@ -103,7 +124,7 @@ export default function CoachDeliveries() {
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [isAdmin, balagruhaFilter, coachFilter]);
 
   // Fetch deliveries
   const fetchDeliveries = useCallback(async () => {
@@ -163,6 +184,31 @@ export default function CoachDeliveries() {
 
     return () => clearInterval(interval);
   }, [fetchStats, fetchDeliveries, fetchFilterOptions]);
+
+  // Filter coaches when balagruha changes (admin only)
+  useEffect(() => {
+    if (!isAdmin || allCoaches.length === 0) return;
+
+    if (balagruhaFilter === 'all') {
+      // Show all coaches when no balagruha is selected
+      setCoaches(allCoaches);
+    } else {
+      // Filter coaches by selected balagruha
+      const filteredCoaches = allCoaches.filter(coach => {
+        const coachBalagruhaIds = (coach.balagruhaIds || []).map(id =>
+          typeof id === 'object' ? id._id : id
+        );
+        return coachBalagruhaIds.includes(balagruhaFilter);
+      });
+      console.log(`Filtered ${filteredCoaches.length} coaches for balagruha ${balagruhaFilter}`);
+      setCoaches(filteredCoaches);
+
+      // Reset coach filter if currently selected coach is not in the filtered list
+      if (coachFilter !== 'all' && !filteredCoaches.find(c => c._id === coachFilter)) {
+        setCoachFilter('all');
+      }
+    }
+  }, [isAdmin, balagruhaFilter, allCoaches, coachFilter]);
 
   const handleMarkDelivered = async (order, withNotes = false) => {
     if (withNotes) {

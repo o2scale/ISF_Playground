@@ -1731,9 +1731,19 @@ export const exportReport = async (type, filters = {}) => {
 // ==================== COACH DELIVERY MANAGEMENT (Sprint5-Story-13) ====================
 
 // Get coach delivery statistics
-export const getCoachDeliveryStats = async () => {
+export const getCoachDeliveryStats = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v2/shop/coach/deliveries/stats`);
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '' && params[key] !== 'all') {
+        queryParams.append(key, params[key]);
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const url = `/api/v2/shop/coach/deliveries/stats${queryString ? `?${queryString}` : ''}`;
+
+    const response = await api.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching coach delivery stats:", error);
