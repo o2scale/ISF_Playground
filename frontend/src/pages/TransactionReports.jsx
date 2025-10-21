@@ -13,7 +13,9 @@ import {
   getStudentLeaderboard,
   getZeroPurchaseStudents,
   getCoinEconomyHealth,
-  exportReport
+  exportReport,
+  getBalagruha,
+  fetchUsers
 } from '../api';
 import Breadcrumbs from '../components/shop/Breadcrumbs';
 import ShopAdminControls from '../components/shop/ShopAdminControls';
@@ -31,11 +33,15 @@ const TransactionReports = () => {
   const [spendersLeaderboard, setSpendersLeaderboard] = useState([]);
   const [zeroPurchases, setZeroPurchases] = useState([]);
   const [economyHealth, setEconomyHealth] = useState(null);
+  const [balagruhas, setBalagruhas] = useState([]);
+  const [students, setStudents] = useState([]);
 
   // Filter states
   const [transactionFilters, setTransactionFilters] = useState({
     startDate: '',
     endDate: '',
+    balagruhaId: '',
+    studentId: '',
     status: null,
     searchTerm: ''
   });
@@ -58,11 +64,13 @@ const TransactionReports = () => {
       setLoading(true);
       setError(null);
 
-      const [earnersRes, spendersRes, zeroPurchasesRes, economyRes] = await Promise.all([
+      const [earnersRes, spendersRes, zeroPurchasesRes, economyRes, balagruhasRes, usersRes] = await Promise.all([
         getStudentLeaderboard('earners', 10),
         getStudentLeaderboard('spenders', 10),
         getZeroPurchaseStudents(),
-        getCoinEconomyHealth()
+        getCoinEconomyHealth(),
+        getBalagruha(),
+        fetchUsers()
       ]);
 
       if (earnersRes.success) {
@@ -79,6 +87,16 @@ const TransactionReports = () => {
 
       if (economyRes.success) {
         setEconomyHealth(economyRes.data);
+      }
+
+      if (balagruhasRes.success) {
+        setBalagruhas(balagruhasRes.data.balagruhas);
+      }
+
+      if (usersRes.success) {
+        // Filter only students
+        const studentList = usersRes.data.users.filter(user => user.role === 'student');
+        setStudents(studentList);
       }
 
     } catch (err) {
@@ -221,6 +239,8 @@ const TransactionReports = () => {
           transactions={transactionLog.transactions}
           pagination={transactionLog.pagination}
           filters={transactionFilters}
+          balagruhas={balagruhas}
+          students={students}
           onFilterChange={handleFilterChange}
           onPageChange={handlePageChange}
           onViewOrder={handleViewOrder}

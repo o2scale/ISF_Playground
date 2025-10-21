@@ -664,6 +664,27 @@ class AnalyticsService {
       if (filters.endDate) query.placedAt.$lte = new Date(filters.endDate);
     }
 
+    // Handle Balagruha filter - find all students in the Balagruha
+    if (filters.balagruhaId) {
+      const studentsInBalagruha = await User.find({
+        role: 'student',
+        balagruhaIds: filters.balagruhaId
+      }).select('_id').lean();
+
+      const studentIds = studentsInBalagruha.map(s => s._id);
+
+      if (studentIds.length > 0) {
+        query.userId = { $in: studentIds };
+      } else {
+        // No students in this Balagruha, return empty results
+        return {
+          transactions: [],
+          pagination: { page, limit, total: 0, pages: 0 }
+        };
+      }
+    }
+
+    // Handle individual student filter (overrides Balagruha filter if both provided)
     if (filters.studentId) {
       query.userId = filters.studentId;
     }

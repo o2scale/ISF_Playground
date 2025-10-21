@@ -10,7 +10,7 @@ const AnalyticsService = require('../services/analytics');
  */
 exports.getTransactionLog = async (req, res) => {
   try {
-    const { startDate, endDate, studentId, status, page = 1, limit = 20 } = req.query;
+    const { startDate, endDate, balagruhaId, studentId, status, page = 1, limit = 20 } = req.query;
 
     // Validate pagination params
     const pageNum = parseInt(page, 10);
@@ -34,6 +34,7 @@ exports.getTransactionLog = async (req, res) => {
     const filters = {};
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
+    if (balagruhaId) filters.balagruhaId = balagruhaId;
     if (studentId) filters.studentId = studentId;
     if (status) filters.status = status;
 
