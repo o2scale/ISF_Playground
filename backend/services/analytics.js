@@ -382,6 +382,30 @@ class AnalyticsService {
       });
     }
 
+    // RBAC: Build scope-based match conditions
+    const matchConditions = { 'user.role': 'student' }; // Only students
+
+    const requestingUser = filters.requestingUser;
+    const permissionScope = filters.permissionScope;
+
+    if (requestingUser && permissionScope) {
+      if (permissionScope === 'all') {
+        // Admin: No additional filtering (see all students)
+      } else if (permissionScope === 'balagruh') {
+        // Coach: Only students from assigned Balagruha(s)
+        const coachBalagruhaIds = requestingUser.balagruhaIds || [];
+        if (coachBalagruhaIds.length > 0) {
+          matchConditions['user.balagruhaIds'] = { $in: coachBalagruhaIds };
+        } else {
+          // Coach has no assigned Balagruhas, return empty leaderboard
+          return [];
+        }
+      } else if (permissionScope === 'own') {
+        // Student: Only see own data
+        matchConditions['user._id'] = requestingUser._id;
+      }
+    }
+
     const leaderboard = await Coin.aggregate([
       {
         $lookup: {
@@ -393,9 +417,7 @@ class AnalyticsService {
       },
       { $unwind: '$user' },
       {
-        $match: {
-          'user.role': 'student' // Only students
-        }
+        $match: matchConditions
       },
       {
         $addFields: {
@@ -515,9 +537,49 @@ class AnalyticsService {
     // Build initial match conditions
     const matchConditions = { role: 'student' };
 
-    // Add Balagruha filter if provided
+    // RBAC: Apply scope-based filtering
+    const requestingUser = filters.requestingUser;
+    const permissionScope = filters.permissionScope;
+
+    if (requestingUser && permissionScope) {
+      if (permissionScope === 'all') {
+        // Admin: No additional filtering (see all students)
+      } else if (permissionScope === 'balagruh') {
+        // Coach: Only students from assigned Balagruha(s)
+        const coachBalagruhaIds = requestingUser.balagruhaIds || [];
+        if (coachBalagruhaIds.length > 0) {
+          matchConditions.balagruhaIds = { $in: coachBalagruhaIds };
+        } else {
+          // Coach has no assigned Balagruhas, return empty
+          return {
+            students: [],
+            pagination: { page, limit, total: 0, pages: 0 }
+          };
+        }
+      } else if (permissionScope === 'own') {
+        // Student: Only see own data (though students typically can't access this report)
+        matchConditions._id = requestingUser._id;
+      }
+    }
+
+    // Add Balagruha filter if provided (UI filter, intersects with scope filter)
     if (filters.balagruhaId) {
-      matchConditions.balagruhaIds = filters.balagruhaId;
+      // If already filtered by scope, intersect the filters
+      if (matchConditions.balagruhaIds && matchConditions.balagruhaIds.$in) {
+        // Only include if balagruhaId is in the coach's assigned Balagruhas
+        const coachBalagruhas = matchConditions.balagruhaIds.$in.map(id => id.toString());
+        if (coachBalagruhas.includes(filters.balagruhaId.toString())) {
+          matchConditions.balagruhaIds = filters.balagruhaId;
+        } else {
+          // Requested Balagruha not in coach's scope, return empty
+          return {
+            students: [],
+            pagination: { page, limit, total: 0, pages: 0 }
+          };
+        }
+      } else {
+        matchConditions.balagruhaIds = filters.balagruhaId;
+      }
     }
 
     const pipeline = [
@@ -747,7 +809,39 @@ class AnalyticsService {
       if (filters.endDate) query.placedAt.$lte = new Date(filters.endDate);
     }
 
-    // Handle Balagruha filter - find all students in the Balagruha
+    // RBAC: Apply scope-based filtering based on user's permission level
+    const requestingUser = filters.requestingUser;
+    const permissionScope = filters.permissionScope;
+
+    let scopeFilteredStudentIds = null;
+
+    if (requestingUser && permissionScope) {
+      if (permissionScope === 'all') {
+        // Admin: No additional scope filtering (can see all transactions)
+        // scopeFilteredStudentIds remains null, no restriction
+      } else if (permissionScope === 'balagruh') {
+        // Coach: Only see transactions from assigned Balagruha(s)
+        const coachBalagruhaIds = requestingUser.balagruhaIds || [];
+        if (coachBalagruhaIds.length > 0) {
+          const studentsInCoachBalagruhas = await User.find({
+            role: 'student',
+            balagruhaIds: { $in: coachBalagruhaIds }
+          }).select('_id').lean();
+          scopeFilteredStudentIds = studentsInCoachBalagruhas.map(s => s._id);
+        } else {
+          // Coach has no assigned Balagruhas, return empty
+          return {
+            transactions: [],
+            pagination: { page, limit, total: 0, pages: 0 }
+          };
+        }
+      } else if (permissionScope === 'own') {
+        // Student: Only see own transactions
+        scopeFilteredStudentIds = [requestingUser._id];
+      }
+    }
+
+    // Handle Balagruha filter (UI filter) - find all students in the Balagruha
     if (filters.balagruhaId) {
       const studentsInBalagruha = await User.find({
         role: 'student',
@@ -757,7 +851,13 @@ class AnalyticsService {
       const studentIds = studentsInBalagruha.map(s => s._id);
 
       if (studentIds.length > 0) {
-        query.userId = { $in: studentIds };
+        // If scope filtering is active, intersect the two sets
+        if (scopeFilteredStudentIds) {
+          const scopeSet = new Set(scopeFilteredStudentIds.map(id => id.toString()));
+          query.userId = { $in: studentIds.filter(id => scopeSet.has(id.toString())) };
+        } else {
+          query.userId = { $in: studentIds };
+        }
       } else {
         // No students in this Balagruha, return empty results
         return {
@@ -765,6 +865,9 @@ class AnalyticsService {
           pagination: { page, limit, total: 0, pages: 0 }
         };
       }
+    } else if (scopeFilteredStudentIds) {
+      // Apply scope filtering if no Balagruha filter but scope is active
+      query.userId = { $in: scopeFilteredStudentIds };
     }
 
     // Handle individual student filter (overrides Balagruha filter if both provided)
