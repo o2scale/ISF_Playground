@@ -31,12 +31,12 @@ function getScopeFilter(user, scope) {
 
     case 'own':
       // Own data only - filter by user ID
-      return { userId: user._id };
+      return { _id: user._id };
 
     default:
       // Invalid scope - default to most restrictive (own)
       console.warn(`Invalid scope value: ${scope}. Defaulting to 'own'.`);
-      return { userId: user._id };
+      return { _id: user._id };
   }
 }
 
