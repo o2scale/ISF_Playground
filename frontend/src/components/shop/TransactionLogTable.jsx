@@ -231,7 +231,7 @@ const TransactionLogTable = ({ transactions, pagination, filters, balagruhas = [
                 <tr
                   key={transaction.orderId}
                   className="hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => onViewOrder(transaction.orderId)}
+                  onClick={() => onViewOrder(transaction.orderNumber)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {transaction.orderNumber}
@@ -258,7 +258,7 @@ const TransactionLogTable = ({ transactions, pagination, filters, balagruhas = [
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onViewOrder(transaction.orderId);
+                        onViewOrder(transaction.orderNumber);
                       }}
                       className="text-purple-600 hover:text-purple-800 font-medium"
                     >

@@ -211,9 +211,9 @@ const TransactionReports = () => {
     setCurrentPage(newPage);
   };
 
-  const handleViewOrder = (orderId) => {
+  const handleViewOrder = (orderNumber) => {
     // Navigate to order details page
-    navigate(`/shop/orders/${orderId}`);
+    navigate(`/shop/orders/${orderNumber}`);
   };
 
   const handleExportLeaderboard = async (type) => {
