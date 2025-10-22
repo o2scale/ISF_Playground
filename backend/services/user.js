@@ -6,13 +6,14 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 const path = require("path");
 
-const canvas = require("canvas");
-const faceapi = require("face-api.js");
+// const canvas = require("canvas"); // REMOVED - Task 1: FR Rebuild
+// const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 const { default: mongoose } = require("mongoose");
 const { getAllBalagruhaIds } = require("../data-access/balagruha");
 
-const { Canvas, Image, ImageData } = canvas;
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+// REMOVED - Task 1: FR Rebuild
+// const { Canvas, Image, ImageData } = canvas;
+// faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 // Function for create User
 exports.createUser = async (payload) => {
@@ -307,6 +308,9 @@ exports.updateUserDetailsById = async (userId, payload) => {
     }
 
     // Process facial data if uploaded
+    // REMOVED - Task 1: FR Rebuild
+    // Face detection during update temporarily disabled
+    /* COMMENTED OUT - Old face-api.js detection in updateUser
     if (updateData.facialData) {
       // Process facial data here or let data access layer handle it
       let descriptorArray = null;
@@ -338,6 +342,7 @@ exports.updateUserDetailsById = async (userId, payload) => {
         };
       }
     }
+    */ // END COMMENTED OUT - Face detection in updateUser
 
     // Check for the password key is present with any value
     if (updateData.password && updateData.password !== "") {

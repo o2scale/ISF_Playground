@@ -97,10 +97,12 @@ const userSchema = new mongoose.Schema(
     assignedMachines: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Machine" },
     ],
-    facialData: {
-      faceDescriptor: Array, // Store face descriptor array
-      createdAt: { type: Date, default: Date.now },
-    },
+    // REMOVED - Task 1: FR Rebuild
+    // Will be recreated with encryption in Task 3 (new FaceEmbedding model)
+    // facialData: {
+    //   faceDescriptor: Array, // Store face descriptor array
+    //   createdAt: { type: Date, default: Date.now },
+    // },
   },
   { timestamps: true }
 );
