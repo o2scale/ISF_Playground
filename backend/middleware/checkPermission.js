@@ -88,5 +88,87 @@ const checkPermission = (module, action) => {
   };
 };
 
+/**
+ * Middleware to validate balagruhaId URL parameter against user's assigned Balagruhas
+ * Use this AFTER checkPermission middleware on routes with :balagruhaId parameter
+ *
+ * @example
+ * router.get('/students/:balagruhaId',
+ *   authenticate,
+ *   checkPermission('User Management', 'View'),
+ *   validateBalagruhaAccess,
+ *   controller.getStudents
+ * );
+ */
+const validateBalagruhaAccess = (req, res, next) => {
+  try {
+    const { balagruhaId } = req.params;
+
+    // If no balagruhaId in URL, skip validation
+    if (!balagruhaId) {
+      return next();
+    }
+
+    // Check if user and permissionScope exist (should be set by checkPermission)
+    if (!req.user || !req.permissionScope) {
+      console.warn('validateBalagruhaAccess: Missing req.user or req.permissionScope');
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Permission context not found.'
+      });
+    }
+
+    const scope = req.permissionScope;
+
+    // Admin (scope='all') can access any Balagruha
+    if (scope === 'all') {
+      return next();
+    }
+
+    // Student (scope='own') should not access Balagruha-level routes
+    if (scope === 'own') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. You do not have permission to access Balagruha-level data.'
+      });
+    }
+
+    // Coach (scope='balagruh') must have balagruhaId in their assigned list
+    if (scope === 'balagruh') {
+      const userBalagruhaIds = req.user.balagruhaIds || [];
+
+      // Check if requested balagruhaId is in user's assigned Balagruhas
+      const hasAccess = userBalagruhaIds.some(
+        id => id.toString() === balagruhaId.toString()
+      );
+
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'Access denied. You do not have permission to access this Balagruha.',
+          balagruhaId: balagruhaId,
+          assignedBalagruhas: userBalagruhaIds.length
+        });
+      }
+
+      return next();
+    }
+
+    // Unknown scope - deny access
+    return res.status(403).json({
+      success: false,
+      message: `Access denied. Unknown permission scope: ${scope}`
+    });
+
+  } catch (error) {
+    console.error('Error in validateBalagruhaAccess middleware:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error during Balagruha access validation'
+    });
+  }
+};
+
 module.exports = checkPermission;
 module.exports.getScopeFilter = getScopeFilter; // Export for testing
+module.exports.validateBalagruhaAccess = validateBalagruhaAccess; // Export URL parameter validator

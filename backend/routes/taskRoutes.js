@@ -3,6 +3,7 @@ const router = express.Router();
 const taskController = require("../controllers/taskController");
 const { upload } = require("../middleware/upload"); // Multer middleware for file uploads
 const { authenticate, authorize } = require("../middleware/auth"); // Authentication and authorization middleware
+const { validateBalagruhaAccess } = require("../middleware/checkPermission");
 
 // Destructure methods from taskController
 const { createTask, updateTask, getAllTasks } = taskController;
@@ -68,6 +69,7 @@ router.get(
   "/overview/details/:balagruhaId",
   authenticate,
   authorize("Task Management", "Read"),
+  validateBalagruhaAccess,
   taskController.getTaskOverviewDetailsByBalagruhaId
 );
 // API for update task status

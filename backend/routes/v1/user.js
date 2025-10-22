@@ -1,5 +1,6 @@
 const express = require("express");
 const { authorize, authenticate } = require("../../middleware/auth");
+const { validateBalagruhaAccess } = require("../../middleware/checkPermission");
 const {
   createUserV1,
   createStudentMedicalRecords,
@@ -52,6 +53,7 @@ router.get(
   "/students/:balagruhaId",
   authenticate,
   authorize("User Management", "Read"),
+  validateBalagruhaAccess,
   getUserManagementOverviewDetails
 );
 // API for create attendance for the student
@@ -66,6 +68,7 @@ router.get(
   "/students/attendance/:balagruhaId",
   authenticate,
   authorize("User Management", "Read"),
+  validateBalagruhaAccess,
   getStudentListByBalagruhaIdWithAttendance
 );
 // API for find users by role and balagruha id (pass balagruhaId as query parameter)
