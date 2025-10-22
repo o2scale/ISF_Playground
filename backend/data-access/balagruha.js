@@ -19,9 +19,10 @@ exports.createBalagruha = async (payload) => {
 };
 
 // Function to get all balagruhas
-exports.getAllBalagruha = async () => {
+// Updated to support scope filtering (RBAC-001 fix)
+exports.getAllBalagruha = async (scopeFilter = {}) => {
   try {
-    const result = await Balagruha.find({}).populate("assignedMachines").lean();
+    const result = await Balagruha.find({ ...scopeFilter }).populate("assignedMachines").lean();
     return {
       success: true,
       data: result,

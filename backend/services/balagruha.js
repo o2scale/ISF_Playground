@@ -57,9 +57,10 @@ class Balagruha {
     }
   }
 
-  static async getAll() {
+  // Updated to support scope filtering (RBAC-001 fix)
+  static async getAll(scopeFilter = {}) {
     try {
-      const result = await getAllBalagruha();
+      const result = await getAllBalagruha(scopeFilter);
       if (result.success) {
         return {
           success: true,
