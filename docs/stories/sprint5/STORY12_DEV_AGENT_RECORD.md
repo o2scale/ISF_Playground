@@ -935,9 +935,629 @@ link.remove();
 
 ---
 
-**Document Version**: 1.0
-**Last Updated**: October 13, 2025
-**Status**: ✅ IMPLEMENTATION COMPLETE
+**Document Version**: 1.1
+**Last Updated**: 2025-10-22 11:02:00 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Status**: ✅ IMPLEMENTATION COMPLETE + ENHANCEMENTS
+
+---
+
+## 🔄 POST-IMPLEMENTATION ENHANCEMENTS
+
+### Enhancement 1: Pagination and Advanced Filters (October 21, 2025)
+
+**Commit Hash**: `59139fd` (Balagruha/Student filters), `13f4609` (Pagination)
+**Date**: 2025-10-21
+**Type**: FEATURE ENHANCEMENT
+**Priority**: 🟡 MEDIUM
+
+#### Context
+
+After initial implementation, users requested enhanced filtering capabilities and pagination for better data management across all report sections.
+
+#### Features Implemented
+
+##### 1. Zero Purchases Report Pagination
+
+**File**: `frontend/src/pages/TransactionReports.jsx`
+
+**Implementation**:
+- Added pagination state management (lines 57-58):
+  ```javascript
+  const [zeroPurchasePage, setZeroPurchasePage] = useState(1);
+  const [zeroPurchasePageSize, setZeroPurchasePageSize] = useState(10);
+  ```
+- Added pagination handlers (lines 255-262)
+- Updated fetch logic to include pagination params (lines 78-82, 157-179)
+- Passed pagination props to ZeroPurchasesReport component (lines 333-342)
+
+**File**: `frontend/src/components/shop/ZeroPurchasesReport.jsx`
+
+**Features Added**:
+- Page size selector (10, 25, 50, 100 records per page)
+- Previous/Next page navigation
+- Page indicator showing current page and total pages
+- Record count display (e.g., "Showing 1 to 10 of 462 students")
+- Pagination controls integrated with filters
+
+**Benefits**:
+- Performance improvement for large datasets (462+ students)
+- Better user control over data display
+- Reduced initial load time
+
+##### 2. Student Leaderboard Date Filters
+
+**File**: `frontend/src/pages/TransactionReports.jsx`
+
+**Implementation**:
+- Added leaderboard filter state (lines 60-64):
+  ```javascript
+  const [leaderboardFilters, setLeaderboardFilters] = useState({
+    startDate: '',
+    endDate: ''
+  });
+  ```
+- Added filter change handler (line 264-266)
+- Added useEffect to refetch on filter changes (lines 84-88)
+- Updated fetchLeaderboards to pass filters (lines 90-112)
+
+**File**: `frontend/src/components/shop/StudentLeaderboard.jsx`
+
+**Features Added**:
+- Collapsible filters panel with "Filters" button
+- Start Date and End Date inputs
+- Filter icon from lucide-react
+- Filters apply to both "Top Earners" and "Top Spenders" tabs
+- Clean, consistent UI matching other filter panels
+
+**Benefits**:
+- Analyze leaderboard for specific time periods
+- Compare student performance across different date ranges
+- More flexible reporting capabilities
+
+##### 3. Transaction Log Balagruha and Student Filters
+
+**Commit Hash**: `59139fd`
+**File**: `frontend/src/pages/TransactionReports.jsx`
+
+**Implementation**:
+- Added balagruha and student data fetching (lines 36-37, 119-147)
+- Passed balagruhas and students to TransactionLogTable (lines 345-355)
+
+**File**: `frontend/src/components/shop/TransactionLogTable.jsx`
+
+**Features Added**:
+- Balagruha dropdown filter (lines 114-126)
+- Student dropdown filter (lines 128-141)
+- Status dropdown filter (lines 144-156)
+- Date range filters (lines 160-187)
+- All filters in expandable panel
+
+**Benefits**:
+- Filter transactions by specific Balagruha
+- Filter transactions by specific student
+- Combined multi-criteria filtering
+- Better admin oversight capabilities
+
+#### Testing Results
+
+**Zero Purchases Pagination**:
+- ✅ Page size selector working (10/25/50/100)
+- ✅ Previous/Next navigation functional
+- ✅ Correct record counts displayed
+- ✅ Filters reset pagination to page 1
+
+**Leaderboard Date Filters**:
+- ✅ Date pickers working correctly
+- ✅ Filters panel toggles smoothly
+- ✅ Both tabs (earners/spenders) use same filters
+- ✅ Data refetches on filter change
+
+**Transaction Log Filters**:
+- ✅ Balagruha filter populated with all balagruhas
+- ✅ Student filter populated with all students
+- ✅ Multiple filters work together correctly
+- ✅ Date validation working properly
+
+#### Git Commits
+
+**Commit 1**: `59139fd` - "Feat: Add Balagruha and Student filters to Admin Transaction Reports"
+**Commit 2**: `13f4609` - "Feat: Add pagination and filters to Transaction Reports"
+**Branch**: `develop`
+**Push Status**: ✅ Pushed to `origin/develop`
+
+---
+
+### Enhancement 2: Export Functionality Fixes (October 21-22, 2025)
+
+**Commit Hash**: `6c5ecfd`
+**Date**: 2025-10-22
+**Type**: BUG FIX + FEATURE ADDITION
+**Priority**: 🔴 HIGH
+
+#### Context
+
+**User Report**:
+> "I just want to add this into this log since we are fixing up this page, I have to tell you that the export CSV scenario, it's happening well on the top student leaderboard but when it comes down to the zero purchase report and the export functionality for that, yeah that's not working. It's just not working that button... And coming back, coming down to the transaction logs, I don't even see an export button. Yeah, we need to get an export button there ASAP."
+
+**Issues Identified**:
+1. Zero Purchases Report export button not working
+2. Transaction Log missing export button entirely
+
+#### Root Cause Analysis
+
+**Issue 1: Zero Purchases Export Failing**
+
+**File**: `backend/controllers/reportsController.js` (lines 338-360)
+
+**Problem**:
+- Backend export controller was calling old `getZeroPurchaseStudents()` API without parameters
+- In Enhancement 1, this function was updated to require pagination parameters
+- Export call wasn't updated to match new signature
+
+**Original Code**:
+```javascript
+case 'zero-purchases': {
+  const result = await AnalyticsService.getZeroPurchaseStudents();
+  // This failed because function now requires (filters, page, limit)
+}
+```
+
+**Issue 2: Transaction Log Export Missing**
+
+No export button or handler existed in TransactionLogTable component.
+
+#### Fix Implementation
+
+##### Fix 1: Zero Purchases Export Backend
+
+**File**: `backend/controllers/reportsController.js` (lines 338-360)
+
+**Changes**:
+```javascript
+case 'zero-purchases': {
+  // Build filters from query params
+  const exportFilters = {};
+  if (filters.balagruhaId) exportFilters.balagruhaId = filters.balagruhaId;
+  if (filters.startDate) exportFilters.startDate = filters.startDate;
+  if (filters.endDate) exportFilters.endDate = filters.endDate;
+  if (filters.minBalance) exportFilters.minBalance = filters.minBalance;
+
+  // Export all students (use high limit to get all records)
+  const result = await AnalyticsService.getZeroPurchaseStudents(exportFilters, 1, 10000);
+  data = result.students;
+  filename = `zero-purchases-report-${new Date().toISOString().split('T')[0]}.csv`;
+  headers = ['Student Name', 'Email', 'Balance', 'Last Activity', 'Balagruha', 'Coach'];
+  rows = data.map(s => [
+    s.name,
+    s.email,
+    s.balance,
+    s.lastActivity ? new Date(s.lastActivity).toISOString().split('T')[0] : 'N/A',
+    s.balagruha || 'N/A',
+    s.coach || 'N/A'
+  ]);
+  break;
+}
+```
+
+**Key Changes**:
+- Build filters object from query parameters
+- Call paginated API with filter support: `getZeroPurchaseStudents(exportFilters, 1, 10000)`
+- Extract students from `result.students` instead of using result directly
+- Support up to 10,000 records in export
+
+##### Fix 2: Transaction Log Export Button
+
+**File**: `frontend/src/components/shop/TransactionLogTable.jsx`
+
+**Changes**:
+1. **Line 5**: Added `Download` icon import:
+   ```javascript
+   import { Search, Calendar, Filter, ChevronLeft, ChevronRight, FileText, Download } from 'lucide-react';
+   ```
+
+2. **Line 8**: Added `onExport` prop to component:
+   ```javascript
+   const TransactionLogTable = ({
+     transactions, pagination, filters, balagruhas = [], students = [],
+     onFilterChange, onPageChange, onViewOrder, onExport
+   }) => {
+   ```
+
+3. **Lines 74-93**: Added Export CSV button in header:
+   ```javascript
+   <div className="flex items-center gap-2">
+     <button
+       onClick={() => setShowFilters(!showFilters)}
+       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+     >
+       <Filter className="w-4 h-4" />
+       Filters
+     </button>
+     <button
+       onClick={onExport}
+       className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+     >
+       <Download className="w-4 h-4" />
+       Export CSV
+     </button>
+   </div>
+   ```
+
+**File**: `frontend/src/pages/TransactionReports.jsx`
+
+**Changes**:
+1. **Lines 240-248**: Added export handler:
+   ```javascript
+   const handleExportTransactionLog = async () => {
+     try {
+       const response = await exportReport('transactions', transactionFilters);
+       console.log('Export successful:', response);
+     } catch (err) {
+       console.error('Error exporting transaction log:', err);
+       alert('Failed to export transaction log. Please try again.');
+     }
+   };
+   ```
+
+2. **Line 354**: Wired up handler to component:
+   ```javascript
+   <TransactionLogTable
+     transactions={transactionLog.transactions}
+     pagination={transactionLog.pagination}
+     filters={transactionFilters}
+     balagruhas={balagruhas}
+     students={students}
+     onFilterChange={handleFilterChange}
+     onPageChange={handlePageChange}
+     onViewOrder={handleViewOrder}
+     onExport={handleExportTransactionLog}  // NEW
+   />
+   ```
+
+#### Testing Results
+
+After restarting backend server, all three export buttons were tested:
+
+**Test 1: Student Leaderboard Export**
+- ✅ Downloaded: `leaderboard-report-2025-10-21.csv`
+- ✅ Contains top earners/spenders data
+- ✅ CSV format correct
+
+**Test 2: Zero Purchases Report Export** (FIXED)
+- ✅ Downloaded: `zero-purchases-report-2025-10-21.csv`
+- ✅ Contains all 462 students who never made a purchase
+- ✅ Includes columns: Student Name, Email, Balance, Last Activity, Balagruha, Coach
+- ✅ Filters applied correctly
+
+**Test 3: Transaction Log Export** (NEW)
+- ✅ Downloaded: `transactions-report-2025-10-21.csv`
+- ✅ Contains all transactions with applied filters
+- ✅ Includes columns: Order Number, Student Name, Student Email, Date, Total Amount, Item Count, Status
+- ✅ Up to 10,000 records exported
+
+**All Export Functions**: ✅ WORKING
+
+#### Files Changed
+
+**Backend**:
+- `backend/controllers/reportsController.js` - Fixed zero-purchases export case
+
+**Frontend**:
+- `frontend/src/components/shop/TransactionLogTable.jsx` - Added export button and prop
+- `frontend/src/pages/TransactionReports.jsx` - Added transaction log export handler
+
+#### Git Commit
+
+**Commit Hash**: `6c5ecfd`
+**Commit Message**: "Fix: Export functionality for Transaction Reports"
+**Branch**: `develop`
+**Push Status**: ✅ Pushed to `origin/develop`
+
+**Files Modified**:
+- `backend/controllers/reportsController.js` (22 lines changed)
+- `frontend/src/components/shop/TransactionLogTable.jsx` (9 lines added)
+- `frontend/src/pages/TransactionReports.jsx` (10 lines added)
+
+#### Production Impact
+
+**User Experience**:
+- 🎯 Zero Purchases export now working (critical fix)
+- 🎯 Transaction Log export now available (requested feature)
+- 🎯 All three report sections have consistent export functionality
+- 🎯 Exports respect applied filters for targeted reporting
+
+**Code Quality**:
+- 🎯 Updated backend to work with paginated API
+- 🎯 Consistent UI pattern across all export buttons
+- 🎯 Proper error handling in export handlers
+- 🎯 Support for large dataset exports (up to 10k records)
+
+---
+
+### Enhancement 3: Transaction Log View Details Navigation (October 22, 2025)
+
+**Commit Hash**: `79339c4`
+**Date**: 2025-10-22
+**Type**: BUG FIX
+**Priority**: 🟡 MEDIUM
+**Last Updated**: 2025-10-22 11:20:51 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By**: Dev Agent
+
+#### Context
+
+**User Request**:
+> "Alright, there's something more that we need to fix inside the reports. Especially the fact that you have this option for clicking on view details inside the transaction log. This should ideally take you to the orders to see what exactly happened, when and where and all those things."
+
+**Issue**: The "View Details" button in Transaction Log was not navigating to the Order Details page.
+
+#### Root Cause Analysis
+
+**File**: `frontend/src/components/shop/TransactionLogTable.jsx` (lines 234, 261)
+
+**Problem**:
+- Transaction data contains both `orderNumber` and `orderId` fields
+- The row click and button click handlers were passing `transaction.orderId`
+- Order Details route expects `:orderNumber` parameter
+- Mismatch caused navigation to fail
+
+**File**: `frontend/src/pages/TransactionReports.jsx` (line 214)
+
+**Problem**:
+- Handler parameter name was `orderId` instead of `orderNumber`
+- Inconsistent naming with route expectations
+
+#### Fix Implementation
+
+**File**: `frontend/src/components/shop/TransactionLogTable.jsx`
+
+**Changes**:
+1. **Line 234**: Updated row onClick handler:
+   ```javascript
+   onClick={() => onViewOrder(transaction.orderNumber)}  // Was: transaction.orderId
+   ```
+
+2. **Line 261**: Updated button onClick handler:
+   ```javascript
+   onClick={(e) => {
+     e.stopPropagation();
+     onViewOrder(transaction.orderNumber);  // Was: transaction.orderId
+   }}
+   ```
+
+**File**: `frontend/src/pages/TransactionReports.jsx`
+
+**Changes**:
+1. **Line 214**: Updated parameter name:
+   ```javascript
+   const handleViewOrder = (orderNumber) => {  // Was: orderId
+     navigate(`/shop/orders/${orderNumber}`);
+   };
+   ```
+
+#### Testing Results
+
+**Test Scenario**: Click "View Details" in Transaction Log
+- ✅ Row click navigates to Order Details page
+- ✅ "View Details" button navigates to Order Details page
+- ✅ Correct order data displayed
+- ✅ No navigation errors
+
+#### Files Changed
+
+**Frontend**:
+- `frontend/src/components/shop/TransactionLogTable.jsx` (2 lines modified)
+- `frontend/src/pages/TransactionReports.jsx` (1 line modified)
+
+#### Git Commit
+
+**Commit Hash**: `79339c4`
+**Commit Message**: "Fix: Transaction Log View Details navigation to Order Details page"
+**Branch**: `develop`
+**Push Status**: ✅ Pushed to `origin/develop`
+
+#### Production Impact
+
+**User Experience**:
+- 🎯 Transaction Log "View Details" now functional
+- 🎯 Users can click any transaction row to view full details
+- 🎯 Improved admin workflow for investigating transactions
+
+---
+
+### Enhancement 4: Context-Aware Back Navigation (October 22, 2025)
+
+**Commit Hash**: `75d3eeb`
+**Date**: 2025-10-22
+**Type**: UX ENHANCEMENT
+**Priority**: 🟡 MEDIUM
+**Last Updated**: 2025-10-22 11:20:51 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By**: Dev Agent
+
+#### Context
+
+**User Request**:
+> "Alright, there's one thing that we need to fix. Basically when we are clicking on view details right now, it's actually taking us to the correct orders page. The issue is that when I go back to the previous page, when I look at the top of the page where I have to see back to orders, it's taking me back to the orders page, not to the transaction log. Because when I'm navigating from the transaction log to this particular orders page, it should ideally take me back to the transaction log, right? Rather than directly to orders, then that's not how the flow should actually work."
+
+**Issue**: After navigating from Transaction Reports to Order Details, the back button always returned to the generic Orders page instead of Transaction Reports.
+
+#### Root Cause Analysis
+
+**File**: `frontend/src/pages/OrderDetail.jsx`
+
+**Problem**:
+- Back button was hardcoded to navigate to `/shop/orders`
+- No awareness of where the user came from
+- Poor user experience for admin workflows
+
+**Expected Behavior**:
+- If navigated from Transaction Reports → back to Transaction Reports
+- If navigated from Orders page → back to Orders page
+- Button text should reflect the destination
+
+#### Fix Implementation
+
+**File**: `frontend/src/pages/TransactionReports.jsx`
+
+**Changes**:
+1. **Lines 214-219**: Updated `handleViewOrder` to pass navigation state:
+   ```javascript
+   const handleViewOrder = (orderNumber) => {
+     // Navigate to order details page with state to indicate origin
+     navigate(`/shop/orders/${orderNumber}`, {
+       state: { from: 'transaction-reports' }
+     });
+   };
+   ```
+
+**File**: `frontend/src/pages/OrderDetail.jsx`
+
+**Changes**:
+1. **Line 2**: Added `useLocation` import:
+   ```javascript
+   import { useParams, useNavigate, useLocation } from 'react-router-dom';
+   ```
+
+2. **Line 20**: Added location hook to access navigation state:
+   ```javascript
+   const location = useLocation();
+   ```
+
+3. **Lines 75-82**: Created context-aware navigation handler:
+   ```javascript
+   const handleBackNavigation = () => {
+     // Check if we came from transaction reports
+     if (location.state?.from === 'transaction-reports') {
+       navigate('/shop/admin/reports');
+     } else {
+       navigate('/shop/orders');
+     }
+   };
+   ```
+
+4. **Lines 119-122** (Error page back button): Updated with conditional text and handler:
+   ```javascript
+   <button
+     onClick={handleBackNavigation}
+     className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition-colors"
+   >
+     {location.state?.from === 'transaction-reports' ? 'Back to Reports' : 'Back to Orders'}
+   </button>
+   ```
+
+5. **Lines 136-142** (Main page back button): Updated with conditional text and handler:
+   ```javascript
+   <button
+     onClick={handleBackNavigation}
+     className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
+   >
+     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+     </svg>
+     {location.state?.from === 'transaction-reports' ? 'Back to Reports' : 'Back to Orders'}
+   </button>
+   ```
+
+#### Technical Approach
+
+**React Router Navigation State Pattern**:
+- Used `navigate(path, { state: {...} })` to pass context
+- Accessed state via `useLocation()` hook
+- Checked `location.state?.from` to determine origin
+- Conditional rendering for button text
+- Conditional navigation for button action
+
+**Benefits**:
+- No URL parameter pollution
+- Clean separation of concerns
+- State doesn't persist in browser history
+- Scalable for additional navigation contexts
+
+#### Testing Results
+
+**Test Scenario 1**: Navigate from Transaction Reports
+- ✅ Clicked "View Details" in Transaction Log
+- ✅ Navigated to Order Details page
+- ✅ Back button shows "Back to Reports"
+- ✅ Clicked back button
+- ✅ Successfully returned to Transaction Reports page
+
+**Test Scenario 2**: Navigate from Orders Page (baseline check)
+- ✅ Back button shows "Back to Orders"
+- ✅ Clicking returns to Orders page
+
+**Screenshot**: `transaction-reports-context-aware-back-working.png`
+
+#### Files Changed
+
+**Frontend**:
+- `frontend/src/pages/TransactionReports.jsx` (Navigation state added)
+- `frontend/src/pages/OrderDetail.jsx` (Context-aware back navigation)
+
+**Documentation**:
+- `docs/stories/sprint5/STORY12_DEV_AGENT_RECORD.md` (Enhancement 3 and 4 documented)
+
+#### Git Commit
+
+**Commit Hash**: `75d3eeb`
+**Commit Message**: "Fix: Context-aware back navigation from Order Details to Transaction Reports"
+**Branch**: `develop`
+**Push Status**: ⏳ Pending push to `origin/develop`
+
+#### Production Impact
+
+**User Experience**:
+- 🎯 Intelligent back navigation maintains user context
+- 🎯 Reduces clicks for admin transaction investigation workflows
+- 🎯 Clear button text indicates destination
+- 🎯 Improved UX consistency with modern web app patterns
+
+**Code Quality**:
+- 🎯 Uses React Router best practices
+- 🎯 Clean, maintainable state management
+- 🎯 Backward compatible (defaults to Orders page)
+- 🎯 Scalable pattern for future navigation contexts
+
+---
+
+## Summary of Enhancements
+
+### Commits Overview
+
+1. **59139fd**: Balagruha and Student filters for Transaction Log
+2. **13f4609**: Pagination and date filters for all reports
+3. **6c5ecfd**: Export functionality fixes
+4. **79339c4**: Transaction Log View Details navigation fix
+5. **75d3eeb**: Context-aware back navigation
+
+### Features Added
+
+- ✅ Zero Purchases pagination (10/25/50/100 per page)
+- ✅ Student Leaderboard date range filters
+- ✅ Transaction Log Balagruha and Student filters
+- ✅ Zero Purchases export fix (backend API update)
+- ✅ Transaction Log export button and handler
+- ✅ Transaction Log View Details navigation fix
+- ✅ Context-aware back navigation from Order Details
+
+### Testing Status
+
+All enhancements tested and verified working:
+- ✅ Pagination working correctly
+- ✅ All filters functional
+- ✅ All three export buttons working
+- ✅ CSV downloads successful
+- ✅ No breaking changes
+- ✅ Backward compatible
+
+### Production Readiness
+
+**Status**: ✅ READY FOR PRODUCTION
+
+**Risk Assessment**: LOW
+- All changes are additive enhancements
+- No breaking changes to existing functionality
+- Comprehensive testing completed
+- User-reported issues resolved
 
 ---
 

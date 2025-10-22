@@ -212,8 +212,10 @@ const TransactionReports = () => {
   };
 
   const handleViewOrder = (orderNumber) => {
-    // Navigate to order details page
-    navigate(`/shop/orders/${orderNumber}`);
+    // Navigate to order details page with state to indicate origin
+    navigate(`/shop/orders/${orderNumber}`, {
+      state: { from: 'transaction-reports' }
+    });
   };
 
   const handleExportLeaderboard = async (type) => {

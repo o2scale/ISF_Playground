@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '../api';
 import StatusBadge from '../components/shop/StatusBadge';
 import OrderTimeline from '../components/shop/OrderTimeline';
@@ -17,6 +17,7 @@ import toast from 'react-hot-toast';
 export default function OrderDetail() {
   const { orderNumber } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -71,6 +72,15 @@ export default function OrderDetail() {
     navigate(`/shop/orders/${orderNumber}/receipt`);
   };
 
+  const handleBackNavigation = () => {
+    // Check if we came from transaction reports
+    if (location.state?.from === 'transaction-reports') {
+      navigate('/shop/admin/reports');
+    } else {
+      navigate('/shop/orders');
+    }
+  };
+
   const formatDateTime = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -106,10 +116,10 @@ export default function OrderDetail() {
             <h2 className="text-2xl font-bold text-slate-900 mb-2">Order Not Found</h2>
             <p className="text-slate-600 mb-6">{error || 'The order you are looking for does not exist.'}</p>
             <button
-              onClick={() => navigate('/shop/orders')}
+              onClick={handleBackNavigation}
               className="bg-purple-600 text-white px-6 py-2 rounded-md hover:bg-purple-700 transition-colors"
             >
-              Back to Orders
+              {location.state?.from === 'transaction-reports' ? 'Back to Reports' : 'Back to Orders'}
             </button>
           </div>
         </div>
@@ -123,13 +133,13 @@ export default function OrderDetail() {
       <div className="bg-white border-b border-slate-200">
         <div className="w-full px-4 py-6">
           <button
-            onClick={() => navigate('/shop/orders')}
+            onClick={handleBackNavigation}
             className="flex items-center gap-2 text-slate-600 hover:text-slate-900 mb-4"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Back to Orders
+            {location.state?.from === 'transaction-reports' ? 'Back to Reports' : 'Back to Orders'}
           </button>
           <h1 className="text-2xl font-bold text-slate-900">Order Details</h1>
         </div>
