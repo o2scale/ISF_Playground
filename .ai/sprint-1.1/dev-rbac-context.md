@@ -4,18 +4,109 @@
 **Story:** `docs/stories/sprint-1.1/epic-01-story-01-rbac-refactor.md`
 **Epic:** `docs/epics/sprint-1.1/epic-01-rbac-system-refactor.md`
 **Created:** 2025-10-18 20:43:28
-**Last Updated:** 2025-10-22 13:27:22 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Dev Agent (James) - Branch Merge Integration Complete
+**Last Updated:** 2025-10-22 17:18:52 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent (James) - RBAC-001 Fix Complete
 
 ---
 
-## 🔄 LATEST UPDATE: Phase 1 Implementation Strategy Approved (2025-10-22 14:45:30)
+## 🔄 LATEST UPDATE: RBAC-001 FIX COMPLETE ✅ (2025-10-22 17:18:52)
+
+**Action:** Fixed critical data isolation bug found by QA
+**Status:** ✅ COMPLETE - Balagruha endpoint scope filtering applied
+**Bug ID:** RBAC-001
+**Severity:** CRITICAL - Data Isolation Violation
+**Commit:** 8beddb0
+
+### Issue Summary
+**Problem:** Coach users could see ALL 24 Balagruhas instead of only their 3 assigned ones
+**Endpoint:** GET `/api/v1/balagruha/`
+**Root Cause:** `getAllBalagruha()` used empty filter `{}`, bypassing scope restrictions
+**Impact:** Violated AC2 (Balagruha-level access control)
+**Discovered By:** QA Agent (Quinn) during E2E testing
+
+### Fix Applied
+Updated 3 files to pass `req.scopeFilter` through architecture layers:
+
+1. **backend/data-access/balagruha.js:23**
+   - Added `scopeFilter` parameter to `getAllBalagruha(scopeFilter = {})`
+   - Changed `find({})` to `find({ ...scopeFilter })`
+
+2. **backend/services/balagruha.js:61**
+   - Added `scopeFilter` parameter to `getAll(scopeFilter = {})`
+   - Pass `scopeFilter` to data-access layer
+
+3. **backend/controllers/balagruha.js:58**
+   - Pass `req.scopeFilter` to service layer
+   - Added scope logging for debugging
+
+### Expected Behavior After Fix
+- **Admin (scope='all')**: See all 24 Balagruhas ✅
+- **Coach (scope='balagruh')**: See only 3 assigned Balagruhas ✅ (was seeing 24 ❌)
+- **Student (scope='own')**: See 0 Balagruhas ✅
+
+### Verification Status
+- ✅ Syntax validated
+- ✅ Phase 2 endpoints verified (all complete)
+- ⏳ Awaiting QA re-test
+
+### QA Gate Status
+- **Before Fix:** FAIL (60/100) - Critical data isolation bug
+- **After Fix:** Pending QA re-test
+- **Story Status:** ✅ READY FOR QA (RE-TEST)
+
+---
+
+## 🔄 PREVIOUS UPDATE: Phase 1 - 100% Complete ✅ (2025-10-22 14:57:53)
 
 **Action:** Implementing comprehensive scope filtering with phased, low-risk approach
-**Status:** ⚠️ IN PROGRESS - Starting Phase 1 (READ-only scope filtering)
+**Status:** ✅ COMPLETE - Phase 1 (READ-only scope filtering) finished
 **Database:** Local MongoDB (mongodb://localhost:27017/isfplayground)
 **Strategy:** Additive filtering approach - add req.scopeFilter to existing queries
 **Risk Level:** LOW (non-breaking, backwards compatible)
+**Commits:**
+- f9d161b - Phase 1 initial implementation (reportsController + attendance)
+- fd7f90e - Analytics service scope filtering complete
+- 7b74e96 - Medical and schedule data-access scope filtering complete
+
+### Phase 1 Progress Update
+
+**✅ Completed (100%):**
+1. **Reports Controller** - All 3 methods now pass user context to analytics service
+   - `getTransactionLog()` - Passes requestingUser and permissionScope
+   - `getStudentLeaderboard()` - Passes user context for scope-based filtering
+   - `getZeroPurchaseStudents()` - Passes user context for Balagruh filtering
+
+2. **Analytics Service** - All 3 methods now implement scope-based filtering
+   - `getTransactionLog()` - Filters transactions by user scope
+     - Admin: All transactions
+     - Coach: Only assigned Balagruh students' transactions
+     - Student: Only own transactions
+   - `getStudentLeaderboard()` - Filters leaderboard by user scope
+     - Admin: All students
+     - Coach: Only assigned Balagruh students
+     - Student: Only own data (rank 1 of 1)
+   - `getZeroPurchaseStudents()` - Filters zero-purchase students by scope
+     - Admin: All students with zero purchases
+     - Coach: Only assigned Balagruh students
+     - Student: Only own data
+
+3. **Attendance Data-Access** - Added scopeFilter parameter (backwards compatible)
+
+4. **Medical Check-ins Data-Access** - Added scopeFilter to 3 READ functions
+   - `getAllMedicalCheckIns()` - Merges scopeFilter with user filters
+   - `getMedicalCheckInsByStudentId()` - Applies scope filtering per student
+   - `getMedicalCheckInById()` - Uses findOne with scope filter
+
+5. **Schedule Data-Access** - Added scopeFilter to 3 READ functions
+   - `getScheduleById()` - Uses findOne with scope filter
+   - `getSchedules()` - Merges scopeFilter with existing filters
+   - `getSchedulesByUser()` - Applies scope filtering per user
+
+6. **Coach Delivery Controller** - Verified already has scope filtering
+
+**Next Steps:**
+- Phase 2: Testing with all 3 user roles (Admin, Coach, Student)
+- Phase 3: URL parameter validation for routes with :balagruhaId
 
 ### Decision Record: Implementation Strategy
 
