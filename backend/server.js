@@ -38,7 +38,7 @@ const coachDeliveryRoutes = require("./routes/v2/coachDelivery"); // Sprint 5: C
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
-const faceapi = require("face-api.js");
+// const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 
 // Import cleanup function
 const { cleanupOrphanedFiles } = require("./middleware/upload");
@@ -192,10 +192,6 @@ try {
   console.error("❌ Error initializing WTF WebSocket server:", error);
 }
 
-// Load face-api models
-async function loadModels() {
-  await faceapi.nets.ssdMobilenetv1.loadFromDisk("./weights");
-  await faceapi.nets.faceLandmark68Net.loadFromDisk("./weights");
-  await faceapi.nets.faceRecognitionNet.loadFromDisk("./weights");
-}
-loadModels();
+// REMOVED - Task 1: FR Rebuild
+// Old face-api.js model loading removed
+// Will be replaced with @vladmandic/human in Task 2
