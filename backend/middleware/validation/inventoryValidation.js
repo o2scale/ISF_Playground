@@ -24,8 +24,8 @@ const validateStockAdjustment = [
 
   body('reason')
     .notEmpty().withMessage('Reason is required')
-    .isIn(['purchase', 'adjustment', 'return', 'correction'])
-    .withMessage('Invalid reason. Must be one of: purchase, adjustment, return, correction'),
+    .isIn(['Purchase / Restock', 'Inventory Adjustment', 'Student Return', 'Stock Correction', 'Damaged Items', 'Other'])
+    .withMessage('Invalid reason. Must be one of: Purchase / Restock, Inventory Adjustment, Student Return, Stock Correction, Damaged Items, Other'),
 
   body('notes')
     .optional({ nullable: true })

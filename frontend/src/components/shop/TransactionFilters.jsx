@@ -6,6 +6,24 @@ const TransactionFilters = ({ filters, onFilterChange }) => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+
+    // Validate date format for date inputs
+    if ((name === 'startDate' || name === 'endDate') && value) {
+      // Check if value matches YYYY-MM-DD format
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(value)) {
+        setDateError('Please enter a valid date in YYYY-MM-DD format');
+        return;
+      }
+
+      // Validate the date is actually valid
+      const date = new Date(value);
+      if (isNaN(date.getTime())) {
+        setDateError('Please enter a valid date');
+        return;
+      }
+    }
+
     setLocalFilters(prev => ({ ...prev, [name]: value }));
     // Clear error when user modifies dates
     if (name === 'startDate' || name === 'endDate') {
@@ -94,6 +112,8 @@ const TransactionFilters = ({ filters, onFilterChange }) => {
             name="startDate"
             value={localFilters.startDate}
             onChange={handleInputChange}
+            pattern="\d{4}-\d{2}-\d{2}"
+            placeholder="yyyy-mm-dd"
             className="w-full px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
           />
         </div>
@@ -108,6 +128,8 @@ const TransactionFilters = ({ filters, onFilterChange }) => {
             name="endDate"
             value={localFilters.endDate}
             onChange={handleInputChange}
+            pattern="\d{4}-\d{2}-\d{2}"
+            placeholder="yyyy-mm-dd"
             className="w-full px-4 py-2 border border-slate-300 rounded-md bg-white focus:ring-2 focus:ring-purple-500 focus:outline-none"
           />
         </div>

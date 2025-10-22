@@ -13,7 +13,9 @@ import {
   getStudentLeaderboard,
   getZeroPurchaseStudents,
   getCoinEconomyHealth,
-  exportReport
+  exportReport,
+  getBalagruha,
+  fetchUsers
 } from '../api';
 import Breadcrumbs from '../components/shop/Breadcrumbs';
 import ShopAdminControls from '../components/shop/ShopAdminControls';
@@ -29,17 +31,37 @@ const TransactionReports = () => {
   const [transactionLog, setTransactionLog] = useState({ transactions: [], pagination: {} });
   const [earnersLeaderboard, setEarnersLeaderboard] = useState([]);
   const [spendersLeaderboard, setSpendersLeaderboard] = useState([]);
-  const [zeroPurchases, setZeroPurchases] = useState([]);
+  const [zeroPurchases, setZeroPurchases] = useState({ students: [], pagination: {} });
   const [economyHealth, setEconomyHealth] = useState(null);
+  const [balagruhas, setBalagruhas] = useState([]);
+  const [students, setStudents] = useState([]);
 
   // Filter states
   const [transactionFilters, setTransactionFilters] = useState({
     startDate: '',
     endDate: '',
+    balagruhaId: '',
+    studentId: '',
     status: null,
     searchTerm: ''
   });
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Zero Purchases Filter states
+  const [zeroPurchaseFilters, setZeroPurchaseFilters] = useState({
+    balagruhaId: '',
+    startDate: '',
+    endDate: '',
+    minBalance: ''
+  });
+  const [zeroPurchasePage, setZeroPurchasePage] = useState(1);
+  const [zeroPurchasePageSize, setZeroPurchasePageSize] = useState(10);
+
+  // Leaderboard Filter states
+  const [leaderboardFilters, setLeaderboardFilters] = useState({
+    startDate: '',
+    endDate: ''
+  });
 
   // Fetch all data on component mount
   useEffect(() => {
@@ -53,16 +75,53 @@ const TransactionReports = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactionFilters, currentPage]);
 
+  // Fetch zero purchases when filters, page, or page size change
+  useEffect(() => {
+    fetchZeroPurchases();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zeroPurchaseFilters, zeroPurchasePage, zeroPurchasePageSize]);
+
+  // Fetch leaderboard when filters change
+  useEffect(() => {
+    fetchLeaderboards();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [leaderboardFilters]);
+
+  const fetchLeaderboards = async () => {
+    try {
+      // Build params with filters
+      const params = {};
+      if (leaderboardFilters.startDate) params.startDate = leaderboardFilters.startDate;
+      if (leaderboardFilters.endDate) params.endDate = leaderboardFilters.endDate;
+
+      const [earnersRes, spendersRes] = await Promise.all([
+        getStudentLeaderboard('earners', 10, params),
+        getStudentLeaderboard('spenders', 10, params)
+      ]);
+
+      if (earnersRes.success) {
+        setEarnersLeaderboard(earnersRes.data.leaderboard);
+      }
+
+      if (spendersRes.success) {
+        setSpendersLeaderboard(spendersRes.data.leaderboard);
+      }
+    } catch (err) {
+      console.error('Error fetching leaderboards:', err);
+    }
+  };
+
   const fetchAllData = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [earnersRes, spendersRes, zeroPurchasesRes, economyRes] = await Promise.all([
-        getStudentLeaderboard('earners', 10),
-        getStudentLeaderboard('spenders', 10),
-        getZeroPurchaseStudents(),
-        getCoinEconomyHealth()
+      const [earnersRes, spendersRes, economyRes, balagruhasRes, usersRes] = await Promise.all([
+        getStudentLeaderboard('earners', 10, {}),
+        getStudentLeaderboard('spenders', 10, {}),
+        getCoinEconomyHealth(),
+        getBalagruha(),
+        fetchUsers()
       ]);
 
       if (earnersRes.success) {
@@ -73,12 +132,18 @@ const TransactionReports = () => {
         setSpendersLeaderboard(spendersRes.data.leaderboard);
       }
 
-      if (zeroPurchasesRes.success) {
-        setZeroPurchases(zeroPurchasesRes.data.students);
-      }
-
       if (economyRes.success) {
         setEconomyHealth(economyRes.data);
+      }
+
+      if (balagruhasRes.success) {
+        setBalagruhas(balagruhasRes.data.balagruhas);
+      }
+
+      if (usersRes.success) {
+        // Filter only students
+        const studentList = usersRes.data.users.filter(user => user.role === 'student');
+        setStudents(studentList);
       }
 
     } catch (err) {
@@ -86,6 +151,30 @@ const TransactionReports = () => {
       setError(err.response?.data?.message || err.message || 'Failed to load reports');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchZeroPurchases = async () => {
+    try {
+      const params = {
+        page: zeroPurchasePage,
+        limit: zeroPurchasePageSize,
+        ...zeroPurchaseFilters
+      };
+
+      // Remove empty filters
+      Object.keys(params).forEach(key => {
+        if (params[key] === '' || params[key] === null) {
+          delete params[key];
+        }
+      });
+
+      const response = await getZeroPurchaseStudents(params);
+      if (response.success) {
+        setZeroPurchases(response.data);
+      }
+    } catch (err) {
+      console.error('Error fetching zero purchase students:', err);
     }
   };
 
@@ -122,9 +211,11 @@ const TransactionReports = () => {
     setCurrentPage(newPage);
   };
 
-  const handleViewOrder = (orderId) => {
-    // Navigate to order details page
-    navigate(`/shop/orders/${orderId}`);
+  const handleViewOrder = (orderNumber) => {
+    // Navigate to order details page with state to indicate origin
+    navigate(`/shop/orders/${orderNumber}`, {
+      state: { from: 'transaction-reports' }
+    });
   };
 
   const handleExportLeaderboard = async (type) => {
@@ -146,6 +237,34 @@ const TransactionReports = () => {
       console.error('Error exporting zero purchases:', err);
       alert('Failed to export report. Please try again.');
     }
+  };
+
+  const handleExportTransactionLog = async () => {
+    try {
+      const response = await exportReport('transactions', transactionFilters);
+      console.log('Export successful:', response);
+    } catch (err) {
+      console.error('Error exporting transaction log:', err);
+      alert('Failed to export transaction log. Please try again.');
+    }
+  };
+
+  const handleZeroPurchaseFilterChange = (newFilters) => {
+    setZeroPurchaseFilters(newFilters);
+    setZeroPurchasePage(1); // Reset to first page when filters change
+  };
+
+  const handleZeroPurchasePageChange = (newPage) => {
+    setZeroPurchasePage(newPage);
+  };
+
+  const handleZeroPurchasePageSizeChange = (newSize) => {
+    setZeroPurchasePageSize(newSize);
+    setZeroPurchasePage(1); // Reset to first page when page size changes
+  };
+
+  const handleLeaderboardFilterChange = (newFilters) => {
+    setLeaderboardFilters(newFilters);
   };
 
   if (loading) {
@@ -207,12 +326,20 @@ const TransactionReports = () => {
         <StudentLeaderboard
           earnersData={earnersLeaderboard}
           spendersData={spendersLeaderboard}
+          filters={leaderboardFilters}
+          onFilterChange={handleLeaderboardFilterChange}
           onExport={handleExportLeaderboard}
         />
 
         {/* Zero Purchases Report */}
         <ZeroPurchasesReport
-          students={zeroPurchases}
+          students={zeroPurchases.students}
+          pagination={zeroPurchases.pagination}
+          filters={zeroPurchaseFilters}
+          balagruhas={balagruhas}
+          onFilterChange={handleZeroPurchaseFilterChange}
+          onPageChange={handleZeroPurchasePageChange}
+          onPageSizeChange={handleZeroPurchasePageSizeChange}
           onExport={handleExportZeroPurchases}
         />
 
@@ -221,9 +348,12 @@ const TransactionReports = () => {
           transactions={transactionLog.transactions}
           pagination={transactionLog.pagination}
           filters={transactionFilters}
+          balagruhas={balagruhas}
+          students={students}
           onFilterChange={handleFilterChange}
           onPageChange={handlePageChange}
           onViewOrder={handleViewOrder}
+          onExport={handleExportTransactionLog}
         />
       </div>
     </div>

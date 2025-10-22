@@ -42,10 +42,22 @@ exports.adjustStock = async (req, res) => {
     product.stock = newStock;
     await product.save();
 
+    // Map user-friendly reason to transactionType enum
+    const transactionTypeMap = {
+      'Purchase / Restock': 'purchase',
+      'Inventory Adjustment': 'adjustment',
+      'Student Return': 'return',
+      'Stock Correction': 'correction',
+      'Damaged Items': 'adjustment',
+      'Other': 'adjustment'
+    };
+
+    const transactionType = transactionTypeMap[reason] || 'adjustment';
+
     // Create audit trail entry
     const transaction = await InventoryTransaction.create({
       productId: product._id,
-      transactionType: reason,
+      transactionType,
       quantity: adjustment,
       previousStock,
       newStock,
@@ -208,7 +220,7 @@ exports.bulkUpdateStock = async (req, res) => {
 exports.getAuditTrail = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { limit = 50, page = 1 } = req.query;
+    const { limit = 50, page = 1, reason } = req.query;
 
     // Validate product exists
     const product = await ShopItem.findById(productId);
@@ -218,14 +230,20 @@ exports.getAuditTrail = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
+    // Build filter for transactions
+    const filter = { productId };
+    if (reason && reason !== 'all') {
+      filter.reason = reason;
+    }
+
     // Get transactions for this product
     const [transactions, total] = await Promise.all([
-      InventoryTransaction.find({ productId })
+      InventoryTransaction.find(filter)
         .populate('performedBy', 'name email role')
         .sort({ createdAt: -1 })
         .limit(parseInt(limit))
         .skip(skip),
-      InventoryTransaction.countDocuments({ productId })
+      InventoryTransaction.countDocuments(filter)
     ]);
 
     res.status(200).json({
@@ -309,7 +327,7 @@ exports.getInventoryDashboard = async (req, res) => {
         .sort(sort)
         .limit(parseInt(limit))
         .skip(skip)
-        .select('sku name category stock lowStockThreshold price imageUrl isActive updatedAt'),
+        .select('sku name category stock lowStockThreshold price imageUrl images isActive updatedAt'),
       ShopItem.countDocuments(filter)
     ]);
 
@@ -412,7 +430,7 @@ exports.getLowStockProducts = async (req, res) => {
       $expr: { $lte: ['$stock', '$lowStockThreshold'] }
     })
       .sort({ stock: 1 })
-      .select('sku name category stock lowStockThreshold price imageUrl');
+      .select('sku name category stock lowStockThreshold price imageUrl images');
 
     res.status(200).json({
       count: products.length,

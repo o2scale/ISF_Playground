@@ -363,10 +363,24 @@ class AnalyticsService {
    * Get student leaderboard (top earners or top spenders)
    * @param {String} type - 'earners' or 'spenders'
    * @param {Number} limit - Number of students to return (default 10)
+   * @param {Object} filters - Optional filters { startDate, endDate }
    * @returns {Array} Leaderboard with rankings
    */
-  static async getStudentLeaderboard(type = 'earners', limit = 10) {
+  static async getStudentLeaderboard(type = 'earners', limit = 10, filters = {}) {
     const sortField = type === 'earners' ? 'totalEarned' : 'totalSpent';
+
+    // Build date filter conditions for transactions
+    const transactionDateConditions = [];
+    if (filters.startDate) {
+      transactionDateConditions.push({
+        $gte: ['$$txn.createdAt', new Date(filters.startDate)]
+      });
+    }
+    if (filters.endDate) {
+      transactionDateConditions.push({
+        $lte: ['$$txn.createdAt', new Date(filters.endDate)]
+      });
+    }
 
     const leaderboard = await Coin.aggregate([
       {
@@ -385,7 +399,7 @@ class AnalyticsService {
       },
       {
         $addFields: {
-          // Calculate total earned from transactions
+          // Calculate total earned from transactions (with optional date filter)
           totalEarned: {
             $sum: {
               $map: {
@@ -393,7 +407,12 @@ class AnalyticsService {
                   $filter: {
                     input: '$transactions',
                     as: 'txn',
-                    cond: { $eq: ['$$txn.type', 'earned'] }
+                    cond: {
+                      $and: [
+                        { $eq: ['$$txn.type', 'earned'] },
+                        ...(transactionDateConditions.length > 0 ? transactionDateConditions : [true])
+                      ]
+                    }
                   }
                 },
                 as: 'earnedTxn',
@@ -401,7 +420,7 @@ class AnalyticsService {
               }
             }
           },
-          // Calculate total spent from transactions
+          // Calculate total spent from transactions (with optional date filter)
           totalSpent: {
             $sum: {
               $map: {
@@ -409,7 +428,12 @@ class AnalyticsService {
                   $filter: {
                     input: '$transactions',
                     as: 'txn',
-                    cond: { $eq: ['$$txn.type', 'spent'] }
+                    cond: {
+                      $and: [
+                        { $eq: ['$$txn.type', 'spent'] },
+                        ...(transactionDateConditions.length > 0 ? transactionDateConditions : [true])
+                      ]
+                    }
                   }
                 },
                 as: 'spentTxn',
@@ -485,9 +509,19 @@ class AnalyticsService {
    * Get students who have never made a purchase
    * @returns {Array} List of students with zero purchases
    */
-  static async getZeroPurchaseStudents() {
-    const students = await User.aggregate([
-      { $match: { role: 'student' } },
+  static async getZeroPurchaseStudents(filters = {}, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+
+    // Build initial match conditions
+    const matchConditions = { role: 'student' };
+
+    // Add Balagruha filter if provided
+    if (filters.balagruhaId) {
+      matchConditions.balagruhaIds = filters.balagruhaId;
+    }
+
+    const pipeline = [
+      { $match: matchConditions },
       {
         $lookup: {
           from: 'orders',
@@ -531,16 +565,65 @@ class AnalyticsService {
             ]
           },
           balagruha: '$additionalInfo.balagruha',
-          coach: '$additionalInfo.coach'
+          coach: '$additionalInfo.coach',
+          createdAt: 1
         }
-      },
-      { $sort: { balance: -1 } } // Students with high balances first
-    ]);
+      }
+    ];
 
-    return students.map(student => ({
-      ...student,
-      balance: Math.round(student.balance * 100) / 100
-    }));
+    // Add balance filter if provided
+    if (filters.minBalance !== undefined) {
+      pipeline.push({
+        $match: {
+          balance: { $gte: parseFloat(filters.minBalance) }
+        }
+      });
+    }
+
+    // Add date range filter for lastActivity if provided
+    if (filters.startDate || filters.endDate) {
+      const dateMatch = {};
+      if (filters.startDate) {
+        dateMatch.$gte = new Date(filters.startDate);
+      }
+      if (filters.endDate) {
+        dateMatch.$lte = new Date(filters.endDate);
+      }
+      pipeline.push({
+        $match: {
+          $or: [
+            { lastActivity: dateMatch },
+            { createdAt: dateMatch }
+          ]
+        }
+      });
+    }
+
+    pipeline.push({ $sort: { balance: -1 } }); // Students with high balances first
+
+    // Get total count before pagination
+    const countPipeline = [...pipeline, { $count: 'total' }];
+    const countResult = await User.aggregate(countPipeline);
+    const total = countResult[0]?.total || 0;
+
+    // Add pagination
+    pipeline.push({ $skip: skip });
+    pipeline.push({ $limit: limit });
+
+    const students = await User.aggregate(pipeline);
+
+    return {
+      students: students.map(student => ({
+        ...student,
+        balance: Math.round(student.balance * 100) / 100
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    };
   }
 
   /**
@@ -664,6 +747,27 @@ class AnalyticsService {
       if (filters.endDate) query.placedAt.$lte = new Date(filters.endDate);
     }
 
+    // Handle Balagruha filter - find all students in the Balagruha
+    if (filters.balagruhaId) {
+      const studentsInBalagruha = await User.find({
+        role: 'student',
+        balagruhaIds: filters.balagruhaId
+      }).select('_id').lean();
+
+      const studentIds = studentsInBalagruha.map(s => s._id);
+
+      if (studentIds.length > 0) {
+        query.userId = { $in: studentIds };
+      } else {
+        // No students in this Balagruha, return empty results
+        return {
+          transactions: [],
+          pagination: { page, limit, total: 0, pages: 0 }
+        };
+      }
+    }
+
+    // Handle individual student filter (overrides Balagruha filter if both provided)
     if (filters.studentId) {
       query.userId = filters.studentId;
     }

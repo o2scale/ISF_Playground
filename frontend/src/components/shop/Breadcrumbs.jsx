@@ -47,6 +47,11 @@ const Breadcrumbs = ({ customPath }) => {
       breadcrumbs.push({ label: 'Transactions', path: '/coins/history' });
     }
 
+    // Coach Deliveries
+    if (path === '/coach/deliveries') {
+      breadcrumbs.push({ label: 'Deliveries', path: '/coach/deliveries' });
+    }
+
     // Admin Routes
     if (path.startsWith('/shop/admin')) {
       breadcrumbs.push({ label: 'Admin', path: null });
@@ -75,7 +80,7 @@ const Breadcrumbs = ({ customPath }) => {
 
   return (
     <nav className="bg-slate-50 border-b border-slate-200 py-2">
-      <div className="w-full max-w-7xl mx-auto px-4">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <ol className="flex items-center gap-2 text-sm">
           {breadcrumbs.map((crumb, index) => {
             const isLast = index === breadcrumbs.length - 1;

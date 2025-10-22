@@ -10,7 +10,7 @@ const AnalyticsService = require('../services/analytics');
  */
 exports.getTransactionLog = async (req, res) => {
   try {
-    const { startDate, endDate, studentId, status, page = 1, limit = 20 } = req.query;
+    const { startDate, endDate, balagruhaId, studentId, status, page = 1, limit = 20 } = req.query;
 
     // Validate pagination params
     const pageNum = parseInt(page, 10);
@@ -34,6 +34,7 @@ exports.getTransactionLog = async (req, res) => {
     const filters = {};
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
+    if (balagruhaId) filters.balagruhaId = balagruhaId;
     if (studentId) filters.studentId = studentId;
     if (status) filters.status = status;
 
@@ -56,11 +57,11 @@ exports.getTransactionLog = async (req, res) => {
 /**
  * Get student leaderboard (top earners or top spenders)
  * GET /api/v2/shop/admin/reports/leaderboard
- * Query params: ?type=earners|spenders&limit=10
+ * Query params: ?type=earners|spenders&limit=10&startDate&endDate
  */
 exports.getStudentLeaderboard = async (req, res) => {
   try {
-    const { type = 'earners', limit = 10 } = req.query;
+    const { type = 'earners', limit = 10, startDate, endDate } = req.query;
 
     // Validate type
     if (!['earners', 'spenders'].includes(type)) {
@@ -79,7 +80,12 @@ exports.getStudentLeaderboard = async (req, res) => {
       });
     }
 
-    const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum);
+    // Build filters
+    const filters = {};
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+
+    const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum, filters);
 
     res.status(200).json({
       success: true,
@@ -101,23 +107,91 @@ exports.getStudentLeaderboard = async (req, res) => {
 /**
  * Get students with zero purchases
  * GET /api/v2/shop/admin/reports/zero-purchases
+ * Query params: ?balagruhaId&startDate&endDate&minBalance&page&limit
  */
 exports.getZeroPurchaseStudents = async (req, res) => {
   try {
-    const students = await AnalyticsService.getZeroPurchaseStudents();
+    const { balagruhaId, startDate, endDate, minBalance, page = 1, limit = 10 } = req.query;
+
+    // Validate pagination params
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+
+    if (isNaN(pageNum) || pageNum < 1) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid page parameter'
+      });
+    }
+
+    if (isNaN(limitNum) || limitNum < 1 || limitNum > 100) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid limit parameter (must be 1-100)'
+      });
+    }
+
+    // Build filters
+    const filters = {};
+    if (balagruhaId) filters.balagruhaId = balagruhaId;
+    if (startDate) filters.startDate = startDate;
+    if (endDate) filters.endDate = endDate;
+    if (minBalance) filters.minBalance = minBalance;
+
+    const result = await AnalyticsService.getZeroPurchaseStudents(filters, pageNum, limitNum);
 
     res.status(200).json({
       success: true,
-      data: {
-        students,
-        count: students.length
-      }
+      data: result
     });
   } catch (error) {
     console.error('Error fetching zero-purchase students:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to fetch zero-purchase students',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Send reminder notification to student with zero purchases
+ * POST /api/v2/shop/admin/reports/send-zero-purchase-reminder
+ */
+exports.sendZeroPurchaseReminder = async (req, res) => {
+  try {
+    const { userId, studentName } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+
+    // Import WebSocket service
+    const wtfWebSocketService = require('../services/wtfWebSocket');
+
+    // Send notification via WebSocket
+    wtfWebSocketService.sendToUser(userId, {
+      type: 'zero_purchase_reminder',
+      data: {
+        title: 'Shop Reminder',
+        message: 'You haven\'t made any shop purchases yet! Start completing tasks to earn coins and explore the shop.',
+        timestamp: new Date().toISOString(),
+        priority: 'normal'
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `Reminder sent successfully${studentName ? ` to ${studentName}` : ''}`
+    });
+  } catch (error) {
+    console.error('Error sending zero-purchase reminder:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send reminder',
       error: error.message
     });
   }
@@ -262,8 +336,16 @@ exports.exportReport = async (req, res) => {
       }
 
       case 'zero-purchases': {
-        const result = await AnalyticsService.getZeroPurchaseStudents();
-        data = result;
+        // Build filters from query params
+        const exportFilters = {};
+        if (filters.balagruhaId) exportFilters.balagruhaId = filters.balagruhaId;
+        if (filters.startDate) exportFilters.startDate = filters.startDate;
+        if (filters.endDate) exportFilters.endDate = filters.endDate;
+        if (filters.minBalance) exportFilters.minBalance = filters.minBalance;
+
+        // Export all students (use high limit to get all records)
+        const result = await AnalyticsService.getZeroPurchaseStudents(exportFilters, 1, 10000);
+        data = result.students;
         filename = `zero-purchases-report-${new Date().toISOString().split('T')[0]}.csv`;
         headers = ['Student Name', 'Email', 'Balance', 'Last Activity', 'Balagruha', 'Coach'];
         rows = data.map(s => [

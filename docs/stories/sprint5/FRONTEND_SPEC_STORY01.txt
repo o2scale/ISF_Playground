@@ -1,0 +1,103 @@
+
+## Detailed Frontend Specification
+
+**Design System Reference:** Based on ISF Playground Complete Design System (WTF Module patterns)
+**Last Updated:** October 7, 2025 - 10:05 PM
+
+### Page Overview
+- **Route:** `/shop` or `/shop/products`
+- **Layout:** Standard ISF Playground layout with top navigation
+- **Reference:** WTF Module pins grid layout
+
+### Visual Layout
+```
+┌──────────────────────────────────────────────────┐
+│ Top Nav: [Logo] [Shop] [ISF Coins] [Cart] [@]   │
+├──────────────┬───────────────────────────────────┤
+│ Filter Panel │  Product Grid (4 columns)        │
+│ - Categories │  ┌───┐ ┌───┐ ┌───┐ ┌───┐         │
+│ - Price      │  │   │ │   │ │   │ │   │         │
+│ - Search     │  └───┘ └───┘ └───┘ └───┘         │
+└──────────────┴───────────────────────────────────┘
+```
+
+### Component Specifications
+
+#### ShopHome.jsx
+**Location:** `frontend/src/components/shop/ShopHome.jsx`
+**Purpose:** Main shop page container
+
+**Structure:**
+```jsx
+<div className="min-h-screen bg-slate-50">
+  <PageHeader title="ISF Shop" />
+  <div className="flex gap-6">
+    <FilterPanel />
+    <ProductGrid />
+  </div>
+</div>
+```
+
+#### ProductCard.jsx  
+**Location:** `frontend/src/components/shop/ProductCard.jsx`
+**Purpose:** Individual product card (WTF pin card pattern)
+
+**Styling:**
+- Card: `bg-white border border-slate-200 rounded-lg hover:shadow-lg`
+- Button: `bg-purple-600 text-white px-4 py-2 rounded-md`
+- Image: `aspect-square object-cover loading="lazy"`
+
+### User Flows
+
+**Browse & Add to Cart:**
+1. User lands on /shop → sees product grid
+2. User filters by category → grid updates
+3. User clicks "Add to Cart" → toast confirmation
+4. Cart badge increments
+
+**Search Products:**
+1. User types in search → 300ms debounce
+2. API call with search term
+3. Results update in real-time
+
+### State Management (Zustand)
+```javascript
+{
+  products: [],
+  productsLoading: false,
+  filters: { category, search, minPrice, maxPrice },
+  pagination: { page, limit, total }
+}
+```
+
+### Loading/Error/Empty States
+
+**Loading:** Skeleton grid (8 cards with animated pulse)
+**Error:** Alert icon + message + "Try Again" button
+**Empty:** Shopping bag icon + "No products found" + "Clear Filters"
+
+### Responsive Design
+- Mobile: 1 column
+- Tablet: 2 columns  
+- Desktop: 4 columns
+
+### Accessibility
+- [x] Alt text on all images
+- [x] Labels on filter inputs
+- [x] Keyboard navigation
+- [x] ARIA labels on icon buttons
+- [x] Focus indicators visible
+
+### Performance
+- Lazy load images
+- Debounced search (300ms)
+- Pagination (20 items/page)
+- Optimistic cart updates
+
+### Testing
+- [x] Component renders with mock data
+- [x] Filters update correctly
+- [x] Add to cart works
+- [x] Responsive breakpoints
+
+**Design System Compliance:** ✅ WTF Module pattern

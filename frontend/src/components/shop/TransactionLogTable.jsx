@@ -2,10 +2,10 @@
 // Displays complete transaction log with filters and pagination
 
 import React, { useState } from 'react';
-import { Search, Calendar, Filter, ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { Search, Calendar, Filter, ChevronLeft, ChevronRight, FileText, Download } from 'lucide-react';
 import StatusBadge from './StatusBadge';
 
-const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange, onPageChange, onViewOrder }) => {
+const TransactionLogTable = ({ transactions, pagination, filters, balagruhas = [], students = [], onFilterChange, onPageChange, onViewOrder, onExport }) => {
   const [searchTerm, setSearchTerm] = useState(filters.searchTerm || '');
   const [showFilters, setShowFilters] = useState(false);
 
@@ -23,6 +23,13 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
   const handleFilterChange = (key, value) => {
     // Validate date inputs
     if ((key === 'startDate' || key === 'endDate') && value) {
+      // Check if value matches YYYY-MM-DD format
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+      if (!datePattern.test(value)) {
+        console.warn('Invalid date format. Expected YYYY-MM-DD');
+        return;
+      }
+
       const dateObj = new Date(value);
       if (isNaN(dateObj.getTime())) return; // Invalid date
 
@@ -68,13 +75,22 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
       <div className="p-6 border-b border-gray-200">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-2xl font-bold text-gray-900">Transaction Log</h2>
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
-          >
-            <Filter className="w-4 h-4" />
-            Filters
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+            >
+              <Filter className="w-4 h-4" />
+              Filters
+            </button>
+            <button
+              onClick={onExport}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-purple-600 hover:bg-purple-700 rounded-md transition-colors"
+            >
+              <Download className="w-4 h-4" />
+              Export CSV
+            </button>
+          </div>
         </div>
 
         {/* Search Bar */}
@@ -91,44 +107,83 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
 
         {/* Filters Panel */}
         {showFilters && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-md grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Date Range */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-              <input
-                type="date"
-                value={filters.startDate || ''}
-                onChange={(e) => handleFilterChange('startDate', e.target.value)}
-                min="2000-01-01"
-                max="2100-12-31"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-              <input
-                type="date"
-                value={filters.endDate || ''}
-                onChange={(e) => handleFilterChange('endDate', e.target.value)}
-                min="2000-01-01"
-                max="2100-12-31"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              />
+          <div className="mt-4 p-4 bg-gray-50 rounded-md space-y-4">
+            {/* First Row: Balagruha, Student, Status */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Balagruha Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Balagruha</label>
+                <select
+                  value={filters.balagruhaId || 'all'}
+                  onChange={(e) => handleFilterChange('balagruhaId', e.target.value === 'all' ? '' : e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map(bal => (
+                    <option key={bal._id} value={bal._id}>{bal.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Student Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Filter by Student</label>
+                <select
+                  value={filters.studentId || 'all'}
+                  onChange={(e) => handleFilterChange('studentId', e.target.value === 'all' ? '' : e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Students</option>
+                  {students.map(student => (
+                    <option key={student._id} value={student._id}>{student.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                <select
+                  value={filters.status || 'all'}
+                  onChange={(e) => handleFilterChange('status', e.target.value === 'all' ? null : e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                  <option value="refunded">Refunded</option>
+                </select>
+              </div>
             </div>
 
-            {/* Status Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
-                value={filters.status || 'all'}
-                onChange={(e) => handleFilterChange('status', e.target.value === 'all' ? null : e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
-              >
-                <option value="all">All Statuses</option>
-                <option value="completed">Completed</option>
-                <option value="cancelled">Cancelled</option>
-                <option value="refunded">Refunded</option>
-              </select>
+            {/* Second Row: Date Range */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={filters.startDate || ''}
+                  onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                  min="2000-01-01"
+                  max="2100-12-31"
+                  pattern="\d{4}-\d{2}-\d{2}"
+                  placeholder="yyyy-mm-dd"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={filters.endDate || ''}
+                  onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                  min="2000-01-01"
+                  max="2100-12-31"
+                  pattern="\d{4}-\d{2}-\d{2}"
+                  placeholder="yyyy-mm-dd"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500"
+                />
+              </div>
             </div>
           </div>
         )}
@@ -176,7 +231,7 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
                 <tr
                   key={transaction.orderId}
                   className="hover:bg-gray-50 transition-colors cursor-pointer"
-                  onClick={() => onViewOrder(transaction.orderId)}
+                  onClick={() => onViewOrder(transaction.orderNumber)}
                 >
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                     {transaction.orderNumber}
@@ -203,7 +258,7 @@ const TransactionLogTable = ({ transactions, pagination, filters, onFilterChange
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onViewOrder(transaction.orderId);
+                        onViewOrder(transaction.orderNumber);
                       }}
                       className="text-purple-600 hover:text-purple-800 font-medium"
                     >

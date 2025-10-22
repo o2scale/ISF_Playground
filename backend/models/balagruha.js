@@ -28,4 +28,4 @@ const BalagruhaSchema = new mongoose.Schema(
 );
 
 // module.exports = mongoose.model('Balagruha', BalagruhaSchema);
-module.exports = Balagruha = mongoose.model("Balagruha", BalagruhaSchema);
+module.exports = Balagruha = mongoose.models.Balagruha || mongoose.model("Balagruha", BalagruhaSchema);

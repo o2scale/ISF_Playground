@@ -39,8 +39,20 @@ export const getApiInstance = () => {
     (res) => res,
     (error) => {
       if (error.response?.status === 401) {
+        // Clear all authentication data
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
+        // Show user-friendly message
+        const errorCode = error.response?.data?.code;
+        const errorMessage = error.response?.data?.message || "Session expired. Please login again.";
+
+        // Alert user before redirect
+        if (errorCode === "TOKEN_EXPIRED" || errorCode === "INVALID_TOKEN") {
+          alert(errorMessage);
+        }
+
+        // Redirect to login
         window.location.href = "/login";
       }
       return Promise.reject(error);
@@ -71,8 +83,20 @@ export const getApiWithoutContentTypeInstance = () => {
     (res) => res,
     (error) => {
       if (error.response?.status === 401) {
+        // Clear all authentication data
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+
+        // Show user-friendly message
+        const errorCode = error.response?.data?.code;
+        const errorMessage = error.response?.data?.message || "Session expired. Please login again.";
+
+        // Alert user before redirect
+        if (errorCode === "TOKEN_EXPIRED" || errorCode === "INVALID_TOKEN") {
+          alert(errorMessage);
+        }
+
+        // Redirect to login
         window.location.href = "/login";
       }
       return Promise.reject(error);

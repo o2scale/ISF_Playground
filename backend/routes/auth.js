@@ -300,6 +300,7 @@ router.post("/login", async (req, res) => {
           email: user.email,
           role: user.role,
           status: user.status,
+          balagruhaIds: user.balagruhaIds || [],
         },
       },
     });

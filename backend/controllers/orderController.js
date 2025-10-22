@@ -81,8 +81,9 @@ async function getOrder(req, res) {
   try {
     const { orderNumber } = req.params;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    const order = await orderService.getOrderByNumber(orderNumber, userId);
+    const order = await orderService.getOrderByNumber(orderNumber, userId, userRole);
 
     res.status(200).json({
       success: true,
@@ -153,8 +154,9 @@ async function getOrderById(req, res) {
   try {
     const { orderId } = req.params;
     const userId = req.user.id;
+    const userRole = req.user.role;
 
-    const order = await orderService.getOrderById(orderId, userId);
+    const order = await orderService.getOrderById(orderId, userId, userRole);
 
     res.status(200).json({
       success: true,
@@ -238,10 +240,54 @@ async function cancelOrder(req, res) {
   }
 }
 
+/**
+ * Get all orders (Admin view) with filters
+ * GET /api/v2/shop/orders/all
+ * Query params: page, limit, status, coachId, balagruhaId, studentId, startDate, endDate
+ * @access Private (Admin only)
+ */
+async function getAllOrders(req, res) {
+  try {
+    // Check if user is admin
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Admin access required'
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const status = req.query.status || null;
+    const coachId = req.query.coachId || null;
+    const balagruhaId = req.query.balagruhaId || null;
+    const studentId = req.query.studentId || null;
+    const startDate = req.query.startDate || null;
+    const endDate = req.query.endDate || null;
+
+    const result = await orderService.getAllOrders(page, limit, status, coachId, balagruhaId, studentId, startDate, endDate);
+
+    res.status(200).json({
+      success: true,
+      orders: result.orders,
+      pagination: result.pagination
+    });
+  } catch (error) {
+    console.error('Get all orders error:', error);
+
+    res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve orders',
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   createOrder,
   getOrder,
   getUserOrders,
   getOrderById,
-  cancelOrder
+  cancelOrder,
+  getAllOrders
 };

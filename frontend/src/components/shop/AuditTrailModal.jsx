@@ -12,17 +12,25 @@ export default function AuditTrailModal({ productId, productName, onClose }) {
   const [auditLog, setAuditLog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reasonFilter, setReasonFilter] = useState('all');
 
   useEffect(() => {
     fetchAuditLog();
-  }, [productId]);
+  }, [productId, reasonFilter]);
 
   const fetchAuditLog = async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const response = await api.get(`/api/v2/shop/admin/inventory/${productId}/audit`);
+      const params = {};
+      if (reasonFilter && reasonFilter !== 'all') {
+        params.reason = reasonFilter;
+      }
+
+      const response = await api.get(`/api/v2/shop/admin/inventory/${productId}/audit`, {
+        params
+      });
       setAuditLog(response.data.transactions || []);
     } catch (err) {
       console.error('Error fetching audit log:', err);
@@ -88,6 +96,37 @@ export default function AuditTrailModal({ productId, productName, onClose }) {
           >
             <X className="w-5 h-5 text-slate-500" />
           </button>
+        </div>
+
+        {/* Filter Section */}
+        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200">
+          <div className="flex items-center gap-3">
+            <label htmlFor="reason-filter" className="text-sm font-medium text-slate-700">
+              Filter by Reason:
+            </label>
+            <select
+              id="reason-filter"
+              value={reasonFilter}
+              onChange={(e) => setReasonFilter(e.target.value)}
+              className="px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-sm"
+            >
+              <option value="all">All Reasons</option>
+              <option value="Purchase / Restock">Purchase / Restock</option>
+              <option value="Inventory Adjustment">Inventory Adjustment</option>
+              <option value="Student Return">Student Return</option>
+              <option value="Stock Correction">Stock Correction</option>
+              <option value="Damaged Items">Damaged Items</option>
+              <option value="Other">Other</option>
+            </select>
+            {reasonFilter !== 'all' && (
+              <button
+                onClick={() => setReasonFilter('all')}
+                className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Clear Filter
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Content */}

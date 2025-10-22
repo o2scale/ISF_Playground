@@ -370,6 +370,6 @@ notificationSchema.statics.cleanupExpired = async function () {
   return result.deletedCount;
 };
 
-const Notification = mongoose.model("Notification", notificationSchema);
+const Notification = mongoose.models.Notification || mongoose.model("Notification", notificationSchema);
 
 module.exports = Notification;

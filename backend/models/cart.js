@@ -241,6 +241,6 @@ cartSchema.pre('save', function(next) {
   next();
 });
 
-const Cart = mongoose.model('Cart', cartSchema);
+const Cart = mongoose.models.Cart || mongoose.model('Cart', cartSchema);
 
 module.exports = Cart;

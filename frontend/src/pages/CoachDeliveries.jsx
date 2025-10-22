@@ -1,18 +1,26 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getCoachDeliveryStats, getCoachDeliveries, markOrderDelivered } from '../api';
+import { getCoachDeliveryStats, getCoachDeliveries, markOrderDelivered, getBalagruha, fetchUsers } from '../api';
+import ShopNavigation from '../components/shop/ShopNavigation';
+import Breadcrumbs from '../components/shop/Breadcrumbs';
+import { useAuth } from '../contexts/AuthContext';
 
 /**
  * CoachDeliveries Page - Sprint5-Story-13
- * Coach interface for managing order deliveries
+ * Coach/Admin interface for managing order deliveries
  *
  * Features:
  * - Stats cards (pending, delivered today/week/all-time)
  * - Delivery list with pagination
  * - On-demand confirmation (auto-triggered when page loads)
  * - Mark as delivered with optional notes
+ * - Admin filters: Balagruha and Coach
  */
 
 export default function CoachDeliveries() {
+  const { user } = useAuth();
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName;
+  const isAdmin = userRole?.toLowerCase() === 'admin';
+
   const [stats, setStats] = useState({
     pendingCount: 0,
     deliveredToday: 0,
@@ -28,11 +36,81 @@ export default function CoachDeliveries() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [deliveryNotes, setDeliveryNotes] = useState('');
 
+  // Filters (for both admin and coach)
+  const [balagruhas, setBalagruhas] = useState([]);
+  const [allCoaches, setAllCoaches] = useState([]); // Unfiltered coaches list
+  const [coaches, setCoaches] = useState([]); // Filtered coaches list (by balagruha)
+  const [balagruhaFilter, setBalagruhaFilter] = useState('all');
+  const [coachFilter, setCoachFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('pending_delivery');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [filtersLoading, setFiltersLoading] = useState(false);
+
+  // Fetch filter options (for both admin and coach)
+  const fetchFilterOptions = useCallback(async () => {
+    try {
+      setFiltersLoading(true);
+
+      // Fetch balagruhas for both admin and coach
+      const balagruhasResponse = await getBalagruha();
+      const allBalagruhas = balagruhasResponse?.data?.balagruhas || [];
+
+      // Filter balagruhas based on user role
+      let filteredBalagruhas = allBalagruhas;
+      if (!isAdmin && user?.balagruhaIds) {
+        // For coaches, only show their assigned balagruhas
+        const coachBalagruhaIds = user.balagruhaIds.map(id => id.toString());
+        filteredBalagruhas = allBalagruhas.filter(b =>
+          coachBalagruhaIds.includes(b._id.toString())
+        );
+        console.log('Filtered balagruhas for coach:', filteredBalagruhas.length);
+      }
+
+      setBalagruhas(filteredBalagruhas);
+
+      // Fetch coaches (admin only)
+      if (isAdmin) {
+        const usersResponse = await fetchUsers();
+        // fetchUsers returns response.data, which could be { users: [...] } or [...]
+        const allUsers = usersResponse?.users || usersResponse || [];
+        const coachesData = allUsers.filter(u => u.role?.toLowerCase() === 'coach');
+        console.log('Fetched all coaches:', coachesData.length);
+        setAllCoaches(coachesData);
+        // Initial coaches list is all coaches (will be filtered by useEffect when balagruha is selected)
+        setCoaches(coachesData);
+      }
+    } catch (err) {
+      console.error('Error fetching filter options:', err);
+      setBalagruhas([]);
+      setAllCoaches([]);
+      setCoaches([]);
+    } finally {
+      setFiltersLoading(false);
+    }
+  }, [isAdmin, user]);
+
   // Fetch stats
   const fetchStats = useCallback(async () => {
     try {
       setStatsLoading(true);
-      const response = await getCoachDeliveryStats();
+
+      // Build params based on filters (admin only - coaches always see their own stats)
+      const params = {};
+
+      if (isAdmin) {
+        // Add balagruha filter
+        if (balagruhaFilter !== 'all') {
+          params.balagruhaId = balagruhaFilter;
+        }
+
+        // Add coach filter
+        if (coachFilter !== 'all') {
+          params.coachId = coachFilter;
+        }
+      }
+
+      const response = await getCoachDeliveryStats(params);
       if (response.success) {
         setStats({
           pendingCount: response.pendingCount || 0,
@@ -46,7 +124,7 @@ export default function CoachDeliveries() {
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [isAdmin, balagruhaFilter, coachFilter]);
 
   // Fetch deliveries
   const fetchDeliveries = useCallback(async () => {
@@ -54,8 +132,32 @@ export default function CoachDeliveries() {
       setLoading(true);
       setError(null);
 
+      // Build params based on filters
+      const params = {
+        status: statusFilter,
+        limit: 50
+      };
+
+      // Add balagruha filter (for both admin and coach)
+      if (balagruhaFilter !== 'all') {
+        params.balagruhaId = balagruhaFilter;
+      }
+
+      // Add coach filter (admin only)
+      if (isAdmin && coachFilter !== 'all') {
+        params.coachId = coachFilter;
+      }
+
+      // Add date range filters
+      if (startDate) {
+        params.startDate = startDate;
+      }
+      if (endDate) {
+        params.endDate = endDate;
+      }
+
       // On-demand confirmation happens in backend when this endpoint is called
-      const response = await getCoachDeliveries({ status: 'pending_delivery', limit: 50 });
+      const response = await getCoachDeliveries(params);
 
       if (response.success) {
         setDeliveries(response.orders || []);
@@ -66,9 +168,11 @@ export default function CoachDeliveries() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [isAdmin, balagruhaFilter, coachFilter, statusFilter, startDate, endDate]);
 
   useEffect(() => {
+    // Fetch filter options for both admin and coach
+    fetchFilterOptions();
     fetchStats();
     fetchDeliveries();
 
@@ -79,7 +183,32 @@ export default function CoachDeliveries() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [fetchStats, fetchDeliveries]);
+  }, [fetchStats, fetchDeliveries, fetchFilterOptions]);
+
+  // Filter coaches when balagruha changes (admin only)
+  useEffect(() => {
+    if (!isAdmin || allCoaches.length === 0) return;
+
+    if (balagruhaFilter === 'all') {
+      // Show all coaches when no balagruha is selected
+      setCoaches(allCoaches);
+    } else {
+      // Filter coaches by selected balagruha
+      const filteredCoaches = allCoaches.filter(coach => {
+        const coachBalagruhaIds = (coach.balagruhaIds || []).map(id =>
+          typeof id === 'object' ? id._id : id
+        );
+        return coachBalagruhaIds.includes(balagruhaFilter);
+      });
+      console.log(`Filtered ${filteredCoaches.length} coaches for balagruha ${balagruhaFilter}`);
+      setCoaches(filteredCoaches);
+
+      // Reset coach filter if currently selected coach is not in the filtered list
+      if (coachFilter !== 'all' && !filteredCoaches.find(c => c._id === coachFilter)) {
+        setCoachFilter('all');
+      }
+    }
+  }, [isAdmin, balagruhaFilter, allCoaches, coachFilter]);
 
   const handleMarkDelivered = async (order, withNotes = false) => {
     if (withNotes) {
@@ -126,16 +255,202 @@ export default function CoachDeliveries() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="w-full min-h-screen bg-slate-50">
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200">
-        <div className="max-w-7xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-slate-900">Delivery Management</h1>
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-4">
+          <h1 className="text-3xl font-bold text-slate-900">Delivery Management</h1>
           <p className="text-slate-600 mt-1">Manage student orders waiting for delivery</p>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
+      {/* Shop Navigation */}
+      <ShopNavigation />
+
+      {/* Breadcrumbs */}
+      <Breadcrumbs />
+
+      {/* Main Content */}
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-6">
+        {/* Admin Filters */}
+        {isAdmin && (
+          <div className="bg-white rounded-lg border border-slate-200 p-5 mb-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Filter Deliveries</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Balagruha Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Balagruha
+                </label>
+                <select
+                  value={balagruhaFilter}
+                  onChange={(e) => setBalagruhaFilter(e.target.value)}
+                  disabled={filtersLoading}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:bg-slate-100"
+                >
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map((balagruha) => (
+                    <option key={balagruha._id} value={balagruha._id}>
+                      {balagruha.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Coach Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Filter by Coach
+                </label>
+                <select
+                  value={coachFilter}
+                  onChange={(e) => setCoachFilter(e.target.value)}
+                  disabled={filtersLoading}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:bg-slate-100"
+                >
+                  <option value="all">All Coaches</option>
+                  {coaches.map((coach) => (
+                    <option key={coach._id} value={coach._id}>
+                      {coach.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Delivery Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Delivery Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                >
+                  <option value="pending_delivery">Pending Delivery</option>
+                  <option value="delivered_today">Delivered Today</option>
+                  <option value="delivered_last_7_days">Delivered Last 7 Days</option>
+                  <option value="all_delivered">Total Delivered</option>
+                </select>
+              </div>
+
+              {/* Start Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              {/* End Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Coach Filters */}
+        {!isAdmin && (
+          <div className="bg-white rounded-lg border border-slate-200 p-5 mb-6">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Filter Deliveries</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Balagruha Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Balagruha
+                </label>
+                <select
+                  value={balagruhaFilter}
+                  onChange={(e) => setBalagruhaFilter(e.target.value)}
+                  disabled={filtersLoading}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:bg-slate-100"
+                >
+                  <option value="all">All Balagruhas</option>
+                  {balagruhas.map((balagruha) => (
+                    <option key={balagruha._id} value={balagruha._id}>
+                      {balagruha.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Status Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Delivery Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                >
+                  <option value="pending_delivery">Pending Delivery</option>
+                  <option value="delivered_today">Delivered Today</option>
+                  <option value="delivered_last_7_days">Delivered Last 7 Days</option>
+                  <option value="all_delivered">Total Delivered</option>
+                </select>
+              </div>
+
+              {/* Start Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+
+              {/* End Date Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Clear Filters Button */}
+            {(balagruhaFilter !== 'all' || statusFilter !== 'pending_delivery' || startDate || endDate) && (
+              <div className="mt-4">
+                <button
+                  onClick={() => {
+                    setBalagruhaFilter('all');
+                    setStatusFilter('pending_delivery');
+                    setStartDate('');
+                    setEndDate('');
+                  }}
+                  className="px-4 py-2 text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Pending Deliveries */}
@@ -176,11 +491,11 @@ export default function CoachDeliveries() {
             </div>
           </div>
 
-          {/* Delivered This Week */}
+          {/* Delivered Last 7 Days */}
           <div className="bg-white rounded-lg border border-slate-200 p-5">
             <div className="flex items-start justify-between">
               <div>
-                <p className="text-sm text-slate-600 mb-1">Delivered This Week</p>
+                <p className="text-sm text-slate-600 mb-1">Delivered Last 7 Days</p>
                 {statsLoading ? (
                   <div className="h-8 w-16 bg-slate-200 rounded animate-pulse"></div>
                 ) : (
@@ -272,9 +587,15 @@ export default function CoachDeliveries() {
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
                       <h3 className="text-lg font-semibold text-slate-900">{order.orderNumber}</h3>
-                      <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
-                        Pending Delivery
-                      </span>
+                      {order.deliveryStatus === 'delivered' ? (
+                        <span className="px-2.5 py-0.5 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+                          Delivered
+                        </span>
+                      ) : (
+                        <span className="px-2.5 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full">
+                          Pending Delivery
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-4 text-sm text-slate-600">
                       <span className="flex items-center gap-1.5">
@@ -333,23 +654,56 @@ export default function CoachDeliveries() {
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => handleMarkDelivered(order, false)}
-                    disabled={delivering === order._id}
-                    className="flex-1 bg-purple-600 text-white px-4 py-2.5 rounded-md hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    {delivering === order._id ? 'Delivering...' : 'Mark as Delivered'}
-                  </button>
-                  <button
-                    onClick={() => handleMarkDelivered(order, true)}
-                    disabled={delivering === order._id}
-                    className="px-4 py-2.5 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 disabled:border-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors font-medium"
-                  >
-                    Add Notes & Deliver
-                  </button>
-                </div>
+                {/* Action Buttons or Delivery Info */}
+                {order.deliveryStatus === 'pending_delivery' ? (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleMarkDelivered(order, false)}
+                      disabled={delivering === order._id}
+                      className="flex-1 bg-purple-600 text-white px-4 py-2.5 rounded-md hover:bg-purple-700 disabled:bg-slate-300 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      {delivering === order._id ? 'Delivering...' : 'Mark as Delivered'}
+                    </button>
+                    <button
+                      onClick={() => handleMarkDelivered(order, true)}
+                      disabled={delivering === order._id}
+                      className="px-4 py-2.5 border border-purple-600 text-purple-600 rounded-md hover:bg-purple-50 disabled:border-slate-300 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors font-medium"
+                    >
+                      Add Notes & Deliver
+                    </button>
+                  </div>
+                ) : (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-green-900 mb-1">Delivered Successfully</p>
+                        <div className="text-sm text-green-700 space-y-1">
+                          {order.deliveredAt && (
+                            <p>
+                              <span className="font-medium">Delivered on:</span>{' '}
+                              {new Date(order.deliveredAt).toLocaleString()}
+                            </p>
+                          )}
+                          {order.deliveredBy && (
+                            <p>
+                              <span className="font-medium">Delivered by:</span>{' '}
+                              {typeof order.deliveredBy === 'object' ? order.deliveredBy.name : order.deliveredBy}
+                            </p>
+                          )}
+                          {order.deliveryNotes && (
+                            <p>
+                              <span className="font-medium">Notes:</span>{' '}
+                              {order.deliveryNotes}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

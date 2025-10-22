@@ -1581,6 +1581,35 @@ export const cancelOrder = async (orderNumber, reason) => {
   }
 };
 
+// Get all orders (Admin only) with filters
+export const getAllOrdersAdmin = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '') {
+        queryParams.append(key, params[key]);
+      }
+    });
+
+    const response = await api.get(`/api/v2/shop/orders/all?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all orders:", error);
+    throw error;
+  }
+};
+
+// Get all coaches for filters (uses existing user endpoint)
+export const getAllCoaches = async () => {
+  try {
+    const response = await api.get(`/api/v1/users/role/coach`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching coaches:", error);
+    throw error;
+  }
+};
+
 // ==================== SHOP ANALYTICS (Sprint5-Story-11) ====================
 
 // Get shop analytics dashboard data
@@ -1634,9 +1663,11 @@ export const getTransactionLog = async (params) => {
 };
 
 // Get student leaderboard (top earners or top spenders)
-export const getStudentLeaderboard = async (type = 'earners', limit = 10) => {
+export const getStudentLeaderboard = async (type = 'earners', limit = 10, params = {}) => {
   try {
-    const response = await api.get(`/api/v2/shop/admin/reports/leaderboard?type=${type}&limit=${limit}`);
+    const response = await api.get(`/api/v2/shop/admin/reports/leaderboard`, {
+      params: { type, limit, ...params }
+    });
     return response.data;
   } catch (error) {
     console.error("Error fetching student leaderboard:", error);
@@ -1645,9 +1676,9 @@ export const getStudentLeaderboard = async (type = 'earners', limit = 10) => {
 };
 
 // Get students with zero purchases
-export const getZeroPurchaseStudents = async () => {
+export const getZeroPurchaseStudents = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v2/shop/admin/reports/zero-purchases`);
+    const response = await api.get(`/api/v2/shop/admin/reports/zero-purchases`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching zero-purchase students:", error);
@@ -1702,9 +1733,19 @@ export const exportReport = async (type, filters = {}) => {
 // ==================== COACH DELIVERY MANAGEMENT (Sprint5-Story-13) ====================
 
 // Get coach delivery statistics
-export const getCoachDeliveryStats = async () => {
+export const getCoachDeliveryStats = async (params = {}) => {
   try {
-    const response = await api.get(`/api/v2/shop/coach/deliveries/stats`);
+    const queryParams = new URLSearchParams();
+    Object.keys(params).forEach(key => {
+      if (params[key] !== null && params[key] !== undefined && params[key] !== '' && params[key] !== 'all') {
+        queryParams.append(key, params[key]);
+      }
+    });
+
+    const queryString = queryParams.toString();
+    const url = `/api/v2/shop/coach/deliveries/stats${queryString ? `?${queryString}` : ''}`;
+
+    const response = await api.get(url);
     return response.data;
   } catch (error) {
     console.error("Error fetching coach delivery stats:", error);
