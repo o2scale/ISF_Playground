@@ -12,9 +12,12 @@ exports.createMedicalCheckIn = async (payload) => {
     });
 };
 
-exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}) => {
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
+exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}, scopeFilter = {}) => {
   const { page = 1, limit = 10 } = pagination;
-  return await MedicalCheckIn.find(filters)
+  const query = { ...scopeFilter, ...filters };  // Merge scope filter with user filters
+
+  return await MedicalCheckIn.find(query)
     .populate("student", "firstName lastName studentId balagruhaId")
     .populate("createdBy", "name email")
     .sort({ createdAt: -1 })
@@ -22,7 +25,7 @@ exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}) => {
     .limit(parseInt(limit))
     .lean()
     .then(async (results) => {
-      const totalCount = await MedicalCheckIn.countDocuments(filters);
+      const totalCount = await MedicalCheckIn.countDocuments(query);
       return {
         success: true,
         data: results,
@@ -37,9 +40,12 @@ exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}) => {
     });
 };
 
-exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}) => {
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
+exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}, scopeFilter = {}) => {
   const { page = 1, limit = 10 } = pagination;
-  return await MedicalCheckIn.find({ student: studentId })
+  const query = { ...scopeFilter, student: studentId };  // Merge scope filter with student filter
+
+  return await MedicalCheckIn.find(query)
     .populate("student", "firstName lastName studentId")
     .populate("createdBy", "name email")
     .sort({ createdAt: -1 })
@@ -47,9 +53,7 @@ exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}) => {
     .limit(parseInt(limit))
     .lean()
     .then(async (results) => {
-      const totalCount = await MedicalCheckIn.countDocuments({
-        student: studentId,
-      });
+      const totalCount = await MedicalCheckIn.countDocuments(query);
       return {
         success: true,
         data: results,
@@ -64,8 +68,11 @@ exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}) => {
     });
 };
 
-exports.getMedicalCheckInById = async (checkInId) => {
-  return await MedicalCheckIn.findById(checkInId)
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
+exports.getMedicalCheckInById = async (checkInId, scopeFilter = {}) => {
+  const query = { ...scopeFilter, _id: checkInId };  // Merge scope filter with ID lookup
+
+  return await MedicalCheckIn.findOne(query)
     .populate("studentId", "firstName lastName studentId")
     .populate("createdBy", "name email")
     .lean()

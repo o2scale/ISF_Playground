@@ -11,9 +11,11 @@ const createSchedule = async (scheduleData) => {
   }
 };
 
-const getScheduleById = async (scheduleId) => {
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
+const getScheduleById = async (scheduleId, scopeFilter = {}) => {
   try {
-    const schedule = await Schedules.findById(scheduleId)
+    const query = { ...scopeFilter, _id: scheduleId };  // Merge scope filter with ID lookup
+    const schedule = await Schedules.findOne(query)
       .populate("assignedTo", "name email")
       .populate("createdBy", "name email")
       .populate("balagruhaId", "name");
@@ -26,6 +28,7 @@ const getScheduleById = async (scheduleId) => {
   }
 };
 
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
 const getSchedules = async ({
   balagruhaId,
   assignedTo,
@@ -34,9 +37,10 @@ const getSchedules = async ({
   status,
   page = 1,
   limit = 10,
+  scopeFilter = {},  // Add scope filter to parameters
 }) => {
   try {
-    const query = {};
+    const query = { ...scopeFilter };  // Start with scope filter
     if (balagruhaId) query.balagruhaId = balagruhaId;
     if (assignedTo) query.assignedTo = assignedTo;
     if (status) query.status = status;
@@ -96,9 +100,11 @@ const deleteSchedule = async (scheduleId) => {
   }
 };
 
-const getSchedulesByUser = async (userId) => {
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
+const getSchedulesByUser = async (userId, scopeFilter = {}) => {
   try {
-    const schedules = await Schedules.find({ assignedTo: userId })
+    const query = { ...scopeFilter, assignedTo: userId };  // Merge scope filter with user filter
+    const schedules = await Schedules.find(query)
       .populate("assignedTo", "name email")
       .populate("createdBy", "name email")
       .populate("balagruhaId", "name")
