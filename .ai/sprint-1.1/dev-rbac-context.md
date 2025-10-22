@@ -4,12 +4,27 @@
 **Story:** `docs/stories/sprint-1.1/epic-01-story-01-rbac-refactor.md`
 **Epic:** `docs/epics/sprint-1.1/epic-01-rbac-system-refactor.md`
 **Created:** 2025-10-18 20:43:28
-**Last Updated:** 2025-10-22 17:57:31 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Dev Agent (James) - Story COMPLETE - QA Gate PASSED ✅
+**Last Updated:** 2025-10-22 18:25:50 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent (James) - RBAC Work Complete + Story 02 Deferred
 
 ---
 
-## 🎉 STORY COMPLETE: QA GATE PASSED ✅ (2025-10-22 17:57:31)
+## 🎯 RBAC WORK CLOSURE + STORY 02 DEFERRAL (2025-10-22 18:25:50)
+
+**Decision:** Story 02 (RBAC UI Scope Enhancement) **DEFERRED** to post-FR story
+**Reason:** Backend RBAC is production-ready (QA: 95/100). UI enhancement is administrative convenience, not critical functionality. Team prioritizing FR (Facial Recognition) story.
+
+**Story 02 Status:**
+- ⏸️ Shelved with complete UX decision tree
+- Ready to pick up post-FR with no knowledge loss
+- Workaround: Manage scope via database scripts (works fine)
+- File: `docs/stories/sprint-1.1/epic-01-story-02-rbac-ui-scope-enhancement.md`
+
+**Next Priority:** FR (Facial Recognition) Story - Patient Recognition
+
+---
+
+## 🎉 STORY 01 COMPLETE: QA GATE PASSED ✅ (2025-10-22 17:57:31)
 
 **Final Status:** ✅ DONE - Production Ready
 **QA Gate:** ✅ PASS (95/100 - Excellent)
