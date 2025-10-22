@@ -43,6 +43,17 @@ exports.getTransactionLog = async (req, res) => {
     filters.requestingUser = req.user;
     filters.permissionScope = req.permissionScope || 'own';
 
+    // DEBUG: Log scope filter info
+    console.log('🔍 [RBAC DEBUG] reportsController.getTransactionLog:', {
+      userId: req.user?._id,
+      userRole: req.user?.role,
+      permissionScope: req.permissionScope,
+      filtersPassedToService: {
+        hasRequestingUser: !!filters.requestingUser,
+        permissionScope: filters.permissionScope
+      }
+    });
+
     const result = await AnalyticsService.getTransactionLog(filters, pageNum, limitNum);
 
     res.status(200).json({
@@ -94,7 +105,21 @@ exports.getStudentLeaderboard = async (req, res) => {
     filters.requestingUser = req.user;
     filters.permissionScope = req.permissionScope || 'own';
 
+    // DEBUG: Log leaderboard request
+    console.log('🔍 [RBAC DEBUG] reportsController.getStudentLeaderboard:', {
+      type,
+      limit: limitNum,
+      userRole: req.user?.role,
+      permissionScope: req.permissionScope
+    });
+
     const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum, filters);
+
+    // DEBUG: Log result
+    console.log('🔍 [RBAC DEBUG] Leaderboard result:', {
+      isArray: Array.isArray(leaderboard),
+      length: leaderboard?.length || 0
+    });
 
     res.status(200).json({
       success: true,
@@ -150,6 +175,18 @@ exports.getZeroPurchaseStudents = async (req, res) => {
     // RBAC: Pass user context for scope-based filtering
     filters.requestingUser = req.user;
     filters.permissionScope = req.permissionScope || 'own';
+
+    // DEBUG: Log scope filter info
+    console.log('🔍 [RBAC DEBUG] reportsController.getZeroPurchaseStudents:', {
+      userId: req.user?._id,
+      userRole: req.user?.role,
+      permissionScope: req.permissionScope,
+      balagruhaIdsCount: req.user?.balagruhaIds?.length,
+      filtersPassedToService: {
+        hasRequestingUser: !!filters.requestingUser,
+        permissionScope: filters.permissionScope
+      }
+    });
 
     const result = await AnalyticsService.getZeroPurchaseStudents(filters, pageNum, limitNum);
 
