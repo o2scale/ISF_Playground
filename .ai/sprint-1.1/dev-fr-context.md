@@ -1,19 +1,19 @@
 # FR (Facial Recognition) Development Context
 
-**Story:** Sprint 1.x - Facial Recognition Feature
-**Branch:** `feature/sprint-1.x-facial-recognition`
+**Story:** Epic 02 Story 01 - FR Complete Rebuild
+**Branch:** `feature/sprint-1.1-fr-rebuild`
 **Parent Branch:** `feature/sprint-1.1-rbac-refactor` (branched from commit: bf35360)
 **Created:** 2025-10-22 22:48:15
-**Last Updated:** 2025-10-22 22:52:22
+**Last Updated:** 2025-10-22 22:58:02
 **Developer:** Dev Agent (James)
 
 ---
 
 ## 🎯 Current Status
 
-**Phase:** Exploration Complete - Planning Required
+**Phase:** Task 1 - Remove Old FR System (In Progress)
 **Priority:** P0 - Critical (Business Priority)
-**Estimated Effort:** TBD (awaiting story planning)
+**Estimated Effort:** 12-15 days (from story epic-02-story-01)
 
 ---
 
@@ -35,7 +35,7 @@
 ```
 develop (production code - untouched)
 └── feature/sprint-1.1-rbac-refactor (RBAC work - QA PASSED 95/100)
-    └── feature/sprint-1.x-facial-recognition (FR work) ← WE ARE HERE
+    └── feature/sprint-1.1-fr-rebuild (FR Complete Rebuild) ← WE ARE HERE
 ```
 
 ---
@@ -43,12 +43,13 @@ develop (production code - untouched)
 ## 🔧 Environment Setup
 
 **Local Environment Status:**
-- ✅ Branch created: `feature/sprint-1.x-facial-recognition`
+- ✅ Branch created and renamed: `feature/sprint-1.1-fr-rebuild`
 - ✅ RBAC infrastructure inherited (middleware, scopeFilter, controllers)
 - ✅ Local database has RBAC migration applied (9 roles with scope field)
 - ✅ Backend server available (port 5001)
 - ✅ Frontend server available (port 3000)
 - ✅ FR codebase exploration COMPLETE
+- ⏳ Task 1: Remove old FR system (In Progress)
 
 **Inherited from RBAC Branch:**
 - `backend/middleware/checkPermission.js` - Injects `req.scopeFilter` on routes
@@ -61,8 +62,9 @@ develop (production code - untouched)
 
 ## 📋 Story Information
 
-**Story File:** TBD - To be created after exploration
-**Epic:** TBD - Likely Sprint 1.1 Epic 01 or new Epic 02
+**Story File:** `docs/stories/sprint-1.1/epic-02-story-01-fr-rebuild.md`
+**Epic:** Epic 02 - Facial Recognition System Rebuild
+**Approach:** Complete rebuild using @vladmandic/human library
 
 **Business Context:**
 - Patient recognition is critical priority
@@ -224,6 +226,6 @@ npm test
 
 ---
 
-**Status:** ✅ Exploration complete - Ready for story planning
-**Current Branch:** `feature/sprint-1.x-facial-recognition`
-**Last Updated:** 2025-10-22 22:52:22
+**Status:** 🚀 Task 1 In Progress - Removing old FR system
+**Current Branch:** `feature/sprint-1.1-fr-rebuild`
+**Last Updated:** 2025-10-22 22:58:02
