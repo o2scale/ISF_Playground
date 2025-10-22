@@ -4,12 +4,76 @@
 **Story:** `docs/stories/sprint-1.1/epic-01-story-01-rbac-refactor.md`
 **Epic:** `docs/epics/sprint-1.1/epic-01-rbac-system-refactor.md`
 **Created:** 2025-10-18 20:43:28
-**Last Updated:** 2025-10-22 17:18:52 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Dev Agent (James) - RBAC-001 Fix Complete
+**Last Updated:** 2025-10-22 17:43:46 (via bash `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent (James) - RBAC-002 Fix Complete + Server Restarted
 
 ---
 
-## 🔄 LATEST UPDATE: RBAC-001 FIX COMPLETE ✅ (2025-10-22 17:18:52)
+## 🔄 LATEST UPDATE: RBAC-002 FIX COMPLETE + SERVER RESTARTED ✅ (2025-10-22 17:43:46)
+
+**Action:** Fixed architectural field mismatch discovered during QA re-test
+**Status:** ✅ COMPLETE - Field transformation applied + server restarted
+**Bug ID:** RBAC-002
+**Severity:** CRITICAL - Architectural Design Flaw
+**Commit:** 197ef0d
+**Server:** Restarted (PID 13968) at 2025-10-22 12:14:23
+
+### Issue Summary
+**Problem:** Coach users saw **0 Balagruhas** instead of 3 assigned ones (after RBAC-001 fix)
+**Endpoint:** GET `/api/v1/balagruha/`
+**Root Cause:** Architectural field mismatch
+- `getScopeFilter()` generates: `{ balagruhaId: { $in: [...] } }`
+- Works for collections that **REFERENCE** Balagruhas (User, Transaction, etc.)
+- **FAILS** for Balagruha collection itself (uses `_id` field, not `balagruhaId`)
+**Impact:** Violated AC2 (data isolation) - Coach sees wrong data (0 vs 3 expected)
+**Discovered By:** QA Agent (Quinn) during RBAC-001 re-test
+
+### Fix Applied (Option 2: Data-Access Layer Transformation)
+Updated `backend/data-access/balagruha.js:25-33` to transform field before query:
+
+```javascript
+// Transform balagruhaId → _id for Balagruha collection
+const transformedFilter = { ...scopeFilter };
+if (transformedFilter.balagruhaId) {
+  transformedFilter._id = transformedFilter.balagruhaId;
+  delete transformedFilter.balagruhaId;
+}
+const result = await Balagruha.find(transformedFilter)...
+```
+
+**Why This Fix:**
+- **Contained:** Only affects Balagruha data-access, doesn't change middleware
+- **Minimal Risk:** Other collections verified to work correctly with balagruhaId field
+- **Clear Intent:** Documents the field mismatch explicitly in code comments
+
+### Verification Status
+- ✅ Syntax validated
+- ✅ Other collections checked (attendance, medicalCheckIns, schedule) - use balagruhaId correctly
+- ✅ Balagruha is UNIQUE - it IS the entity, uses _id not balagruhaId
+- ✅ No other collections need transformation
+- ✅ Backend server restarted with fix (PID 13968)
+- ⏳ Awaiting QA third re-test
+
+### Expected Behavior After RBAC-002 Fix
+- **Admin (scope='all')**: See all 24 Balagruhas ✅
+- **Coach (scope='balagruh')**: See only 3 assigned Balagruhas ✅ (was 0 ❌, before was 24 ❌)
+- **Student (scope='own')**: See 0 Balagruhas ✅
+
+### QA Gate Status
+- **Before RBAC-001:** FAIL (60/100) - Coach saw 24 Balagruhas
+- **After RBAC-001 (no restart):** FAIL (60/100) - Still saw 24 (old code)
+- **After RBAC-001 (with restart):** FAIL (50/100) - Saw 0 Balagruhas (RBAC-002 revealed)
+- **After RBAC-002 (with restart):** Pending QA re-test
+- **Story Status:** ✅ READY FOR QA (THIRD RE-TEST)
+
+### Critical Learning: Server Restart Protocol
+**Issue Encountered:** RBAC-001 fix committed but server not restarted → QA tested old code
+**Resolution:** Now following restart protocol after EVERY code change
+**Documentation:** CLAUDE.md lines 21-47 contain safe restart guidelines
+
+---
+
+## 🔄 PREVIOUS UPDATE: RBAC-001 FIX COMPLETE ✅ (2025-10-22 17:18:52)
 
 **Action:** Fixed critical data isolation bug found by QA
 **Status:** ✅ COMPLETE - Balagruha endpoint scope filtering applied
