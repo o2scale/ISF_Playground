@@ -38,6 +38,11 @@ exports.getTransactionLog = async (req, res) => {
     if (studentId) filters.studentId = studentId;
     if (status) filters.status = status;
 
+    // RBAC: Pass user context for scope-based filtering
+    // Admin sees all, Coach sees only assigned Balagruhs, Student sees own
+    filters.requestingUser = req.user;
+    filters.permissionScope = req.permissionScope || 'own';
+
     const result = await AnalyticsService.getTransactionLog(filters, pageNum, limitNum);
 
     res.status(200).json({
@@ -84,6 +89,10 @@ exports.getStudentLeaderboard = async (req, res) => {
     const filters = {};
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
+
+    // RBAC: Pass user context for scope-based filtering
+    filters.requestingUser = req.user;
+    filters.permissionScope = req.permissionScope || 'own';
 
     const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum, filters);
 
@@ -137,6 +146,10 @@ exports.getZeroPurchaseStudents = async (req, res) => {
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
     if (minBalance) filters.minBalance = minBalance;
+
+    // RBAC: Pass user context for scope-based filtering
+    filters.requestingUser = req.user;
+    filters.permissionScope = req.permissionScope || 'own';
 
     const result = await AnalyticsService.getZeroPurchaseStudents(filters, pageNum, limitNum);
 

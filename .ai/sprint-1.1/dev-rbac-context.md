@@ -9,37 +9,96 @@
 
 ---
 
-## 🔄 LATEST UPDATE: Branch Merge Complete (2025-10-22 13:27:22)
+## 🔄 LATEST UPDATE: Phase 1 Implementation Strategy Approved (2025-10-22 14:45:30)
+
+**Action:** Implementing comprehensive scope filtering with phased, low-risk approach
+**Status:** ⚠️ IN PROGRESS - Starting Phase 1 (READ-only scope filtering)
+**Database:** Local MongoDB (mongodb://localhost:27017/isfplayground)
+**Strategy:** Additive filtering approach - add req.scopeFilter to existing queries
+**Risk Level:** LOW (non-breaking, backwards compatible)
+
+### Decision Record: Implementation Strategy
+
+**Context:** After investigating codebase architecture (3-layer: controllers→services→data-access), discovered:
+- 179 routes already use `authorize()` middleware
+- `req.scopeFilter` already injected on all these routes (auth.js:127)
+- Only 1 controller (userController.js) currently uses it
+- Infrastructure exists, just need to apply it consistently
+
+**Decision:** Proceed with comprehensive approach using phased strategy
+- **Confidence Level:** 85% - Infrastructure exists, purely additive changes
+- **Estimated Time:** 4-5 hours (down from 6-8 due to existing infrastructure)
+- **Rollback Plan:** Easy - remove scopeFilter from specific queries if issues found
+
+**Phased Implementation:**
+1. **Phase 1 (2-3 hrs):** READ-only scope filtering - Update data-access functions
+2. **Phase 2 (1 hr):** Test with all 3 roles (Admin, Coach, Student)
+3. **Phase 3 (1 hr):** URL parameter validation for routes with :balagruhaId
+4. **Phase 4 (Later):** WRITE operations (CREATE/UPDATE/DELETE) scope validation
+
+**Risk Mitigation:**
+- ✅ Working on local database (production safe)
+- ✅ Additive changes only (non-breaking)
+- ✅ Can rollback individual queries if needed
+- ✅ Test thoroughly before production deployment
+
+**Approved By:** User (2025-10-22 14:45:30)
+**Implementing Agent:** Dev Agent (James)
+
+### Critical Bug Fixes Applied (Tested on Local Database)
+
+**Bug #1: Middleware Field Name Bug**
+- **File:** `backend/middleware/checkPermission.js:34, 39`
+- **Issue:** Used `{ userId: user._id }` but User model has no userId field
+- **Fix:** Changed to `{ _id: user._id }` (correct MongoDB field name)
+- **Impact:** Fixes 500 errors when scope='own' is applied
+
+**Bug #2: Incorrect Scope Values in Database**
+- **File:** `backend/migrations/fix-scope-values.js` (NEW)
+- **Issue:** All roles had scope='own' (including Admin)
+- **Fix:** Migration script to set correct values:
+  - Admin/Purchase-manager/Amma → scope='all'
+  - All Coach roles → scope='balagruh'
+  - Student → scope='own' (already correct)
+- **Results:** 8 roles corrected, verified with verify-scope-values.js
+
+### Local Database Setup (Production Safety)
+
+**Database Copy Process:**
+1. ✅ Exported production data: `mongodump` (2,057 documents)
+2. ✅ Imported to local MongoDB: `mongorestore`
+3. ✅ Updated `.env`: Switched from production URI to local URI
+4. ✅ Ran scope migration on local database
+5. ✅ Verified all scope values correct
+6. ✅ Backend tested: Server running on port 5001, local DB connected
+7. ✅ Frontend tested: RBAC UI working, permissions display correctly
+
+**Files Created:**
+- `backend/migrations/fix-scope-values.js` - Force update incorrect scope values
+- `backend/migrations/verify-scope-values.js` - Verification script
+- `.ai/sprint-1.1/RBAC-PRODUCTION-DEPLOYMENT-GUIDE.md` - Deployment guide
+
+**Development Workflow:**
+- All RBAC development now happens on **local database**
+- Production database remains untouched until deployment
+- End-to-end testing will be done locally before production push
+
+### Previous Update: Branch Merge Complete (2025-10-22 13:27:22)
 
 **Action:** Merged `develop` branch into `feature/sprint-1.1-rbac-refactor`
 **Merge Commit:** 7a6f0bd
 **Commits Merged:** 32 commits from Sprint 5 development
 **Conflicts:** 1 conflict in `backend/models/user.js` - RESOLVED
-**Resolution:** Kept RBAC helper methods + merged with develop changes
 **Status:** ✅ MERGE SUCCESSFUL - RBAC implementation intact
-
-**Sprint 5 Changes Integrated:**
-- Transaction Reports with pagination and filters
-- Coach Deliveries improvements and filters
-- Inventory management fixes and validation
-- Student Profile page implementation
-- Admin order management enhancements
-- Various bug fixes and UI improvements
-
-**RBAC Files Preserved:**
-- All middleware changes intact (auth.js, checkPermission.js)
-- User model helper methods preserved
-- All test suites preserved
-- All documentation preserved
 
 ---
 
 ## 🎯 Current Status
 
-**Current Task:** ✅ ALL TASKS COMPLETE - READY FOR QA (IMPLEMENTATION DONE)
-**Completion:** 100% (10/10 tasks complete + full implementation)
-**Session:** 2 of 2 (Branch integration complete)
-**Approach:** Option A - Refactor (Completed with full implementation + develop merge)
+**Current Task:** Backend Controller Updates (8 controllers remaining)
+**Completion:** 30% (Core infrastructure done, implementation in progress)
+**Session:** 3 of 3 (Bug fixes complete, implementation phase starting)
+**Approach:** Option A - Refactor (Working on local database copy)
 
 ---
 
@@ -231,31 +290,106 @@
 
 ---
 
-## 🚧 Pending Implementation (Team Tasks)
+## 🚧 Remaining Work to Complete RBAC Story
 
-### Controller Updates (Task 4 Guide Created)
+### Phase 1: Backend Controller Updates (Task 4) - CRITICAL
+**Status:** 1/9 controllers complete (userController.js ✅)
+**Priority:** HIGH - Required for scope filtering to work across all endpoints
+
 **Files to Update:**
-- `backend/controllers/studentController.js`
-- `backend/controllers/attendanceController.js`
-- `backend/controllers/healthController.js`
-- `backend/controllers/sosController.js`
-- `backend/controllers/courseController.js`
-- `backend/controllers/shopController.js`
-- `backend/controllers/reportController.js`
-- `backend/controllers/messagingController.js`
+- [ ] `backend/controllers/studentController.js` - Add req.scopeFilter to student queries
+- [ ] `backend/controllers/attendanceController.js` - Add Balagruh filtering
+- [ ] `backend/controllers/healthController.js` - Add Balagruh filtering
+- [ ] `backend/controllers/sosController.js` - Add Balagruh filtering
+- [ ] `backend/controllers/courseController.js` - Add userId filtering for students
+- [ ] `backend/controllers/shopController.js` - Add userId filtering
+- [ ] `backend/controllers/reportController.js` - Add Balagruh filtering
+- [ ] `backend/controllers/messagingController.js` - scope='all' for all roles
+
+**Pattern to Apply:**
+```javascript
+// BEFORE
+const items = await Model.find({ /* query */ });
+
+// AFTER
+const items = await Model.find({ ...req.scopeFilter, /* query */ });
+```
 
 **Guide Location:** `backend/CONTROLLER-SCOPE-FILTER-GUIDE.md`
 
-### Frontend Component Updates (Task 7 Guide Created)
-**Files to Update:**
-- `frontend/src/components/Layout/Sidebar.jsx`
-- `frontend/src/pages/StudentManagement.jsx`
-- `frontend/src/pages/Attendance.jsx`
-- `frontend/src/pages/Health.jsx`
-- `frontend/src/pages/Shop.jsx`
-- `frontend/src/pages/RBAC.jsx`
+---
+
+### Phase 2: Frontend Component Updates (Task 6 & 7) - CRITICAL
+**Status:** 0% complete (hooks created ✅, implementation ❌)
+**Priority:** HIGH - Required for UI permission-based visibility
+
+**AuthContext Update (Task 6):**
+- [ ] Update `frontend/src/contexts/AuthContext.js` to include full permission list
+  - Currently only stores user.role
+  - Need to fetch and store user.permissions array from backend
+
+**Component Updates (Task 7):**
+- [ ] `frontend/src/components/Layout/Sidebar.jsx` - Filter navigation by permissions
+- [ ] `frontend/src/pages/StudentManagement.jsx` - Show/hide Edit, Delete buttons
+- [ ] `frontend/src/pages/Attendance.jsx` - Show/hide Mark Attendance button
+- [ ] `frontend/src/pages/Health.jsx` - Show/hide Add/Edit buttons
+- [ ] `frontend/src/pages/Shop.jsx` - Show/hide Admin controls
+- [ ] `frontend/src/pages/RBAC.jsx` - Admin-only access
+
+**Pattern to Apply:**
+```jsx
+import PermissionGuard from '../components/PermissionGuard';
+
+<PermissionGuard module="users" action="update">
+  <button>Edit User</button>
+</PermissionGuard>
+```
 
 **Guide Location:** `frontend/FRONTEND-RBAC-INTEGRATION.md`
+
+---
+
+### Phase 3: E2E Testing (Task 10) - CRITICAL
+**Status:** Test scenarios WRITTEN ✅, Tests NOT EXECUTED ❌
+**Priority:** HIGH - Required for story completion and QA sign-off
+
+**What's Done:**
+- ✅ 35+ E2E test scenarios documented
+- ✅ 4 security penetration test scenarios documented
+- ✅ QA sign-off checklist created
+- ✅ Rollback plan documented
+
+**What's Needed:**
+- [ ] Execute E2E tests with QA agent on local database
+- [ ] Test all three user roles (Admin, Coach, Student)
+- [ ] Verify scope filtering works for each role
+- [ ] Test UI element visibility based on permissions
+- [ ] Test security scenarios (permission escalation, data isolation)
+- [ ] Document test results in story file
+- [ ] QA sign-off
+
+**Test File Location:** `docs/qa/e2e/epic-01-story-01-rbac-refactor.md`
+
+---
+
+### Completion Criteria (Definition of Done)
+
+From story file, these must be completed:
+- [ ] All 10 tasks completed and tested (currently: 7/10 infrastructure, 3/10 implementation)
+- [ ] All acceptance criteria met (AC1-AC8)
+- [ ] All unit tests passing (infrastructure tests ✅, controller tests ❌)
+- [ ] All integration tests passing (not yet run)
+- [ ] E2E test scenarios written ✅ and executed ❌
+- [ ] Security audit passed (tests created ✅, not executed ❌)
+- [ ] Performance testing passed (tests created ✅, not executed ❌)
+- [ ] Code reviewed and approved
+- [ ] Documentation updated ✅
+- [ ] Rollback plan documented ✅ and tested ❌
+- [ ] QA gate status: PASS (not done)
+- [ ] Deployed to staging successfully (not done)
+- [ ] Smoke tested in production (not done)
+
+**Current Reality:** Core infrastructure (30%) complete. Implementation work (70%) remains.
 
 ---
 
