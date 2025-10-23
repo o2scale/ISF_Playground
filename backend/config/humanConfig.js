@@ -17,13 +17,13 @@ const path = require('path');
  * Location: node_modules/@vladmandic/human/models/
  */
 const humanConfig = {
-  // Backend: Use CPU backend (WASM) for Node.js compatibility
-  // Note: 'tensorflow' backend has Node v22 compatibility issues
-  // 'wasm' is slower but more compatible
-  backend: 'wasm',
+  // Backend: Use TensorFlow for Node.js (Node v18 required)
+  // Note: Node v20/v22 have compatibility issues with tfjs-node
+  backend: 'tensorflow',
 
   // Model base path - models are bundled with the package
-  modelBasePath: path.join(__dirname, '../node_modules/@vladmandic/human/models'),
+  // Use file:// protocol for local file loading in Node.js
+  modelBasePath: 'file://' + path.join(__dirname, '../node_modules/@vladmandic/human/models').replace(/\\/g, '/'),
 
   // Enable async processing for better performance
   async: true,

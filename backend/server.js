@@ -41,6 +41,7 @@ const path = require("path");
 // const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 
 // ADDED - Task 2: FR Rebuild with @vladmandic/human
+// Now using Node v20 with proper tfjs-node support
 const Human = require("@vladmandic/human").default;
 const { humanConfig } = require("./config/humanConfig");
 
