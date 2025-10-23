@@ -694,6 +694,21 @@ _Being populated during implementation_
 
 ### Change Log
 
+**2025-10-23 10:28:13 - Task 2 Complete: Human Installed and Configured**
+- Installed @vladmandic/human v3.3.6 with 28MB bundled models
+- Created backend/config/humanConfig.js with full FR configuration
+- Initialized Human in server.js with warmup and export
+- Installed @tensorflow/tfjs and @tensorflow/tfjs-node dependencies
+- KNOWN ISSUE: Node v22 compatibility (documented, needs Node v20 for testing)
+- Task 2 structure complete, can proceed with Tasks 3-15
+
+**2025-10-22 23:15:00 - Task 1 Complete: Old FR System Removed**
+- Removed face-api.js from package.json (backend + frontend)
+- Deleted 44 model files (~38MB freed)
+- Cleaned all face-api code from server.js, student.js, user.js
+- Commented out facialData from User model
+- Ran npm install (17 packages removed)
+
 **2025-10-22 22:58:02 - Task 1 Started: Remove Old FR System**
 - Renamed branch from `feature/sprint-1.x-facial-recognition` to `feature/sprint-1.1-fr-rebuild`
 - Updated FR context file with story details and current phase
