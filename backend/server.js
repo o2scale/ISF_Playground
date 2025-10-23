@@ -40,6 +40,10 @@ const fs = require("fs"); // For file system operations
 const path = require("path");
 // const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 
+// ADDED - Task 2: FR Rebuild with @vladmandic/human
+const Human = require("@vladmandic/human").default;
+const { humanConfig } = require("./config/humanConfig");
+
 // Import cleanup function
 const { cleanupOrphanedFiles } = require("./middleware/upload");
 
@@ -192,6 +196,40 @@ try {
   console.error("❌ Error initializing WTF WebSocket server:", error);
 }
 
-// REMOVED - Task 1: FR Rebuild
-// Old face-api.js model loading removed
-// Will be replaced with @vladmandic/human in Task 2
+// ADDED - Task 2: FR Rebuild - Initialize Human library
+let humanInstance = null;
+
+async function initializeHuman() {
+  try {
+    console.log("🔄 Initializing Human library for face recognition...");
+
+    // Create Human instance with configuration
+    humanInstance = new Human(humanConfig);
+
+    // Load and warmup models
+    await humanInstance.load();
+    await humanInstance.warmup();
+
+    console.log("✅ Human library initialized successfully");
+    console.log(`   - Models loaded from: ${humanConfig.modelBasePath}`);
+    console.log(`   - Face detection: ${humanConfig.face.detector.enabled ? 'enabled' : 'disabled'}`);
+    console.log(`   - Face recognition: ${humanConfig.face.description.enabled ? 'enabled' : 'disabled'}`);
+    console.log(`   - Liveness detection: ${humanConfig.face.liveness.enabled ? 'enabled' : 'disabled'}`);
+
+    return humanInstance;
+  } catch (error) {
+    console.error("❌ Error initializing Human library:", error);
+    throw error;
+  }
+}
+
+// Initialize Human on server startup
+initializeHuman().catch(console.error);
+
+// Export Human instance for use in services
+module.exports.getHuman = () => {
+  if (!humanInstance) {
+    throw new Error("Human library not initialized. Server may still be starting up.");
+  }
+  return humanInstance;
+};
