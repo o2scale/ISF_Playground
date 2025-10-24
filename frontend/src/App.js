@@ -43,6 +43,8 @@ import ShopAnalytics from "./pages/ShopAnalytics";
 import TransactionReports from "./pages/TransactionReports";
 import CoachDeliveries from "./pages/CoachDeliveries";
 import StudentProfile from "./pages/StudentProfile";
+import AdminCourseDashboard from "./pages/admin/AdminCourseDashboard";
+import CourseStructureBuilder from "./pages/admin/CourseStructureBuilder";
 
 const App = () => {
   return (
@@ -267,6 +269,24 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <StudentProfile />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* LMS Admin Routes - Sprint 2 Epic 02 */}
+                <Route
+                  path="/admin/courses"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <AdminCourseDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/courses/:courseId/structure"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <CourseStructureBuilder />
                     </ProtectedRoute>
                   }
                 />

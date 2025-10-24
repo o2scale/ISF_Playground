@@ -75,27 +75,28 @@ const Layout = () => {
       roles: ["admin", "coach"],
     },
     { id: 6, name: "Balagruhas", link: "/balagruha", roles: ["admin"] },
-    { id: 7, name: "Access", link: "/rbac", roles: ["admin"] },
+    { id: 7, name: "Courses", link: "/admin/courses", roles: ["admin"] },
+    { id: 8, name: "Access", link: "/rbac", roles: ["admin"] },
     {
-      id: 8,
+      id: 9,
       name: "Repairs",
       link: "/repair",
       roles: ["admin", "purchase-manager"],
     },
     {
-      id: 9,
+      id: 10,
       name: "Purchases",
       link: "/purchase",
       roles: ["admin", "purchase-manager"],
     },
     {
-      id: 10,
+      id: 11,
       name: "Shop",
       link: "/shop",
       roles: ["student", "admin", "coach"],
     },
     {
-      id: 11,
+      id: 12,
       name: "WTF",
       link: "/wtf",
       roles: [
