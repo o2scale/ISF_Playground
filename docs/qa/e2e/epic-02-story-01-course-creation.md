@@ -2,7 +2,7 @@
 
 **Story ID:** SPRINT2-EPIC02-STORY01
 **Test Document Version:** 1.0
-**Last Updated:** 2025-10-24 19:25:00
+**Last Updated:** 2025-10-24 20:46:30
 **Test Environment:** Staging
 **Browser Support:** Chrome 120+, Firefox 115+, Edge 120+
 **Screen Resolutions:** 1920x1080 (primary), 1366x768 (tablet)
@@ -20,7 +20,7 @@
 | Status Workflow & Publishing | 11 | P0 |
 | Auto-Save & Data Persistence | 5 | P1 |
 | Performance & Accessibility | 3 | P2 |
-| **TOTAL** | **53** | - |
+| **TOTAL** | **58** | - |
 
 ---
 
@@ -522,6 +522,105 @@
 
 ---
 
+### 2.6. Auto-Save & Data Persistence (5 Test Cases)
+
+#### TC 6.1: Auto-Save Triggers After 1-Second Debounce
+**Priority:** P1
+**Preconditions:**
+- Course structure builder page open
+- Course loaded successfully
+
+**Steps:**
+1. Edit course title in the header
+2. Wait and observe the save indicator
+3. Wait for 1 second without additional changes
+4. Observe the save status
+
+**Expected Results:**
+- Save indicator appears after 1 second of inactivity
+- Indicator shows "Saving..." with spinning icon
+- After save completes, indicator shows "All changes saved" with checkmark
+- Indicator disappears after 2 seconds
+
+---
+
+#### TC 6.2: Save Indicator UI States
+**Priority:** P1
+**Preconditions:**
+- Course structure builder page open
+
+**Steps:**
+1. Make a change to course metadata
+2. Observe the save indicator during the save process
+3. Wait for save to complete
+
+**Expected Results:**
+- **Saving state:** Blue background, spinning icon, text "Saving..."
+- **Saved state:** Green background, checkmark icon, text "All changes saved"
+- **Idle state:** No indicator shown (after 2 seconds)
+
+---
+
+#### TC 6.3: Failed Save Shows Error with Retry Button
+**Priority:** P1
+**Preconditions:**
+- Course structure builder page open
+- Backend server stopped (simulating network failure)
+
+**Steps:**
+1. Stop the backend server
+2. Edit course title
+3. Wait for 1 second
+4. Observe the save status indicator
+
+**Expected Results:**
+- Save indicator shows red background
+- Error icon displayed
+- Text shows "Save failed"
+- "Retry" button visible
+- Save attempted 3 times with exponential backoff (1s, 2s, 4s delays)
+- After all retries fail, error state persists
+
+---
+
+#### TC 6.4: Retry Button Successfully Retries Failed Save
+**Priority:** P1
+**Preconditions:**
+- TC 6.3 completed (save failed with error indicator showing)
+
+**Steps:**
+1. Restart the backend server
+2. Click the "Retry" button in the error indicator
+3. Observe the save status
+
+**Expected Results:**
+- Save indicator changes to "Saving..." state
+- Save completes successfully
+- Indicator changes to "All changes saved" state
+- Error state cleared
+
+---
+
+#### TC 6.5: Drag-and-Drop Order Persists After Page Refresh
+**Priority:** P1
+**Preconditions:**
+- Course with at least 3 modules created
+
+**Steps:**
+1. Note the original order of modules (Module 1, Module 2, Module 3)
+2. Drag Module 3 to the first position
+3. Wait for "All changes saved" indicator
+4. Refresh the page (F5)
+5. Observe the module order
+
+**Expected Results:**
+- Module order after drag: Module 3, Module 1, Module 2
+- Save indicator shows "Module order updated" toast
+- After page refresh, order remains: Module 3, Module 1, Module 2
+- Order persisted in database
+
+---
+
 ### 2.7. Performance & Accessibility (3 Test Cases)
 
 #### TC 7.1: Course List Load Performance
@@ -604,7 +703,7 @@
 
 ## Sign-Off
 
-**Dev Agent (James):** Test scenarios documented - 2025-10-24 19:25:00
+**Dev Agent (James):** 58 test scenarios documented (added TC 6.1-6.5 for auto-save) - 2025-10-24 20:46:30
 **QA Agent (Quinn):** ⏸️ Pending execution
 
 ---

@@ -4,7 +4,7 @@ story_title: 'Course Creation & Structure Builder'
 gate: PENDING  # QA will update to PASS/CONCERNS/FAIL
 status_reason: 'Awaiting QA review - Dev complete, testing pending'
 reviewer: 'TBD'
-updated: '2025-10-24T19:26:00Z'
+updated: '2025-10-24T20:46:30Z'
 
 # Quality Criteria
 quality_criteria:
@@ -241,21 +241,21 @@ acceptance_criteria_map:
   # 2.6 Auto-Save & Data Persistence
   - ac_number: 43
     description: 'Course changes auto-save after 1-second debounce'
-    test_cases: []
+    test_cases: ['TC 6.1']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 44
     description: 'Save indicator shows "Saving..." then "All changes saved"'
-    test_cases: []
+    test_cases: ['TC 6.2']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 45
     description: 'Failed saves show error with retry'
-    test_cases: []
+    test_cases: ['TC 6.3', 'TC 6.4']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 46
     description: 'Course structure persists across page refreshes'
@@ -265,9 +265,9 @@ acceptance_criteria_map:
 
   - ac_number: 47
     description: 'Drag-and-drop order changes persist in database'
-    test_cases: []
+    test_cases: ['TC 6.5']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   # 2.7 Performance & Accessibility
   - ac_number: 48
@@ -348,10 +348,10 @@ implementation_status:
     notes: 'All CRUD operations, validation, and workflows implemented'
 
   frontend:
-    status: 'partial'
-    files_created: 15
-    components: 'AdminDashboard, CourseListView, StructureBuilder, ModuleCard, ChapterCard, ContentItemCard, Modals'
-    notes: 'Core functionality complete. Pending: drag-and-drop, auto-save'
+    status: 'complete'
+    files_created: 16
+    components: 'AdminDashboard, CourseListView, StructureBuilder, ModuleCard, ChapterCard, ContentItemCard, Modals, useAutoSave hook'
+    notes: 'All core functionality complete including drag-and-drop (@dnd-kit) and auto-save. Pending: S3 integration, delete/edit endpoints'
 
   testing:
     status: 'pending'
@@ -362,19 +362,19 @@ implementation_status:
 
 # Known Limitations / Technical Debt
 known_limitations:
-  - 'Drag-and-drop reordering not implemented (react-beautiful-dnd library needed)'
-  - 'Auto-save functionality not implemented'
+  - '✅ Drag-and-drop reordering implemented using @dnd-kit (all 3 levels: module, chapter, content)'
+  - '✅ Auto-save functionality implemented with 1s debounce, retry logic, and status indicators'
   - 'Thumbnail upload uses placeholder URL (S3 integration pending)'
-  - 'Delete module/chapter/content endpoints not implemented'
-  - 'Edit module/chapter functionality incomplete'
+  - 'Delete module/chapter/content endpoints not implemented (placeholders show toast messages)'
+  - 'Edit module/chapter metadata functionality incomplete (edit modal not implemented yet)'
 
 # Sign-Off
 sign_off:
   dev_agent:
     name: 'James'
     status: 'complete'
-    date: '2025-10-24T19:26:00Z'
-    notes: 'Core functionality implemented. Drag-and-drop and auto-save pending.'
+    date: '2025-10-24T20:46:30Z'
+    notes: 'All 19 tasks complete (100%). Drag-and-drop implemented using @dnd-kit. Auto-save implemented with 1s debounce and retry logic.'
 
   qa_agent:
     name: 'TBD'
@@ -394,10 +394,8 @@ deployment_readiness:
   can_deploy_to_production: false
   blockers:
     - 'QA testing not complete'
-    - 'Drag-and-drop feature incomplete'
   recommended_next_steps:
-    - 'Execute E2E test scenarios (53 tests)'
-    - 'Implement drag-and-drop (react-beautiful-dnd)'
-    - 'Implement auto-save with debounce'
+    - 'Execute E2E test scenarios (58 tests including new auto-save tests)'
     - 'S3 integration for thumbnail uploads'
     - 'Complete delete/edit operations for structure elements'
+    - 'Performance testing with large course structures (100+ modules)'
