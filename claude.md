@@ -17,3 +17,31 @@
   **Updated By:** Dev Agent (James) / QA Agent (Quinn) / Orchestrator
 
   Enforcement: This rule takes precedence over efficiency concerns. ALWAYS timestamp documentation updates.
+
+**CRITICAL - ALL AGENTS - SERVER RESTART PROTOCOL:**
+
+  **NEVER kill node processes blindly** - Claude Code runs in Node.js, killing all node processes will terminate your own session!
+
+  **Safe restart methods:**
+  1. Use the KillShell tool with the specific shell_id (preferred)
+  2. If using taskkill/kill, ONLY target the SPECIFIC PID of the backend server, never use blanket commands like `taskkill /IM node.exe`
+  3. Track PIDs of background processes when starting them
+  4. If port conflict occurs, find the SPECIFIC PID using `netstat -ano | findstr :PORT` and kill ONLY that PID
+
+  **FORBIDDEN commands:**
+  - `taskkill /F /IM node.exe` (kills ALL node processes including Claude Code)
+  - `pkill node` (kills ALL node processes)
+  - `killall node` (kills ALL node processes)
+
+  **Example of SAFE restart:**
+  ```bash
+  # Find specific backend PID on port 5001
+  netstat -ano | findstr :5001 | findstr LISTENING
+  # Output: TCP  0.0.0.0:5001  0.0.0.0:0  LISTENING  12345
+
+  # Kill ONLY that specific PID
+  taskkill //F //PID 12345
+
+  # Or use KillShell with the shell_id
+  # <use KillShell tool with shell_id>
+  ```

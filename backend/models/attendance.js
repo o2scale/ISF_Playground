@@ -13,6 +13,36 @@ const attendanceSchema = new mongoose.Schema(
       default: "absent",
     },
     notes: { type: String },
+
+    // FR Rebuild - Manual Override Support (Sprint 1.1 Epic 02 Story 01 Task 9)
+    // Ensures manual attendance marking always available (FR is enhancement, not blocker)
+    isManualOverride: {
+      type: Boolean,
+      default: false,
+      index: true, // Index for querying manual overrides
+    },
+    frSessionId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "FRSession",
+      default: null, // Links to FR session if FR was attempted
+    },
+    overrideReason: {
+      type: String,
+      enum: [
+        "fr_failed",          // FR recognition failed
+        "fr_unavailable",     // FR system unavailable
+        "technical_issue",    // Technical problem (camera, network, etc.)
+        "user_preference",    // User chose manual over FR
+        "emergency",          // Emergency situation requiring quick marking
+        "other",              // Other reason (specify in notes)
+      ],
+      default: null, // Only required when isManualOverride is true
+    },
+    markedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null, // User who manually marked attendance (if manual override)
+    },
   },
   { timestamps: true }
 );

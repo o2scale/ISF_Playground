@@ -23,6 +23,11 @@ class Attendance {
       dateString: this.dateString,
       status: this.status,
       notes: this.notes,
+      // Include manual override fields if they exist
+      isManualOverride: this.isManualOverride,
+      overrideReason: this.overrideReason,
+      frSessionId: this.frSessionId,
+      markedBy: this.markedBy,
     };
   }
   async saveToDb() {
@@ -80,6 +85,121 @@ class Attendance {
       }
     } catch (error) {
       console.log("error", error);
+      throw error;
+    }
+  }
+
+  /**
+   * Save Manual Override Attendance
+   *
+   * Marks attendance manually (when FR fails or is unavailable).
+   * Ensures FR is an enhancement, not a blocker for attendance workflow.
+   *
+   * @param {Object} payload - Attendance data
+   * @param {string} payload.studentId - Student ID
+   * @param {string} payload.balagruhaId - Balagruha ID
+   * @param {Date} payload.date - Attendance date
+   * @param {string} payload.status - "present" or "absent"
+   * @param {string} payload.overrideReason - Reason for manual marking
+   * @param {string} payload.markedBy - User ID who marked attendance
+   * @param {string} payload.frSessionId - Optional FR session ID (if FR was attempted)
+   * @param {string} payload.notes - Optional notes
+   * @returns {Object} { success, data, message }
+   *
+   * Sprint 1.1 Epic 02 Story 01 Task 9: Manual Override Workflow
+   */
+  static async saveManualAttendance(payload) {
+    try {
+      const { studentId, date, markedBy, overrideReason } = payload;
+
+      // Validation
+      if (!studentId) {
+        return {
+          success: false,
+          data: {},
+          message: "Student ID is required",
+        };
+      }
+
+      if (!markedBy) {
+        return {
+          success: false,
+          data: {},
+          message: "markedBy (user ID) is required for manual override",
+        };
+      }
+
+      if (!overrideReason) {
+        return {
+          success: false,
+          data: {},
+          message: "Override reason is required for manual attendance",
+        };
+      }
+
+      // Prepare payload with manual override fields
+      const dateString = dateToString(date);
+      const attendancePayload = {
+        ...payload,
+        dateString,
+        isManualOverride: true,
+        overrideReason,
+        markedBy,
+      };
+
+      // Check if attendance already exists for this student on this date
+      const existingAttendance = await getAttendanceByStudentIdAndDate({
+        studentId,
+        dateString,
+      });
+
+      if (existingAttendance.success && existingAttendance.data) {
+        // Update existing attendance record
+        const result = await updateAttendanceById(
+          existingAttendance.data._id,
+          attendancePayload
+        );
+
+        if (result.success) {
+          return {
+            success: true,
+            data: {
+              attendance: result.data,
+              isUpdate: true,
+            },
+            message: "Manual attendance updated successfully",
+          };
+        } else {
+          return {
+            success: false,
+            data: {},
+            message: "Error updating manual attendance",
+          };
+        }
+      } else {
+        // Create new attendance record
+        const attendanceObj = new Attendance(attendancePayload);
+        const result = await attendanceObj.saveToDb();
+
+        if (result.success) {
+          return {
+            success: true,
+            data: {
+              attendance: result.data,
+              isUpdate: false,
+            },
+            message: "Manual attendance created successfully",
+          };
+        } else {
+          return {
+            success: false,
+            data: {},
+            message: "Error creating manual attendance",
+          };
+        }
+      }
+    } catch (error) {
+      console.log("error in saveManualAttendance:", error);
       throw error;
     }
   }

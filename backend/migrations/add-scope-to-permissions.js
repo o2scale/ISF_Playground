@@ -12,6 +12,7 @@
  * Story: epic-01-story-01
  */
 
+require('dotenv').config();
 const mongoose = require('mongoose');
 const Role = require('../models/role');
 

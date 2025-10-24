@@ -1,12 +1,12 @@
 # Known Issues - FR Rebuild
 
-**Last Updated:** 2025-10-23 19:22:34
+**Last Updated:** 2025-10-23 20:06:23
 
 ## Node.js v22 + TensorFlow.js Compatibility Issue
 
-**Status:** ✅ RESOLVED - Using Node v18.20.5 LTS
+**Status:** ✅ RESOLVED - Using Node v18.20.5 LTS + Windows DLL Fix
 **Task:** Task 2 - Human Installation
-**Severity:** Low (resolved by using compatible Node version)
+**Severity:** Low (resolved by using compatible Node version + Windows-specific fix)
 
 ### Problem
 
@@ -56,13 +56,28 @@ FROM node:20-alpine
 
 **Steps Taken:**
 1. ✅ Installed nvm-windows v1.2.2 for Node version management
-2. ✅ Tested Node v20.18.0 LTS - still had binding issues
-3. ✅ Switched to Node v18.20.5 LTS - successfully resolved
-4. ✅ Reinstalled dependencies (774 packages)
-5. ✅ Updated humanConfig.js:
+2. ✅ Tested Node v22.14.0 - FAILED (napi-v10 binding missing from package)
+3. ✅ Tested Node v20.18.0 LTS - FAILED (still had binding issues)
+4. ✅ Switched to Node v18.20.5 LTS - FAILED initially due to Windows DLL issue
+5. ✅ Reinstalled dependencies (774 packages)
+6. ✅ Updated humanConfig.js:
    - Changed backend from 'wasm' to 'tensorflow'
    - Fixed modelBasePath to use 'file://' protocol
-6. ✅ Verified server starts and Human initializes successfully
+7. ✅ **Applied Windows DLL Fix** (see below)
+8. ✅ Verified server starts and Human initializes successfully
+
+**Windows-Specific DLL Fix (Required on Windows only):**
+```bash
+# After npm install, copy tensorflow.dll to napi folder
+cp backend/node_modules/@tensorflow/tfjs-node/deps/lib/tensorflow.dll \
+   backend/node_modules/@tensorflow/tfjs-node/lib/napi-v8/
+```
+
+**Why this is needed:**
+- On Windows, the native binding (tfjs_binding.node) needs tensorflow.dll in the same folder
+- npm doesn't copy the DLL there by default on Windows
+- Linux/Mac don't have this issue (different dynamic library loading behavior)
+- **Production is Linux-based, so this fix is only needed for local Windows development**
 
 **Current Status:**
 - ✅ Server running on Node v18.20.5 LTS
@@ -70,6 +85,7 @@ FROM node:20-alpine
 - ✅ Human library initialized successfully
 - ✅ Face detection, recognition, and liveness detection enabled
 - ✅ Application fully functional
+- ✅ Both backend and frontend servers verified working
 
 ### Files Modified
 

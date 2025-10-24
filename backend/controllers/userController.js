@@ -372,6 +372,76 @@ exports.createStudentAttendance = async (req, res) => {
   }
 };
 
+// API for create manual attendance (manual override when FR fails or unavailable)
+// Sprint 1.1 Epic 02 Story 01 Task 9: Manual Override Workflow
+// Ensures FR is an enhancement, not a blocker for attendance workflow
+exports.createManualAttendance = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?._id,
+        data: req.body,
+      },
+      `Request received for creating manual attendance`
+    );
+
+    // Add markedBy from authenticated user
+    const payload = {
+      ...req.body,
+      markedBy: req.user._id, // Get from JWT middleware
+    };
+
+    // Call manual attendance service method
+    const result = await Attendance.saveManualAttendance(payload);
+
+    if (result.success) {
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?._id,
+          data: req.body,
+        },
+        `Successfully created manual attendance`
+      );
+      res.status(201).json(result);
+    } else {
+      logger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          userId: req.user?._id,
+          data: req.body,
+          error: result.message,
+        },
+        `Error occurred while creating manual attendance: ${result.message}`
+      );
+      res.status(400).json(result);
+    }
+  } catch (error) {
+    logger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userId: req.user?._id,
+        data: req.body,
+        error: error.message,
+      },
+      `Error occurred while processing manual attendance request: ${error.message}`
+    );
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 // API for fetch the student list in balagruha with the attendance by given date (pass date as query )
 exports.getStudentListByBalagruhaIdWithAttendance = async (req, res) => {
   try {

@@ -35,15 +35,22 @@ const inventoryRoutes = require("./routes/v2/inventory"); // Sprint 5: Inventory
 const analyticsRoutes = require("./routes/v2/analytics"); // Sprint 5: Shop Analytics
 const reportsRoutes = require("./routes/v2/reports"); // Sprint 5: Transaction Reports
 const coachDeliveryRoutes = require("./routes/v2/coachDelivery"); // Sprint 5: Coach Delivery Management
+const frRoutes = require("./routes/v2/facialRecognition"); // Sprint 1.1: FR Rebuild
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
 // const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 
 // ADDED - Task 2: FR Rebuild with @vladmandic/human
-// Now using Node v20 with proper tfjs-node support
+// Now using Node v18.20.5 LTS with proper tfjs-node support
 const Human = require("@vladmandic/human").default;
 const { humanConfig } = require("./config/humanConfig");
+
+// ADDED - Task 4: FR Service
+const frService = require("./services/frService");
+
+// ADDED - Task 7: FR Cache Service
+const frCacheService = require("./services/frCacheService");
 
 // Import cleanup function
 const { cleanupOrphanedFiles } = require("./middleware/upload");
@@ -60,7 +67,45 @@ dotenv.config();
 
 const app = express();
 
-app.use(cors());
+// CORS Configuration - Task 10: Mobile Integration Prep
+// Supports web, mobile app, and development origins
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman)
+    if (!origin) {
+      return callback(null, true);
+    }
+
+    // Allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000', // Frontend development
+      'http://localhost:5001', // Backend development
+      'http://localhost:5173', // Vite development
+      process.env.FRONTEND_URL, // Production frontend URL (from .env)
+      process.env.MOBILE_APP_URL, // Mobile app URL (from .env, if applicable)
+    ].filter(Boolean); // Remove undefined values
+
+    // In development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+
+    // In production, check against allowed origins
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      console.warn(`CORS: Blocked request from origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // Allow cookies and auth headers
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['X-Total-Count'], // For pagination
+  maxAge: 86400, // 24 hours - cache preflight requests
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ limit: "100mb", extended: true }));
 
@@ -96,6 +141,7 @@ app.use("/api/v2/shop/admin/inventory", inventoryRoutes); // Sprint 5: Inventory
 app.use("/api/v2/shop/admin/analytics", analyticsRoutes); // Sprint 5: Shop Analytics routes (requires admin auth)
 app.use("/api/v2/shop/admin/reports", reportsRoutes); // Sprint 5: Transaction Reports routes (requires admin auth)
 app.use("/api/v2/shop/coach/deliveries", coachDeliveryRoutes); // Sprint 5: Coach Delivery Management routes (requires coach auth)
+app.use("/api/v2/fr", frRoutes); // Sprint 1.1: FR Rebuild - Facial Recognition routes
 
 const dbConnection =
   process.env.NODE_ENV === "local"
@@ -216,6 +262,20 @@ async function initializeHuman() {
     console.log(`   - Face detection: ${humanConfig.face.detector.enabled ? 'enabled' : 'disabled'}`);
     console.log(`   - Face recognition: ${humanConfig.face.description.enabled ? 'enabled' : 'disabled'}`);
     console.log(`   - Liveness detection: ${humanConfig.face.liveness.enabled ? 'enabled' : 'disabled'}`);
+
+    // ADDED - Task 4: Initialize FR Service with Human instance
+    frService.initializeFRService(humanInstance);
+
+    // ADDED - Task 7: Initialize FR Cache and warm up
+    frCacheService.initializeCache();
+    // Warm cache after a short delay to avoid blocking server startup
+    setTimeout(async () => {
+      try {
+        await frCacheService.warmCache();
+      } catch (error) {
+        console.error('⚠️  FR Cache: Failed to warm cache:', error.message);
+      }
+    }, 5000); // Wait 5 seconds after server starts
 
     return humanInstance;
   } catch (error) {

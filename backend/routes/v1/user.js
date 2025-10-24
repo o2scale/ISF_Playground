@@ -6,6 +6,7 @@ const {
   createStudentMedicalRecords,
   getUserManagementOverviewDetails,
   createStudentAttendance,
+  createManualAttendance,
   getStudentListByBalagruhaIdWithAttendance,
   getUsersByRoleAndBalagruhaId,
   getUserById,
@@ -62,6 +63,15 @@ router.post(
   authenticate,
   authorize("User Management", "Create"),
   createStudentAttendance
+);
+// API for create manual attendance (manual override when FR fails or unavailable)
+// Sprint 1.1 Epic 02 Story 01 Task 9: Manual Override Workflow
+// Ensures FR is an enhancement, not a blocker for attendance workflow
+router.post(
+  "/students/attendance/manual",
+  authenticate,
+  authorize("User Management", "Create"),
+  createManualAttendance
 );
 // API for fetch the student list in balagruha with the attendance by given date (pass date as query )
 router.get(

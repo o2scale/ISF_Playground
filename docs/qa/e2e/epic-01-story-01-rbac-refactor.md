@@ -1,6 +1,7 @@
 # E2E Test Scenarios: RBAC Refactor (Epic 01 - Story 01)
 
 **Created:** 2025-10-18 22:33:41
+**Last Updated:** 2025-10-22 16:42:56 (Phase 3 URL validation tests added)
 **Sprint:** 1.1 - RBAC Refactor
 **Story:** Epic 01 - Story 01 - RBAC System Refactor
 **Status:** READY FOR QA
@@ -293,6 +294,117 @@ This document outlines comprehensive End-to-End (E2E) test scenarios for the RBA
 - **Login:** student1@test.com
 - **Attempt:** POST to `/api/roles` to create admin role
 - **Expected:** 403 Forbidden (no permission to Manage roles)
+
+---
+
+## Phase 3: URL Parameter Validation Tests
+
+**Phase 3 Implementation Date:** 2025-10-22
+**Feature:** `validateBalagruhaAccess` middleware prevents URL parameter manipulation
+**Files Modified:**
+- `backend/middleware/checkPermission.js` - Added validateBalagruhaAccess middleware
+- `backend/routes/v1/user.js` - Added to 2 routes
+- `backend/routes/v1/music.js` - Added to 2 routes
+- `backend/routes/taskRoutes.js` - Added to 1 route
+
+### Test Case P3.1: Admin Can Access Any BalagruhaId URL Parameter
+- **Login:** admin@test.com (scope='all')
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaA_ID
+- **Expected:** ✅ SUCCESS - Returns students from Balagruha A
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaB_ID
+- **Expected:** ✅ SUCCESS - Returns students from Balagruha B
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaC_ID
+- **Expected:** ✅ SUCCESS - Returns students from Balagruha C
+- **Verify:** Admin can access ANY balagruhaId in URL parameters
+
+### Test Case P3.2: Coach Can Access ONLY Assigned BalagruhaId URL Parameters
+- **Login:** coach1@test.com (assigned to Balagruha A only)
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaA_ID
+- **Expected:** ✅ SUCCESS - Returns students from Balagruha A
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaB_ID
+- **Expected:** ❌ 403 FORBIDDEN - "Access denied. You do not have permission to access this Balagruha."
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaC_ID
+- **Expected:** ❌ 403 FORBIDDEN
+- **Verify:** validateBalagruhaAccess middleware blocks unassigned Balagruha access
+
+### Test Case P3.3: Multi-Balagruha Coach Can Access All Assigned
+- **Login:** coach3@test.com (assigned to Balagruha A AND B)
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaA_ID
+- **Expected:** ✅ SUCCESS
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaB_ID
+- **Expected:** ✅ SUCCESS
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with BalagruhaC_ID
+- **Expected:** ❌ 403 FORBIDDEN
+- **Verify:** Can access BOTH assigned Balagruhas, blocked from unassigned
+
+### Test Case P3.4: Student CANNOT Access Balagruha-Level Routes
+- **Login:** student1@test.com (scope='own')
+- **Navigate:** GET `/api/v1/users/students/:balagruhaId` with ANY balagruhaId
+- **Expected:** ❌ 403 FORBIDDEN - "Access denied. You do not have permission to access Balagruha-level data."
+- **Verify:** Students should NEVER access Balagruha-level routes (scope='own')
+
+### Test Case P3.5: Validate All Protected Routes with :balagruhaId
+**Login:** coach1@test.com (Balagruha A only)
+
+**Route 1: GET `/api/v1/users/students/:balagruhaId`**
+- Assigned: ✅ SUCCESS
+- Unassigned: ❌ 403
+
+**Route 2: GET `/api/v1/users/students/attendance/:balagruhaId`**
+- Assigned: ✅ SUCCESS
+- Unassigned: ❌ 403
+
+**Route 3: GET `/api/v1/music/overview/:balagruhaId`**
+- Assigned: ✅ SUCCESS
+- Unassigned: ❌ 403
+
+**Route 4: GET `/api/v1/music/training-sessions/:balagruhaId`**
+- Assigned: ✅ SUCCESS
+- Unassigned: ❌ 403
+
+**Route 5: GET `/api/tasks/overview/details/:balagruhaId`**
+- Assigned: ✅ SUCCESS
+- Unassigned: ❌ 403
+
+### Test Case P3.6: URL Manipulation Attack Scenarios
+**Scenario 1: Coach tries to access another coach's Balagruha**
+- **Login:** coach1@test.com (Balagruha A)
+- **Attack:** GET `/api/v1/users/students/:balagruhaId` with coach2's Balagruha B ID
+- **Expected:** ❌ 403 FORBIDDEN with message: "Access denied. You do not have permission to access this Balagruha."
+- **Verify:** Middleware compares :balagruhaId against user.balagruhaIds array
+
+**Scenario 2: Invalid/Non-existent balagruhaId**
+- **Login:** coach1@test.com
+- **Attack:** GET `/api/v1/users/students/:balagruhaId` with `000000000000000000000000`
+- **Expected:** ❌ 403 FORBIDDEN (not in assigned list)
+- **Verify:** validateBalagruhaAccess checks BEFORE database query
+
+**Scenario 3: Malformed balagruhaId**
+- **Login:** coach1@test.com
+- **Attack:** GET `/api/v1/users/students/:balagruhaId` with `<script>alert('xss')</script>`
+- **Expected:** Express validates ObjectId format OR 403 if passes validation
+- **Verify:** No code injection, proper error handling
+
+### Test Case P3.7: Error Response Format Validation
+**Login:** coach1@test.com (Balagruha A)
+**Attack:** GET `/api/v1/users/students/:balagruhaId` with Balagruha B ID
+
+**Expected Response:**
+```json
+{
+  "success": false,
+  "message": "Access denied. You do not have permission to access this Balagruha.",
+  "balagruhaId": "6809e00080aacbb08e74cde8",
+  "assignedBalagruhas": 1
+}
+```
+
+**Verify:**
+- Status code: 403
+- success: false
+- message: Clear explanation
+- balagruhaId: Echo back attempted ID
+- assignedBalagruhas: Count for debugging (but not IDs for security)
 
 ---
 
