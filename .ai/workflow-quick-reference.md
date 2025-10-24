@@ -1,6 +1,7 @@
 # BMAD Workflow - Quick Reference
 
-**Version:** 2.0 | **Updated:** Oct 13, 2025 | **Full Guide:** `.ai/bmad-playwright-workflow.md`
+**Version:** 2.1 | **Updated:** Oct 24, 2025 | **Full Guide:** `.ai/bmad-playwright-workflow.md`
+**Sprint 2 Update:** Dev agents now create both E2E test scenarios AND quality gate YAML files
 
 ---
 
@@ -23,6 +24,11 @@
   → ONE TEST CASE PER AC (minimum 2-4 per AC)
   → Format: TC 1.1, TC 1.2, TC 1.3 (test case numbering)
   → Markdown documentation, NOT test code
+□ Create quality gate YAML: docs/qa/gates/{epic}.story-{n}-{slug}.yml
+  → Define pass/fail criteria for the story
+  → Include test coverage requirements (>80%)
+  → Specify critical acceptance criteria
+  → Reference E2E test scenarios
 □ Update Dev Agent Record in story file
 □ Set status: ✅ READY FOR QA
 □ HALT - wait for QA
@@ -35,6 +41,7 @@
 ```
 □ Find story with "READY FOR QA" status
 □ Read story file + E2E test scenarios from docs/qa/e2e/
+□ Verify quality gate YAML exists: docs/qa/gates/{epic}.story-{n}-{slug}.yml
 □ Verify servers: curl http://localhost:3000 && curl http://localhost:5001/api/health
 □ Use Playwright MCP tools to execute test scenarios:
   • browser_navigate("http://localhost:3000")
@@ -47,8 +54,7 @@
 □ All test cases passed? → Continue ✓
 □ Code review: architecture, security, performance
 □ Create QA Results section in story file
-□ Create gate YAML: docs/qa/gates/{story}.yml
-□ Gate decision: PASS / CONCERNS / FAIL
+□ Gate decision (based on gate YAML criteria): PASS / CONCERNS / FAIL
 □ Update story status accordingly
 □ If FAIL/CONCERNS → Return to Dev with feedback
 □ If PASS → Story DONE, wait for next story
@@ -255,6 +261,7 @@ browser_console_messages() → check right away
 - ✅ ONE story at a time (no parallel work)
 - ✅ Write test SCENARIOS (markdown), NOT test code
 - ✅ ONE test case per AC (minimum)
+- ✅ Create quality gate YAML file with test coverage requirements (>80%)
 - ✅ HALT after setting "READY FOR QA"
 - ❌ Don't modify Sprint 1 code
 - ❌ Don't write .spec.js files

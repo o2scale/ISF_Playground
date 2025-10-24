@@ -36,6 +36,7 @@ const analyticsRoutes = require("./routes/v2/analytics"); // Sprint 5: Shop Anal
 const reportsRoutes = require("./routes/v2/reports"); // Sprint 5: Transaction Reports
 const coachDeliveryRoutes = require("./routes/v2/coachDelivery"); // Sprint 5: Coach Delivery Management
 const frRoutes = require("./routes/v2/facialRecognition"); // Sprint 1.1: FR Rebuild
+const lmsAdminCoursesRoutes = require("./routes/v2/lms/admin/courses"); // Sprint 2: LMS Admin Course Management
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -142,6 +143,7 @@ app.use("/api/v2/shop/admin/analytics", analyticsRoutes); // Sprint 5: Shop Anal
 app.use("/api/v2/shop/admin/reports", reportsRoutes); // Sprint 5: Transaction Reports routes (requires admin auth)
 app.use("/api/v2/shop/coach/deliveries", coachDeliveryRoutes); // Sprint 5: Coach Delivery Management routes (requires coach auth)
 app.use("/api/v2/fr", frRoutes); // Sprint 1.1: FR Rebuild - Facial Recognition routes
+app.use("/api/v2/lms/admin/courses", lmsAdminCoursesRoutes); // Sprint 2: LMS Admin Course Management (requires admin auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"
