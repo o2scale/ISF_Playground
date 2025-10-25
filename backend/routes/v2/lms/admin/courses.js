@@ -13,7 +13,7 @@ const { authenticate, authorize } = require('../../../../middleware/auth');
 router.get(
   '/',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.getAllCourses
 );
 
@@ -25,7 +25,7 @@ router.get(
 router.get(
   '/:id',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.getCourseById
 );
 
@@ -37,7 +37,7 @@ router.get(
 router.post(
   '/',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.createCourse
 );
 
@@ -49,7 +49,7 @@ router.post(
 router.put(
   '/:id',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.updateCourse
 );
 
@@ -61,7 +61,7 @@ router.put(
 router.delete(
   '/:id',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.deleteCourse
 );
 
@@ -75,7 +75,7 @@ router.delete(
 router.post(
   '/:courseId/modules',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.addModule
 );
 
@@ -87,7 +87,7 @@ router.post(
 router.post(
   '/:courseId/modules/:moduleId/chapters',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.addChapter
 );
 
@@ -99,7 +99,7 @@ router.post(
 router.post(
   '/:courseId/modules/:moduleId/chapters/:chapterId/content',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.addContentItem
 );
 
@@ -111,7 +111,7 @@ router.post(
 router.put(
   '/:courseId/reorder',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.reorderItems
 );
 
@@ -125,7 +125,7 @@ router.put(
 router.put(
   '/:courseId/publish',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.publishCourse
 );
 
@@ -137,7 +137,7 @@ router.put(
 router.put(
   '/:courseId/archive',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.archiveCourse
 );
 
@@ -149,7 +149,7 @@ router.put(
 router.put(
   '/:courseId/restore',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.restoreCourse
 );
 
@@ -161,7 +161,7 @@ router.put(
 router.post(
   '/:courseId/duplicate',
   authenticate,
-  authorize('lms', 'manage'),
+  authorize('LMS Management', 'Manage'),
   courseController.duplicateCourse
 );
 

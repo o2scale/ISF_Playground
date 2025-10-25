@@ -8,18 +8,18 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
     "MAC-Address": `${macAddress}`,
-    mode: "no-cors",
   },
   timeout: config.API_TIMEOUT,
+  withCredentials: true, // Enable CORS with credentials
 });
 
 export const apiWithoutContentType = axios.create({
   baseURL: config.API_BASE_URL,
   headers: {
     "MAC-Address": `${macAddress}`,
-    mode: "no-cors",
   },
   timeout: config.API_TIMEOUT,
+  withCredentials: true, // Enable CORS with credentials
 });
 
 export const headers = {
