@@ -236,7 +236,7 @@ export default function CourseStructureBuilder() {
     <div className="min-h-screen bg-gray-50">
       {/* Course Header - Purple Theme */}
       <div className="bg-purple-100 border-b border-purple-200">
-        <div className="max-w-7xl mx-auto px-6 py-6">
+        <div className="px-6 py-6">
           {/* Back Button */}
           <button
             onClick={() => navigate('/admin/courses')}
