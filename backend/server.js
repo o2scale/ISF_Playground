@@ -100,10 +100,12 @@ const corsOptions = {
     }
   },
   credentials: true, // Allow cookies and auth headers
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'MAC-Address'],
   exposedHeaders: ['X-Total-Count'], // For pagination
   maxAge: 86400, // 24 hours - cache preflight requests
+  preflightContinue: false,
+  optionsSuccessStatus: 204
 };
 
 app.use(cors(corsOptions));
