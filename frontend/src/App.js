@@ -48,6 +48,8 @@ import CourseStructureBuilder from "./pages/admin/CourseStructureBuilder";
 import ContentLibrary from "./pages/admin/ContentLibrary";
 import QuizDashboard from "./pages/admin/QuizDashboard";
 import QuizBuilder from "./pages/admin/QuizBuilder";
+import TranslationDashboard from "./pages/admin/TranslationDashboard";
+import TranslationEditor from "./pages/admin/TranslationEditor";
 
 const App = () => {
   return (
@@ -322,6 +324,24 @@ const App = () => {
                   element={
                     <ProtectedRoute module="LMS Management" action="Manage">
                       <QuizBuilder />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Translation Management - Sprint 2 Epic 02 Story 04 */}
+                <Route
+                  path="/admin/translations"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <TranslationDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/translations/:courseId/editor"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <TranslationEditor />
                     </ProtectedRoute>
                   }
                 />
