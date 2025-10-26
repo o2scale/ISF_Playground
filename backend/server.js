@@ -38,6 +38,7 @@ const coachDeliveryRoutes = require("./routes/v2/coachDelivery"); // Sprint 5: C
 const frRoutes = require("./routes/v2/facialRecognition"); // Sprint 1.1: FR Rebuild
 const lmsAdminCoursesRoutes = require("./routes/v2/lms/admin/courses"); // Sprint 2: LMS Admin Course Management
 const lmsAdminContentRoutes = require("./routes/v2/lms/admin/content"); // Sprint 2: LMS Content Management
+const lmsAdminQuizRoutes = require("./routes/v2/lms/admin/quiz"); // Sprint 2: LMS Quiz & Assessment Builder
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -148,6 +149,7 @@ app.use("/api/v2/shop/coach/deliveries", coachDeliveryRoutes); // Sprint 5: Coac
 app.use("/api/v2/fr", frRoutes); // Sprint 1.1: FR Rebuild - Facial Recognition routes
 app.use("/api/v2/lms/admin/courses", lmsAdminCoursesRoutes); // Sprint 2: LMS Admin Course Management (requires admin auth)
 app.use("/api/v2/lms/admin/content", lmsAdminContentRoutes); // Sprint 2: LMS Content Management (requires admin auth)
+app.use("/api/v2/lms/admin", lmsAdminQuizRoutes); // Sprint 2: LMS Quiz & Assessment Builder (requires admin auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"
