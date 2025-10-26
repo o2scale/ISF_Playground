@@ -127,6 +127,124 @@ const fontUpload = multer({
   fileFilter: fontFileFilter,
 });
 
+// LMS Content-specific upload configuration with support for large media files
+const lmsFileFilter = (req, file, cb) => {
+  console.log("🔍 LMS File Filter - Processing file:", {
+    originalname: file.originalname,
+    mimetype: file.mimetype,
+    size: file.size,
+    fieldname: file.fieldname,
+  });
+
+  const allowedTypes = [
+    // Video files
+    "video/mp4",
+    "video/webm",
+    "video/ogg",
+    "video/quicktime", // .mov files
+    // PDF documents
+    "application/pdf",
+    // Audio files
+    "audio/mpeg", // MP3
+    "audio/mp3",
+    "audio/wav",
+    "audio/ogg",
+    "audio/aac",
+    "audio/m4a",
+    "audio/webm",
+    // Image files
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+    "image/svg+xml",
+  ];
+
+  console.log("📋 Allowed LMS MIME types:", allowedTypes);
+  console.log("🎯 File MIME type:", file.mimetype);
+  console.log("🔍 Is MIME type allowed?", allowedTypes.includes(file.mimetype));
+
+  if (allowedTypes.includes(file.mimetype)) {
+    console.log("✅ LMS File Filter - File accepted:", file.mimetype);
+    cb(null, true);
+  } else {
+    console.log("❌ LMS File Filter - File rejected:", file.mimetype);
+    cb(
+      new Error(
+        `Invalid file type: ${file.mimetype}. Allowed types: video (mp4, webm, ogg, mov), pdf, audio (mp3, wav, ogg, aac, m4a), image (jpeg, png, gif, webp, svg)`
+      )
+    );
+  }
+};
+
+const lmsUpload = multer({
+  storage,
+  limits: {
+    fileSize: 500 * 1024 * 1024, // 500MB max for LMS content (mainly for videos)
+    files: 10, // Allow up to 10 files at a time
+    fieldSize: 10 * 1024 * 1024, // 10MB for field data
+  },
+  fileFilter: lmsFileFilter,
+});
+
+// Wrap the LMS multer middleware with error handling
+const lmsUploadWithErrorHandling = (req, res, next) => {
+  lmsUpload.array("files", 10)(req, res, (err) => {
+    if (err) {
+      console.error("🚨 LMS Multer Error:", {
+        message: err.message,
+        code: err.code,
+        field: err.field,
+        files: req.files,
+        body: req.body,
+      });
+
+      // Handle specific multer errors
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({
+          success: false,
+          message: `File too large. Maximum size is 500MB.`,
+        });
+      }
+
+      if (err.code === "LIMIT_FILE_COUNT") {
+        return res.status(400).json({
+          success: false,
+          message: "Too many files. Maximum 10 files allowed per upload.",
+        });
+      }
+
+      if (err.code === "LIMIT_FIELD_SIZE") {
+        return res.status(400).json({
+          success: false,
+          message: "Field data too large. Maximum size is 10MB.",
+        });
+      }
+
+      // Generic multer error
+      return res.status(400).json({
+        success: false,
+        message: `Upload error: ${err.message}`,
+      });
+    }
+
+    // Log successful file upload for debugging
+    if (req.files && req.files.length > 0) {
+      console.log("✅ LMS Files uploaded successfully:", req.files.map(f => ({
+        originalname: f.originalname,
+        filename: f.filename,
+        path: f.path,
+        size: f.size,
+        mimetype: f.mimetype,
+      })));
+    }
+
+    // No error, continue
+    next();
+  });
+};
+
 // Wrap the multer middleware to add error handling
 const wtfUploadWithErrorHandling = (req, res, next) => {
   wtfUpload.single("file")(req, res, (err) => {
@@ -232,5 +350,7 @@ module.exports = {
   wtfUpload,
   wtfUploadWithErrorHandling,
   fontUpload,
+  lmsUpload,
+  lmsUploadWithErrorHandling,
   cleanupOrphanedFiles,
 };

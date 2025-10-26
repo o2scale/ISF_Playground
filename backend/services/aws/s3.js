@@ -4,17 +4,21 @@ const {
   GetObjectCommand,
   DeleteObjectCommand,
 } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 const fs = require("fs");
 const path = require("path");
 const VideoThumbnailService = require("../videoThumbnail");
 
 // Configure the S3 client
+// IMPORTANT: Disable automatic checksum calculation for presigned URL compatibility
+// Browser uploads can't compute AWS checksums, so we disable them
 const s3Client = new S3Client({
   region: process.env.AWS_S3_REGION, // e.g., 'us-east-1'
   credentials: {
     accessKeyId: process.env.AWS_S3_ACCESS_KEY_ID,
     secretAccessKey: process.env.AWS_S3_SECRET_KEY,
   },
+  requestChecksumCalculation: "WHEN_REQUIRED", // Only calculate checksums when S3 requires it (not for uploads)
 });
 
 exports.uploadFileToS3 = async (filePath, bucketName, keyName) => {
@@ -525,6 +529,252 @@ exports.deleteShopProductImage = async (keyOrUrl) => {
       message: "Shop product image deletion failed",
       error: error.message,
       keyOrUrl: keyOrUrl,
+    };
+  }
+};
+
+// ==================== LMS CONTENT MANAGEMENT METHODS ====================
+
+/**
+ * Generate presigned URL for direct client-side upload to S3
+ * Allows frontend to upload files directly to S3 without going through backend
+ * @param {string} fileName - Original file name
+ * @param {string} fileType - Type of file (video, pdf, audio, image)
+ * @param {string} mimeType - MIME type (e.g., 'video/mp4')
+ * @param {number} expiresIn - URL expiration time in seconds (default: 3600 = 1 hour)
+ * @returns {Promise<object>} - Upload URL and file details
+ */
+exports.generateLMSContentUploadUrl = async (fileName, fileType, mimeType, expiresIn = 3600) => {
+  try {
+    // Generate unique S3 key with timestamp
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(7);
+    const fileExtension = path.extname(fileName);
+    const baseName = path.basename(fileName, fileExtension);
+    const s3Key = `lms/content/${fileType}/${baseName}_${timestamp}_${randomStr}${fileExtension}`;
+
+    // Create PutObjectCommand for presigning
+    // Note: ChecksumAlgorithm must NOT be set for browser uploads
+    // The AWS SDK will add checksums automatically which browsers can't compute
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME, // Fallback to WTF bucket if LMS bucket not configured
+      Key: s3Key,
+      ContentType: mimeType,
+      Metadata: {
+        'original-filename': fileName,
+        'file-type': fileType,
+        'upload-timestamp': new Date().toISOString(),
+      },
+    });
+
+    // Generate presigned URL (valid for 1 hour by default)
+    // unhoistableHeaders ensures checksum headers don't get signed into the URL
+    const uploadUrl = await getSignedUrl(s3Client, command, {
+      expiresIn,
+      unhoistableHeaders: new Set(['x-amz-checksum-crc32', 'x-amz-sdk-checksum-algorithm'])
+    });
+
+    // Construct CDN URL (public URL after upload completes)
+    const region = await s3Client.config.region();
+    const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
+    const cdnUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+
+    console.log(`Generated presigned upload URL for ${fileName} (expires in ${expiresIn}s)`);
+
+    return {
+      success: true,
+      uploadUrl,
+      cdnUrl,
+      s3Key,
+      expiresIn,
+      fileName,
+      fileType,
+      mimeType,
+    };
+  } catch (error) {
+    console.error('Error generating presigned upload URL:', error);
+    return {
+      success: false,
+      message: 'Failed to generate upload URL',
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Generate presigned URL for downloading/viewing LMS content
+ * @param {string} s3Key - S3 object key
+ * @param {number} expiresIn - URL expiration time in seconds (default: 3600)
+ * @returns {Promise<object>} - Download URL
+ */
+exports.generateLMSContentDownloadUrl = async (s3Key, expiresIn = 3600) => {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME,
+      Key: s3Key,
+    });
+
+    const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn });
+
+    console.log(`Generated presigned download URL for ${s3Key} (expires in ${expiresIn}s)`);
+
+    return {
+      success: true,
+      downloadUrl,
+      s3Key,
+      expiresIn,
+    };
+  } catch (error) {
+    console.error('Error generating presigned download URL:', error);
+    return {
+      success: false,
+      message: 'Failed to generate download URL',
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Upload LMS content from backend (for server-side uploads)
+ * @param {Buffer|string} fileContent - File content (buffer or file path)
+ * @param {string} fileName - Original file name
+ * @param {string} fileType - Type of file (video, pdf, audio, image)
+ * @param {string} mimeType - MIME type
+ * @returns {Promise<object>} - Upload result with CDN URL
+ */
+exports.uploadLMSContent = async (fileContent, fileName, fileType, mimeType) => {
+  try {
+    // Read file if path is provided
+    const content = typeof fileContent === 'string'
+      ? fs.readFileSync(fileContent)
+      : fileContent;
+
+    // Generate S3 key
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(7);
+    const fileExtension = path.extname(fileName);
+    const baseName = path.basename(fileName, fileExtension);
+    const s3Key = `lms/content/${fileType}/${baseName}_${timestamp}_${randomStr}${fileExtension}`;
+
+    // Upload to S3
+    const command = new PutObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME,
+      Key: s3Key,
+      Body: content,
+      ContentType: mimeType,
+      Metadata: {
+        'original-filename': fileName,
+        'file-type': fileType,
+        'upload-timestamp': new Date().toISOString(),
+      },
+    });
+
+    await s3Client.send(command);
+
+    // Construct CDN URL
+    const region = await s3Client.config.region();
+    const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
+    const cdnUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+
+    console.log(`LMS content uploaded successfully: ${cdnUrl}`);
+
+    return {
+      success: true,
+      message: 'LMS content uploaded successfully',
+      url: cdnUrl,
+      s3Key,
+      fileName,
+      fileType,
+      mimeType,
+    };
+  } catch (error) {
+    console.error('Error uploading LMS content:', error);
+    return {
+      success: false,
+      message: 'LMS content upload failed',
+      error: error.message,
+    };
+  }
+};
+
+/**
+ * Delete LMS content by S3 key or URL
+ * @param {string} keyOrUrl - S3 key or full URL
+ * @returns {Promise<object>} - Deletion result
+ */
+exports.deleteLMSContent = async (keyOrUrl) => {
+  try {
+    let key = keyOrUrl;
+
+    // Extract key from URL if needed
+    if (keyOrUrl && keyOrUrl.startsWith('http')) {
+      key = exports.extractS3KeyFromUrl(keyOrUrl);
+      if (!key) {
+        return {
+          success: false,
+          message: 'Could not extract S3 key from URL',
+          keyOrUrl,
+        };
+      }
+    }
+
+    if (!key) {
+      return {
+        success: false,
+        message: 'No valid S3 key or URL provided',
+        keyOrUrl,
+      };
+    }
+
+    const command = new DeleteObjectCommand({
+      Bucket: process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME,
+      Key: key,
+    });
+
+    await s3Client.send(command);
+
+    console.log(`LMS content deleted successfully: ${key}`);
+
+    return {
+      success: true,
+      message: 'LMS content deleted successfully',
+      key,
+      originalInput: keyOrUrl,
+    };
+  } catch (error) {
+    console.error('Error deleting LMS content:', error);
+    return {
+      success: false,
+      message: 'LMS content deletion failed',
+      error: error.message,
+      keyOrUrl,
+    };
+  }
+};
+
+/**
+ * Get public CDN URL for LMS content (without presigning)
+ * For public content that doesn't require signed URLs
+ * @param {string} s3Key - S3 object key
+ * @returns {Promise<object>} - CDN URL
+ */
+exports.getLMSContentUrl = async (s3Key) => {
+  try {
+    const region = await s3Client.config.region();
+    const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
+    const url = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
+
+    return {
+      success: true,
+      url,
+      s3Key,
+    };
+  } catch (error) {
+    console.error('Error getting LMS content URL:', error);
+    return {
+      success: false,
+      message: 'Failed to get LMS content URL',
+      error: error.message,
     };
   }
 };

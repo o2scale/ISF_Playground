@@ -45,6 +45,7 @@ import CoachDeliveries from "./pages/CoachDeliveries";
 import StudentProfile from "./pages/StudentProfile";
 import AdminCourseDashboard from "./pages/admin/AdminCourseDashboard";
 import CourseStructureBuilder from "./pages/admin/CourseStructureBuilder";
+import ContentLibrary from "./pages/admin/ContentLibrary";
 
 const App = () => {
   return (
@@ -287,6 +288,14 @@ const App = () => {
                   element={
                     <ProtectedRoute module="LMS Management" action="Manage">
                       <CourseStructureBuilder />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/content"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <ContentLibrary />
                     </ProtectedRoute>
                   }
                 />
