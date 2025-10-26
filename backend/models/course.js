@@ -60,6 +60,13 @@ const ContentItemSchema = new mongoose.Schema(
       },
       maxFileSize: { type: Number }, // MB
     },
+    // Sprint 2 Story 04: Translations support
+    translations: {
+      telugu: {
+        title: String,
+        description: String,
+      },
+    },
   },
   { timestamps: true }
 );
@@ -77,6 +84,13 @@ const ChapterSchema = new mongoose.Schema({
   quizzes: [QuizSchema],
   // Sprint 2: New content items
   contentItems: [ContentItemSchema],
+  // Sprint 2 Story 04: Translations support
+  translations: {
+    telugu: {
+      title: String,
+      description: String,
+    },
+  },
 });
 
 // Sprint 2: Enhanced Module Schema with order
@@ -85,6 +99,13 @@ const ModuleSchema = new mongoose.Schema({
   description: { type: String },
   order: { type: Number, required: true, default: 0 }, // Sprint 2: For drag-and-drop
   chapters: [ChapterSchema],
+  // Sprint 2 Story 04: Translations support
+  translations: {
+    telugu: {
+      title: String,
+      description: String,
+    },
+  },
 });
 
 // Sprint 2: Enhanced Course Schema
