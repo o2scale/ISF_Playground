@@ -46,6 +46,8 @@ import StudentProfile from "./pages/StudentProfile";
 import AdminCourseDashboard from "./pages/admin/AdminCourseDashboard";
 import CourseStructureBuilder from "./pages/admin/CourseStructureBuilder";
 import ContentLibrary from "./pages/admin/ContentLibrary";
+import QuizDashboard from "./pages/admin/QuizDashboard";
+import QuizBuilder from "./pages/admin/QuizBuilder";
 
 const App = () => {
   return (
@@ -296,6 +298,30 @@ const App = () => {
                   element={
                     <ProtectedRoute module="LMS Management" action="Manage">
                       <ContentLibrary />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/quizzes"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <QuizDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/quizzes/create"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <QuizBuilder />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/quizzes/:quizId/edit"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <QuizBuilder />
                     </ProtectedRoute>
                   }
                 />
