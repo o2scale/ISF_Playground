@@ -68,6 +68,18 @@ router.delete(
 // ==================== STRUCTURE MANAGEMENT ====================
 
 /**
+ * @route GET /api/v2/lms/admin/courses/:courseId/modules
+ * @desc Get all modules for a course
+ * @access Private (Admin only)
+ */
+router.get(
+  '/:courseId/modules',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.getModulesByCourseId
+);
+
+/**
  * @route POST /api/v2/lms/admin/courses/:courseId/modules
  * @desc Add module to course
  * @access Private (Admin only)

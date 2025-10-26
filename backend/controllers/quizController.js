@@ -67,8 +67,7 @@ exports.getAllQuizzes = async (req, res) => {
     // Execute query
     const quizzes = await Quiz.find(query)
       .populate('course', 'title')
-      .populate('module', 'title')
-      .populate('chapter', 'title')
+      // Note: module and chapter are subdocuments within Course, cannot populate
       .populate('createdBy', 'name email')
       .populate('lastEditedBy', 'name email')
       .sort(sortOption)
@@ -115,8 +114,7 @@ exports.getQuizById = async (req, res) => {
 
     const quiz = await Quiz.findById(quizId)
       .populate('course', 'title')
-      .populate('module', 'title')
-      .populate('chapter', 'title')
+      // Note: module and chapter are subdocuments within Course, cannot populate
       .populate('createdBy', 'name email')
       .populate('lastEditedBy', 'name email');
 
@@ -167,13 +165,18 @@ exports.createQuiz = async (req, res) => {
       });
     }
 
+    // Convert empty strings to undefined for ObjectId fields
+    const cleanedCourse = course && course.trim() !== '' ? course : undefined;
+    const cleanedModule = module && module.trim() !== '' ? module : undefined;
+    const cleanedChapter = chapter && chapter.trim() !== '' ? chapter : undefined;
+
     // Create quiz
     const quiz = new Quiz({
       title: title.trim(),
       description: description?.trim(),
-      course,
-      module,
-      chapter,
+      course: cleanedCourse,
+      module: cleanedModule,
+      chapter: cleanedChapter,
       questions,
       settings: {
         ...settings,
@@ -181,16 +184,23 @@ exports.createQuiz = async (req, res) => {
       },
       tags,
       status: 'draft',
-      createdBy: req.user._id
+      createdBy: req.user?._id || req.user?.id
+    });
+
+    // Debug logging
+    console.log('Creating quiz with user:', {
+      hasUser: !!req.user,
+      userId: req.user?._id,
+      userIdString: req.user?.id,
+      userType: typeof req.user
     });
 
     await quiz.save();
 
-    // Populate references for response
+    // Populate references for response (only models, not subdocuments)
     await quiz.populate([
       { path: 'course', select: 'title' },
-      { path: 'module', select: 'title' },
-      { path: 'chapter', select: 'title' },
+      // Note: module and chapter are subdocuments within Course, cannot populate
       { path: 'createdBy', select: 'name email' }
     ]);
 
@@ -202,10 +212,20 @@ exports.createQuiz = async (req, res) => {
 
   } catch (error) {
     console.error('Error creating quiz:', error);
+    console.error('Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack,
+      errors: error.errors // Mongoose validation errors
+    });
     res.status(500).json({
       success: false,
       message: 'Failed to create quiz',
-      error: error.message
+      error: error.message,
+      details: error.errors ? Object.keys(error.errors).map(key => ({
+        field: key,
+        message: error.errors[key].message
+      })) : undefined
     });
   }
 };
@@ -240,21 +260,31 @@ exports.updateQuiz = async (req, res) => {
       'tags'
     ];
 
+    // Sanitize empty strings for optional ObjectId fields (same as createQuiz)
+    if (updates.course !== undefined && updates.course.trim && updates.course.trim() === '') {
+      updates.course = undefined;
+    }
+    if (updates.module !== undefined && updates.module.trim && updates.module.trim() === '') {
+      updates.module = undefined;
+    }
+    if (updates.chapter !== undefined && updates.chapter.trim && updates.chapter.trim() === '') {
+      updates.chapter = undefined;
+    }
+
     allowedUpdates.forEach(field => {
       if (updates[field] !== undefined) {
         quiz[field] = updates[field];
       }
     });
 
-    quiz.lastEditedBy = req.user._id;
+    quiz.lastEditedBy = req.user?._id || req.user?.id;
 
     await quiz.save();
 
-    // Populate references
+    // Populate references (only models, not subdocuments)
     await quiz.populate([
       { path: 'course', select: 'title' },
-      { path: 'module', select: 'title' },
-      { path: 'chapter', select: 'title' },
+      // Note: module and chapter are subdocuments within Course, cannot populate
       { path: 'createdBy', select: 'name email' },
       { path: 'lastEditedBy', select: 'name email' }
     ]);
@@ -296,11 +326,10 @@ exports.duplicateQuiz = async (req, res) => {
     const duplicateQuiz = originalQuiz.duplicate(req.user._id);
     await duplicateQuiz.save();
 
-    // Populate references
+    // Populate references (only models, not subdocuments)
     await duplicateQuiz.populate([
       { path: 'course', select: 'title' },
-      { path: 'module', select: 'title' },
-      { path: 'chapter', select: 'title' },
+      // Note: module and chapter are subdocuments within Course, cannot populate
       { path: 'createdBy', select: 'name email' }
     ]);
 

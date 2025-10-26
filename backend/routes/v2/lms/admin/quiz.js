@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const quizController = require('../../../../controllers/quizController');
 const questionBankController = require('../../../../controllers/questionBankController');
-const { authenticate } = require('../../../../middleware/authenticate');
-const { authorize } = require('../../../../middleware/authorize');
+const { authenticate, authorize } = require('../../../../middleware/auth');
 
 /**
  * Quiz Routes - Sprint 2 Epic 02 Story 03

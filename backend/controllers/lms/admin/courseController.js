@@ -39,7 +39,7 @@ exports.getAllCourses = async (req, res) => {
     res.status(200).json({
       success: true,
       count: courses.length,
-      data: coursesWithCounts,
+      courses: coursesWithCounts,
     });
   } catch (error) {
     console.error("Error fetching courses:", error);
@@ -705,6 +705,70 @@ exports.duplicateCourse = async (req, res) => {
     });
   } catch (error) {
     console.error("Error duplicating course:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+// ==================== STRUCTURE QUERY HELPERS ====================
+
+/**
+ * GET /api/v2/lms/admin/courses/:courseId/modules
+ * Get all modules for a specific course
+ */
+exports.getModulesByCourseId = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ error: "Invalid course ID" });
+    }
+
+    const course = await Course.findById(courseId).select('modules');
+
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      modules: course.modules || [],
+    });
+  } catch (error) {
+    console.error("Error fetching modules:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/v2/lms/admin/modules/:moduleId/chapters
+ * Get all chapters for a specific module
+ */
+exports.getChaptersByModuleId = async (req, res) => {
+  try {
+    const { moduleId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(moduleId)) {
+      return res.status(400).json({ error: "Invalid module ID" });
+    }
+
+    const course = await Course.findOne({ "modules._id": moduleId });
+
+    if (!course) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      chapters: module.chapters || [],
+    });
+  } catch (error) {
+    console.error("Error fetching chapters:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

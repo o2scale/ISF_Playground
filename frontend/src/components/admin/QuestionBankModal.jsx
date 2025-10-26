@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search } from 'lucide-react';
-import api from '../../utils/api';
+import { api } from '../../api';
 import toast from 'react-hot-toast';
 
 export default function QuestionBankModal({ onClose, onAddQuestions }) {

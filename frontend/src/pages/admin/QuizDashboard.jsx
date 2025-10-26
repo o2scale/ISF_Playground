@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Filter, MoreVertical, Edit, Copy, Trash2, Eye } from 'lucide-react';
-import api from '../../utils/api';
+import { api } from '../../api';
 import toast from 'react-hot-toast';
 
 /**

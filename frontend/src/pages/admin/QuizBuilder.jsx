@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, Eye, ArrowLeft, Plus, GripVertical } from 'lucide-react';
-import api from '../../utils/api';
+import { api } from '../../api';
 import toast from 'react-hot-toast';
 import MCQEditor from '../../components/admin/MCQEditor';
 import TrueFalseEditor from '../../components/admin/TrueFalseEditor';
