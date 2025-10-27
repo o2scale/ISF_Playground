@@ -42,6 +42,7 @@ const lmsAdminModulesRoutes = require("./routes/v2/lms/admin/modules"); // Sprin
 const lmsAdminQuizRoutes = require("./routes/v2/lms/admin/quiz"); // Sprint 2: LMS Quiz & Assessment Builder
 const lmsAdminTranslationRoutes = require("./routes/v2/lms/admin/translations"); // Sprint 2: LMS Translation Management
 const lmsStudentDashboardRoutes = require("./routes/v2/lms/student/dashboard"); // Sprint 2 Epic 01: Student Dashboard & Homepage
+const lmsStudentComputerAppsRoutes = require("./routes/v2/lms/student/computerApps"); // Sprint 2 Epic 01: Computer Apps Course
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -156,6 +157,7 @@ app.use("/api/v2/lms/admin/modules", lmsAdminModulesRoutes); // Sprint 2: LMS Ad
 app.use("/api/v2/lms/admin", lmsAdminQuizRoutes); // Sprint 2: LMS Quiz & Assessment Builder (requires admin auth)
 app.use("/api/v2/lms/admin/translations", lmsAdminTranslationRoutes); // Sprint 2: LMS Translation Management (requires admin auth)
 app.use("/api/v2/lms/student", lmsStudentDashboardRoutes); // Sprint 2 Epic 01: Student Dashboard & Homepage (requires student auth)
+app.use("/api/v2/lms/student/:studentId/courses/computer-apps", lmsStudentComputerAppsRoutes); // Sprint 2 Epic 01: Computer Apps Course (requires student auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"

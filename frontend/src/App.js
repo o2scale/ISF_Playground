@@ -52,6 +52,7 @@ import TranslationDashboard from "./pages/admin/TranslationDashboard";
 import TranslationEditor from "./pages/admin/TranslationEditor";
 import TranslationQueue from "./pages/admin/TranslationQueue";
 import StudentDashboardPage from "./pages/student/StudentDashboardPage";
+import ComputerAppsPage from "./pages/student/ComputerAppsPage";
 
 const App = () => {
   return (
@@ -80,10 +81,7 @@ const App = () => {
                 path="/student/computer-apps"
                 element={
                   <ProtectedRoute>
-                    {/* Placeholder - Epic 01 Story 02 */}
-                    <div className="flex items-center justify-center min-h-screen">
-                      <h1 className="text-2xl">Computer Apps - Coming Soon</h1>
-                    </div>
+                    <ComputerAppsPage />
                   </ProtectedRoute>
                 }
               />
