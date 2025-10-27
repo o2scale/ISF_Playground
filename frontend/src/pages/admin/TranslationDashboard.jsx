@@ -70,8 +70,18 @@ const TranslationDashboard = () => {
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
       <div className="bg-purple-600 text-white py-6 px-8 shadow-lg">
-        <h1 className="text-3xl font-bold">Translation Management</h1>
-        <p className="text-purple-100 mt-2">English → తెలుగు (Telugu)</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold">Translation Management</h1>
+            <p className="text-purple-100 mt-2">English → తెలుగు (Telugu)</p>
+          </div>
+          <button
+            onClick={() => navigate('/admin/translations/queue')}
+            className="bg-white text-purple-600 hover:bg-purple-50 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md"
+          >
+            📋 Browse All Items
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto p-8">

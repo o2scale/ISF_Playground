@@ -50,6 +50,7 @@ import QuizDashboard from "./pages/admin/QuizDashboard";
 import QuizBuilder from "./pages/admin/QuizBuilder";
 import TranslationDashboard from "./pages/admin/TranslationDashboard";
 import TranslationEditor from "./pages/admin/TranslationEditor";
+import TranslationQueue from "./pages/admin/TranslationQueue";
 
 const App = () => {
   return (
@@ -334,6 +335,14 @@ const App = () => {
                   element={
                     <ProtectedRoute module="LMS Management" action="Manage">
                       <TranslationDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/admin/translations/queue"
+                  element={
+                    <ProtectedRoute module="LMS Management" action="Manage">
+                      <TranslationQueue />
                     </ProtectedRoute>
                   }
                 />

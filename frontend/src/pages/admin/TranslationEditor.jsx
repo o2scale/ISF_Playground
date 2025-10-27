@@ -224,9 +224,18 @@ const TranslationEditor = () => {
 
       // For quiz questions with options, validate all options are translated
       if (currentItem.type === 'quiz_question' && currentItem.english.options && currentItem.english.options.length > 0) {
-        const emptyOptions = teluguOptions.filter((opt, idx) => idx < currentItem.english.options.length && !opt.trim());
-        if (emptyOptions.length > 0) {
-          setError(`Cannot mark as translated: ${emptyOptions.length} option(s) not translated`);
+        const totalOptions = currentItem.english.options.length;
+        let emptyCount = 0;
+
+        for (let i = 0; i < totalOptions; i++) {
+          const option = teluguOptions[i];
+          if (!option || !option.trim()) {
+            emptyCount++;
+          }
+        }
+
+        if (emptyCount > 0) {
+          setError(`Cannot mark as translated: ${emptyCount} option(s) not translated`);
           setSaveStatus('error');
           return;
         }
