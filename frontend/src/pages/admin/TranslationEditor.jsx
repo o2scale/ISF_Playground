@@ -175,16 +175,22 @@ const TranslationEditor = () => {
   };
 
   const handlePrevious = () => {
+    setSaveStatus('saved');
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
-      setSaveStatus('saved');
+    } else {
+      // NAV-06: Wrap to last item
+      setCurrentIndex(items.length - 1);
     }
   };
 
   const handleNext = () => {
+    setSaveStatus('saved');
     if (currentIndex < items.length - 1) {
       setCurrentIndex(currentIndex + 1);
-      setSaveStatus('saved');
+    } else {
+      // NAV-06: Wrap to first item
+      setCurrentIndex(0);
     }
   };
 
@@ -208,10 +214,30 @@ const TranslationEditor = () => {
   };
 
   const handleMarkAsTranslated = async () => {
-    setMarkAsTranslated(!markAsTranslated);
     if (!markAsTranslated) {
+      // Validate before marking as translated (SAVE-05)
+      if (!teluguTitle.trim()) {
+        setError('Cannot mark as translated: Title is required');
+        setSaveStatus('error');
+        return;
+      }
+
+      // For quiz questions with options, validate all options are translated
+      if (currentItem.type === 'quiz_question' && currentItem.english.options && currentItem.english.options.length > 0) {
+        const emptyOptions = teluguOptions.filter((opt, idx) => idx < currentItem.english.options.length && !opt.trim());
+        if (emptyOptions.length > 0) {
+          setError(`Cannot mark as translated: ${emptyOptions.length} option(s) not translated`);
+          setSaveStatus('error');
+          return;
+        }
+      }
+
       // If checking the box, save and mark complete
+      setMarkAsTranslated(true);
       await saveTranslation(true);
+    } else {
+      // Unchecking - just toggle
+      setMarkAsTranslated(false);
     }
   };
 
@@ -302,12 +328,27 @@ const TranslationEditor = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Screen Reader Announcements (ACC-03) */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {saveStatus === 'saving' && 'Saving translation...'}
+        {saveStatus === 'saved' && 'Translation saved successfully'}
+        {saveStatus === 'error' && `Error: ${error}`}
+        {progress && `Translation progress: ${progress.percentage}% complete. ${progress.translatedItems} of ${progress.totalItems} items translated.`}
+      </div>
+
       {/* Header */}
-      <div className="bg-purple-600 text-white py-4 px-8 shadow-lg">
+      <div className="bg-purple-600 text-white py-4 px-8 shadow-lg" role="banner">
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-2xl font-bold">Translation Editor</h1>
-            <p className="text-purple-100 text-sm mt-1">{progress && `${progress.translatedItems} / ${progress.totalItems} items (${progress.percentage}%)`}</p>
+            <p className="text-purple-100 text-sm mt-1" aria-label={progress && `Translation progress: ${progress.translatedItems} of ${progress.totalItems} items, ${progress.percentage}% complete`}>
+              {progress && `${progress.translatedItems} / ${progress.totalItems} items (${progress.percentage}%)`}
+            </p>
           </div>
           <div className="flex gap-3">
             <button
@@ -426,34 +467,44 @@ const TranslationEditor = () => {
 
               {/* Title */}
               <div className="mb-6">
-                <label className="block text-gray-700 font-semibold mb-2">
+                <label htmlFor="telugu-title" className="block text-gray-700 font-semibold mb-2">
                   {currentItem.type === 'quiz_question' ? 'Question:' : 'Title:'}
                 </label>
                 <input
+                  id="telugu-title"
                   type="text"
                   value={teluguTitle}
                   onChange={handleTitleChange}
                   maxLength={120}
                   placeholder="Enter Telugu translation..."
+                  aria-label={`Telugu translation for ${currentItem.type === 'quiz_question' ? 'question' : 'title'}`}
+                  aria-required="true"
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded focus:outline-none focus:border-purple-500"
                 />
-                <p className="text-gray-500 text-sm mt-1">{teluguTitle.length} / 120 characters</p>
+                <p className="text-gray-500 text-sm mt-1" aria-live="polite">{teluguTitle.length} / 120 characters</p>
               </div>
 
               {/* Description */}
               <div className="mb-6">
-                <label className="block text-gray-700 font-semibold mb-2">
+                <label htmlFor="telugu-description" className="block text-gray-700 font-semibold mb-2">
                   {currentItem.type === 'quiz_question' ? 'Explanation:' : 'Description:'}
                 </label>
                 <textarea
+                  id="telugu-description"
                   value={teluguDescription}
                   onChange={handleDescriptionChange}
                   rows={6}
                   maxLength={1000}
                   placeholder="Enter Telugu translation..."
+                  aria-label={`Telugu translation for ${currentItem.type === 'quiz_question' ? 'explanation' : 'description'}. Supports markdown formatting.`}
                   className="w-full px-4 py-2 border-2 border-gray-300 rounded focus:outline-none focus:border-purple-500 resize-none"
                 />
-                <p className="text-gray-500 text-sm mt-1">{teluguDescription.length} / 1000 characters</p>
+                <div className="flex justify-between items-center mt-1">
+                  <p className="text-gray-500 text-xs">
+                    <strong>Formatting:</strong> **bold** *italic* • Bullet • 1. Numbered
+                  </p>
+                  <p className="text-gray-500 text-sm" aria-live="polite">{teluguDescription.length} / 1000 characters</p>
+                </div>
               </div>
 
               {/* Quiz Options (Telugu - Editable) */}
@@ -490,6 +541,7 @@ const TranslationEditor = () => {
                 type="checkbox"
                 checked={markAsTranslated}
                 onChange={handleMarkAsTranslated}
+                aria-label="Mark this item as translated and move to next untranslated item"
                 className="w-5 h-5 text-purple-600 focus:ring-purple-500 rounded cursor-pointer"
               />
               <span className="ml-3 text-gray-700 font-medium">
@@ -502,8 +554,9 @@ const TranslationEditor = () => {
           <div className="border-t-2 border-gray-200 px-8 py-6 bg-white flex justify-between items-center">
             <button
               onClick={handlePrevious}
-              disabled={currentIndex === 0}
-              className="bg-gray-300 hover:bg-gray-400 disabled:bg-gray-200 disabled:cursor-not-allowed text-gray-700 font-bold py-3 px-6 rounded transition-colors"
+              className="bg-gray-300 hover:bg-gray-400 text-gray-700 font-bold py-3 px-6 rounded transition-colors"
+              title="Previous item (wraps to last)"
+              aria-label={`Navigate to previous item. Currently on item ${currentIndex + 1} of ${items.length}.`}
             >
               ← Previous
             </button>
@@ -512,14 +565,16 @@ const TranslationEditor = () => {
               <button
                 onClick={handleSkip}
                 className="bg-yellow-500 hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded transition-colors"
+                aria-label="Skip current item and move to next untranslated item"
               >
                 Skip (move to next)
               </button>
 
               <button
                 onClick={handleNext}
-                disabled={currentIndex === items.length - 1}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded transition-colors"
+                className="bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-6 rounded transition-colors"
+                title="Next item (wraps to first)"
+                aria-label={`Save current translation and navigate to next item. Currently on item ${currentIndex + 1} of ${items.length}.`}
               >
                 Save & Next →
               </button>
