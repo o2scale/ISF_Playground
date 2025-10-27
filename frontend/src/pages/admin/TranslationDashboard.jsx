@@ -76,8 +76,13 @@ const TranslationDashboard = () => {
             <p className="text-purple-100 mt-2">English → తెలుగు (Telugu)</p>
           </div>
           <button
-            onClick={() => navigate('/admin/translations/queue')}
-            className="bg-white text-purple-600 hover:bg-purple-50 font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md"
+            onClick={() => selectedCourse && navigate(`/admin/translations/${selectedCourse}/queue`)}
+            disabled={!selectedCourse}
+            className={`font-semibold py-3 px-6 rounded-lg transition-colors duration-200 shadow-md ${
+              selectedCourse
+                ? 'bg-white text-purple-600 hover:bg-purple-50 cursor-pointer'
+                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            }`}
           >
             📋 Browse All Items
           </button>

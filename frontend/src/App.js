@@ -339,7 +339,7 @@ const App = () => {
                   }
                 />
                 <Route
-                  path="/admin/translations/queue"
+                  path="/admin/translations/:courseId/queue"
                   element={
                     <ProtectedRoute module="LMS Management" action="Manage">
                       <TranslationQueue />
