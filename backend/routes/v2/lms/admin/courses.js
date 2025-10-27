@@ -130,6 +130,18 @@ router.put(
 // ==================== PUBLISHING WORKFLOW ====================
 
 /**
+ * @route GET /api/v2/lms/admin/courses/:courseId/validate
+ * @desc Get detailed validation results for publishing (Epic 02 Story 05)
+ * @access Private (Admin only)
+ */
+router.get(
+  '/:courseId/validate',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.validateCourseDetailed
+);
+
+/**
  * @route PUT /api/v2/lms/admin/courses/:courseId/publish
  * @desc Publish course (validates required fields first)
  * @access Private (Admin only)
@@ -163,6 +175,18 @@ router.put(
   authenticate,
   authorize('LMS Management', 'Manage'),
   courseController.restoreCourse
+);
+
+/**
+ * @route PUT /api/v2/lms/admin/courses/:courseId/unpublish
+ * @desc Unpublish course (change from published to draft) - Epic 02 Story 05
+ * @access Private (Admin only)
+ */
+router.put(
+  '/:courseId/unpublish',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.unpublishCourse
 );
 
 /**

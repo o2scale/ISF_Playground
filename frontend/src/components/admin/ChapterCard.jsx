@@ -191,7 +191,7 @@ export default function ChapterCard({
                 <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-20">
                   <button
                     onClick={() => {
-                      toast.info('Edit chapter not yet implemented');
+                      toast('Edit chapter not yet implemented');
                       setShowMenu(false);
                     }}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"

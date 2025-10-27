@@ -114,12 +114,12 @@ export default function ContentItemCard({
   };
 
   const handlePreview = () => {
-    toast.info('Preview feature not yet implemented');
+    toast('Preview feature not yet implemented');
     setShowMenu(false);
   };
 
   const handleEdit = () => {
-    toast.info('Edit content item not yet implemented');
+    toast('Edit content item not yet implemented');
     setShowMenu(false);
   };
 

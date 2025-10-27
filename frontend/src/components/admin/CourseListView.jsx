@@ -4,6 +4,12 @@ import { api } from '../../api';
 import toast from 'react-hot-toast';
 import ContextMenu from './ContextMenu';
 import CourseCreationModal from './CourseCreationModal';
+import PublishValidationModal from './PublishValidationModal';
+import ArchiveConfirmationModal from './ArchiveConfirmationModal';
+import RestoreCourseModal from './RestoreCourseModal';
+import UnpublishConfirmationModal from './UnpublishConfirmationModal';
+import BulkActionsBar from './BulkActionsBar';
+import BulkOperationModal from './BulkOperationModal';
 
 /**
  * CourseListView - Sprint 2 Epic 02 Story 01
@@ -22,6 +28,27 @@ export default function CourseListView({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [courseToEdit, setCourseToEdit] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // Epic 02 Story 05: Publish validation modal
+  const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
+  const [courseToPublish, setCourseToPublish] = useState(null);
+
+  // Epic 02 Story 05: Archive confirmation modal
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false);
+  const [courseToArchive, setCourseToArchive] = useState(null);
+
+  // Epic 02 Story 05: Restore course modal
+  const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+  const [courseToRestore, setCourseToRestore] = useState(null);
+
+  // Epic 02 Story 05: Unpublish confirmation modal
+  const [isUnpublishModalOpen, setIsUnpublishModalOpen] = useState(false);
+  const [courseToUnpublish, setCourseToUnpublish] = useState(null);
+
+  // Epic 02 Story 05: Bulk operations
+  const [selectedCourseIds, setSelectedCourseIds] = useState([]);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkOperation, setBulkOperation] = useState(null); // 'publish', 'archive', 'delete'
 
   // Status badge styles
   const getStatusBadge = (status) => {
@@ -56,72 +83,56 @@ export default function CourseListView({
     closeMenu();
   };
 
-  const handlePublish = async (courseId) => {
-    try {
-      setActionLoading(true);
-      const response = await api.put(`/api/v2/lms/admin/courses/${courseId}/publish`);
-
-      if (response.data.success) {
-        toast.success('Course published successfully!');
-        onRefresh();
-      }
-    } catch (error) {
-      console.error('Error publishing course:', error);
-
-      if (error.response?.data?.errors) {
-        // Validation errors
-        const errorList = error.response.data.errors.join(', ');
-        toast.error(`Cannot publish: ${errorList}`);
-      } else {
-        toast.error('Failed to publish course');
-      }
-    } finally {
-      setActionLoading(false);
-      closeMenu();
-    }
+  // Epic 02 Story 05: Open publish validation modal
+  const handlePublish = (course) => {
+    setCourseToPublish(course);
+    setIsPublishModalOpen(true);
+    closeMenu();
   };
 
-  const handleArchive = async (courseId) => {
-    if (!window.confirm('Are you sure you want to archive this course? It will be hidden from students and coaches.')) {
-      closeMenu();
-      return;
-    }
-
-    try {
-      setActionLoading(true);
-      const response = await api.put(`/api/v2/lms/admin/courses/${courseId}/archive`);
-
-      if (response.data.success) {
-        toast.success('Course archived successfully!');
-        onRefresh();
-      }
-    } catch (error) {
-      console.error('Error archiving course:', error);
-      toast.error('Failed to archive course');
-    } finally {
-      setActionLoading(false);
-      closeMenu();
-    }
+  const handlePublishSuccess = () => {
+    setIsPublishModalOpen(false);
+    setCourseToPublish(null);
+    onRefresh();
   };
 
-  const handleRestore = async (courseId) => {
-    try {
-      setActionLoading(true);
-      const response = await api.put(`/api/v2/lms/admin/courses/${courseId}/restore`, {
-        restoreToStatus: 'published'
-      });
+  // Epic 02 Story 05: Open archive confirmation modal
+  const handleArchive = (course) => {
+    setCourseToArchive(course);
+    setIsArchiveModalOpen(true);
+    closeMenu();
+  };
 
-      if (response.data.success) {
-        toast.success('Course restored successfully!');
-        onRefresh();
-      }
-    } catch (error) {
-      console.error('Error restoring course:', error);
-      toast.error('Failed to restore course');
-    } finally {
-      setActionLoading(false);
-      closeMenu();
-    }
+  const handleArchiveSuccess = () => {
+    setIsArchiveModalOpen(false);
+    setCourseToArchive(null);
+    onRefresh();
+  };
+
+  // Epic 02 Story 05: Open restore course modal
+  const handleRestore = (course) => {
+    setCourseToRestore(course);
+    setIsRestoreModalOpen(true);
+    closeMenu();
+  };
+
+  const handleRestoreSuccess = () => {
+    setIsRestoreModalOpen(false);
+    setCourseToRestore(null);
+    onRefresh();
+  };
+
+  // Epic 02 Story 05: Open unpublish confirmation modal
+  const handleUnpublish = (course) => {
+    setCourseToUnpublish(course);
+    setIsUnpublishModalOpen(true);
+    closeMenu();
+  };
+
+  const handleUnpublishSuccess = () => {
+    setIsUnpublishModalOpen(false);
+    setCourseToUnpublish(null);
+    onRefresh();
   };
 
   const handleDelete = async (courseId) => {
@@ -164,6 +175,69 @@ export default function CourseListView({
     }
   };
 
+  // Epic 02 Story 05: Bulk operations handlers
+  const handleSelectCourse = (courseId) => {
+    setSelectedCourseIds(prev => {
+      if (prev.includes(courseId)) {
+        return prev.filter(id => id !== courseId);
+      } else {
+        return [...prev, courseId];
+      }
+    });
+  };
+
+  const handleSelectAll = () => {
+    if (selectedCourseIds.length === courses.length) {
+      setSelectedCourseIds([]);
+    } else {
+      setSelectedCourseIds(courses.map(c => c._id));
+    }
+  };
+
+  const handleClearSelection = () => {
+    setSelectedCourseIds([]);
+  };
+
+  const handleBulkPublish = () => {
+    const draftCourses = courses.filter(
+      c => selectedCourseIds.includes(c._id) && c.status === 'draft'
+    );
+    if (draftCourses.length === 0) {
+      toast.error('No draft courses selected');
+      return;
+    }
+    setBulkOperation('publish');
+    setIsBulkModalOpen(true);
+  };
+
+  const handleBulkArchive = () => {
+    const publishedCourses = courses.filter(
+      c => selectedCourseIds.includes(c._id) && c.status === 'published'
+    );
+    if (publishedCourses.length === 0) {
+      toast.error('No published courses selected');
+      return;
+    }
+    setBulkOperation('archive');
+    setIsBulkModalOpen(true);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedCourseIds.length === 0) {
+      toast.error('No courses selected');
+      return;
+    }
+    setBulkOperation('delete');
+    setIsBulkModalOpen(true);
+  };
+
+  const handleBulkOperationSuccess = () => {
+    setIsBulkModalOpen(false);
+    setBulkOperation(null);
+    setSelectedCourseIds([]);
+    onRefresh();
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -185,12 +259,49 @@ export default function CourseListView({
 
   return (
     <div className="space-y-4">
+      {/* Select All Checkbox */}
+      {courses.length > 0 && (
+        <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selectedCourseIds.length === courses.length}
+            onChange={handleSelectAll}
+            className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+          />
+          <span className="font-semibold text-purple-900">
+            {selectedCourseIds.length === courses.length
+              ? `All ${courses.length} courses selected`
+              : `Select all ${courses.length} courses`}
+          </span>
+          {selectedCourseIds.length > 0 && selectedCourseIds.length < courses.length && (
+            <span className="text-purple-700">
+              ({selectedCourseIds.length} selected)
+            </span>
+          )}
+        </div>
+      )}
+
       {courses.map((course) => (
         <div
           key={course._id}
-          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:border-purple-400 transition-colors"
+          className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-colors ${
+            selectedCourseIds.includes(course._id)
+              ? 'border-purple-400 bg-purple-50'
+              : 'border-gray-200 hover:border-purple-300'
+          }`}
         >
           <div className="flex items-start gap-4">
+            {/* Checkbox */}
+            <div className="flex-shrink-0 mt-1">
+              <input
+                type="checkbox"
+                checked={selectedCourseIds.includes(course._id)}
+                onChange={() => handleSelectCourse(course._id)}
+                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>
+
             {/* Thumbnail */}
             <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
               {course.thumbnail ? (
@@ -268,6 +379,7 @@ export default function CourseListView({
           onClose={closeMenu}
           onEdit={handleEdit}
           onPublish={handlePublish}
+          onUnpublish={handleUnpublish}
           onArchive={handleArchive}
           onRestore={handleRestore}
           onDelete={handleDelete}
@@ -289,6 +401,92 @@ export default function CourseListView({
             setCourseToEdit(null);
           }}
           courseToEdit={courseToEdit}
+        />
+      )}
+
+      {/* Publish Validation Modal - Epic 02 Story 05 */}
+      {isPublishModalOpen && courseToPublish && (
+        <PublishValidationModal
+          isOpen={isPublishModalOpen}
+          onClose={() => {
+            setIsPublishModalOpen(false);
+            setCourseToPublish(null);
+          }}
+          course={courseToPublish}
+          onPublishSuccess={handlePublishSuccess}
+        />
+      )}
+
+      {/* Archive Confirmation Modal - Epic 02 Story 05 */}
+      {isArchiveModalOpen && courseToArchive && (
+        <ArchiveConfirmationModal
+          isOpen={isArchiveModalOpen}
+          onClose={() => {
+            setIsArchiveModalOpen(false);
+            setCourseToArchive(null);
+          }}
+          course={courseToArchive}
+          onArchiveSuccess={handleArchiveSuccess}
+        />
+      )}
+
+      {/* Restore Course Modal - Epic 02 Story 05 */}
+      {isRestoreModalOpen && courseToRestore && (
+        <RestoreCourseModal
+          isOpen={isRestoreModalOpen}
+          onClose={() => {
+            setIsRestoreModalOpen(false);
+            setCourseToRestore(null);
+          }}
+          course={courseToRestore}
+          onRestoreSuccess={handleRestoreSuccess}
+        />
+      )}
+
+      {/* Unpublish Confirmation Modal - Epic 02 Story 05 */}
+      {isUnpublishModalOpen && courseToUnpublish && (
+        <UnpublishConfirmationModal
+          isOpen={isUnpublishModalOpen}
+          onClose={() => {
+            setIsUnpublishModalOpen(false);
+            setCourseToUnpublish(null);
+          }}
+          course={courseToUnpublish}
+          onUnpublishSuccess={handleUnpublishSuccess}
+        />
+      )}
+
+      {/* Bulk Actions Bar - Epic 02 Story 05 */}
+      <BulkActionsBar
+        selectedCourseIds={selectedCourseIds}
+        courses={courses}
+        onClearSelection={handleClearSelection}
+        onBulkPublish={handleBulkPublish}
+        onBulkArchive={handleBulkArchive}
+        onBulkDelete={handleBulkDelete}
+      />
+
+      {/* Bulk Operation Modal - Epic 02 Story 05 */}
+      {isBulkModalOpen && bulkOperation && (
+        <BulkOperationModal
+          isOpen={isBulkModalOpen}
+          onClose={() => {
+            setIsBulkModalOpen(false);
+            setBulkOperation(null);
+          }}
+          operation={bulkOperation}
+          selectedCourses={courses.filter(c => {
+            // Filter based on operation type
+            if (bulkOperation === 'publish') {
+              return selectedCourseIds.includes(c._id) && c.status === 'draft';
+            } else if (bulkOperation === 'archive') {
+              return selectedCourseIds.includes(c._id) && c.status === 'published';
+            } else if (bulkOperation === 'delete') {
+              return selectedCourseIds.includes(c._id);
+            }
+            return false;
+          })}
+          onSuccess={handleBulkOperationSuccess}
         />
       )}
     </div>

@@ -6,7 +6,8 @@ import {
   Archive,
   RefreshCw,
   Trash2,
-  FolderTree
+  FolderTree,
+  ArrowDown
 } from 'lucide-react';
 
 /**
@@ -21,6 +22,7 @@ export default function ContextMenu({
   onClose,
   onEdit,
   onPublish,
+  onUnpublish,
   onArchive,
   onRestore,
   onDelete,
@@ -72,21 +74,28 @@ export default function ContextMenu({
     {
       label: 'Publish',
       icon: Upload,
-      action: () => onPublish(courseId),
+      action: () => onPublish(course),
       show: course?.status === 'draft',
       color: 'text-green-700 hover:bg-green-50'
     },
     {
+      label: 'Unpublish',
+      icon: ArrowDown,
+      action: () => onUnpublish(course),
+      show: course?.status === 'published',
+      color: 'text-yellow-700 hover:bg-yellow-50'
+    },
+    {
       label: 'Archive',
       icon: Archive,
-      action: () => onArchive(courseId),
+      action: () => onArchive(course),
       show: course?.status === 'published',
       color: 'text-orange-700 hover:bg-orange-50'
     },
     {
       label: 'Restore',
       icon: RefreshCw,
-      action: () => onRestore(courseId),
+      action: () => onRestore(course),
       show: course?.status === 'archived',
       color: 'text-blue-700 hover:bg-blue-50'
     },

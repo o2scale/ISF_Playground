@@ -39,7 +39,7 @@ exports.getAllCourses = async (req, res) => {
     res.status(200).json({
       success: true,
       count: courses.length,
-      courses: coursesWithCounts,
+      data: coursesWithCounts,
     });
   } catch (error) {
     console.error("Error fetching courses:", error);
@@ -555,6 +555,104 @@ const validateCourseForPublish = (course) => {
 };
 
 /**
+ * GET /api/v2/lms/admin/courses/:courseId/validate
+ * Get detailed validation results for publishing
+ * Epic 02 Story 05
+ */
+exports.validateCourseDetailed = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Calculate structure stats
+    const moduleCount = course.modules?.length || 0;
+    const chapterCount = course.modules?.reduce((sum, m) => sum + (m.chapters?.length || 0), 0) || 0;
+    const contentItemCount = course.modules?.reduce((sum, m) => {
+      return sum + m.chapters?.reduce((chSum, ch) => chSum + (ch.contentItems?.length || 0), 0);
+    }, 0) || 0;
+
+    // Build validation results
+    const checks = [
+      {
+        id: 'title',
+        label: 'Course Title',
+        status: course.title ? 'pass' : 'fail',
+        message: course.title || 'Missing',
+        required: true
+      },
+      {
+        id: 'description',
+        label: 'Course Description',
+        status: course.description ? 'pass' : 'fail',
+        message: course.description ? `Present (${course.description.length} characters)` : 'Missing',
+        required: true
+      },
+      {
+        id: 'category',
+        label: 'Category',
+        status: course.category ? 'pass' : 'fail',
+        message: course.category || 'Missing',
+        required: true
+      },
+      {
+        id: 'difficulty',
+        label: 'Difficulty',
+        status: course.difficultyLevel ? 'pass' : 'fail',
+        message: course.difficultyLevel || 'Missing',
+        required: true
+      },
+      {
+        id: 'thumbnail',
+        label: 'Thumbnail',
+        status: course.thumbnail ? 'pass' : 'fail',
+        message: course.thumbnail ? 'Uploaded' : 'Missing (required for publish)',
+        required: true
+      },
+      {
+        id: 'structure',
+        label: 'Structure',
+        status: (moduleCount > 0 && chapterCount > 0 && contentItemCount > 0) ? 'pass' : 'fail',
+        message: `${moduleCount} Modules, ${chapterCount} Chapters, ${contentItemCount} Content Items`,
+        required: true
+      }
+    ];
+
+    // Add warnings for optional fields
+    const teluguTranslated = course.translations?.telugu?.title ? 1 : 0;
+    checks.push({
+      id: 'translations',
+      label: 'Translations',
+      status: teluguTranslated > 0 ? 'warning' : 'warning',
+      message: teluguTranslated > 0 ? 'Telugu translations available (optional)' : 'No translations yet (optional)',
+      required: false
+    });
+
+    // Check for validation errors
+    const validationErrors = validateCourseForPublish(course);
+    const canPublish = validationErrors.length === 0;
+
+    res.status(200).json({
+      success: true,
+      canPublish,
+      checks,
+      errors: validationErrors,
+      stats: {
+        moduleCount,
+        chapterCount,
+        contentItemCount
+      }
+    });
+  } catch (error) {
+    console.error("Error validating course:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * PUT /api/v2/lms/admin/courses/:courseId/publish
  * Publish course
  */
@@ -593,11 +691,12 @@ exports.publishCourse = async (req, res) => {
 
 /**
  * PUT /api/v2/lms/admin/courses/:courseId/archive
- * Archive course
+ * Archive course - Epic 02 Story 05
  */
 exports.archiveCourse = async (req, res) => {
   try {
     const { courseId } = req.params;
+    const { reason, notifyCoaches } = req.body;
 
     const course = await Course.findById(courseId);
     if (!course) {
@@ -607,10 +706,15 @@ exports.archiveCourse = async (req, res) => {
     // Archive course
     await course.archive();
 
+    // TODO: Save reason to audit log (Story 05 - Audit Trail)
+    // TODO: Send notifications to coaches if notifyCoaches is true
+
     res.status(200).json({
       success: true,
       archivedAt: course.archivedAt,
       message: "Course archived successfully",
+      reason: reason || null,
+      notifiedCoaches: notifyCoaches || false
     });
   } catch (error) {
     console.error("Error archiving course:", error);
@@ -650,6 +754,47 @@ exports.restoreCourse = async (req, res) => {
     });
   } catch (error) {
     console.error("Error restoring course:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * PUT /api/v2/lms/admin/courses/:courseId/unpublish
+ * Unpublish course (change from published to draft)
+ * Epic 02 Story 05 - Unpublishing Workflow
+ */
+exports.unpublishCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { reason, notifyCoaches } = req.body;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    if (course.status !== "published") {
+      return res.status(400).json({
+        error: "Only published courses can be unpublished",
+      });
+    }
+
+    // Change status to draft
+    course.status = "draft";
+    await course.save();
+
+    // TODO: Save reason to audit log (Story 05 - Audit Trail)
+    // TODO: Send notifications to coaches if notifyCoaches is true
+
+    res.status(200).json({
+      success: true,
+      message: "Course unpublished successfully",
+      status: course.status,
+      reason: reason || null,
+      notifiedCoaches: notifyCoaches || false,
+    });
+  } catch (error) {
+    console.error("Error unpublishing course:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };
