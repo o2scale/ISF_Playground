@@ -29,7 +29,7 @@ const TranslationDashboard = () => {
   const fetchPublishedCourses = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/lms/admin/courses', {
+      const response = await api.get('/api/v2/lms/admin/courses', {
         params: { status: 'published' }
       });
       setCourses(response.data.courses || []);
@@ -45,7 +45,7 @@ const TranslationDashboard = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await api.get(`/lms/admin/translations/courses/${courseId}/progress`);
+      const response = await api.get(`/api/v2/lms/admin/translations/courses/${courseId}/progress`);
       setProgress(response.data.progress);
     } catch (err) {
       console.error('Error fetching translation progress:', err);

@@ -53,7 +53,7 @@ const TranslationEditor = () => {
   const fetchTranslatableItems = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/lms/admin/translations/courses/${courseId}/items`);
+      const response = await api.get(`/api/v2/lms/admin/translations/courses/${courseId}/items`);
       setItems(response.data.items || []);
     } catch (err) {
       console.error('Error fetching translatable items:', err);
@@ -65,7 +65,7 @@ const TranslationEditor = () => {
 
   const fetchProgress = async () => {
     try {
-      const response = await api.get(`/lms/admin/translations/courses/${courseId}/progress`);
+      const response = await api.get(`/api/v2/lms/admin/translations/courses/${courseId}/progress`);
       setProgress(response.data.progress);
     } catch (err) {
       console.error('Error fetching progress:', err);
@@ -77,7 +77,7 @@ const TranslationEditor = () => {
 
     try {
       setSaveStatus('saving');
-      await api.put(`/lms/admin/translations/courses/${courseId}/items/${currentItem.id}`, {
+      await api.put(`/api/v2/lms/admin/translations/courses/${courseId}/items/${currentItem.id}`, {
         translations: {
           title: teluguTitle,
           description: teluguDescription
