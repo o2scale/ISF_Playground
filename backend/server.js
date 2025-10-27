@@ -41,6 +41,7 @@ const lmsAdminContentRoutes = require("./routes/v2/lms/admin/content"); // Sprin
 const lmsAdminModulesRoutes = require("./routes/v2/lms/admin/modules"); // Sprint 2: LMS Admin Module Queries
 const lmsAdminQuizRoutes = require("./routes/v2/lms/admin/quiz"); // Sprint 2: LMS Quiz & Assessment Builder
 const lmsAdminTranslationRoutes = require("./routes/v2/lms/admin/translations"); // Sprint 2: LMS Translation Management
+const lmsStudentDashboardRoutes = require("./routes/v2/lms/student/dashboard"); // Sprint 2 Epic 01: Student Dashboard & Homepage
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -154,6 +155,7 @@ app.use("/api/v2/lms/admin/content", lmsAdminContentRoutes); // Sprint 2: LMS Co
 app.use("/api/v2/lms/admin/modules", lmsAdminModulesRoutes); // Sprint 2: LMS Admin Module Queries (requires admin auth)
 app.use("/api/v2/lms/admin", lmsAdminQuizRoutes); // Sprint 2: LMS Quiz & Assessment Builder (requires admin auth)
 app.use("/api/v2/lms/admin/translations", lmsAdminTranslationRoutes); // Sprint 2: LMS Translation Management (requires admin auth)
+app.use("/api/v2/lms/student", lmsStudentDashboardRoutes); // Sprint 2 Epic 01: Student Dashboard & Homepage (requires student auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"

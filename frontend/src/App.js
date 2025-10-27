@@ -51,6 +51,7 @@ import QuizBuilder from "./pages/admin/QuizBuilder";
 import TranslationDashboard from "./pages/admin/TranslationDashboard";
 import TranslationEditor from "./pages/admin/TranslationEditor";
 import TranslationQueue from "./pages/admin/TranslationQueue";
+import StudentDashboardPage from "./pages/student/StudentDashboardPage";
 
 const App = () => {
   return (
@@ -65,6 +66,71 @@ const App = () => {
               {/* Public route for login */}
               <Route path="/login" element={<StudentLogin />} />
               <Route path="/admin/login" element={<LoginCard />} />
+
+              {/* Student LMS Routes - Epic 01 (Outside admin layout, uses StudentLayout) */}
+              <Route
+                path="/student/dashboard"
+                element={
+                  <ProtectedRoute>
+                    <StudentDashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/computer-apps"
+                element={
+                  <ProtectedRoute>
+                    {/* Placeholder - Epic 01 Story 02 */}
+                    <div className="flex items-center justify-center min-h-screen">
+                      <h1 className="text-2xl">Computer Apps - Coming Soon</h1>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/art"
+                element={
+                  <ProtectedRoute>
+                    {/* Placeholder - Epic 01 Story 03 */}
+                    <div className="flex items-center justify-center min-h-screen">
+                      <h1 className="text-2xl">Art - Coming Soon</h1>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/spoken-english"
+                element={
+                  <ProtectedRoute>
+                    {/* Placeholder - Epic 01 Story 04 */}
+                    <div className="flex items-center justify-center min-h-screen">
+                      <h1 className="text-2xl">Spoken English - Coming Soon</h1>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/life-skills"
+                element={
+                  <ProtectedRoute>
+                    {/* Placeholder - Epic 01 Story 05 */}
+                    <div className="flex items-center justify-center min-h-screen">
+                      <h1 className="text-2xl">Life Skills - Coming Soon</h1>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/homework"
+                element={
+                  <ProtectedRoute>
+                    {/* Placeholder - Epic 05 */}
+                    <div className="flex items-center justify-center min-h-screen">
+                      <h1 className="text-2xl">Homework - Coming Soon</h1>
+                    </div>
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Routes inside the layout */}
               <Route element={<Layout />}>
