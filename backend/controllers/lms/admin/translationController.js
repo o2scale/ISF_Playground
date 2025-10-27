@@ -1,14 +1,16 @@
 const Course = require('../../../models/course');
+const Quiz = require('../../../models/Quiz');
 const mongoose = require('mongoose');
 
 /**
  * Translation Controller - Sprint 2 Epic 02 Story 04
  * Handles English → Telugu translation management for LMS courses
+ * Updated: 2025-10-27 - Added Quiz translation support
  */
 
 /**
  * GET /api/v2/lms/admin/courses/:courseId/translation-progress
- * Get translation progress for a course
+ * Get translation progress for a course (including quizzes)
  */
 exports.getTranslationProgress = async (req, res) => {
   try {
@@ -30,8 +32,27 @@ exports.getTranslationProgress = async (req, res) => {
       });
     }
 
-    // Calculate translation progress
-    const progress = calculateTranslationProgress(course);
+    // Calculate course content translation progress
+    const courseProgress = calculateTranslationProgress(course);
+
+    // Fetch and calculate quiz translation progress
+    const quizzes = await Quiz.find({ course: courseId, status: 'published' });
+    const quizProgress = calculateQuizTranslationProgress(quizzes);
+
+    // Combine progress
+    const totalItems = courseProgress.totalItems + quizProgress.totalItems;
+    const translatedItems = courseProgress.translatedItems + quizProgress.translatedItems;
+    const percentage = totalItems > 0 ? Math.round((translatedItems / totalItems) * 100) : 0;
+
+    const progress = {
+      totalItems,
+      translatedItems,
+      percentage,
+      breakdown: {
+        ...courseProgress.breakdown,
+        quizzes: quizProgress.breakdown
+      }
+    };
 
     res.json({
       success: true,
@@ -50,7 +71,7 @@ exports.getTranslationProgress = async (req, res) => {
 
 /**
  * GET /api/v2/lms/admin/courses/:courseId/translatable-items
- * Get list of all translatable items in a course
+ * Get list of all translatable items in a course (including quizzes)
  */
 exports.getTranslatableItems = async (req, res) => {
   try {
@@ -73,8 +94,15 @@ exports.getTranslatableItems = async (req, res) => {
       });
     }
 
-    // Build translatable items list
-    const items = buildTranslatableItemsList(course);
+    // Build translatable items list from course
+    const courseItems = buildTranslatableItemsList(course);
+
+    // Fetch quizzes and build quiz items list
+    const quizzes = await Quiz.find({ course: courseId, status: 'published' });
+    const quizItems = buildQuizTranslatableItemsList(quizzes, course);
+
+    // Combine all items
+    const items = [...courseItems, ...quizItems];
 
     // Apply filters
     let filteredItems = items;
@@ -91,7 +119,8 @@ exports.getTranslatableItems = async (req, res) => {
       const searchLower = search.toLowerCase();
       filteredItems = filteredItems.filter(item =>
         item.english.title?.toLowerCase().includes(searchLower) ||
-        item.telugu.title?.toLowerCase().includes(searchLower)
+        item.telugu.title?.toLowerCase().includes(searchLower) ||
+        item.english.description?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -113,7 +142,7 @@ exports.getTranslatableItems = async (req, res) => {
 
 /**
  * PUT /api/v2/lms/admin/courses/:courseId/translate/:itemId
- * Save translation for a specific item
+ * Save translation for a specific item (including quizzes)
  */
 exports.saveTranslation = async (req, res) => {
   try {
@@ -127,6 +156,45 @@ exports.saveTranslation = async (req, res) => {
       });
     }
 
+    // Check if this is a quiz translation
+    if (itemId.startsWith('quiz-')) {
+      const updated = await updateQuizTranslation(itemId, translations, markAsTranslated);
+
+      if (!updated) {
+        return res.status(404).json({
+          success: false,
+          message: 'Quiz or question not found'
+        });
+      }
+
+      // Get updated progress including quizzes
+      const course = await Course.findById(courseId);
+      const courseProgress = calculateTranslationProgress(course);
+      const quizzes = await Quiz.find({ course: courseId, status: 'published' });
+      const quizProgress = calculateQuizTranslationProgress(quizzes);
+
+      const totalItems = courseProgress.totalItems + quizProgress.totalItems;
+      const translatedItems = courseProgress.translatedItems + quizProgress.translatedItems;
+      const percentage = totalItems > 0 ? Math.round((translatedItems / totalItems) * 100) : 0;
+
+      const progress = {
+        totalItems,
+        translatedItems,
+        percentage,
+        breakdown: {
+          ...courseProgress.breakdown,
+          quizzes: quizProgress.breakdown
+        }
+      };
+
+      return res.json({
+        success: true,
+        message: 'Quiz translation saved successfully',
+        progress
+      });
+    }
+
+    // Otherwise, it's a course content item
     const course = await Course.findById(courseId);
 
     if (!course) {
@@ -150,7 +218,23 @@ exports.saveTranslation = async (req, res) => {
     await course.save();
 
     // Get updated progress
-    const progress = calculateTranslationProgress(course);
+    const courseProgress = calculateTranslationProgress(course);
+    const quizzes = await Quiz.find({ course: courseId, status: 'published' });
+    const quizProgress = calculateQuizTranslationProgress(quizzes);
+
+    const totalItems = courseProgress.totalItems + quizProgress.totalItems;
+    const translatedItems = courseProgress.translatedItems + quizProgress.translatedItems;
+    const percentage = totalItems > 0 ? Math.round((translatedItems / totalItems) * 100) : 0;
+
+    const progress = {
+      totalItems,
+      translatedItems,
+      percentage,
+      breakdown: {
+        ...courseProgress.breakdown,
+        quizzes: quizProgress.breakdown
+      }
+    };
 
     res.json({
       success: true,
@@ -171,6 +255,7 @@ exports.saveTranslation = async (req, res) => {
 /**
  * PUT /api/v2/lms/admin/courses/:courseId/publish-translations
  * Publish all translations for a course
+ * Updates course.languages field to include Telugu
  */
 exports.publishTranslations = async (req, res) => {
   try {
@@ -192,16 +277,47 @@ exports.publishTranslations = async (req, res) => {
       });
     }
 
-    // Mark translations as published
-    // This could be a new field: translationsPublished: true
-    // For now, we'll just verify translations exist
+    // Add Telugu to languages array if not already present
+    if (!course.languages) {
+      course.languages = ['en'];
+    }
 
-    const progress = calculateTranslationProgress(course);
+    if (!course.languages.includes('te')) {
+      course.languages.push('te');
+    }
+
+    // Also update quizzes for this course to include Telugu language
+    await Quiz.updateMany(
+      { course: courseId },
+      { $addToSet: { languages: 'te' } }
+    );
+
+    await course.save();
+
+    // Calculate updated progress
+    const courseProgress = calculateTranslationProgress(course);
+    const quizzes = await Quiz.find({ course: courseId, status: 'published' });
+    const quizProgress = calculateQuizTranslationProgress(quizzes);
+
+    const totalItems = courseProgress.totalItems + quizProgress.totalItems;
+    const translatedItems = courseProgress.translatedItems + quizProgress.translatedItems;
+    const percentage = totalItems > 0 ? Math.round((translatedItems / totalItems) * 100) : 0;
+
+    const progress = {
+      totalItems,
+      translatedItems,
+      percentage,
+      breakdown: {
+        ...courseProgress.breakdown,
+        quizzes: quizProgress.breakdown
+      }
+    };
 
     res.json({
       success: true,
-      message: 'Translations published successfully',
-      progress
+      message: 'Translations published successfully! Telugu is now available for students.',
+      progress,
+      languages: course.languages
     });
 
   } catch (error) {
@@ -218,6 +334,8 @@ exports.publishTranslations = async (req, res) => {
 
 /**
  * Calculate translation progress for a course
+ * Note: This is a synchronous calculation that doesn't include quiz progress
+ * For quiz progress, call getQuizProgress separately
  */
 function calculateTranslationProgress(course) {
   let totalItems = 0;
@@ -483,4 +601,204 @@ function updateTranslation(course, itemId, translations, markAsTranslated) {
   }
 
   return false;
+}
+
+/**
+ * Update quiz translation
+ * Handles: "quiz-{quizId}" or "quiz-{quizId}-question-{questionId}"
+ */
+async function updateQuizTranslation(itemId, translations, markAsTranslated) {
+  const parts = itemId.split('-');
+
+  if (parts.length === 2) {
+    // Format: "quiz-{quizId}" - translating quiz metadata
+    const quizId = parts[1];
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) return false;
+
+    if (!quiz.translations) quiz.translations = {};
+    if (!quiz.translations.telugu) quiz.translations.telugu = {};
+
+    quiz.translations.telugu.title = translations.title;
+    quiz.translations.telugu.description = translations.description;
+
+    await quiz.save();
+    return true;
+  }
+
+  if (parts.length === 4 && parts[2] === 'question') {
+    // Format: "quiz-{quizId}-question-{questionId}" - translating quiz question
+    const quizId = parts[1];
+    const questionId = parts[3];
+
+    const quiz = await Quiz.findById(quizId);
+    if (!quiz) return false;
+
+    const question = quiz.questions.id(questionId);
+    if (!question) return false;
+
+    if (!question.translations) question.translations = {};
+    if (!question.translations.telugu) question.translations.telugu = {};
+
+    question.translations.telugu.questionText = translations.title; // title = questionText
+    question.translations.telugu.explanation = translations.description; // description = explanation
+
+    // Handle MCQ options translation
+    if ((question.type === 'mcq_single' || question.type === 'mcq_multiple') && translations.options) {
+      question.translations.telugu.options = translations.options.map((optionText, index) => ({
+        text: optionText,
+        isCorrect: question.options[index]?.isCorrect || false
+      }));
+    }
+
+    await quiz.save();
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Build list of translatable items from quizzes
+ */
+function buildQuizTranslatableItemsList(quizzes, course) {
+  const items = [];
+
+  quizzes.forEach((quiz, quizIndex) => {
+    // Find module/chapter info for breadcrumb
+    let breadcrumb = 'Quiz';
+    let chapterTitle = '';
+
+    // Try to find which chapter this quiz belongs to
+    course.modules.forEach((module, moduleIndex) => {
+      module.chapters.forEach((chapter, chapterIndex) => {
+        if (chapter._id.toString() === quiz.chapter?.toString()) {
+          breadcrumb = `Module ${moduleIndex + 1} > Chapter ${chapterIndex + 1} > Quiz: ${quiz.title}`;
+          chapterTitle = chapter.title;
+        }
+      });
+    });
+
+    // Quiz metadata (title and description)
+    items.push({
+      id: `quiz-${quiz._id}`,
+      type: 'quiz',
+      subtype: 'metadata',
+      breadcrumb: `${breadcrumb}`,
+      english: {
+        title: quiz.title,
+        description: quiz.description || ''
+      },
+      telugu: {
+        title: quiz.translations?.telugu?.title || '',
+        description: quiz.translations?.telugu?.description || ''
+      },
+      translationStatus: getTranslationStatus({
+        title: quiz.translations?.telugu?.title,
+        description: quiz.translations?.telugu?.description
+      })
+    });
+
+    // Quiz questions
+    quiz.questions.forEach((question, questionIndex) => {
+      items.push({
+        id: `quiz-${quiz._id}-question-${question._id}`,
+        type: 'quiz_question',
+        subtype: question.type,
+        breadcrumb: `${breadcrumb} > Q${questionIndex + 1}`,
+        english: {
+          title: question.questionText,
+          description: question.explanation || '',
+          options: question.options?.map(opt => opt.text) || []
+        },
+        telugu: {
+          title: question.translations?.telugu?.questionText || '',
+          description: question.translations?.telugu?.explanation || '',
+          options: question.translations?.telugu?.options?.map(opt => opt.text) || []
+        },
+        translationStatus: getQuizQuestionTranslationStatus(question),
+        metadata: {
+          questionType: question.type,
+          hasExplanation: !!question.explanation,
+          optionsCount: question.options?.length || 0
+        }
+      });
+    });
+  });
+
+  return items;
+}
+
+function getQuizQuestionTranslationStatus(question) {
+  const hasQuestionText = question.translations?.telugu?.questionText?.trim().length > 0;
+  const hasExplanation = question.explanation ?
+    question.translations?.telugu?.explanation?.trim().length > 0 : true;
+
+  // For MCQ questions, check options
+  if (question.type === 'mcq_single' || question.type === 'mcq_multiple') {
+    const optionsCount = question.options?.length || 0;
+    const translatedOptionsCount = question.translations?.telugu?.options?.filter(opt => opt.text).length || 0;
+
+    if (hasQuestionText && hasExplanation && translatedOptionsCount === optionsCount) {
+      return 'translated';
+    } else if (hasQuestionText || translatedOptionsCount > 0) {
+      return 'in_progress';
+    } else {
+      return 'untranslated';
+    }
+  }
+
+  // For other question types (true/false, fill_blank)
+  if (hasQuestionText && hasExplanation) return 'translated';
+  if (hasQuestionText) return 'in_progress';
+  return 'untranslated';
+}
+
+/**
+ * Calculate quiz translation progress
+ */
+function calculateQuizTranslationProgress(quizzes) {
+  let totalItems = 0;
+  let translatedItems = 0;
+
+  quizzes.forEach(quiz => {
+    // Quiz title and description
+    totalItems += 2;
+    if (quiz.translations?.telugu?.title) translatedItems++;
+    if (quiz.translations?.telugu?.description) translatedItems++;
+
+    // Quiz questions
+    quiz.questions.forEach(question => {
+      // Question text
+      totalItems++;
+      if (question.translations?.telugu?.questionText) translatedItems++;
+
+      // Explanation (if exists)
+      if (question.explanation) {
+        totalItems++;
+        if (question.translations?.telugu?.explanation) translatedItems++;
+      }
+
+      // MCQ options
+      if (question.type === 'mcq_single' || question.type === 'mcq_multiple') {
+        const optionCount = question.options?.length || 0;
+        totalItems += optionCount;
+
+        const translatedOptionCount = question.translations?.telugu?.options?.filter(opt => opt.text).length || 0;
+        translatedItems += translatedOptionCount;
+      }
+    });
+  });
+
+  return {
+    totalItems,
+    translatedItems,
+    breakdown: {
+      total: quizzes.length,
+      translated: quizzes.filter(quiz =>
+        quiz.translations?.telugu?.title && quiz.translations?.telugu?.description
+      ).length
+    }
+  };
 }

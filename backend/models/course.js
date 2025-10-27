@@ -149,6 +149,12 @@ const CourseSchema = new mongoose.Schema(
         description: String,
       },
     },
+    // Sprint 2 Story 04: Available languages for this course
+    languages: {
+      type: [String],
+      default: ['en'], // English is always default
+      enum: ['en', 'hi', 'te'] // English, Hindi, Telugu
+    },
   },
   { timestamps: true }
 );

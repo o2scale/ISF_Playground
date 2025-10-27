@@ -112,6 +112,17 @@ const quizSchema = new mongoose.Schema({
     order: {
       type: Number,
       required: true
+    },
+
+    // Sprint 2 Story 04: Question-level translations
+    translations: {
+      telugu: {
+        questionText: String,
+        explanation: String,
+        options: [{
+          text: String
+        }]
+      }
     }
   }],
 
@@ -224,6 +235,21 @@ const quizSchema = new mongoose.Schema({
   usageCount: {
     type: Number,
     default: 0
+  },
+
+  // Sprint 2 Story 04: Quiz-level translations
+  translations: {
+    telugu: {
+      title: String,
+      description: String
+    }
+  },
+
+  // Sprint 2 Story 04: Available languages for this quiz
+  languages: {
+    type: [String],
+    default: ['en'], // English is always default
+    enum: ['en', 'hi', 'te'] // English, Hindi, Telugu
   }
 
 }, {
