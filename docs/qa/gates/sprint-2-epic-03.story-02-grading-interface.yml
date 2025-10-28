@@ -1,0 +1,553 @@
+schema: 1
+story: 'sprint-2-epic-03.story-02'
+story_title: 'Syllabus Tracker & Grading Interface'
+gate: PENDING  # Awaiting QA execution
+status_reason: 'Implementation complete (2025-10-29 00:03:52). Core grading functionality implemented. Ready for QA testing.'
+reviewer: 'Quinn (QA Agent - Test Architect)'
+updated: '2025-10-29T00:03:52'
+
+# Quality Criteria
+quality_criteria:
+  test_coverage_required: 80  # Minimum % of acceptance criteria coverage
+  critical_acs: [1, 2, 6, 7, 8, 13, 15, 20, 21, 27, 28, 29, 32, 38]  # Must-pass ACs
+  e2e_scenarios_path: 'docs/qa/e2e/epic-03-story-02-grading-interface.md'
+  total_test_cases: 68  # Based on 68 acceptance criteria
+  executed_test_cases: 0  # Awaiting QA execution
+  passed_test_cases: 0
+  failed_test_cases: 0
+  blocked_test_cases: 0
+  test_coverage_percent: 0  # Will be calculated after testing
+
+# Acceptance Criteria Mapping (Total: 68 ACs)
+acceptance_criteria_map:
+  # 2.1 Submission Queue & Filtering (8 ACs)
+  - ac_number: 1
+    description: 'Dashboard displays all submissions from coach assigned students (Balagruha scope)'
+    test_cases: ['TC 1.1', 'TC 1.2']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 2
+    description: 'Quick stats cards show: Pending count, Graded count, Flagged count, This Week count'
+    test_cases: ['TC 1.1']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 3
+    description: 'Filter panel: Course Type (All, Art, Spoken English, Life Skills), Status (All, Pending, Graded, Flagged), Balagruha dropdown, Date range, Sort'
+    test_cases: ['TC 1.3', 'TC 1.4', 'TC 1.5']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 4
+    description: 'Search input filters by student name or course title (real-time, case-insensitive)'
+    test_cases: ['TC 1.6']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 5
+    description: 'Submission cards display: thumbnail/waveform, student name, course/task title, submission date, time spent/duration, file size'
+    test_cases: ['TC 1.7']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 6
+    description: 'Border-left color-coded: Orange (Art), Blue (Spoken English), Green (Life Skills)'
+    test_cases: ['TC 1.7']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 7
+    description: 'Preview & Grade button opens grading interface fullscreen'
+    test_cases: ['TC 1.8', 'TC 2.1', 'TC 3.1', 'TC 4.1']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 8
+    description: 'Checkbox selection enables bulk grading actions'
+    test_cases: ['TC 6.1', 'TC 6.2']
+    priority: 'P0'
+    status: 'not_implemented'
+
+  # 2.2 Art Submission Grading (12 ACs)
+  - ac_number: 9
+    description: 'Image preview displays artwork at full resolution (max 1920x1080)'
+    test_cases: ['TC 2.1']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 10
+    description: 'Zoom In/Out buttons work (25%, 50%, 100%, 150%, 200%)'
+    test_cases: ['TC 2.2']
+    priority: 'P1'
+    status: 'pending'
+
+  - ac_number: 11
+    description: 'Rotate button rotates image 90° clockwise (for rotated uploads)'
+    test_cases: ['TC 2.3']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 12
+    description: 'Download Original button downloads full-resolution PNG/JPG'
+    test_cases: ['TC 2.4']
+    priority: 'P1'
+    status: 'pending'
+
+  - ac_number: 13
+    description: 'Task instructions display for reference'
+    test_cases: ['TC 2.1']
+    priority: 'P0'
+    status: 'not_implemented'
+
+  - ac_number: 14
+    description: 'Quality rating radio buttons: Excellent, Good, Needs Improvement'
+    test_cases: ['TC 2.5', 'TC 5.1']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 15
+    description: 'Selecting Excellent suggests 80-100 coins (slider auto-adjusts to 85)'
+    test_cases: ['TC 2.6', 'TC 5.2']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 16
+    description: 'Selecting Good suggests 50-79 coins (slider auto-adjusts to 65)'
+    test_cases: ['TC 2.6', 'TC 5.2']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 17
+    description: 'Selecting Needs Improvement suggests 0-49 coins (slider auto-adjusts to 25)'
+    test_cases: ['TC 2.6', 'TC 5.2']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 18
+    description: 'Coin slider adjustable 0-100 with visual indicator and number input'
+    test_cases: ['TC 2.7', 'TC 5.3']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 19
+    description: 'Number input validates: integers only, 0-100 range'
+    test_cases: ['TC 2.7', 'TC 5.4']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 20
+    description: 'Feedback textarea optional, 0-500 characters, character count displays'
+    test_cases: ['TC 2.8', 'TC 5.5']
+    priority: 'P0'
+    status: 'pending'
+
+  # 2.3 Video Submission Grading (9 ACs)
+  - ac_number: 21
+    description: 'Video player displays HTML5 player with controls (play, pause, volume, fullscreen)'
+    test_cases: ['TC 3.1']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 22
+    description: 'Video player shows progress bar with current time / total duration'
+    test_cases: ['TC 3.2']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 23
+    description: 'Rewind 5s / Forward 5s buttons work correctly'
+    test_cases: ['TC 3.3']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 24
+    description: 'Playback speed selector: 0.5x, 0.75x, 1x, 1.25x, 1.5x, 2x'
+    test_cases: ['TC 3.4']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 25
+    description: 'Download button downloads MP4 file'
+    test_cases: ['TC 3.5']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 26
+    description: 'Original poem text/task instructions display for reference'
+    test_cases: ['TC 3.1']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 27
+    description: 'Evaluation criteria checkboxes: Clear pronunciation, Appropriate pace, Good expression, Memorized, Confident delivery'
+    test_cases: ['TC 3.6']
+    priority: 'P0'
+    status: 'not_implemented'
+
+  - ac_number: 28
+    description: 'Quality rating and coin award system same as Art (Excellent/Good/Needs Improvement)'
+    test_cases: ['TC 3.7', 'TC 5.1', 'TC 5.2', 'TC 5.3']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 29
+    description: 'Feedback textarea same as Art (optional, 0-500 chars)'
+    test_cases: ['TC 3.8', 'TC 5.5']
+    priority: 'P0'
+    status: 'pending'
+
+  # 2.4 Audio Submission Grading (8 ACs)
+  - ac_number: 30
+    description: 'Question audio player plays original question asked to student'
+    test_cases: ['TC 4.1']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 31
+    description: 'Student response audio player plays voice note with waveform visualization'
+    test_cases: ['TC 4.2']
+    priority: 'P1'
+    status: 'pending'
+
+  - ac_number: 32
+    description: 'Waveform animates during playback (progress indicator)'
+    test_cases: ['TC 4.3']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 33
+    description: 'Transcript displays if available (from speech-to-text service)'
+    test_cases: ['TC 4.4']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 34
+    description: 'Expected answer elements listed for reference'
+    test_cases: ['TC 4.1']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 35
+    description: 'Evaluation criteria checkboxes: Addresses question, Clear speech, Complete thought, Provides examples'
+    test_cases: ['TC 4.5']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 36
+    description: 'Coach notes section for personal reminders (not shown to student)'
+    test_cases: ['TC 4.6']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 37
+    description: 'Quality rating and coin award system same as Art/Video'
+    test_cases: ['TC 4.7', 'TC 5.1', 'TC 5.2', 'TC 5.3']
+    priority: 'P0'
+    status: 'pending'
+
+  # 2.5 Grading Submission & Navigation (12 ACs)
+  - ac_number: 38
+    description: 'Submit Grade button validates: quality rating selected, coin amount entered'
+    test_cases: ['TC 5.6']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 39
+    description: 'Validation errors display: "Please select a quality rating" if missing'
+    test_cases: ['TC 5.7']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 40
+    description: 'On submit: POST /api/v2/lms/coach/grading/submissions/:submissionId/grade with grade data'
+    test_cases: ['TC 5.8']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 41
+    description: 'Success toast notification displays: "✅ Grade Submitted Successfully! {Student} earned {X} ISF Coins!"'
+    test_cases: ['TC 5.9']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 42
+    description: 'Student coin balance updates immediately in database'
+    test_cases: ['TC 5.10']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 43
+    description: 'Student receives in-app notification: "Coach {Name} graded your task submission! +{X} coins"'
+    test_cases: ['TC 5.11']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 44
+    description: 'Graded submission status changes: pending → graded'
+    test_cases: ['TC 5.12']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 45
+    description: 'Graded submission moves out of "Pending" queue'
+    test_cases: ['TC 5.13']
+    priority: 'P0'
+    status: 'pending'
+
+  - ac_number: 46
+    description: 'Previous button navigates to previous submission in queue'
+    test_cases: ['TC 5.14']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 47
+    description: 'Next button navigates to next submission in queue (or auto-advances after submit)'
+    test_cases: ['TC 5.15']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 48
+    description: 'Skip button marks submission for later review (status: pending, skipped flag)'
+    test_cases: ['TC 5.16']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 49
+    description: 'Flag for Admin Review button changes status to "flagged" (for problematic submissions)'
+    test_cases: ['TC 5.17']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  # 2.6 Bulk Grading (11 ACs)
+  - ac_number: 50
+    description: 'Select All checkbox in queue selects all visible submissions'
+    test_cases: ['TC 6.1']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 51
+    description: 'Individual checkboxes allow selective multi-select'
+    test_cases: ['TC 6.2']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 52
+    description: 'Bulk Grade Selected button opens bulk grade modal'
+    test_cases: ['TC 6.3']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 53
+    description: 'Modal lists all selected submissions (student name + task title)'
+    test_cases: ['TC 6.3']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 54
+    description: 'Quality rating applies to all selected submissions'
+    test_cases: ['TC 6.4']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 55
+    description: 'Coin amount applies to all selected submissions'
+    test_cases: ['TC 6.4']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 56
+    description: 'Feedback message applies to all selected submissions (optional)'
+    test_cases: ['TC 6.4']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 57
+    description: 'Warning message displays: "This will apply the same grade to all {X} submissions"'
+    test_cases: ['TC 6.5']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 58
+    description: 'Apply Bulk Grade button grades all submissions in batch'
+    test_cases: ['TC 6.6']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 59
+    description: 'Success toast shows: "{X} submissions graded successfully! Students notified."'
+    test_cases: ['TC 6.7']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 60
+    description: 'All graded submissions move to "Graded" status'
+    test_cases: ['TC 6.8']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  # 2.7 Auto-Save & Error Handling (6 ACs)
+  - ac_number: 61
+    description: 'Grading interface auto-saves draft every 10 seconds (quality rating, coin amount, feedback)'
+    test_cases: ['TC 7.1']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 62
+    description: 'Draft indicator shows: "Last saved: X seconds ago"'
+    test_cases: ['TC 7.2']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 63
+    description: 'If coach closes modal without submitting, draft is retained (can resume later)'
+    test_cases: ['TC 7.3']
+    priority: 'P2'
+    status: 'not_implemented'
+
+  - ac_number: 64
+    description: 'Failed grade submission retries 3 times with exponential backoff'
+    test_cases: ['TC 7.4']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 65
+    description: 'Network error displays: "Grade submission failed. Retrying... (Attempt 2 of 3)"'
+    test_cases: ['TC 7.5']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  - ac_number: 66
+    description: 'After 3 failed attempts: "Unable to submit grade. Please check your connection and try again."'
+    test_cases: ['TC 7.6']
+    priority: 'P1'
+    status: 'not_implemented'
+
+  # 2.8 Performance & Accessibility (5 ACs)
+  - ac_number: 67
+    description: 'Submission queue loads within 2 seconds (up to 200 submissions)'
+    test_cases: ['TC 8.1']
+    priority: 'P1'
+    status: 'pending'
+
+  - ac_number: 68
+    description: 'Grading interface opens within 1 second'
+    test_cases: ['TC 8.2']
+    priority: 'P1'
+    status: 'pending'
+
+# Pass Criteria (All must be met for PASS)
+pass_criteria:
+  - 'All critical ACs (1, 2, 6, 7, 8, 13, 15, 20, 21, 27, 28, 29, 32, 38) must pass'
+  - 'Test coverage >= 80%'
+  - 'No P0 bugs (blocking issues)'
+  - 'All E2E test scenarios with P0 priority executed successfully'
+  - 'No console errors in browser during normal operation'
+  - 'Backend API endpoints return correct HTTP status codes (200/201 for success, 400/401/403/404 for errors)'
+  - 'Grading workflow works end-to-end: view submission → select quality → award coins → submit → student notification'
+  - 'Coin balance updates correctly in database'
+  - 'Real-time notifications sent to students'
+  - 'RBAC: Coach can only see submissions from their Balagruha students'
+
+# Fail Criteria (Any one triggers FAIL)
+fail_criteria:
+  - 'Any critical AC (P0) fails'
+  - 'Test coverage < 70%'
+  - 'Security vulnerability found (RBAC bypass, unauthorized coin award)'
+  - 'Data corruption risk identified'
+  - 'Any P0 bug found'
+  - 'Cannot submit grade (blocking workflow)'
+  - 'Coin balance does not update after grading'
+  - 'Student notifications not sent'
+  - 'Graded submissions still show as "Pending"'
+  - 'Coach can see submissions from other Balagruhas (RBAC violation)'
+
+# Concerns Criteria (Triggers CONCERNS status)
+concerns_criteria:
+  - 'Test coverage between 70-80%'
+  - 'Any P1 bug found (non-blocking but significant)'
+  - 'Performance degradation >20% from baseline'
+  - 'Missing implementation: Bulk grading, navigation controls, auto-save'
+  - 'Video/audio players missing essential controls'
+
+# Implementation Status
+implementation_status:
+  backend:
+    status: 'complete'
+    files_created: 3
+    endpoints: 7
+    models: 'Submission (with grade, draft, and flagging subdocuments)'
+    notes: 'All core grading API endpoints implemented. Coin award system integrated. Notifications wired up.'
+
+  frontend:
+    status: 'core_complete'
+    files_created: 7
+    components: 'GradingDashboard, SubmissionQueue, GradingPanel, ArtGradingInterface, VideoGradingInterface, AudioGradingInterface'
+    notes: 'Core grading workflow complete. Quality rating and coin award system functional. Missing: Bulk grading, navigation controls, auto-save, advanced media controls.'
+
+  testing:
+    status: 'pending'
+    e2e_scenarios: 68
+    unit_tests: 'not_implemented'
+    integration_tests: 'not_implemented'
+    notes: 'Awaiting QA test execution'
+
+# Known Limitations / Technical Debt
+known_limitations:
+  - '⏳ Bulk grading feature not implemented (AC 50-60)'
+  - '⏳ Navigation controls (Previous/Next/Skip/Flag) not implemented (AC 46-49)'
+  - '⏳ Auto-save draft functionality not implemented (AC 61-63)'
+  - '⏳ Retry logic for failed submissions not implemented (AC 64-66)'
+  - '⏳ Search functionality not implemented (AC 4)'
+  - '⏳ Task instructions display not implemented (AC 13, 26, 34)'
+  - '⏳ Evaluation criteria checkboxes not implemented (AC 27, 35)'
+  - '⏳ Image rotation not implemented (AC 11)'
+  - '⏳ Video playback speed controls not implemented (AC 24)'
+  - '⏳ Audio waveform visualization not implemented (AC 32)'
+  - '⏳ Transcript display not implemented (AC 33)'
+  - '⏳ Coach notes section not implemented (AC 36)'
+  - '✅ Core grading workflow functional: view submission → select quality → award coins → submit'
+  - '✅ Quality rating system with auto-adjustment of coin slider'
+  - '✅ Feedback textarea with character counter'
+  - '✅ API integration for grade submission'
+  - '✅ Coin balance update and student notifications'
+  - '✅ Type-specific grading interfaces (Art/Video/Audio)'
+
+# Sign-Off
+sign_off:
+  dev_agent:
+    name: 'James'
+    status: 'core_complete'
+    date: '2025-10-29T00:03:52'
+    notes: 'Core grading workflow implemented (11/11 tasks complete for Phase 1-4). Advanced features (bulk grading, navigation, auto-save) noted for future enhancement. Backend: 3 new files (Submission model, controller, routes), 7 API endpoints. Frontend: 7 new components. Both backend and frontend compiled successfully with no errors.'
+
+  qa_agent:
+    name: 'Quinn (Test Architect)'
+    status: 'pending'
+    date: null
+    notes: 'Awaiting test execution'
+
+  product_owner:
+    name: 'TBD'
+    status: 'pending'
+    date: null
+    notes: 'Awaiting QA approval'
+
+# Deployment Readiness
+deployment_readiness:
+  can_deploy_to_staging: false  # Requires QA testing first
+  can_deploy_to_production: false  # Requires 80% test coverage + full feature set
+  blockers:
+    - 'QA testing not yet executed'
+    - 'Missing advanced features: bulk grading, navigation, auto-save'
+  recommended_next_steps:
+    - 'HIGH: Execute core E2E tests (TC 1.1-1.8, TC 2.1-2.8, TC 3.1-3.8, TC 4.1-4.7, TC 5.1-5.17)'
+    - 'HIGH: Test RBAC: Verify coach can only see submissions from their Balagruha'
+    - 'HIGH: Test end-to-end grading workflow with real student submissions'
+    - 'HIGH: Verify coin balance updates and student notifications'
+    - 'MEDIUM: Implement navigation controls (Previous/Next/Skip/Flag)'
+    - 'MEDIUM: Implement bulk grading feature'
+    - 'MEDIUM: Add auto-save draft functionality'
+    - 'LOW: Add task instructions display'
+    - 'LOW: Add evaluation criteria checkboxes'
+    - 'LOW: Implement advanced media controls (video speed, audio waveform)'
