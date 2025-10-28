@@ -56,6 +56,9 @@ import ComputerAppsPage from "./pages/student/ComputerAppsPage";
 import ArtCoursePage from "./pages/student/ArtCoursePage";
 import SpokenEnglishPage from "./pages/student/SpokenEnglishPage";
 import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
+import LifeSkillsQuizPage from "./pages/student/LifeSkillsQuizPage";
+import LifeSkillsQuizResults from "./pages/student/LifeSkillsQuizResults";
+import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
 
 const App = () => {
   return (
@@ -117,6 +120,30 @@ const App = () => {
                 element={
                   <ProtectedRoute>
                     <LifeSkillsCoursePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/life-skills/quiz/:quizId"
+                element={
+                  <ProtectedRoute>
+                    <LifeSkillsQuizPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/life-skills/quiz/results"
+                element={
+                  <ProtectedRoute>
+                    <LifeSkillsQuizResults />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/life-skills/voice/:taskId"
+                element={
+                  <ProtectedRoute>
+                    <LifeSkillsVoiceTaskPage />
                   </ProtectedRoute>
                 }
               />
