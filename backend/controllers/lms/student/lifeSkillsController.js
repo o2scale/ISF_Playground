@@ -381,9 +381,14 @@ exports.getQuiz = async (req, res) => {
         bonusCoins: 24,
         questions: mockQuizQuestions.map(q => ({
           ...q,
-          // Don't send correctAnswer to client (prevent cheating)
+          // Don't send correctAnswer or isCorrect fields to client (prevent cheating)
           correctAnswer: undefined,
-          explanation: undefined
+          explanation: undefined,
+          options: q.options.map(opt => ({
+            id: opt.id,
+            text: opt.text
+            // isCorrect field deliberately omitted
+          }))
         }))
       }
     });

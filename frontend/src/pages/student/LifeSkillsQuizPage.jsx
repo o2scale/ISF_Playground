@@ -38,8 +38,8 @@ export default function LifeSkillsQuizPage() {
         `/api/v2/lms/student/${studentId}/courses/life-skills/quiz/${quizId}`
       );
 
-      if (response.data.success) {
-        setQuestions(response.data.questions);
+      if (response.data.success && response.data.quiz && response.data.quiz.questions) {
+        setQuestions(response.data.quiz.questions);
       } else {
         setError('Failed to load quiz questions');
         toast.error('Failed to load quiz');
@@ -196,11 +196,11 @@ export default function LifeSkillsQuizPage() {
 
           {/* Answer Options */}
           <div className="space-y-3">
-            {Object.entries(currentQuestion.options).map(([key, value]) => (
+            {currentQuestion.options && currentQuestion.options.map((option) => (
               <label
-                key={key}
+                key={option.id}
                 className={`flex items-center p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                  currentAnswer === key
+                  currentAnswer === option.id
                     ? 'border-blue-500 bg-blue-50'
                     : 'border-gray-300 hover:border-blue-300 hover:bg-gray-50'
                 } ${!audioCompleted ? 'opacity-50 cursor-not-allowed' : ''}`}
@@ -208,14 +208,14 @@ export default function LifeSkillsQuizPage() {
                 <input
                   type="radio"
                   name={`question-${currentQuestion.id}`}
-                  value={key}
-                  checked={currentAnswer === key}
-                  onChange={() => handleAnswerSelect(key)}
+                  value={option.id}
+                  checked={currentAnswer === option.id}
+                  onChange={() => handleAnswerSelect(option.id)}
                   disabled={!audioCompleted}
                   className="w-5 h-5 text-blue-600 focus:ring-blue-500"
                 />
                 <span className="ml-3 text-gray-800 font-medium">
-                  {key}. {value}
+                  {option.id}. {option.text}
                 </span>
               </label>
             ))}
