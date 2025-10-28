@@ -61,6 +61,7 @@ import LifeSkillsQuizPage from "./pages/student/LifeSkillsQuizPage";
 import LifeSkillsQuizResults from "./pages/student/LifeSkillsQuizResults";
 import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
 import CoachAssignmentsPage from "./pages/coach/CoachAssignmentsPage";
+import GradingDashboard from "./pages/coach/GradingDashboard";
 
 const App = () => {
   return (
@@ -442,6 +443,16 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <CoachAssignmentsPage />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Coach Grading Dashboard - Sprint 2 Epic 03 Story 02 */}
+                <Route
+                  path="/coach/grading"
+                  element={
+                    <ProtectedRoute>
+                      <GradingDashboard />
                     </ProtectedRoute>
                   }
                 />

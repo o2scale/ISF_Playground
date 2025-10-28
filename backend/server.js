@@ -47,6 +47,7 @@ const lmsStudentArtRoutes = require("./routes/v2/lms/student/art"); // Sprint 2 
 const lmsStudentSpokenEnglishRoutes = require("./routes/v2/lms/student/spokenEnglish"); // Sprint 2 Epic 01: Spoken English Course
 const lmsStudentLifeSkillsRoutes = require("./routes/v2/lms/student/lifeSkills"); // Sprint 2 Epic 01: Life Skills Course
 const lmsCoachAssignmentsRoutes = require("./routes/v2/lms/coach/assignments"); // Sprint 2 Epic 03: Coach Course Assignments
+const lmsCoachGradingRoutes = require("./routes/v2/lms/coach/grading"); // Sprint 2 Epic 03: Coach Grading Interface
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -166,6 +167,7 @@ app.use("/api/v2/lms/student/:studentId/courses/art", lmsStudentArtRoutes); // S
 app.use("/api/v2/lms/student/:studentId/courses/spoken-english", lmsStudentSpokenEnglishRoutes); // Sprint 2 Epic 01: Spoken English Course (requires student auth)
 app.use("/api/v2/lms/student/:studentId/courses/life-skills", lmsStudentLifeSkillsRoutes); // Sprint 2 Epic 01: Life Skills Course (requires student auth)
 app.use("/api/v2/lms/coach", lmsCoachAssignmentsRoutes); // Sprint 2 Epic 03: Coach Course Assignments (requires coach auth)
+app.use("/api/v2/lms/coach/grading", lmsCoachGradingRoutes); // Sprint 2 Epic 03: Coach Grading Interface (requires coach auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"
