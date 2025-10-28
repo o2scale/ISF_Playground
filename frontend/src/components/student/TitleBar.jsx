@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
+import TransactionHistoryModal from './coins/TransactionHistoryModal';
 
 /**
- * TitleBar Component - Epic 01 Story 01
+ * TitleBar Component - Epic 01 Story 01 + Story 06
  * Persistent header for student pages showing:
  * - ISF Playground logo
- * - Real-time coin balance
+ * - Real-time coin balance (clickable - opens transaction history modal)
  * - Notification bell with unread count
  * - Session timer (HH:MM:SS)
  * - Offline indicator
@@ -17,6 +18,7 @@ export default function TitleBar() {
   const [sessionTime, setSessionTime] = useState(0); // seconds
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [loading, setLoading] = useState(true);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
 
   // Format session time as HH:MM:SS
   const formatTime = (seconds) => {
@@ -158,8 +160,12 @@ export default function TitleBar() {
 
           {/* Right: Coin Balance, Notifications, Session Timer */}
           <div className="flex items-center gap-4 md:gap-6">
-            {/* Coin Balance */}
-            <div className="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-full border-2 border-yellow-300">
+            {/* Coin Balance - Epic 01 Story 06: Clickable, opens transaction history modal */}
+            <button
+              onClick={() => setShowTransactionModal(true)}
+              className="flex items-center gap-2 bg-yellow-100 px-4 py-2 rounded-full border-2 border-yellow-300 hover:bg-yellow-200 transition-colors cursor-pointer"
+              aria-label="View coin balance and transaction history"
+            >
               <span className="text-2xl">💰</span>
               <span className="font-bold text-xl text-gray-900">
                 {loading ? '...' : coinBalance.toLocaleString()}
@@ -167,7 +173,7 @@ export default function TitleBar() {
               {isOffline && (
                 <span className="text-xs text-gray-600 ml-1">(Offline)</span>
               )}
-            </div>
+            </button>
 
             {/* Notification Bell */}
             <button
@@ -202,6 +208,13 @@ export default function TitleBar() {
           </span>
         </div>
       )}
+
+      {/* Transaction History Modal - Epic 01 Story 06 */}
+      <TransactionHistoryModal
+        isOpen={showTransactionModal}
+        onClose={() => setShowTransactionModal(false)}
+        currentBalance={coinBalance}
+      />
     </>
   );
 }
