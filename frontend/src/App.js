@@ -11,6 +11,7 @@ import TaskManagement from "./components/TaskManagement/taskmanagement";
 import AccessDenied from "./components/AccessDenied";
 import NotFound from "./components/NotFound";
 import Layout from "./components/Layout";
+import StudentLayout from "./components/student/StudentLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RBACProvider } from "./contexts/RBACContext";
@@ -74,90 +75,92 @@ const App = () => {
               <Route path="/login" element={<StudentLogin />} />
               <Route path="/admin/login" element={<LoginCard />} />
 
-              {/* Student LMS Routes - Epic 01 (Outside admin layout, uses StudentLayout) */}
-              <Route
-                path="/student/dashboard"
-                element={
-                  <ProtectedRoute>
-                    <StudentDashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/computer-apps"
-                element={
-                  <ProtectedRoute>
-                    <ComputerAppsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/art"
-                element={
-                  <ProtectedRoute>
-                    <ArtCoursePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/spoken-english"
-                element={
-                  <ProtectedRoute>
-                    <SpokenEnglishPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/spoken-english/:taskId"
-                element={
-                  <ProtectedRoute>
-                    <SpokenEnglishPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/life-skills"
-                element={
-                  <ProtectedRoute>
-                    <LifeSkillsCoursePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/life-skills/quiz/:quizId"
-                element={
-                  <ProtectedRoute>
-                    <LifeSkillsQuizPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/life-skills/quiz/results"
-                element={
-                  <ProtectedRoute>
-                    <LifeSkillsQuizResults />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/life-skills/voice/:taskId"
-                element={
-                  <ProtectedRoute>
-                    <LifeSkillsVoiceTaskPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/student/homework"
-                element={
-                  <ProtectedRoute>
-                    {/* Placeholder - Epic 05 */}
-                    <div className="flex items-center justify-center min-h-screen">
-                      <h1 className="text-2xl">Homework - Coming Soon</h1>
-                    </div>
-                  </ProtectedRoute>
-                }
-              />
+              {/* Student LMS Routes - Epic 01 (Uses StudentLayout with TitleBar) */}
+              <Route element={<StudentLayout />}>
+                <Route
+                  path="/student/dashboard"
+                  element={
+                    <ProtectedRoute>
+                      <StudentDashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/computer-apps"
+                  element={
+                    <ProtectedRoute>
+                      <ComputerAppsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/art"
+                  element={
+                    <ProtectedRoute>
+                      <ArtCoursePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/spoken-english"
+                  element={
+                    <ProtectedRoute>
+                      <SpokenEnglishPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/spoken-english/:taskId"
+                  element={
+                    <ProtectedRoute>
+                      <SpokenEnglishPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/life-skills"
+                  element={
+                    <ProtectedRoute>
+                      <LifeSkillsCoursePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/life-skills/quiz/:quizId"
+                  element={
+                    <ProtectedRoute>
+                      <LifeSkillsQuizPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/life-skills/quiz/results"
+                  element={
+                    <ProtectedRoute>
+                      <LifeSkillsQuizResults />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/life-skills/voice/:taskId"
+                  element={
+                    <ProtectedRoute>
+                      <LifeSkillsVoiceTaskPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/student/homework"
+                  element={
+                    <ProtectedRoute>
+                      {/* Placeholder - Epic 05 */}
+                      <div className="flex items-center justify-center min-h-screen">
+                        <h1 className="text-2xl">Homework - Coming Soon</h1>
+                      </div>
+                    </ProtectedRoute>
+                  }
+                />
+              </Route>
 
               {/* Routes inside the layout */}
               <Route element={<Layout />}>
