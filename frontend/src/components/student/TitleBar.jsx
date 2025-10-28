@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api';
 import TransactionHistoryModal from './coins/TransactionHistoryModal';
+import MilestoneCelebrationModal from './coins/MilestoneCelebrationModal';
+import useMilestones from '../../hooks/useMilestones';
 
 /**
  * TitleBar Component - Epic 01 Story 01 + Story 06
@@ -10,6 +12,7 @@ import TransactionHistoryModal from './coins/TransactionHistoryModal';
  * - Notification bell with unread count
  * - Session timer (HH:MM:SS)
  * - Offline indicator
+ * - Milestone celebrations (100, 500, 1000, 5000 coins)
  */
 export default function TitleBar() {
   // State management
@@ -19,6 +22,9 @@ export default function TitleBar() {
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [loading, setLoading] = useState(true);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
+
+  // Milestone detection hook (Epic 01 Story 06 - Phase 3)
+  const { celebrationMilestone, closeCelebration } = useMilestones(coinBalance);
 
   // Format session time as HH:MM:SS
   const formatTime = (seconds) => {
@@ -108,8 +114,8 @@ export default function TitleBar() {
     fetchNotificationCount();
     setLoading(false);
 
-    // Set up coin balance polling (every 10 seconds)
-    const coinInterval = setInterval(fetchCoinBalance, 10000);
+    // Set up coin balance polling (every 2 seconds - Epic 01 Story 06 - Phase 4)
+    const coinInterval = setInterval(fetchCoinBalance, 2000);
 
     // Set up notification count polling (every 30 seconds)
     const notificationInterval = setInterval(fetchNotificationCount, 30000);
@@ -209,11 +215,17 @@ export default function TitleBar() {
         </div>
       )}
 
-      {/* Transaction History Modal - Epic 01 Story 06 */}
+      {/* Transaction History Modal - Epic 01 Story 06 - Phase 1 */}
       <TransactionHistoryModal
         isOpen={showTransactionModal}
         onClose={() => setShowTransactionModal(false)}
         currentBalance={coinBalance}
+      />
+
+      {/* Milestone Celebration Modal - Epic 01 Story 06 - Phase 3 */}
+      <MilestoneCelebrationModal
+        milestone={celebrationMilestone}
+        onClose={closeCelebration}
       />
     </>
   );
