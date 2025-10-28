@@ -55,6 +55,7 @@ import StudentDashboardPage from "./pages/student/StudentDashboardPage";
 import ComputerAppsPage from "./pages/student/ComputerAppsPage";
 import ArtCoursePage from "./pages/student/ArtCoursePage";
 import SpokenEnglishPage from "./pages/student/SpokenEnglishPage";
+import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
 
 const App = () => {
   return (
@@ -115,10 +116,7 @@ const App = () => {
                 path="/student/life-skills"
                 element={
                   <ProtectedRoute>
-                    {/* Placeholder - Epic 01 Story 05 */}
-                    <div className="flex items-center justify-center min-h-screen">
-                      <h1 className="text-2xl">Life Skills - Coming Soon</h1>
-                    </div>
+                    <LifeSkillsCoursePage />
                   </ProtectedRoute>
                 }
               />

@@ -45,6 +45,7 @@ const lmsStudentDashboardRoutes = require("./routes/v2/lms/student/dashboard"); 
 const lmsStudentComputerAppsRoutes = require("./routes/v2/lms/student/computerApps"); // Sprint 2 Epic 01: Computer Apps Course
 const lmsStudentArtRoutes = require("./routes/v2/lms/student/art"); // Sprint 2 Epic 01: Art Course
 const lmsStudentSpokenEnglishRoutes = require("./routes/v2/lms/student/spokenEnglish"); // Sprint 2 Epic 01: Spoken English Course
+const lmsStudentLifeSkillsRoutes = require("./routes/v2/lms/student/lifeSkills"); // Sprint 2 Epic 01: Life Skills Course
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -162,6 +163,7 @@ app.use("/api/v2/lms/student", lmsStudentDashboardRoutes); // Sprint 2 Epic 01: 
 app.use("/api/v2/lms/student/:studentId/courses/computer-apps", lmsStudentComputerAppsRoutes); // Sprint 2 Epic 01: Computer Apps Course (requires student auth)
 app.use("/api/v2/lms/student/:studentId/courses/art", lmsStudentArtRoutes); // Sprint 2 Epic 01: Art Course (requires student auth)
 app.use("/api/v2/lms/student/:studentId/courses/spoken-english", lmsStudentSpokenEnglishRoutes); // Sprint 2 Epic 01: Spoken English Course (requires student auth)
+app.use("/api/v2/lms/student/:studentId/courses/life-skills", lmsStudentLifeSkillsRoutes); // Sprint 2 Epic 01: Life Skills Course (requires student auth)
 
 const dbConnection =
   process.env.NODE_ENV === "local"
