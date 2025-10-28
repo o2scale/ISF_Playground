@@ -54,6 +54,7 @@ import TranslationQueue from "./pages/admin/TranslationQueue";
 import StudentDashboardPage from "./pages/student/StudentDashboardPage";
 import ComputerAppsPage from "./pages/student/ComputerAppsPage";
 import ArtCoursePage from "./pages/student/ArtCoursePage";
+import SpokenEnglishPage from "./pages/student/SpokenEnglishPage";
 
 const App = () => {
   return (
@@ -98,10 +99,15 @@ const App = () => {
                 path="/student/spoken-english"
                 element={
                   <ProtectedRoute>
-                    {/* Placeholder - Epic 01 Story 04 */}
-                    <div className="flex items-center justify-center min-h-screen">
-                      <h1 className="text-2xl">Spoken English - Coming Soon</h1>
-                    </div>
+                    <SpokenEnglishPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/spoken-english/:taskId"
+                element={
+                  <ProtectedRoute>
+                    <SpokenEnglishPage />
                   </ProtectedRoute>
                 }
               />
