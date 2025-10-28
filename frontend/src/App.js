@@ -60,6 +60,7 @@ import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
 import LifeSkillsQuizPage from "./pages/student/LifeSkillsQuizPage";
 import LifeSkillsQuizResults from "./pages/student/LifeSkillsQuizResults";
 import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
+import CoachAssignmentsPage from "./pages/coach/CoachAssignmentsPage";
 
 const App = () => {
   return (
@@ -431,6 +432,16 @@ const App = () => {
                   element={
                     <ProtectedRoute module="LMS Management" action="Manage">
                       <TranslationDashboard />
+                    </ProtectedRoute>
+                  }
+                />
+
+                {/* Coach Course Assignments - Sprint 2 Epic 03 Story 01 */}
+                <Route
+                  path="/coach/assignments"
+                  element={
+                    <ProtectedRoute>
+                      <CoachAssignmentsPage />
                     </ProtectedRoute>
                   }
                 />

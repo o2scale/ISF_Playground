@@ -1,0 +1,15 @@
+{
+  "quizId": "quiz_1",
+  "answers": [
+    {"questionId": "mcq_q1", "selectedOption": "B"},
+    {"questionId": "mcq_q2", "selectedOption": "B"},
+    {"questionId": "mcq_q3", "selectedOption": "A"},
+    {"questionId": "mcq_q4", "selectedOption": "C"},
+    {"questionId": "mcq_q5", "selectedOption": "B"},
+    {"questionId": "mcq_q6", "selectedOption": "A"},
+    {"questionId": "mcq_q7", "selectedOption": "B"},
+    {"questionId": "mcq_q8", "selectedOption": "C"},
+    {"questionId": "mcq_q9", "selectedOption": "B"},
+    {"questionId": "mcq_q10", "selectedOption": "A"}
+  ]
+}
