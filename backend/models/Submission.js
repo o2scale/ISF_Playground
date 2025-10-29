@@ -181,13 +181,13 @@ SubmissionSchema.statics.findByCoach = async function (coachId, filters = {}) {
   const User = mongoose.model("User");
 
   // Find all students in coach's Balagruha
-  const coach = await User.findById(coachId).populate("balagruha");
-  if (!coach || !coach.balagruha) {
+  const coach = await User.findById(coachId);
+  if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
     return [];
   }
 
   const students = await User.find({
-    balagruha: coach.balagruha._id,
+    balagruhaIds: { $in: coach.balagruhaIds },
     role: "student",
   });
 
@@ -237,9 +237,9 @@ SubmissionSchema.statics.findByCoach = async function (coachId, filters = {}) {
   const offset = filters.offset || 0;
 
   const submissions = await this.find(query)
-    .populate("studentId", "firstName lastName class balagruha")
+    .populate("studentId", "name email class role balagruhaIds")
     .populate("courseId", "title category")
-    .populate("grade.gradedBy", "firstName lastName")
+    .populate("grade.gradedBy", "name")
     .sort(sort)
     .limit(limit)
     .skip(offset);
@@ -252,8 +252,8 @@ SubmissionSchema.statics.getCoachStats = async function (coachId) {
   const User = mongoose.model("User");
 
   // Find all students in coach's Balagruha
-  const coach = await User.findById(coachId).populate("balagruha");
-  if (!coach || !coach.balagruha) {
+  const coach = await User.findById(coachId);
+  if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
     return {
       pending: 0,
       graded: 0,
@@ -263,7 +263,7 @@ SubmissionSchema.statics.getCoachStats = async function (coachId) {
   }
 
   const students = await User.find({
-    balagruha: coach.balagruha._id,
+    balagruhaIds: { $in: coach.balagruhaIds },
     role: "student",
   });
 
