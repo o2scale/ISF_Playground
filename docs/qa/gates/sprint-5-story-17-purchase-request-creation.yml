@@ -1,0 +1,249 @@
+# Quality Gate - Story 17: Purchase Request Creation & Management
+
+story_id: Sprint5-Story-17
+epic_id: Sprint5-Epic-05
+title: "Purchase Request Creation & Management (Purchase Manager)"
+status: ready_for_qa
+created: 2025-10-29
+updated: 2025-10-29
+
+# Critical Acceptance Criteria (Must Pass)
+critical_acs:
+  - AC1  # Dropdown UI Integration
+  - AC2  # Purchase Request Creation
+  - AC3  # View Own Requests (Frontend Filtering)
+  - AC4  # Request Filtering & Search
+  - AC5  # Cancel Pending Request
+
+# Important Acceptance Criteria (Should Pass)
+important_acs:
+  - AC6  # View Request Details
+  - AC7  # Export to PDF
+
+# Quality Gate Criteria
+quality_criteria:
+  test_coverage:
+    minimum_percentage: 80
+    target_percentage: 100
+    unit_tests: not_required  # Sprint5-Story-17 focuses on E2E
+    integration_tests: not_required
+    e2e_tests: required
+    e2e_test_count: 48
+
+  functionality:
+    all_critical_acs_pass: required
+    all_important_acs_pass: required
+    regression_tests_pass: required
+    no_critical_bugs: required
+    no_high_severity_bugs: required
+
+  code_quality:
+    no_console_errors: required
+    no_security_vulnerabilities: required
+    follows_project_standards: required
+    responsive_design: required
+
+  performance:
+    page_load_time_ms: 2000
+    api_response_time_ms: 500
+    no_memory_leaks: required
+
+  security:
+    backend_balagruha_validation: required
+    frontend_filtering_applied: required
+    no_unauthorized_access: required
+    csrf_protection: not_applicable
+    input_sanitization: required
+
+# Test Execution Plan
+test_plan:
+  manual_testing:
+    - test_case_group: "TC-1.x - Dropdown UI"
+      test_count: 3
+      priority: critical
+      estimated_time_minutes: 10
+
+    - test_case_group: "TC-2.x - Request Creation"
+      test_count: 7
+      priority: critical
+      estimated_time_minutes: 25
+
+    - test_case_group: "TC-3.x - View Own Requests"
+      test_count: 2
+      priority: critical
+      estimated_time_minutes: 10
+
+    - test_case_group: "TC-4.x - Filtering & Search"
+      test_count: 7
+      priority: critical
+      estimated_time_minutes: 25
+
+    - test_case_group: "TC-5.x - Cancel Request"
+      test_count: 5
+      priority: critical
+      estimated_time_minutes: 20
+
+    - test_case_group: "TC-6.x - View Details"
+      test_count: 5
+      priority: important
+      estimated_time_minutes: 20
+
+    - test_case_group: "TC-7.x - Export PDF"
+      test_count: 3
+      priority: important
+      estimated_time_minutes: 10
+
+    - test_case_group: "TC-8.x - Stats Footer"
+      test_count: 3
+      priority: normal
+      estimated_time_minutes: 10
+
+    - test_case_group: "TC-9.x - UX & Error Handling"
+      test_count: 4
+      priority: normal
+      estimated_time_minutes: 15
+
+    - test_case_group: "TC-10.x - Security"
+      test_count: 2
+      priority: critical
+      estimated_time_minutes: 15
+
+  total_estimated_time_minutes: 160  # ~2.7 hours
+  required_test_users:
+    - purchase_manager
+    - admin
+  required_test_data:
+    - balagruhas: 2
+    - products: 10
+    - low_stock_products: 5
+    - requests: 10
+
+# Regression Testing
+regression:
+  affected_areas:
+    - "/purchase page (existing machine repairs)"
+    - "Purchase Management component structure"
+    - "Balagruha access control"
+
+  regression_tests:
+    - test: "Machine Repairs view still works"
+      priority: critical
+      description: "Verify existing Machine Repairs functionality not broken"
+
+    - test: "Dropdown switching works smoothly"
+      priority: critical
+      description: "No errors when switching between views"
+
+    - test: "Existing routes still accessible"
+      priority: high
+      description: "Navigation to /purchase page works"
+
+# Pass/Fail Criteria
+pass_criteria:
+  must_pass:
+    - "All 5 critical ACs pass (AC1-AC5)"
+    - "All 48 E2E test cases documented"
+    - "No critical or high severity bugs"
+    - "Backend balagruha validation works"
+    - "Frontend filtering correctly filters requests"
+    - "Machine Repairs view not broken (regression)"
+    - "No console errors in browser dev tools"
+    - "PDF export generates valid PDF files"
+
+  should_pass:
+    - "AC6 and AC7 pass"
+    - "All 10 test case groups pass"
+    - "Page load time < 2 seconds"
+    - "API response time < 500ms"
+    - "Responsive design works on mobile"
+
+  optional:
+    - "Zero warnings in browser console"
+    - "Accessibility standards met"
+    - "Cross-browser testing (Firefox, Safari)"
+
+# Known Limitations (MVP Approach)
+known_limitations:
+  - limitation: "Frontend filtering for balagruha access"
+    description: "Purchase Managers see filtered data via frontend logic (OLD RBAC MVP)"
+    severity: low
+    future_fix: "Will be replaced with backend scope-based filtering when NEW RBAC merges"
+    security_risk: low
+    mitigation: "Backend validation on write operations prevents unauthorized creation"
+
+  - limitation: "No real-time updates"
+    description: "Requests table does not auto-refresh when another user creates/updates requests"
+    severity: low
+    workaround: "Manual page refresh"
+
+  - limitation: "Basic PDF export"
+    description: "PDF export is simple table format without advanced formatting"
+    severity: very_low
+    future_enhancement: true
+
+# Bug Severity Definitions
+bug_severity:
+  critical:
+    description: "System crash, data loss, security breach, core feature completely broken"
+    examples:
+      - "Cannot create purchase requests at all"
+      - "Unauthorized user can access another user's requests"
+      - "Database corruption on save"
+    action: "Block release, fix immediately"
+
+  high:
+    description: "Major feature not working, significant functionality impaired"
+    examples:
+      - "Filters not working at all"
+      - "PDF export crashes browser"
+      - "Cannot cancel requests"
+    action: "Must fix before release"
+
+  medium:
+    description: "Feature works but with issues, workaround available"
+    examples:
+      - "Search is case-sensitive (should be case-insensitive)"
+      - "Date filter shows wrong default"
+      - "Stats footer count off by 1"
+    action: "Fix if time permits, or defer to next sprint"
+
+  low:
+    description: "Minor UI issues, cosmetic problems, rare edge cases"
+    examples:
+      - "Button hover color slightly off"
+      - "Text alignment issue"
+      - "Tooltip text typo"
+    action: "Fix in future sprint"
+
+# Sign-off Requirements
+sign_off:
+  dev_agent:
+    name: "James"
+    status: completed
+    date: 2025-10-29
+    notes: "All features implemented, tested locally, ready for QA"
+
+  qa_agent:
+    name: "TBD"
+    status: pending
+    date: null
+    notes: "Awaiting QA testing"
+
+  product_owner:
+    name: "TBD"
+    status: pending
+    date: null
+    notes: "Awaiting PO approval after QA pass"
+
+# Related Documents
+related_docs:
+  story: "docs/stories/sprint5/sprint5-story-17-purchase-request-creation.md"
+  epic: "docs/epics/sprint5/sprint5-epic-05-purchase-manager-workflow.md"
+  e2e_scenarios: "docs/qa/e2e/sprint5-story-17-purchase-request-creation.md"
+  technical_patterns: ".ai/sprint-5-purchase-manager/technical-patterns.md"
+  dev_handoff: ".ai/sprint-5-purchase-manager/DEV-HANDOFF.md"
+
+# Version Control
+version: 1.0
+last_updated: 2025-10-29 17:20:00
+created_by: "Dev Agent (James)"
