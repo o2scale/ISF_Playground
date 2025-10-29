@@ -15,7 +15,7 @@ export default function CoachAssignmentsPage() {
 
   return (
     <CoachAssignmentsView
-      coachId={user._id}
+      coachId={user.id}
       coachName={`${user.firstName} ${user.lastName}`}
       balagruhaName={user.balagruha?.name}
     />

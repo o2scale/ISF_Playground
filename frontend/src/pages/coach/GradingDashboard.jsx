@@ -26,7 +26,7 @@ export default function GradingDashboard() {
   const [allSubmissions, setAllSubmissions] = useState([]);
 
   useEffect(() => {
-    if (user && user._id) {
+    if (user && user.id) {
       fetchSubmissions();
     }
   }, [user, filters.courseType, filters.status, filters.sortBy]);
@@ -45,7 +45,7 @@ export default function GradingDashboard() {
       });
 
       const response = await axios.get(
-        `http://localhost:5001/api/v2/lms/coach/grading/${user._id}/submissions?${queryParams}`,
+        `http://localhost:5001/api/v2/lms/coach/grading/${user.id}/submissions?${queryParams}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -198,7 +198,7 @@ export default function GradingDashboard() {
             <ArtGradingInterface
               submission={currentSubmission}
               onClose={handleCloseGrading}
-              coachId={user._id}
+              coachId={user.id}
               onNavigate={handleNavigate}
               onSkip={handleSkip}
               onFlag={handleFlag}
@@ -210,7 +210,7 @@ export default function GradingDashboard() {
             <VideoGradingInterface
               submission={currentSubmission}
               onClose={handleCloseGrading}
-              coachId={user._id}
+              coachId={user.id}
               onNavigate={handleNavigate}
               onSkip={handleSkip}
               onFlag={handleFlag}
@@ -222,7 +222,7 @@ export default function GradingDashboard() {
             <AudioGradingInterface
               submission={currentSubmission}
               onClose={handleCloseGrading}
-              coachId={user._id}
+              coachId={user.id}
               onNavigate={handleNavigate}
               onSkip={handleSkip}
               onFlag={handleFlag}
