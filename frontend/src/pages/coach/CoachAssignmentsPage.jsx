@@ -1,9 +1,9 @@
-import React, { useContext } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
+import React from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import CoachAssignmentsView from '../../components/coach/CoachAssignmentsView';
 
 export default function CoachAssignmentsPage() {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
 
   if (!user) {
     return (

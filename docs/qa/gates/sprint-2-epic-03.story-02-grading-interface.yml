@@ -1,22 +1,23 @@
 schema: 1
 story: 'sprint-2-epic-03.story-02'
 story_title: 'Syllabus Tracker & Grading Interface'
-gate: PENDING  # Awaiting QA execution
-status_reason: 'Enhanced implementation complete (2025-10-29 10:34:35). Core grading functionality + advanced features: search, navigation controls (Previous/Next/Skip/Flag), image rotation, video playback speed controls, video rewind/forward buttons. Ready for QA testing.'
+gate: BLOCKED  # Testing blocked by critical issues
+status_reason: 'QA testing blocked (2025-10-29 12:30:47). BUG #1 (P0 - FIXED): Compilation errors in GradingDashboard.jsx. BUG #2 (P0 - BLOCKING): No test data available - 0 submissions in database. Only 1 of 58 test cases partially executed. Requires seed data before testing can proceed.'
 reviewer: 'Quinn (QA Agent - Test Architect)'
-updated: '2025-10-29T10:34:35'
+updated: '2025-10-29T12:30:47'
 
 # Quality Criteria
 quality_criteria:
   test_coverage_required: 80  # Minimum % of acceptance criteria coverage
   critical_acs: [1, 2, 6, 7, 8, 13, 15, 20, 21, 27, 28, 29, 32, 38]  # Must-pass ACs
   e2e_scenarios_path: 'docs/qa/e2e/epic-03-story-02-grading-interface.md'
-  total_test_cases: 68  # Based on 68 acceptance criteria
-  executed_test_cases: 0  # Awaiting QA execution
-  passed_test_cases: 0
-  failed_test_cases: 0
-  blocked_test_cases: 0
-  test_coverage_percent: 0  # Will be calculated after testing
+  total_test_cases: 76  # Updated from E2E doc (76 total test cases)
+  ready_test_cases: 58  # Excluding 18 deferred (not implemented)
+  executed_test_cases: 1  # TC 1.1 partially executed
+  passed_test_cases: 0  # None passed completely
+  failed_test_cases: 0  # None failed (blocked before execution)
+  blocked_test_cases: 58  # All test cases blocked by BUG #2 (no test data)
+  test_coverage_percent: 1.7  # 1/58 executed (partial)
 
 # Acceptance Criteria Mapping (Total: 68 ACs)
 acceptance_criteria_map:
@@ -526,9 +527,9 @@ sign_off:
 
   qa_agent:
     name: 'Quinn (Test Architect)'
-    status: 'pending'
-    date: null
-    notes: 'Awaiting test execution'
+    status: 'blocked'
+    date: '2025-10-29T12:30:47'
+    notes: 'Testing blocked by critical issues. BUG #1 (P0 - FIXED): Compilation errors in GradingDashboard.jsx and CoachAssignmentsPage.jsx (AuthContext import). BUG #2 (P0 - BLOCKING): No test data available - 0 submissions in database. Only 1 of 58 test cases partially executed (TC 1.1). Quality score: 10/100 (Grade F). Full QA report: docs/qa/reports/sprint-2-epic-03-story-02-qa-report.md. Requires seed data script before testing can proceed.'
 
   product_owner:
     name: 'TBD'
@@ -538,19 +539,38 @@ sign_off:
 
 # Deployment Readiness
 deployment_readiness:
-  can_deploy_to_staging: false  # Requires QA testing first
-  can_deploy_to_production: false  # Requires 80% test coverage + full feature set
+  can_deploy_to_staging: false  # Blocked by critical issues
+  can_deploy_to_production: false  # Requires testing completion + bug fixes
+  quality_score: 10  # Out of 100
+  quality_grade: 'F'  # Failing
   blockers:
-    - 'QA testing not yet executed'
-    - 'Missing advanced features: bulk grading, navigation, auto-save'
+    - 'BUG #1 (P0 - FIXED): Compilation errors in GradingDashboard.jsx (AuthContext import)'
+    - 'BUG #2 (P0 - BLOCKING): No test data available - 0 submissions in database'
+    - 'Only 1 of 58 test cases executed (1.7% coverage)'
+    - 'Cannot verify core grading functionality without submissions'
+  bugs_found:
+    - id: 'BUG-01'
+      severity: 'P0'
+      status: 'FIXED'
+      title: 'Compilation errors - AuthContext import in GradingDashboard.jsx'
+      files: ['frontend/src/pages/coach/GradingDashboard.jsx', 'frontend/src/pages/coach/CoachAssignmentsPage.jsx']
+      fixed_date: '2025-10-29T12:26:30'
+    - id: 'BUG-02'
+      severity: 'P0'
+      status: 'OPEN'
+      title: 'No test data - 0 submissions in database'
+      impact: '58 test cases blocked'
+      reported_date: '2025-10-29T12:28:45'
   recommended_next_steps:
-    - 'HIGH: Execute core E2E tests (TC 1.1-1.8, TC 2.1-2.8, TC 3.1-3.8, TC 4.1-4.7, TC 5.1-5.17)'
+    - 'IMMEDIATE (P0): Create seed data script (backend/scripts/seedGradingData.js)'
+    - 'IMMEDIATE (P0): Populate 10+ test submissions (art, video, audio) in database'
+    - 'IMMEDIATE (P0): Upload test media files to backend/uploads/submissions/'
+    - 'HIGH: Re-run full E2E test suite (58 test cases) after data seeded'
     - 'HIGH: Test RBAC: Verify coach can only see submissions from their Balagruha'
     - 'HIGH: Test end-to-end grading workflow with real student submissions'
     - 'HIGH: Verify coin balance updates and student notifications'
-    - 'MEDIUM: Implement navigation controls (Previous/Next/Skip/Flag)'
-    - 'MEDIUM: Implement bulk grading feature'
-    - 'MEDIUM: Add auto-save draft functionality'
-    - 'LOW: Add task instructions display'
-    - 'LOW: Add evaluation criteria checkboxes'
-    - 'LOW: Implement advanced media controls (video speed, audio waveform)'
+    - 'MEDIUM: Add ESLint rule to prevent AuthContext import errors'
+    - 'MEDIUM: Document test environment setup process'
+    - 'LOW: Implement bulk grading feature (18 deferred test cases)'
+    - 'LOW: Add auto-save draft functionality'
+    - 'LOW: Implement advanced media controls (audio waveform, video download)'

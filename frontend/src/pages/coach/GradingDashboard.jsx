@@ -1,6 +1,6 @@
 // frontend/src/pages/coach/GradingDashboard.jsx
-import React, { useState, useEffect, useContext } from 'react';
-import { AuthContext } from '../../contexts/AuthContext';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import SubmissionQueue from '../../components/coach/grading/SubmissionQueue';
@@ -9,7 +9,7 @@ import VideoGradingInterface from '../../components/coach/grading/VideoGradingIn
 import AudioGradingInterface from '../../components/coach/grading/AudioGradingInterface';
 
 export default function GradingDashboard() {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [stats, setStats] = useState({ pending: 0, graded: 0, flagged: 0, thisWeek: 0 });
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
