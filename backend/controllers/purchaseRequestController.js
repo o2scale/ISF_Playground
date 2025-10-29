@@ -455,4 +455,52 @@ exports.getPurchaseRequestStats = async (req, res) => {
   }
 };
 
+/**
+ * @route   GET /api/v2/shop/purchase-manager/products/low-stock
+ * @desc    Get low-stock products accessible to Purchase Manager
+ * @access  Private (Purchase Management:Read)
+ * FIX: BUG-S17-004 - Purchase Managers need access to product list for request creation
+ */
+exports.getLowStockProducts = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userBalagruhas = req.user.balagruhaIds || [];
+
+    // Build query for low-stock products
+    let query = {
+      isActive: true,
+      $expr: { $lte: ['$stock', '$lowStockThreshold'] }  // stock <= lowStockThreshold
+    };
+
+    // Filter by user's assigned balagruhas (Purchase Manager)
+    if (req.user.role === 'purchase-manager') {
+      query.$or = [
+        { balagruhaId: { $in: userBalagruhas } },  // Products from assigned balagruhas
+        { balagruhaId: null }  // Shop-wide products (no specific balagruha)
+      ];
+    }
+    // Admin sees all low-stock products
+    // (no additional filter needed)
+
+    const products = await ShopItem.find(query)
+      .populate('balagruhaId', 'name')
+      .select('name sku stock lowStockThreshold price images balagruhaId isActive')
+      .sort({ stock: 1, name: 1 })  // Out of stock first, then by name
+      .limit(1000);
+
+    res.json({
+      success: true,
+      products,
+      count: products.length
+    });
+  } catch (error) {
+    console.error('Error fetching low-stock products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching low-stock products',
+      error: error.message
+    });
+  }
+};
+
 module.exports = exports;

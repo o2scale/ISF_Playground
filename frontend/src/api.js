@@ -1788,6 +1788,17 @@ export const markOrderDelivered = async (orderId, deliveryNotes = '') => {
 // Purchase Request Management APIs - Sprint5-Story-17
 // ========================================
 
+// Get low-stock products for Purchase Manager (BUG-S17-004 FIX)
+export const getLowStockProducts = async () => {
+  try {
+    const response = await api.get('/api/v2/shop/admin/purchase-requests/products/low-stock');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching low-stock products:", error);
+    throw error;
+  }
+};
+
 // Create new purchase request (Purchase Manager)
 export const createPurchaseRequest = async (data) => {
   try {

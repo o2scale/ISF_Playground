@@ -19,6 +19,14 @@ const {
  * Purchase Manager Routes
  */
 
+// Get low-stock products (for request creation dropdown) - BUG-S17-004 FIX
+router.get(
+  '/products/low-stock',
+  authenticate,
+  checkPermission('Purchase Management', 'Read'),
+  purchaseRequestController.getLowStockProducts
+);
+
 // Create new purchase request
 router.post(
   '/',

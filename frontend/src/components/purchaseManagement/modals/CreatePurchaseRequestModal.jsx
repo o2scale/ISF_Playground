@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   createPurchaseRequest,
-  getAllShopItems
+  getLowStockProducts
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import '../PurchaseManagement.css';
@@ -40,16 +40,16 @@ export default function CreatePurchaseRequestModal({
   const fetchProducts = async (balagruhaId) => {
     try {
       setFetchingProducts(true);
-      const response = await getAllShopItems();
+      // FIX: BUG-S17-004 - Use new endpoint that Purchase Managers can access
+      const response = await getLowStockProducts();
 
       if (response.success) {
         const allProducts = response.products || [];
 
-        // Filter products: low stock + from selected balagruha (or shop-wide)
+        // Filter products by selected balagruha (backend already filters low stock)
         const filtered = allProducts.filter(item => {
-          const isLowStock = item.stock <= item.lowStockThreshold;
           const matchesBalagruha = !item.balagruhaId || item.balagruhaId === balagruhaId;
-          return isLowStock && matchesBalagruha && item.isActive;
+          return matchesBalagruha;
         });
 
         setProducts(allProducts);
