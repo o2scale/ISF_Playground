@@ -317,7 +317,8 @@ const Layout = () => {
     <div className="app-layout">
       {(localStorage.getItem("role") === "admin" ||
         localStorage.getItem("role") === "coach" ||
-        localStorage.getItem("role") === "student") && (
+        localStorage.getItem("role") === "student" ||
+        localStorage.getItem("role") === "purchase-manager") && (
         <div className="header">
           {/* Hamburger Menu Icon - Only show on WTF route */}
           {isWTFRoute && (

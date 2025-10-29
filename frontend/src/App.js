@@ -129,9 +129,18 @@ const App = () => {
                     // </ProtectedRoute>
                   }
                 />
+
+                {/* Course, Repair, and Purchase Management Routes */}
                 <Route path="/course" element={<CourseManagement />} />
                 <Route path="/repair" element={<RepairManagement />} />
-                <Route path="/purchase" element={<PurchaseManagement />} />
+                <Route
+                  path="/purchase"
+                  element={
+                    <ProtectedRoute module="Purchase Management" action="Read">
+                      <PurchaseManagement />
+                    </ProtectedRoute>
+                  }
+                />
 
                 {/* WTF (Wall of Fame) Route */}
                 <Route

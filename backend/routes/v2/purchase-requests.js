@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const purchaseRequestController = require('../../controllers/purchaseRequestController');
 const { authenticate } = require('../../middleware/auth');
-const { checkPermission } = require('../../middleware/checkPermission');
+const checkPermission = require('../../middleware/checkPermission');
 const {
   validateCreateRequest,
   validateRequestId
