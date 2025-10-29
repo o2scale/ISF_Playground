@@ -1,0 +1,497 @@
+import React, { useState, useEffect } from 'react';
+import {
+  getMyPurchaseRequests,
+  getAllPurchaseRequests,
+  cancelPurchaseRequest,
+  getBalagruha
+} from '../../../api';
+import showToast from '../../../utils/toast';
+import CreatePurchaseRequestModal from '../modals/CreatePurchaseRequestModal';
+import ViewRequestModal from '../modals/ViewRequestModal';
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
+import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import '../PurchaseManagement.css';
+
+dayjs.extend(relativeTime);
+dayjs.extend(isSameOrAfter);
+dayjs.extend(isSameOrBefore);
+
+/**
+ * Shop Inventory View - Sprint5-Story-17
+ * Displays purchase requests for shop inventory with frontend filtering
+ */
+export default function ShopInventoryView({ userRole, userId, userBalagruhas }) {
+  const [requests, setRequests] = useState([]);
+  const [filteredRequests, setFilteredRequests] = useState([]);
+  const [balagruhas, setBalagruhas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // Modal states
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+
+  // Filter states
+  const [filters, setFilters] = useState({
+    dateRange: null,
+    fromDate: '',
+    toDate: '',
+    balagruha: 'all',
+    status: 'all',
+    search: ''
+  });
+
+  useEffect(() => {
+    fetchBalagruhas();
+    fetchPurchaseRequests();
+  }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [requests, filters, userRole, userId, userBalagruhas]);
+
+  const fetchBalagruhas = async () => {
+    try {
+      const response = await getBalagruha();
+      if (response.success) {
+        setBalagruhas(response.data.balagruhas || []);
+      }
+    } catch (error) {
+      console.error('Error fetching balagruhas:', error);
+    }
+  };
+
+  const fetchPurchaseRequests = async () => {
+    try {
+      setLoading(true);
+      const response = userRole === 'admin'
+        ? await getAllPurchaseRequests()
+        : await getMyPurchaseRequests();
+
+      if (response.success) {
+        setRequests(response.data.requests || []);
+      } else {
+        showToast('Error fetching purchase requests', 'error');
+      }
+    } catch (error) {
+      console.error('Error fetching purchase requests:', error);
+      showToast('Error fetching purchase requests', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyFilters = () => {
+    let filtered = [...requests];
+
+    // FRONTEND FILTERING for Purchase Manager
+    if (userRole === 'purchase-manager') {
+      filtered = filtered.filter(request => {
+        // Only show requests from assigned balagruhas
+        const matchesBalagruha = !request.balagruhaId ||
+          userBalagruhas.includes(request.balagruhaId._id);
+        // Only show own requests
+        const isOwnRequest = request.requestedBy?._id === userId;
+        return matchesBalagruha && isOwnRequest;
+      });
+    }
+
+    // Date range filter
+    if (filters.dateRange && filters.dateRange !== 'all') {
+      const now = dayjs();
+      filtered = filtered.filter(request => {
+        const createdDate = dayjs(request.createdAt);
+
+        if (filters.dateRange === 'today') {
+          return createdDate.isSame(now, 'day');
+        } else if (filters.dateRange === 'thisWeek') {
+          return createdDate.isSame(now, 'week');
+        } else if (filters.dateRange === 'thisMonth') {
+          return createdDate.isSame(now, 'month');
+        } else if (filters.dateRange === 'custom' && filters.fromDate && filters.toDate) {
+          return createdDate.isSameOrAfter(dayjs(filters.fromDate), 'day') &&
+                 createdDate.isSameOrBefore(dayjs(filters.toDate), 'day');
+        }
+        return true;
+      });
+    }
+
+    // Balagruha filter
+    if (filters.balagruha !== 'all') {
+      filtered = filtered.filter(request =>
+        request.balagruhaId?._id === filters.balagruha
+      );
+    }
+
+    // Status filter
+    if (filters.status !== 'all') {
+      filtered = filtered.filter(request => request.status === filters.status);
+    }
+
+    // Search filter (product name, SKU, reason)
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      filtered = filtered.filter(request => {
+        const matchesProduct = request.productName?.toLowerCase().includes(searchLower);
+        const matchesSKU = request.productSKU?.toLowerCase().includes(searchLower);
+        const matchesReason = request.reason?.toLowerCase().includes(searchLower);
+        const matchesRequestId = request.requestId?.toLowerCase().includes(searchLower);
+        return matchesProduct || matchesSKU || matchesReason || matchesRequestId;
+      });
+    }
+
+    setFilteredRequests(filtered);
+  };
+
+  const getStatusBadge = (status) => {
+    const badges = {
+      pending_approval: { icon: '🟡', label: 'Pending', className: 'status-pending' },
+      approved: { icon: '✅', label: 'Approved', className: 'status-approved' },
+      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected' },
+      completed: { icon: '✅', label: 'Completed', className: 'status-completed' },
+      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled' }
+    };
+
+    const badge = badges[status] || badges.pending_approval;
+    return (
+      <span className={`status-badge ${badge.className}`}>
+        {badge.icon} {badge.label}
+      </span>
+    );
+  };
+
+  const handleCancelRequest = async (requestId) => {
+    if (!window.confirm('Are you sure you want to cancel this request?')) {
+      return;
+    }
+
+    try {
+      const response = await cancelPurchaseRequest(requestId);
+      if (response.success) {
+        showToast('Request cancelled successfully', 'success');
+        fetchPurchaseRequests();
+      } else {
+        showToast(response.message || 'Error cancelling request', 'error');
+      }
+    } catch (error) {
+      console.error('Error cancelling request:', error);
+      showToast(error.response?.data?.message || 'Error cancelling request', 'error');
+    }
+  };
+
+  const handleViewRequest = (request) => {
+    setSelectedRequest(request);
+    setShowViewModal(true);
+  };
+
+  const exportToPDF = () => {
+    const doc = new jsPDF();
+
+    // Title
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text('Shop Purchase Requests', 14, 15);
+
+    // Metadata
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'normal');
+    doc.text(`Generated: ${dayjs().format('DD-MM-YYYY HH:mm')}`, 14, 22);
+    doc.text(`Total Requests: ${filteredRequests.length}`, 14, 28);
+    doc.text(`Pending: ${filteredRequests.filter(r => r.status === 'pending_approval').length}`, 14, 34);
+
+    // Table
+    const tableColumn = ['Request ID', 'Product', 'Qty', 'Reason', 'Status', 'Date'];
+    const tableRows = filteredRequests.map(req => [
+      req.requestId,
+      req.productName,
+      req.requestedQuantity,
+      req.reason.substring(0, 30) + (req.reason.length > 30 ? '...' : ''),
+      req.status.replace('_', ' ').toUpperCase(),
+      dayjs(req.createdAt).format('DD-MM-YYYY')
+    ]);
+
+    autoTable(doc, {
+      head: [tableColumn],
+      body: tableRows,
+      startY: 40,
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [59, 130, 246] }
+    });
+
+    doc.save(`Purchase_Requests_${dayjs().format('YYYY-MM-DD')}.pdf`);
+    showToast('PDF exported successfully', 'success');
+  };
+
+  // Get balagruha options based on role
+  const getFilteredBalagruhas = () => {
+    if (userRole === 'admin') {
+      return balagruhas;
+    }
+    return balagruhas.filter(bg => userBalagruhas.includes(bg._id));
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p>Loading purchase requests...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shop-inventory-view">
+      {/* Header with Action Buttons */}
+      <div className="view-header">
+        <h2 className="view-title">🛒 Shop Inventory Purchase Requests</h2>
+        <div className="header-actions">
+          {userRole === 'purchase-manager' && (
+            <button
+              className="btn btn-primary"
+              onClick={() => setShowCreateModal(true)}
+            >
+              + New Purchase Request
+            </button>
+          )}
+          <button
+            className="btn btn-secondary"
+            onClick={exportToPDF}
+            disabled={filteredRequests.length === 0}
+          >
+            📄 Export PDF
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="filters-container">
+        <div className="filter-row">
+          {/* Date Range Filter */}
+          <div className="filter-group">
+            <label>Date Range:</label>
+            <select
+              value={filters.dateRange || 'all'}
+              onChange={(e) => setFilters({ ...filters, dateRange: e.target.value })}
+              className="filter-select"
+            >
+              <option value="all">All Time</option>
+              <option value="today">Today</option>
+              <option value="thisWeek">This Week</option>
+              <option value="thisMonth">This Month</option>
+              <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {/* Custom Date Range */}
+          {filters.dateRange === 'custom' && (
+            <>
+              <div className="filter-group">
+                <label>From:</label>
+                <input
+                  type="date"
+                  value={filters.fromDate}
+                  onChange={(e) => setFilters({ ...filters, fromDate: e.target.value })}
+                  className="filter-input"
+                />
+              </div>
+              <div className="filter-group">
+                <label>To:</label>
+                <input
+                  type="date"
+                  value={filters.toDate}
+                  onChange={(e) => setFilters({ ...filters, toDate: e.target.value })}
+                  className="filter-input"
+                />
+              </div>
+            </>
+          )}
+
+          {/* Balagruha Filter */}
+          <div className="filter-group">
+            <label>Balagruha:</label>
+            <select
+              value={filters.balagruha}
+              onChange={(e) => setFilters({ ...filters, balagruha: e.target.value })}
+              className="filter-select"
+            >
+              <option value="all">All Balagruhas</option>
+              {getFilteredBalagruhas().map(bg => (
+                <option key={bg._id} value={bg._id}>{bg.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="filter-group">
+            <label>Status:</label>
+            <select
+              value={filters.status}
+              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+              className="filter-select"
+            >
+              <option value="all">All Status</option>
+              <option value="pending_approval">Pending Approval</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+              <option value="completed">Completed</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          {/* Search Filter */}
+          <div className="filter-group search-group">
+            <label>Search:</label>
+            <input
+              type="text"
+              value={filters.search}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              placeholder="Product, SKU, Reason..."
+              className="filter-input search-input"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Requests Table */}
+      <div className="requests-table-container">
+        <table className="requests-table">
+          <thead>
+            <tr>
+              <th>Request ID</th>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Stock Status</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Requested</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredRequests.map(request => (
+              <tr key={request._id} className={`request-row status-${request.status}`}>
+                <td className="request-id-cell">
+                  <strong>{request.requestId}</strong>
+                  {request.balagruhaId && (
+                    <div className="balagruha-tag">
+                      📍 {request.balagruhaId.name}
+                    </div>
+                  )}
+                </td>
+                <td>
+                  <div className="product-info">
+                    <div className="product-name">{request.productName}</div>
+                    <div className="product-sku">SKU: {request.productSKU}</div>
+                  </div>
+                </td>
+                <td className="quantity-cell">{request.requestedQuantity}</td>
+                <td className="stock-cell">
+                  <div className="stock-info">
+                    <span className="stock-value">
+                      {request.currentStock} / {request.lowStockThreshold}
+                    </span>
+                    {request.currentStock === 0 && (
+                      <span className="stock-badge out-of-stock">Out of Stock</span>
+                    )}
+                    {request.currentStock > 0 && request.currentStock <= request.lowStockThreshold && (
+                      <span className="stock-badge low-stock">Low Stock</span>
+                    )}
+                  </div>
+                </td>
+                <td className="reason-cell">{request.reason}</td>
+                <td>{getStatusBadge(request.status)}</td>
+                <td className="date-cell">
+                  <div>{dayjs(request.createdAt).format('DD-MM-YYYY')}</div>
+                  <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
+                </td>
+                <td className="actions-cell">
+                  <button
+                    className="btn-icon"
+                    onClick={() => handleViewRequest(request)}
+                    title="View Details"
+                  >
+                    👁️
+                  </button>
+
+                  {request.status === 'pending_approval' && userRole === 'purchase-manager' && (
+                    <button
+                      className="btn-icon btn-cancel"
+                      onClick={() => handleCancelRequest(request._id)}
+                      title="Cancel Request"
+                    >
+                      ✖️
+                    </button>
+                  )}
+                </td>
+              </tr>
+            ))}
+            {filteredRequests.length === 0 && (
+              <tr>
+                <td colSpan="8" className="no-data">
+                  {userRole === 'purchase-manager'
+                    ? "No purchase requests found. Click '+ New Purchase Request' to create one."
+                    : "No purchase requests found."}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Stats Footer */}
+      <div className="stats-footer">
+        <div className="stats-item">
+          <span className="stats-label">Total Requests:</span>
+          <span className="stats-value">{filteredRequests.length}</span>
+        </div>
+        <div className="stats-item">
+          <span className="stats-label">Pending:</span>
+          <span className="stats-value pending">
+            {filteredRequests.filter(r => r.status === 'pending_approval').length}
+          </span>
+        </div>
+        <div className="stats-item">
+          <span className="stats-label">Approved:</span>
+          <span className="stats-value approved">
+            {filteredRequests.filter(r => r.status === 'approved').length}
+          </span>
+        </div>
+        <div className="stats-item">
+          <span className="stats-label">Completed:</span>
+          <span className="stats-value completed">
+            {filteredRequests.filter(r => r.status === 'completed').length}
+          </span>
+        </div>
+      </div>
+
+      {/* Modals */}
+      {showCreateModal && (
+        <CreatePurchaseRequestModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchPurchaseRequests();
+          }}
+          userBalagruhas={userBalagruhas}
+          balagruhas={getFilteredBalagruhas()}
+        />
+      )}
+
+      {showViewModal && selectedRequest && (
+        <ViewRequestModal
+          request={selectedRequest}
+          onClose={() => {
+            setShowViewModal(false);
+            setSelectedRequest(null);
+          }}
+          userRole={userRole}
+          onRefresh={fetchPurchaseRequests}
+        />
+      )}
+    </div>
+  );
+}
