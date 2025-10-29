@@ -21,13 +21,15 @@ export default function GradingDashboard() {
     courseType: 'all',
     status: 'pending',
     sortBy: 'oldest_first',
+    search: '',
   });
+  const [allSubmissions, setAllSubmissions] = useState([]);
 
   useEffect(() => {
     if (user && user._id) {
       fetchSubmissions();
     }
-  }, [user, filters]);
+  }, [user, filters.courseType, filters.status, filters.sortBy]);
 
   const fetchSubmissions = async () => {
     try {
@@ -49,7 +51,7 @@ export default function GradingDashboard() {
         }
       );
 
-      setSubmissions(response.data.submissions || []);
+      setAllSubmissions(response.data.submissions || []);
       setStats(response.data.stats || { pending: 0, graded: 0, flagged: 0, thisWeek: 0 });
     } catch (error) {
       console.error('Error fetching submissions:', error);
@@ -58,6 +60,16 @@ export default function GradingDashboard() {
       setLoading(false);
     }
   };
+
+  // Client-side filtering for search
+  const filteredSubmissions = allSubmissions.filter((submission) => {
+    if (!filters.search) return true;
+    const searchLower = filters.search.toLowerCase();
+    const studentName = submission.studentName?.toLowerCase() || '';
+    const courseTitle = submission.courseTitle?.toLowerCase() || '';
+    const taskTitle = submission.taskTitle?.toLowerCase() || '';
+    return studentName.includes(searchLower) || courseTitle.includes(searchLower) || taskTitle.includes(searchLower);
+  });
 
   const handleOpenGrading = (submission) => {
     setCurrentSubmission(submission);
@@ -69,6 +81,53 @@ export default function GradingDashboard() {
     setShowGradingInterface(false);
     // Refresh submissions after grading
     fetchSubmissions();
+  };
+
+  // Navigation controls
+  const handleNavigate = (direction) => {
+    const currentIndex = filteredSubmissions.findIndex(
+      (sub) => sub.id === currentSubmission.id
+    );
+    if (direction === 'previous' && currentIndex > 0) {
+      setCurrentSubmission(filteredSubmissions[currentIndex - 1]);
+    } else if (direction === 'next' && currentIndex < filteredSubmissions.length - 1) {
+      setCurrentSubmission(filteredSubmissions[currentIndex + 1]);
+    }
+  };
+
+  const handleSkip = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `http://localhost:5001/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/skip`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Submission skipped');
+      handleNavigate('next');
+    } catch (error) {
+      console.error('Error skipping submission:', error);
+      toast.error('Failed to skip submission');
+    }
+  };
+
+  const handleFlag = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const reason = prompt('Enter reason for flagging this submission:');
+      if (!reason) return;
+
+      await axios.put(
+        `http://localhost:5001/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/flag`,
+        { reason },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Submission flagged for admin review');
+      handleNavigate('next');
+    } catch (error) {
+      console.error('Error flagging submission:', error);
+      toast.error('Failed to flag submission');
+    }
   };
 
   const handleFilterChange = (filterKey, value) => {
@@ -124,7 +183,7 @@ export default function GradingDashboard() {
 
         {/* Submission Queue */}
         <SubmissionQueue
-          submissions={submissions}
+          submissions={filteredSubmissions}
           loading={loading}
           filters={filters}
           onFilterChange={handleFilterChange}
@@ -140,6 +199,11 @@ export default function GradingDashboard() {
               submission={currentSubmission}
               onClose={handleCloseGrading}
               coachId={user._id}
+              onNavigate={handleNavigate}
+              onSkip={handleSkip}
+              onFlag={handleFlag}
+              currentIndex={filteredSubmissions.findIndex((sub) => sub.id === currentSubmission.id)}
+              totalCount={filteredSubmissions.length}
             />
           )}
           {currentSubmission.submissionType === 'video' && (
@@ -147,6 +211,11 @@ export default function GradingDashboard() {
               submission={currentSubmission}
               onClose={handleCloseGrading}
               coachId={user._id}
+              onNavigate={handleNavigate}
+              onSkip={handleSkip}
+              onFlag={handleFlag}
+              currentIndex={filteredSubmissions.findIndex((sub) => sub.id === currentSubmission.id)}
+              totalCount={filteredSubmissions.length}
             />
           )}
           {currentSubmission.submissionType === 'audio' && (
@@ -154,6 +223,11 @@ export default function GradingDashboard() {
               submission={currentSubmission}
               onClose={handleCloseGrading}
               coachId={user._id}
+              onNavigate={handleNavigate}
+              onSkip={handleSkip}
+              onFlag={handleFlag}
+              currentIndex={filteredSubmissions.findIndex((sub) => sub.id === currentSubmission.id)}
+              totalCount={filteredSubmissions.length}
             />
           )}
         </div>

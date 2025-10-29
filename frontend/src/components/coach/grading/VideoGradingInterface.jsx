@@ -1,10 +1,13 @@
 // frontend/src/components/coach/grading/VideoGradingInterface.jsx
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import GradingPanel from './GradingPanel';
 
-export default function VideoGradingInterface({ submission, onClose, coachId }) {
+export default function VideoGradingInterface({ submission, onClose, coachId, onNavigate, onSkip, onFlag, currentIndex, totalCount }) {
+  const videoRef = useRef(null);
+  const [playbackSpeed, setPlaybackSpeed] = useState(1);
+
   const handleGrade = async (gradeData) => {
     try {
       const token = localStorage.getItem('token');
@@ -21,11 +24,38 @@ export default function VideoGradingInterface({ submission, onClose, coachId }) 
         `✅ Grade submitted! ${submission.studentName} earned ${gradeData.coinsAwarded} ISF Coins!`
       );
 
-      onClose();
+      // Auto-navigate to next or close if last
+      if (onNavigate && currentIndex < totalCount - 1) {
+        onNavigate('next');
+      } else {
+        onClose();
+      }
     } catch (error) {
       console.error('Error submitting grade:', error);
       toast.error(error.response?.data?.error || 'Failed to submit grade');
       throw error;
+    }
+  };
+
+  const handleRewind = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 5);
+    }
+  };
+
+  const handleForward = () => {
+    if (videoRef.current) {
+      videoRef.current.currentTime = Math.min(
+        videoRef.current.duration,
+        videoRef.current.currentTime + 5
+      );
+    }
+  };
+
+  const handleSpeedChange = (speed) => {
+    setPlaybackSpeed(speed);
+    if (videoRef.current) {
+      videoRef.current.playbackRate = speed;
     }
   };
 
@@ -52,6 +82,7 @@ export default function VideoGradingInterface({ submission, onClose, coachId }) 
 
           {/* HTML5 Video Player */}
           <video
+            ref={videoRef}
             src={submission.fileUrl}
             controls
             className="w-full rounded-lg border border-gray-300"
@@ -59,6 +90,41 @@ export default function VideoGradingInterface({ submission, onClose, coachId }) 
           >
             Your browser does not support the video tag.
           </video>
+
+          {/* Video Controls */}
+          <div className="mt-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRewind}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                ⏪ -5s
+              </button>
+              <button
+                onClick={handleForward}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                +5s ⏩
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Speed:</span>
+              {[0.5, 0.75, 1, 1.25, 1.5, 2].map((speed) => (
+                <button
+                  key={speed}
+                  onClick={() => handleSpeedChange(speed)}
+                  className={`px-3 py-1 rounded-lg text-sm ${
+                    playbackSpeed === speed
+                      ? 'bg-blue-600 text-white'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  {speed}x
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* File Info */}
           <div className="mt-4 text-sm text-gray-600">
@@ -76,6 +142,45 @@ export default function VideoGradingInterface({ submission, onClose, coachId }) 
               </div>
             )}
           </div>
+
+          {/* Navigation Footer */}
+          {onNavigate && (
+            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onNavigate('previous')}
+                  disabled={currentIndex === 0}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  ← Previous
+                </button>
+                <button
+                  onClick={() => onNavigate('next')}
+                  disabled={currentIndex === totalCount - 1}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Next →
+                </button>
+              </div>
+              <div className="text-sm text-gray-600">
+                Submission {currentIndex + 1} of {totalCount}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onSkip}
+                  className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition"
+                >
+                  ⏭️ Skip
+                </button>
+                <button
+                  onClick={onFlag}
+                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+                >
+                  🚩 Flag
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Grading Panel (40%) */}

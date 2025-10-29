@@ -2,9 +2,9 @@ schema: 1
 story: 'sprint-2-epic-03.story-02'
 story_title: 'Syllabus Tracker & Grading Interface'
 gate: PENDING  # Awaiting QA execution
-status_reason: 'Implementation complete (2025-10-29 00:03:52). Core grading functionality implemented. Ready for QA testing.'
+status_reason: 'Enhanced implementation complete (2025-10-29 10:34:35). Core grading functionality + advanced features: search, navigation controls (Previous/Next/Skip/Flag), image rotation, video playback speed controls, video rewind/forward buttons. Ready for QA testing.'
 reviewer: 'Quinn (QA Agent - Test Architect)'
-updated: '2025-10-29T00:03:52'
+updated: '2025-10-29T10:34:35'
 
 # Quality Criteria
 quality_criteria:
@@ -43,7 +43,7 @@ acceptance_criteria_map:
     description: 'Search input filters by student name or course title (real-time, case-insensitive)'
     test_cases: ['TC 1.6']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 5
     description: 'Submission cards display: thumbnail/waveform, student name, course/task title, submission date, time spent/duration, file size'
@@ -86,7 +86,7 @@ acceptance_criteria_map:
     description: 'Rotate button rotates image 90° clockwise (for rotated uploads)'
     test_cases: ['TC 2.3']
     priority: 'P2'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 12
     description: 'Download Original button downloads full-resolution PNG/JPG'
@@ -159,13 +159,13 @@ acceptance_criteria_map:
     description: 'Rewind 5s / Forward 5s buttons work correctly'
     test_cases: ['TC 3.3']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 24
     description: 'Playback speed selector: 0.5x, 0.75x, 1x, 1.25x, 1.5x, 2x'
     test_cases: ['TC 3.4']
     priority: 'P2'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 25
     description: 'Download button downloads MP4 file'
@@ -299,25 +299,25 @@ acceptance_criteria_map:
     description: 'Previous button navigates to previous submission in queue'
     test_cases: ['TC 5.14']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 47
     description: 'Next button navigates to next submission in queue (or auto-advances after submit)'
     test_cases: ['TC 5.15']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 48
     description: 'Skip button marks submission for later review (status: pending, skipped flag)'
     test_cases: ['TC 5.16']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   - ac_number: 49
     description: 'Flag for Admin Review button changes status to "flagged" (for problematic submissions)'
     test_cases: ['TC 5.17']
     priority: 'P1'
-    status: 'not_implemented'
+    status: 'pending'
 
   # 2.6 Bulk Grading (11 ACs)
   - ac_number: 50
@@ -480,10 +480,11 @@ implementation_status:
     notes: 'All core grading API endpoints implemented. Coin award system integrated. Notifications wired up.'
 
   frontend:
-    status: 'core_complete'
+    status: 'enhanced_complete'
     files_created: 7
+    files_modified: 5
     components: 'GradingDashboard, SubmissionQueue, GradingPanel, ArtGradingInterface, VideoGradingInterface, AudioGradingInterface'
-    notes: 'Core grading workflow complete. Quality rating and coin award system functional. Missing: Bulk grading, navigation controls, auto-save, advanced media controls.'
+    notes: 'Core grading workflow complete with enhanced features. Search functionality (student name/course title), navigation controls (Previous/Next/Skip/Flag), image rotation, video playback speed (0.5x-2x), video rewind/forward (±5s), auto-navigate after grading. Missing: Bulk grading, auto-save, task instructions, evaluation criteria checkboxes, audio waveform, transcript, coach notes.'
 
   testing:
     status: 'pending'
@@ -495,14 +496,10 @@ implementation_status:
 # Known Limitations / Technical Debt
 known_limitations:
   - '⏳ Bulk grading feature not implemented (AC 50-60)'
-  - '⏳ Navigation controls (Previous/Next/Skip/Flag) not implemented (AC 46-49)'
   - '⏳ Auto-save draft functionality not implemented (AC 61-63)'
   - '⏳ Retry logic for failed submissions not implemented (AC 64-66)'
-  - '⏳ Search functionality not implemented (AC 4)'
   - '⏳ Task instructions display not implemented (AC 13, 26, 34)'
   - '⏳ Evaluation criteria checkboxes not implemented (AC 27, 35)'
-  - '⏳ Image rotation not implemented (AC 11)'
-  - '⏳ Video playback speed controls not implemented (AC 24)'
   - '⏳ Audio waveform visualization not implemented (AC 32)'
   - '⏳ Transcript display not implemented (AC 33)'
   - '⏳ Coach notes section not implemented (AC 36)'
@@ -512,14 +509,20 @@ known_limitations:
   - '✅ API integration for grade submission'
   - '✅ Coin balance update and student notifications'
   - '✅ Type-specific grading interfaces (Art/Video/Audio)'
+  - '✅ Search functionality by student name or course title (AC 4)'
+  - '✅ Navigation controls: Previous/Next/Skip/Flag buttons (AC 46-49)'
+  - '✅ Image rotation control for art submissions (AC 11)'
+  - '✅ Video playback speed controls: 0.5x - 2x (AC 24)'
+  - '✅ Video rewind/forward buttons (±5 seconds) (AC 23)'
+  - '✅ Auto-navigate to next submission after grading'
 
 # Sign-Off
 sign_off:
   dev_agent:
     name: 'James'
-    status: 'core_complete'
-    date: '2025-10-29T00:03:52'
-    notes: 'Core grading workflow implemented (11/11 tasks complete for Phase 1-4). Advanced features (bulk grading, navigation, auto-save) noted for future enhancement. Backend: 3 new files (Submission model, controller, routes), 7 API endpoints. Frontend: 7 new components. Both backend and frontend compiled successfully with no errors.'
+    status: 'enhanced_complete'
+    date: '2025-10-29T10:34:35'
+    notes: 'Enhanced implementation complete. Phase 1: Core grading workflow (11/11 tasks). Phase 2: Enhanced features (6/6 tasks) - search functionality, navigation controls (Previous/Next/Skip/Flag), image rotation, video playback speed controls (0.5x-2x), video rewind/forward (±5s), auto-navigate after grading. Backend: 3 new files, 7 API endpoints. Frontend: 7 components created, 5 components enhanced. Compilation successful with no errors. Updated last: 2025-10-29 10:34:35'
 
   qa_agent:
     name: 'Quinn (Test Architect)'

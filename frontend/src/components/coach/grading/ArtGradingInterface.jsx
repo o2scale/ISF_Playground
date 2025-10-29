@@ -4,14 +4,15 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import GradingPanel from './GradingPanel';
 
-export default function ArtGradingInterface({ submission, onClose, coachId }) {
+export default function ArtGradingInterface({ submission, onClose, coachId, onNavigate, onSkip, onFlag, currentIndex, totalCount }) {
   const [zoom, setZoom] = useState(100);
+  const [rotation, setRotation] = useState(0);
 
   const handleGrade = async (gradeData) => {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await axios.post(
+      await axios.post(
         `http://localhost:5001/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
         gradeData,
         {
@@ -23,8 +24,12 @@ export default function ArtGradingInterface({ submission, onClose, coachId }) {
         `✅ Grade submitted! ${submission.studentName} earned ${gradeData.coinsAwarded} ISF Coins!`
       );
 
-      // Close the grading interface
-      onClose();
+      // Auto-navigate to next or close if last
+      if (onNavigate && currentIndex < totalCount - 1) {
+        onNavigate('next');
+      } else {
+        onClose();
+      }
     } catch (error) {
       console.error('Error submitting grade:', error);
       toast.error(error.response?.data?.error || 'Failed to submit grade');
@@ -46,6 +51,10 @@ export default function ArtGradingInterface({ submission, onClose, coachId }) {
 
   const handleDownload = () => {
     window.open(submission.fileUrl, '_blank');
+  };
+
+  const handleRotate = () => {
+    setRotation((prev) => (prev + 90) % 360);
   };
 
   return (
@@ -91,7 +100,13 @@ export default function ArtGradingInterface({ submission, onClose, coachId }) {
                 onClick={() => setZoom(100)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
               >
-                Reset
+                Reset Zoom
+              </button>
+              <button
+                onClick={handleRotate}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                🔄 Rotate
               </button>
               <button
                 onClick={handleDownload}
@@ -108,7 +123,10 @@ export default function ArtGradingInterface({ submission, onClose, coachId }) {
             <img
               src={submission.fileUrl}
               alt={submission.taskTitle}
-              style={{ transform: `scale(${zoom / 100})`, transition: 'transform 0.3s ease' }}
+              style={{
+                transform: `scale(${zoom / 100}) rotate(${rotation}deg)`,
+                transition: 'transform 0.3s ease'
+              }}
               className="max-w-full h-auto rounded"
             />
           </div>
@@ -133,6 +151,45 @@ export default function ArtGradingInterface({ submission, onClose, coachId }) {
               </div>
             )}
           </div>
+
+          {/* Navigation Footer */}
+          {onNavigate && (
+            <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-4">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onNavigate('previous')}
+                  disabled={currentIndex === 0}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  ← Previous
+                </button>
+                <button
+                  onClick={() => onNavigate('next')}
+                  disabled={currentIndex === totalCount - 1}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                >
+                  Next →
+                </button>
+              </div>
+              <div className="text-sm text-gray-600">
+                Submission {currentIndex + 1} of {totalCount}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={onSkip}
+                  className="px-4 py-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition"
+                >
+                  ⏭️ Skip
+                </button>
+                <button
+                  onClick={onFlag}
+                  className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition"
+                >
+                  🚩 Flag
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Right Column - Grading Panel (40%) */}
