@@ -5,48 +5,81 @@ const purchaseRequestSchema = new mongoose.Schema(
     requestId: {
       type: String,
       unique: true,
-      required: true,
+      required: false,  // Auto-generated in pre-save hook
       // Auto-generated: "PR-" + counter (e.g., PR-001, PR-002)
     },
 
-    // Product Information (snapshot at request time)
-    productId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'ShopItem',
-      required: true,
-      index: true
-    },
-    productName: {
-      type: String,
-      required: true
-    },
-    productSKU: {
-      type: String,
-      required: true
-    },
+    // Balagruha (optional for shop-wide requests)
     balagruhaId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Balagruha',
-      required: true,
+      required: false,  // Optional for shop-wide products
       index: true
-      // Derived from product's balagruhaId
     },
 
+    // Multi-Product Items Array
+    items: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'ShopItem',
+          required: true
+        },
+        productName: {
+          type: String,
+          required: true
+        },
+        productSKU: {
+          type: String,
+          required: true
+        },
+        requestedQuantity: {
+          type: Number,
+          required: true,
+          min: [1, 'Quantity must be at least 1']
+        },
+        currentStock: {
+          type: Number,
+          required: true
+        },
+        lowStockThreshold: {
+          type: Number,
+          required: true
+        },
+        estimatedUnitCost: {
+          type: Number,
+          required: true,
+          min: [0, 'Cost cannot be negative']
+        },
+        estimatedTotalCost: {
+          type: Number,
+          required: true
+        }
+      }
+    ],
+
+    // File Attachments
+    attachments: [
+      {
+        filename: {
+          type: String,
+          required: true
+        },
+        fileUrl: {
+          type: String,
+          required: true
+        },
+        uploadedAt: {
+          type: Date,
+          default: Date.now
+        }
+      }
+    ],
+
     // Request Details
-    requestedQuantity: {
+    totalEstimatedCost: {
       type: Number,
-      required: true,
-      min: [1, 'Quantity must be at least 1']
-    },
-    currentStock: {
-      type: Number,
-      required: true
-      // Snapshot of stock at request time
-    },
-    lowStockThreshold: {
-      type: Number,
-      required: true
-      // Snapshot of threshold at request time
+      default: 0
     },
     reason: {
       type: String,
@@ -136,12 +169,19 @@ purchaseRequestSchema.index({ requestedBy: 1, status: 1 });
 purchaseRequestSchema.index({ balagruhaId: 1, status: 1 });
 purchaseRequestSchema.index({ createdAt: -1 });
 
-// Auto-generate requestId
+// Auto-generate requestId and calculate totalEstimatedCost
 purchaseRequestSchema.pre('save', async function(next) {
+  // Generate requestId for new documents
   if (this.isNew && !this.requestId) {
     const count = await mongoose.model('PurchaseRequest').countDocuments();
     this.requestId = `PR-${String(count + 1).padStart(3, '0')}`;
   }
+
+  // Calculate totalEstimatedCost from items
+  if (this.items && this.items.length > 0) {
+    this.totalEstimatedCost = this.items.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
+  }
+
   next();
 });
 
@@ -150,6 +190,16 @@ purchaseRequestSchema.virtual('requestAge').get(function() {
   const now = new Date();
   const diffMs = now - this.createdAt;
   return Math.floor(diffMs / (1000 * 60 * 60));  // hours
+});
+
+// Virtual: totalItems
+purchaseRequestSchema.virtual('totalItems').get(function() {
+  return this.items ? this.items.length : 0;
+});
+
+// Virtual: totalQuantity
+purchaseRequestSchema.virtual('totalQuantity').get(function() {
+  return this.items ? this.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0;
 });
 
 const PurchaseRequest = mongoose.model('PurchaseRequest', purchaseRequestSchema);

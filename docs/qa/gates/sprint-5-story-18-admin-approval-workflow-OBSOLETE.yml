@@ -1,0 +1,357 @@
+# Quality Gate - Story 18: Admin Approval Workflow for Purchase Requests
+
+story_id: Sprint5-Story-18
+epic_id: Sprint5-Epic-05
+title: "Admin Approval Workflow for Purchase Requests"
+status: ready_for_qa
+created: 2025-10-29
+updated: 2025-10-29
+
+# Critical Acceptance Criteria (Must Pass)
+critical_acs:
+  - AC1  # View All Purchase Requests (Admin View)
+  - AC2  # Approve Purchase Request
+  - AC3  # Reject Purchase Request
+  - AC5  # Approval Validation (Self-approval prevention)
+
+# Important Acceptance Criteria (Should Pass)
+important_acs:
+  - AC4  # View Request Details (Admin)
+  - AC6  # Pending Requests Dashboard
+  - AC7  # Audit Trail Visibility
+
+# Quality Gate Criteria
+quality_criteria:
+  test_coverage:
+    minimum_percentage: 80
+    target_percentage: 100
+    unit_tests: not_required  # Sprint5-Story-18 focuses on E2E
+    integration_tests: not_required
+    e2e_tests: required
+    e2e_test_count: 46
+
+  functionality:
+    all_critical_acs_pass: required
+    all_important_acs_pass: required
+    regression_tests_pass: required
+    no_critical_bugs: required
+    no_high_severity_bugs: required
+
+  code_quality:
+    no_console_errors: required
+    no_security_vulnerabilities: required
+    follows_project_standards: required
+    responsive_design: required
+
+  performance:
+    page_load_time_ms: 2000
+    api_response_time_ms: 500
+    no_memory_leaks: required
+
+  security:
+    self_approval_prevention: required
+    backend_validation_enforced: required
+    no_unauthorized_access: required
+    csrf_protection: not_applicable
+    input_sanitization: required
+    reason_required_for_rejection: required
+
+# Test Execution Plan
+test_plan:
+  manual_testing:
+    - test_case_group: "TC-1.x - View All Requests (Admin)"
+      test_count: 4
+      priority: critical
+      estimated_time_minutes: 20
+
+    - test_case_group: "TC-2.x - Approve Request"
+      test_count: 5
+      priority: critical
+      estimated_time_minutes: 25
+
+    - test_case_group: "TC-3.x - Reject Request"
+      test_count: 5
+      priority: critical
+      estimated_time_minutes: 25
+
+    - test_case_group: "TC-4.x - View Details"
+      test_count: 3
+      priority: important
+      estimated_time_minutes: 15
+
+    - test_case_group: "TC-5.x - Self-Approval Prevention"
+      test_count: 5
+      priority: critical
+      estimated_time_minutes: 25
+
+    - test_case_group: "TC-6.x - Pending Dashboard"
+      test_count: 4
+      priority: important
+      estimated_time_minutes: 20
+
+    - test_case_group: "TC-7.x - Audit Trail"
+      test_count: 3
+      priority: important
+      estimated_time_minutes: 15
+
+    - test_case_group: "TC-8.x - Purchase Manager View"
+      test_count: 2
+      priority: critical
+      estimated_time_minutes: 10
+
+    - test_case_group: "TC-9.x - Error Handling"
+      test_count: 3
+      priority: normal
+      estimated_time_minutes: 15
+
+    - test_case_group: "TC-10.x - Responsive Design"
+      test_count: 3
+      priority: normal
+      estimated_time_minutes: 15
+
+  total_estimated_time_minutes: 185  # ~3 hours
+  required_test_users:
+    - purchase_manager
+    - admin
+    - admin_secondary  # For testing self-approval prevention
+  required_test_data:
+    - balagruhas: 2
+    - products: 5
+    - pending_requests: 5
+    - approved_requests: 2
+    - rejected_requests: 2
+
+# Regression Testing
+regression:
+  affected_areas:
+    - "Shop Inventory view (Story 17)"
+    - "Purchase request table"
+    - "Modal components"
+    - "Role-based action buttons"
+
+  regression_tests:
+    - test: "Purchase Manager can still create requests"
+      priority: critical
+      description: "Verify Story 17 functionality not broken"
+
+    - test: "Purchase Manager cannot see approve/reject buttons"
+      priority: critical
+      description: "Role-based UI correctly hides admin actions"
+
+    - test: "Shop Inventory view still displays correctly"
+      priority: high
+      description: "Table layout and filters work as before"
+
+    - test: "Machine Repairs view unaffected"
+      priority: medium
+      description: "Dropdown switching still works"
+
+# Pass/Fail Criteria
+pass_criteria:
+  must_pass:
+    - "All 4 critical ACs pass (AC1, AC2, AC3, AC5)"
+    - "All 46 E2E test scenarios documented"
+    - "Self-approval prevention enforced (AC5)"
+    - "Rejection requires reason (AC3)"
+    - "Approval notes optional (AC2)"
+    - "Admin sees ALL requests without filtering"
+    - "Purchase Manager cannot approve/reject"
+    - "No critical or high severity bugs"
+    - "No console errors in browser dev tools"
+    - "Backend validation prevents unauthorized actions"
+
+  should_pass:
+    - "AC4, AC6, AC7 pass"
+    - "All 10 test case groups pass"
+    - "Audit trail visible for reviewed requests"
+    - "Stats footer accurate"
+    - "Page load time < 2 seconds"
+    - "API response time < 500ms"
+    - "Responsive design works on mobile"
+
+  optional:
+    - "Zero warnings in browser console"
+    - "Accessibility standards met"
+    - "Cross-browser testing (Firefox, Safari)"
+
+# Known Limitations (MVP Approach)
+known_limitations:
+  - limitation: "No email notifications"
+    description: "Purchase Managers not notified when request approved/rejected"
+    severity: medium
+    future_enhancement: true
+    workaround: "Manual refresh to see status updates"
+
+  - limitation: "No bulk approve/reject"
+    description: "Admin must review each request individually"
+    severity: low
+    future_enhancement: true
+
+  - limitation: "No request edit after submission"
+    description: "Purchase Manager cannot edit pending requests (must cancel and recreate)"
+    severity: low
+    design_choice: true
+    rationale: "Maintains audit trail integrity"
+
+  - limitation: "Basic approval workflow"
+    description: "Single-level approval (no multi-tier or conditional approval)"
+    severity: very_low
+    future_enhancement: true
+
+# Bug Severity Definitions
+bug_severity:
+  critical:
+    description: "Security breach, self-approval possible, unauthorized access, core feature broken"
+    examples:
+      - "Admin can approve own requests (AC5 failure)"
+      - "Purchase Manager can approve requests via API"
+      - "Cannot approve or reject requests at all"
+      - "Approval doesn't update status"
+    action: "Block release, fix immediately"
+
+  high:
+    description: "Major feature not working, significant functionality impaired"
+    examples:
+      - "Rejection succeeds without reason"
+      - "Approval notes not saved"
+      - "Admin cannot see all requests (filtering applied incorrectly)"
+      - "Status badges incorrect after approval"
+    action: "Must fix before release"
+
+  medium:
+    description: "Feature works but with issues, workaround available"
+    examples:
+      - "Character counter off by 1"
+      - "Toast notification doesn't show"
+      - "Modal doesn't close after approval"
+      - "Audit trail formatting issues"
+    action: "Fix if time permits, or defer to next sprint"
+
+  low:
+    description: "Minor UI issues, cosmetic problems, rare edge cases"
+    examples:
+      - "Modal header emoji missing"
+      - "Button hover color inconsistent"
+      - "Stock projection alignment off"
+      - "Timestamp format preference"
+    action: "Fix in future sprint"
+
+# Test Dependencies
+test_dependencies:
+  prerequisite_stories:
+    - story_id: Sprint5-Story-17
+      title: "Purchase Request Creation"
+      status: PASS
+      reason: "Story 18 depends on PurchaseRequest model and ShopInventoryView component"
+
+  database_setup:
+    - "Purchase Manager role with Purchase Management permissions"
+    - "Admin role with Purchase Management:Manage permission"
+    - "Sample purchase requests in various statuses"
+    - "Test balagruhas and products"
+
+  api_endpoints:
+    - "POST /api/v2/shop/admin/purchase-requests/:id/approve"
+    - "POST /api/v2/shop/admin/purchase-requests/:id/reject"
+    - "GET /api/v2/shop/admin/purchase-requests/stats"
+    - "GET /api/v2/shop/admin/purchase-requests/ (Admin view)"
+
+# Security Testing Checklist
+security_tests:
+  - test: "Self-approval prevention (AC5.2)"
+    method: "Admin tries to approve own request"
+    expected: "403 error with message"
+    priority: critical
+
+  - test: "Purchase Manager cannot approve via API"
+    method: "Direct API call with PM token"
+    expected: "403 Forbidden"
+    priority: critical
+
+  - test: "Cannot approve already approved request"
+    method: "Try to re-approve approved request"
+    expected: "400 error or button not visible"
+    priority: high
+
+  - test: "Cannot approve invalid request ID"
+    method: "API call with fake ID"
+    expected: "404 Not Found"
+    priority: medium
+
+  - test: "SQL injection in rejection reason"
+    method: "Enter SQL code in reason field"
+    expected: "Input sanitized, no DB impact"
+    priority: high
+
+  - test: "XSS in admin notes"
+    method: "Enter <script> tags in notes"
+    expected: "Script tags escaped/sanitized"
+    priority: high
+
+# Related Documents
+related_docs:
+  story: "docs/stories/sprint5/sprint5-story-18-admin-approval-workflow.md"
+  epic: "docs/epics/sprint5/sprint5-epic-05-purchase-manager-workflow.md"
+  e2e_scenarios: "docs/qa/e2e/sprint5-story-18-admin-approval-workflow.md"
+  technical_patterns: ".ai/sprint-5-purchase-manager/technical-patterns.md"
+  dev_handoff: ".ai/sprint-5-purchase-manager/DEV-HANDOFF.md"
+
+# Version Control
+version: 1.0
+last_updated: 2025-10-29T18:54:27Z
+created_by: "Dev Agent (Claude)"
+updated_by: "Dev Agent (Claude)"
+
+# Quality Gate Status (To be filled by QA Agent)
+gate_status: PENDING_QA
+gate_decision_date: null
+reviewer: null
+quality_score: null
+test_iteration: 0
+
+# QA Test Execution Results (To be filled by QA Agent)
+qa_execution:
+  test_cases_executed: 0
+  test_cases_passed: 0
+  test_cases_failed: 0
+  test_cases_blocked: 0
+  duration_minutes: 0
+  iterations: []
+
+  critical_acs_status:
+    AC1_view_all_requests: PENDING
+    AC2_approve_request: PENDING
+    AC3_reject_request: PENDING
+    AC5_self_approval_prevention: PENDING
+
+  important_acs_status:
+    AC4_view_details: PENDING
+    AC6_pending_dashboard: PENDING
+    AC7_audit_trail: PENDING
+
+  regression_tests:
+    story_17_still_works: PENDING
+    purchase_manager_view: PENDING
+    machine_repairs_view: PENDING
+
+  bugs_found: []
+
+# Sign-off Requirements (To be filled during QA)
+sign_off:
+  dev_agent:
+    name: "Claude (Dev Agent)"
+    status: completed
+    date: 2025-10-29
+    notes: "All acceptance criteria implemented. Self-approval prevention enforced. Rejection reason required, approval notes optional. Ready for QA."
+
+  qa_agent:
+    name: null
+    status: pending_testing
+    date: null
+    notes: null
+
+  product_owner:
+    name: null
+    status: pending_qa
+    date: null
+    notes: null

@@ -3,6 +3,7 @@ const router = express.Router();
 const purchaseRequestController = require('../../controllers/purchaseRequestController');
 const { authenticate } = require('../../middleware/auth');
 const checkPermission = require('../../middleware/checkPermission');
+const { upload } = require('../../middleware/upload');  // File upload middleware
 const {
   validateCreateRequest,
   validateRequestId,
@@ -27,11 +28,12 @@ router.get(
   purchaseRequestController.getLowStockProducts
 );
 
-// Create new purchase request
+// Create new purchase request (with file upload support)
 router.post(
   '/',
   authenticate,
   checkPermission('Purchase Management', 'Create'),
+  upload.array('attachments', 5),  // Max 5 files
   validateCreateRequest,
   purchaseRequestController.createPurchaseRequest
 );

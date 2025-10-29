@@ -9,53 +9,97 @@ const User = require('../models/user');
 
 /**
  * @route   POST /api/v2/shop/admin/purchase-requests
- * @desc    Create new purchase request (Purchase Manager only)
+ * @desc    Create new MULTI-PRODUCT purchase request with file attachments (Purchase Manager only)
  * @access  Private (Purchase Management:Create)
  */
 exports.createPurchaseRequest = async (req, res) => {
   try {
-    const { productId, requestedQuantity, reason, justification } = req.body;
+    const { balagruhaId, items, reason, justification } = req.body;
     const userId = req.user._id;
 
-    // Validate product exists
-    const product = await ShopItem.findById(productId);
-    if (!product) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
-      });
-    }
+    // Files are in req.files (uploaded by multer automatically)
+    const uploadedFiles = req.files || [];
 
-    // VALIDATION: Purchase Manager can only request for assigned balagruhas
-    if (req.user.role === 'purchase-manager') {
-      const userBalagruhas = req.user.balagruhaIds || [];
-
-      // If product has a balagruhaId, check access
-      if (product.balagruhaId && !userBalagruhas.includes(product.balagruhaId.toString())) {
-        return res.status(403).json({
-          success: false,
-          message: 'You do not have access to request purchases for this balagruha'
-        });
-      }
-    }
-
-    // Validate quantity
-    if (!requestedQuantity || requestedQuantity < 1) {
+    // Validate items
+    if (!items) {
       return res.status(400).json({
         success: false,
-        message: 'Requested quantity must be at least 1'
+        message: 'Items are required'
       });
     }
+
+    // Parse items (comes as JSON string in multipart form)
+    const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+
+    if (!parsedItems || parsedItems.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one product is required'
+      });
+    }
+
+    // Validate and snapshot each item
+    const validatedItems = [];
+    for (const item of parsedItems) {
+      const product = await ShopItem.findById(item.productId);
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: `Product ${item.productId} not found`
+        });
+      }
+
+      // VALIDATION: Purchase Manager can only request for assigned balagruhas
+      if (req.user.role === 'purchase-manager') {
+        const userBalagruhas = req.user.balagruhaIds || [];
+        if (product.balagruhaId && !userBalagruhas.includes(product.balagruhaId.toString())) {
+          return res.status(403).json({
+            success: false,
+            message: `No access to product: ${product.name}`
+          });
+        }
+      }
+
+      // Validate quantity and cost
+      if (!item.requestedQuantity || item.requestedQuantity < 1) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid quantity for product: ${product.name}`
+        });
+      }
+
+      if (item.estimatedUnitCost === undefined || item.estimatedUnitCost < 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid cost for product: ${product.name}`
+        });
+      }
+
+      validatedItems.push({
+        productId: product._id,
+        productName: product.name,
+        productSKU: product.sku,
+        requestedQuantity: parseInt(item.requestedQuantity),
+        currentStock: product.stock,
+        lowStockThreshold: product.lowStockThreshold,
+        estimatedUnitCost: parseFloat(item.estimatedUnitCost),
+        estimatedTotalCost: parseInt(item.requestedQuantity) * parseFloat(item.estimatedUnitCost)
+      });
+    }
+
+    // Process uploaded files
+    const attachments = uploadedFiles.map(file => ({
+      filename: file.originalname,
+      fileUrl: `/uploads/${file.filename}`,  // Relative path for frontend
+      uploadedAt: new Date()
+    }));
 
     // Create purchase request
     const purchaseRequest = new PurchaseRequest({
-      productId: product._id,
-      productName: product.name,
-      productSKU: product.sku,
-      balagruhaId: product.balagruhaId || null,  // Can be null for shop-wide products
-      requestedQuantity,
-      currentStock: product.stock,
-      lowStockThreshold: product.lowStockThreshold,
+      balagruhaId: balagruhaId || null,
+      items: validatedItems,
+      attachments,
       reason: reason.trim(),
       justification: justification?.trim() || '',
       requestedBy: userId,
@@ -64,16 +108,19 @@ exports.createPurchaseRequest = async (req, res) => {
 
     await purchaseRequest.save();
 
-    // Populate user info for response
+    // Populate for response
     await purchaseRequest.populate('requestedBy', 'name email role');
-    await purchaseRequest.populate('productId', 'name sku stock lowStockThreshold');
-    await purchaseRequest.populate('balagruhaId', 'name');
+    await purchaseRequest.populate('items.productId', 'name sku stock lowStockThreshold');
+    if (balagruhaId) {
+      await purchaseRequest.populate('balagruhaId', 'name');
+    }
 
     res.status(201).json({
       success: true,
       message: 'Purchase request created successfully',
       data: { purchaseRequest }
     });
+
   } catch (error) {
     console.error('Error creating purchase request:', error);
     res.status(500).json({

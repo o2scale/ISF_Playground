@@ -1,63 +1,95 @@
-# Story 18: Admin Approval Workflow for Purchase Requests
+# Story 18: Admin Approval Workflow for Multi-Product Purchase Requests
 
 **Story ID:** Sprint5-Story-18
-**Epic:** Sprint5-Epic-05 (Purchase Manager Workflow)
+**Epic:** [Sprint5-Epic-05 (Purchase Manager Workflow)](../../epics/sprint5/sprint5-epic-05-purchase-manager-workflow.md)
 **Priority:** High
-**Status:** Ready for QA
-**Estimate:** 1 day
-**Created:** 2025-10-29 16:35:00
-**Last Updated:** 2025-10-29 18:54:27
+**Status:** In Progress
+**Estimate:** 1.5 days
+**Created:** 2025-10-30 00:50:45
+**Last Updated:** 2025-10-30 00:50:45
 
 ---
 
 ## User Story
 
 **As an** Admin
-**I want to** review and approve/reject purchase requests from Purchase Managers
-**So that** I can control inventory purchasing, ensure budget compliance, and maintain proper oversight
+**I want to** review and approve/reject **MULTI-PRODUCT** purchase requests from Purchase Managers with file attachments
+**So that** I can control inventory purchasing, ensure budget compliance, and maintain proper oversight across multiple items per request
 
 ---
 
-## Business Context
+## Context
 
-Admins are responsible for approving all inventory purchases to:
-- Ensure budget compliance
-- Prevent unnecessary purchases
-- Verify stock requirements are legitimate
-- Maintain financial control over inventory spending
-- Track purchase request patterns across all balagruhas
+This story **REPLACES** the obsolete single-product approval workflow (sprint5-story-18-admin-approval-workflow-OBSOLETE.md) with an enhanced version supporting:
 
-This story enables Admins to review purchase requests, approve them with notes, or reject them with reasons, creating accountability in the purchase workflow.
+1. **Multi-Product Review**: Admins review requests containing multiple products (1-N items per request)
+2. **File Attachment Access**: View and download supporting documents attached by Purchase Managers
+3. **Enhanced Request Summaries**: View totals across all products (total items, total quantity, total estimated cost)
+4. **Same Approval Logic**: Approval/rejection workflow remains the same, but displays multi-product data
+
+This approach significantly improves admin efficiency by:
+- Reviewing bundled product requests in one workflow
+- Accessing vendor quotations and specifications upfront
+- Making informed decisions with full supporting documentation
+- Reducing approval overhead for related purchases
+
+### Dependencies
+
+**Requires Story 17 (Multi-Product Purchase Request Creation) to be COMPLETE:**
+- Story 17 introduces the `items[]` array and `attachments[]` array in PurchaseRequest model
+- Story 17 implements file upload functionality
+- Story 18 reuses the same backend model and displays multi-product data in approval workflow
 
 ---
 
 ## Acceptance Criteria
 
-### AC1: View All Purchase Requests (Admin View)
+### AC1: View All Purchase Requests (Admin View - Adapted for Multi-Product)
+
+**CHANGED FROM OBSOLETE VERSION:** Single product display → Multi-product summary
+
 - ✅ Admin can access Shop Inventory view in `/purchase` page
 - ✅ Admin sees ALL purchase requests (across all balagruhas, all purchase managers)
 - ✅ No frontend filtering applied (unlike Purchase Manager view)
 - ✅ Table shows:
   - Request ID (e.g., "PR-001")
-  - Product (name + SKU)
-  - Quantity
-  - Current Stock vs Threshold
+  - **Total Items** (e.g., "3 products") - **NEW**
+  - **Total Quantity** (sum across all products, e.g., "225 units") - **NEW**
+  - **Total Estimated Cost** (₹ formatted, sum across all items) - **NEW**
+  - Attachments count (e.g., "📎 2 files") - **NEW**
   - Requested By (Purchase Manager name)
   - Balagruha
-  - Status badge
+  - Status badge (🟡 Pending, ✅ Approved, ❌ Rejected, ✅ Completed)
   - Request Age (e.g., "2 hours ago")
   - Actions (Approve/Reject buttons for pending requests)
 - ✅ Can filter by:
   - Date range
   - Balagruha (dropdown shows ALL balagruhas)
   - Status
-  - Search (product name, SKU, requester name)
+  - Search (product names, SKU, requester name, reason)
 
-### AC2: Approve Purchase Request
+### AC2: Approve Multi-Product Request (Adapted)
+
+**CHANGED FROM OBSOLETE VERSION:** Single product summary → Items table with totals
+
 - ✅ Admin can click [✅ Approve] button on pending requests
 - ✅ Approval modal opens with:
-  - Request summary (product, quantity, stock, reason)
-  - Requester info (name, balagruha)
+  - **Request summary:**
+    - Request ID
+    - Requested By (name, email, balagruha)
+    - Request timestamp and age
+    - Reason and justification
+  - **Items table showing all products:** - **NEW**
+    - Product Name
+    - SKU
+    - Current Stock / Low Stock Threshold
+    - Requested Quantity
+    - Estimated Unit Cost (₹)
+    - Estimated Total Cost (₹)
+  - **Footer row: Total Estimated Cost** (₹ sum across all items) - **NEW**
+  - **Attachments section with download links:** - **NEW**
+    - List of attached files with filenames
+    - Click to download/preview each file
   - Admin Notes field (optional, max 500 chars)
 - ✅ Confirmation message: "Approve this purchase request?"
 - ✅ On approve:
@@ -72,10 +104,15 @@ This story enables Admins to review purchase requests, approve them with notes, 
 - ✅ Purchase Manager sees status change to "✅ Approved"
 - ✅ [Update Stock] button becomes available for Purchase Manager
 
-### AC3: Reject Purchase Request
+### AC3: Reject Multi-Product Request (Adapted)
+
+**CHANGED FROM OBSOLETE VERSION:** Single product summary → Items table with totals
+
 - ✅ Admin can click [❌ Reject] button on pending requests
 - ✅ Rejection modal opens with:
-  - Request summary
+  - **Request summary** (same as approval modal)
+  - **Items table** showing all products with totals - **NEW**
+  - **Attachments section** with download links - **NEW**
   - Rejection Reason field (required, max 500 chars)
 - ✅ Confirmation message: "Reject this purchase request?"
 - ✅ On reject:
@@ -90,894 +127,626 @@ This story enables Admins to review purchase requests, approve them with notes, 
 - ✅ Purchase Manager sees status change to "❌ Rejected"
 - ✅ Cannot edit or update rejected requests
 
-### AC4: View Request Details (Admin)
+### AC4: View Multi-Product Request Details (Admin)
+
+**CHANGED FROM OBSOLETE VERSION:** Single product view → Items table + attachments
+
 - ✅ Admin can click on any request row to view full details
 - ✅ Details modal shows:
-  - Product info (name, SKU, current stock, threshold, images)
-  - Requested quantity
-  - Reason & justification from Purchase Manager
-  - Requester info (name, email, balagruha)
-  - Request timestamp and age
-  - If approved: Approval date, admin name, admin notes
-  - If rejected: Rejection date, admin name, rejection reason
-  - If completed: Supplier, invoice, purchase date, stock updated
+  - **Request header:**
+    - Request ID
+    - Status badge
+    - Requested By (name, email, balagruha)
+    - Request timestamp and age
+  - **Items table:** - **NEW**
+    - All products in request with columns:
+      - Product Name (with image thumbnail if available)
+      - SKU
+      - Current Stock / Threshold
+      - Requested Quantity
+      - Estimated Unit Cost
+      - Estimated Total Cost
+    - Footer row with Total Estimated Cost
+  - **Attachments section:** - **NEW**
+    - Grid/list of attached files
+    - File previews (thumbnails for images, icons for PDFs/docs)
+    - Download links for each file
+  - **Request details:**
+    - Reason & justification from Purchase Manager
+    - If approved: Approval date, admin name, admin notes
+    - If rejected: Rejection date, admin name, rejection reason
+    - If completed: Supplier, invoice, purchase date, actual costs, stock updated
 - ✅ Modal adapts based on status (shows approve/reject buttons for pending)
 
-### AC5: Approval Validation
+### AC5: Self-Approval Prevention (UNCHANGED)
+
+**NO CHANGES FROM OBSOLETE VERSION** - Validation logic remains the same
+
 - ✅ Admin cannot approve own requests (if admin created a request, another admin must approve)
 - ✅ Backend validation: `reviewedBy !== requestedBy`
-- ✅ Error message if attempted: "Cannot approve your own request"
+- ✅ Error message if attempted: "Cannot approve your own request. Another admin must approve."
 - ✅ Once approved, request cannot be re-approved or modified
 - ✅ Once rejected, request cannot be re-rejected or approved
 
-### AC6: Pending Requests Dashboard
-- ✅ Admin dashboard shows count of pending requests (optional - nice to have)
-- ✅ Pending requests badge in navigation (e.g., "Shop Inventory (3)" if 3 pending)
-- ✅ Can sort by request age (oldest first - prioritize old requests)
-- ✅ Visual indicator for urgent requests (e.g., out-of-stock items highlighted)
+### AC6: Pending Requests Dashboard (Adapted for Multi-Product)
 
-### AC7: Audit Trail Visibility
+**CHANGED FROM OBSOLETE VERSION:** Badge shows request count, not product count
+
+- ✅ Admin dashboard shows count of **pending requests** (not product count)
+  - Example: "3 pending requests" (even if those requests contain 15 total products)
+- ✅ Pending requests badge in navigation (e.g., "Shop Inventory (3)" if 3 pending requests)
+- ✅ Can sort by request age (oldest first - prioritize old requests)
+- ✅ Visual indicator for urgent requests (e.g., requests containing out-of-stock items highlighted)
+
+### AC7: Audit Trail Visibility (Adapted for Multi-Product)
+
+**CHANGED FROM OBSOLETE VERSION:** Audit trail shows multi-product data
+
 - ✅ Admin can view full approval/rejection history
 - ✅ Each request shows:
   - Created by: [User] on [Date]
+  - **Items count:** "3 products, 225 units, ₹1,025.00" - **NEW**
+  - **Attachments count:** "📎 2 files" - **NEW**
   - Reviewed by: [Admin] on [Date]
   - Status transitions logged
 - ✅ Timeline view showing workflow progression
 
 ---
 
-## Technical Specifications
+## Technical Requirements
 
 ### Backend Implementation
 
-#### 1. Controller Methods (Add to purchaseRequestController.js)
+#### IMPORTANT: Backend Controllers Already Support Multi-Product!
 
-**File:** `backend/controllers/purchaseRequestController.js`
+**NO BACKEND CHANGES REQUIRED** for Story 18 approval functionality.
 
-```javascript
-/**
- * @route   GET /api/v2/shop/admin/purchase-requests
- * @desc    Get all purchase requests (Admin only)
- * @access  Private (Purchase Management:Manage)
- */
-exports.getAllPurchaseRequests = async (req, res) => {
-  try {
-    const { status, balagruhaId, startDate, endDate, search } = req.query;
+Story 17 already implemented:
+- ✅ PurchaseRequest model with `items[]` array
+- ✅ PurchaseRequest model with `attachments[]` array
+- ✅ Controller methods (`approvePurchaseRequest`, `rejectPurchaseRequest`) work with multi-product data
+- ✅ Validation middleware for items array
 
-    // Build query
-    const query = {};
-
-    if (status && status !== 'all') {
-      query.status = status;
-    }
-
-    if (balagruhaId && balagruhaId !== 'all') {
-      query.balagruhaId = balagruhaId;
-    }
-
-    if (startDate || endDate) {
-      query.createdAt = {};
-      if (startDate) query.createdAt.$gte = new Date(startDate);
-      if (endDate) query.createdAt.$lte = new Date(endDate);
-    }
-
-    // Search filter
-    if (search) {
-      query.$or = [
-        { productName: { $regex: search, $options: 'i' } },
-        { productSKU: { $regex: search, $options: 'i' } },
-        { reason: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    const requests = await PurchaseRequest.find(query)
-      .populate('requestedBy', 'name email role balagruhaIds')
-      .populate('reviewedBy', 'name email')
-      .populate('productId', 'name sku stock lowStockThreshold images')
-      .populate('balagruhaId', 'name')
-      .sort({ createdAt: -1 });
-
-    res.json({
-      success: true,
-      data: { requests, count: requests.length }
-    });
-  } catch (error) {
-    console.error('Error fetching all purchase requests:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching purchase requests',
-      error: error.message
-    });
-  }
-};
-
-/**
- * @route   POST /api/v2/shop/admin/purchase-requests/:id/approve
- * @desc    Approve purchase request (Admin only)
- * @access  Private (Purchase Management:Manage)
- */
-exports.approvePurchaseRequest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { reviewNotes } = req.body;
-    const adminId = req.user._id;
-
-    const request = await PurchaseRequest.findById(id);
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: 'Purchase request not found'
-      });
-    }
-
-    // Validate: Can only approve pending requests
-    if (request.status !== 'pending_approval') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot approve ${request.status} request. Only pending requests can be approved.`
-      });
-    }
-
-    // 🔥 VALIDATION: Cannot approve own request
-    if (request.requestedBy.toString() === adminId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'Cannot approve your own request. Another admin must approve.'
-      });
-    }
-
-    // Update request
-    request.status = 'approved';
-    request.reviewedBy = adminId;
-    request.reviewedAt = new Date();
-    request.reviewNotes = reviewNotes?.trim() || '';
-
-    await request.save();
-
-    // Populate for response
-    await request.populate('reviewedBy', 'name email');
-    await request.populate('requestedBy', 'name email');
-    await request.populate('productId', 'name sku');
-
-    res.json({
-      success: true,
-      message: 'Purchase request approved successfully',
-      data: { request }
-    });
-  } catch (error) {
-    console.error('Error approving purchase request:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error approving purchase request',
-      error: error.message
-    });
-  }
-};
-
-/**
- * @route   POST /api/v2/shop/admin/purchase-requests/:id/reject
- * @desc    Reject purchase request (Admin only)
- * @access  Private (Purchase Management:Manage)
- */
-exports.rejectPurchaseRequest = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { reviewNotes } = req.body;
-    const adminId = req.user._id;
-
-    // Validate rejection reason
-    if (!reviewNotes || reviewNotes.trim().length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'Rejection reason is required'
-      });
-    }
-
-    const request = await PurchaseRequest.findById(id);
-
-    if (!request) {
-      return res.status(404).json({
-        success: false,
-        message: 'Purchase request not found'
-      });
-    }
-
-    // Validate: Can only reject pending requests
-    if (request.status !== 'pending_approval') {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot reject ${request.status} request. Only pending requests can be rejected.`
-      });
-    }
-
-    // Update request
-    request.status = 'rejected';
-    request.reviewedBy = adminId;
-    request.reviewedAt = new Date();
-    request.reviewNotes = reviewNotes.trim();
-
-    await request.save();
-
-    // Populate for response
-    await request.populate('reviewedBy', 'name email');
-    await request.populate('requestedBy', 'name email');
-    await request.populate('productId', 'name sku');
-
-    res.json({
-      success: true,
-      message: 'Purchase request rejected',
-      data: { request }
-    });
-  } catch (error) {
-    console.error('Error rejecting purchase request:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error rejecting purchase request',
-      error: error.message
-    });
-  }
-};
-
-/**
- * @route   GET /api/v2/shop/admin/purchase-requests/stats
- * @desc    Get purchase request statistics (Admin dashboard)
- * @access  Private (Purchase Management:Manage)
- */
-exports.getPurchaseRequestStats = async (req, res) => {
-  try {
-    const stats = await PurchaseRequest.aggregate([
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Convert to object format
-    const statsObj = {
-      pending_approval: 0,
-      approved: 0,
-      rejected: 0,
-      completed: 0,
-      cancelled: 0,
-      total: 0
-    };
-
-    stats.forEach(stat => {
-      statsObj[stat._id] = stat.count;
-      statsObj.total += stat.count;
-    });
-
-    res.json({
-      success: true,
-      data: { stats: statsObj }
-    });
-  } catch (error) {
-    console.error('Error fetching purchase request stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching statistics',
-      error: error.message
-    });
-  }
-};
-
-module.exports = exports;
-```
-
----
-
-#### 2. Routes (Add to purchase-requests.js)
-
-**File:** `backend/routes/v2/purchase-requests.js`
-
-```javascript
-/**
- * Admin Routes
- */
-
-// Get all purchase requests (Admin only)
-router.get(
-  '/',
-  authenticate,
-  authorize('Purchase Management', 'Manage'),
-  purchaseRequestController.getAllPurchaseRequests
-);
-
-// Get purchase request statistics
-router.get(
-  '/stats',
-  authenticate,
-  authorize('Purchase Management', 'Manage'),
-  purchaseRequestController.getPurchaseRequestStats
-);
-
-// Approve purchase request
-router.post(
-  '/:id/approve',
-  authenticate,
-  authorize('Purchase Management', 'Manage'),
-  validateRequestId,
-  validateApproval,
-  purchaseRequestController.approvePurchaseRequest
-);
-
-// Reject purchase request
-router.post(
-  '/:id/reject',
-  authenticate,
-  authorize('Purchase Management', 'Manage'),
-  validateRequestId,
-  validateRejection,
-  purchaseRequestController.rejectPurchaseRequest
-);
-
-module.exports = router;
-```
-
----
-
-#### 3. Validation Middleware (Add to purchaseRequestValidation.js)
-
-```javascript
-exports.validateApproval = (req, res, next) => {
-  const { reviewNotes } = req.body;
-
-  // Review notes are optional but if provided, validate length
-  if (reviewNotes && reviewNotes.length > 500) {
-    return res.status(400).json({
-      success: false,
-      message: 'Review notes cannot exceed 500 characters'
-    });
-  }
-
-  next();
-};
-
-exports.validateRejection = (req, res, next) => {
-  const { reviewNotes } = req.body;
-
-  // Rejection reason is required
-  if (!reviewNotes || typeof reviewNotes !== 'string' || reviewNotes.trim().length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Rejection reason is required'
-    });
-  }
-
-  if (reviewNotes.length > 500) {
-    return res.status(400).json({
-      success: false,
-      message: 'Rejection reason cannot exceed 500 characters'
-    });
-  }
-
-  next();
-};
-
-module.exports = exports;
-```
+**Backend is ready for Story 18 - focus on frontend updates only.**
 
 ---
 
 ### Frontend Implementation
 
-#### 1. Update ShopInventoryView.jsx (Add Admin Actions)
-
-**File:** `frontend/src/components/purchaseManagement/views/ShopInventoryView.jsx`
-
-```javascript
-// Add to imports
-import ApproveRequestModal from '../modals/ApproveRequestModal';
-import RejectRequestModal from '../modals/RejectRequestModal';
-
-// Add to state
-const [showApproveModal, setShowApproveModal] = useState(false);
-const [showRejectModal, setShowRejectModal] = useState(false);
-
-// Modify fetchPurchaseRequests to use different endpoint based on role
-const fetchPurchaseRequests = async () => {
-  try {
-    setLoading(true);
-    let response;
-
-    if (userRole === 'admin') {
-      // Admin sees ALL requests
-      response = await getAllPurchaseRequests();
-    } else {
-      // Purchase Manager sees only own
-      response = await getMyPurchaseRequests();
-    }
-
-    if (response.success) {
-      let data = response.data.requests;
-
-      // 🔥 FRONTEND FILTERING - Only for Purchase Manager
-      if (userRole === 'purchase-manager') {
-        data = data.filter(request => {
-          const matchesBalagruha = userBalagruhas.includes(request.balagruhaId?._id);
-          const isOwnRequest = request.requestedBy._id === userId;
-          return matchesBalagruha && isOwnRequest;
-        });
-      }
-      // Admin - NO filtering, sees everything
-
-      setRequests(data);
-    } else {
-      showToast('Error fetching purchase requests', 'error');
-    }
-  } catch (error) {
-    console.error('Error fetching purchase requests:', error);
-    showToast('Error fetching purchase requests', 'error');
-  } finally {
-    setLoading(false);
-  }
-};
-
-// Add handler functions
-const handleApprove = (request) => {
-  setSelectedRequest(request);
-  setShowApproveModal(true);
-};
-
-const handleReject = (request) => {
-  setSelectedRequest(request);
-  setShowRejectModal(true);
-};
-
-// Update table row actions column
-<td className="actions">
-  <button
-    className="icon-button view"
-    onClick={() => {
-      setSelectedRequest(request);
-      setShowViewModal(true);
-    }}
-    title="View Details"
-  >
-    👁️
-  </button>
-
-  {/* Admin Actions */}
-  {userRole === 'admin' && request.status === 'pending_approval' && (
-    <>
-      <button
-        className="icon-button approve"
-        onClick={() => handleApprove(request)}
-        title="Approve Request"
-      >
-        ✅
-      </button>
-      <button
-        className="icon-button reject"
-        onClick={() => handleReject(request)}
-        title="Reject Request"
-      >
-        ❌
-      </button>
-    </>
-  )}
-
-  {/* Purchase Manager Actions */}
-  {userRole === 'purchase-manager' && request.status === 'pending_approval' && (
-    <button
-      className="icon-button cancel"
-      onClick={() => handleCancelRequest(request._id)}
-      title="Cancel Request"
-    >
-      ✖️
-    </button>
-  )}
-
-  {userRole === 'purchase-manager' && request.status === 'approved' && (
-    <button
-      className="action-button primary"
-      onClick={() => handleUpdateStock(request)}
-      title="Update Stock"
-    >
-      📦 Update Stock
-    </button>
-  )}
-</td>
-
-// Add modals at the end
-{showApproveModal && selectedRequest && (
-  <ApproveRequestModal
-    request={selectedRequest}
-    onClose={() => {
-      setShowApproveModal(false);
-      setSelectedRequest(null);
-    }}
-    onSuccess={() => {
-      setShowApproveModal(false);
-      setSelectedRequest(null);
-      fetchPurchaseRequests();
-    }}
-  />
-)}
-
-{showRejectModal && selectedRequest && (
-  <RejectRequestModal
-    request={selectedRequest}
-    onClose={() => {
-      setShowRejectModal(false);
-      setSelectedRequest(null);
-    }}
-    onSuccess={() => {
-      setShowRejectModal(false);
-      setSelectedRequest(null);
-      fetchPurchaseRequests();
-    }}
-  />
-)}
-```
-
----
-
-#### 2. Approve Request Modal
+#### 1. Update ApproveRequestModal.jsx (Multi-Product Support)
 
 **File:** `frontend/src/components/purchaseManagement/modals/ApproveRequestModal.jsx`
 
-```javascript
-import React, { useState } from 'react';
-import { approvePurchaseRequest } from '../../../api';
-import showToast from '../../../utils/toast';
-import dayjs from 'dayjs';
+**Changes Required:**
 
-export default function ApproveRequestModal({ request, onClose, onSuccess }) {
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+```jsx
+// Add items table to modal body (replace single product display)
+<div className="modal-body">
+  {/* Request Summary */}
+  <div className="request-summary">
+    <div className="summary-row">
+      <label>Request ID:</label>
+      <strong>{request.requestId}</strong>
+    </div>
+    <div className="summary-row">
+      <label>Requested By:</label>
+      <span>
+        {request.requestedBy?.name} (Purchase Manager)
+        <br />
+        <small>📍 {request.balagruhaId?.name}</small>
+      </span>
+    </div>
+    <div className="summary-row">
+      <label>Requested:</label>
+      <span>{dayjs(request.createdAt).format('DD-MM-YYYY HH:mm')} ({dayjs(request.createdAt).fromNow()})</span>
+    </div>
+    <div className="summary-row">
+      <label>Reason:</label>
+      <p>{request.reason}</p>
+    </div>
+    {request.justification && (
+      <div className="summary-row">
+        <label>Justification:</label>
+        <p>{request.justification}</p>
+      </div>
+    )}
+  </div>
 
-  const handleApprove = async () => {
-    try {
-      setLoading(true);
-      const response = await approvePurchaseRequest(request._id, {
-        reviewNotes: reviewNotes.trim()
-      });
+  <hr />
 
-      if (response.success) {
-        showToast('Purchase request approved successfully', 'success');
-        onSuccess();
-      } else {
-        showToast(response.message || 'Error approving request', 'error');
-      }
-    } catch (error) {
-      console.error('Error approving request:', error);
-      showToast('Error approving request', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
+  {/* ⭐ NEW: Items Table */}
+  <div className="items-section">
+    <h4>Items Requested ({request.items?.length || 0} products)</h4>
+    <div className="table-responsive">
+      <table className="items-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Current Stock</th>
+            <th>Quantity</th>
+            <th>Unit Cost (₹)</th>
+            <th>Total (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {request.items?.map((item, index) => (
+            <tr key={index}>
+              <td>{item.productName}</td>
+              <td className="sku-cell">{item.productSKU}</td>
+              <td>
+                <span className={item.currentStock === 0 ? 'text-danger' : 'text-warning'}>
+                  {item.currentStock} / {item.lowStockThreshold}
+                  {item.currentStock === 0 && ' 🔴'}
+                  {item.currentStock > 0 && item.currentStock <= item.lowStockThreshold && ' ⚠️'}
+                </span>
+              </td>
+              <td>{item.requestedQuantity}</td>
+              <td>₹{item.estimatedUnitCost.toFixed(2)}</td>
+              <td>₹{item.estimatedTotalCost.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="total-row">
+            <td colSpan="5" className="total-label">
+              <strong>Total Estimated Cost:</strong>
+            </td>
+            <td className="total-amount">
+              <strong>₹{request.totalEstimatedCost?.toFixed(2) || '0.00'}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
 
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container approval-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>✅ Approve Purchase Request</h3>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-
-        <div className="modal-body">
-          {/* Request Summary */}
-          <div className="request-summary">
-            <div className="summary-row">
-              <label>Request ID:</label>
-              <strong>{request.requestId}</strong>
-            </div>
-            <div className="summary-row">
-              <label>Product:</label>
-              <strong>{request.productName} ({request.productSKU})</strong>
-            </div>
-            <div className="summary-row">
-              <label>Current Stock:</label>
-              <span className={request.currentStock === 0 ? 'text-danger' : 'text-warning'}>
-                {request.currentStock} / {request.lowStockThreshold}
-                {request.currentStock === 0 && ' 🔴 Out of Stock'}
-                {request.currentStock > 0 && request.currentStock <= request.lowStockThreshold && ' ⚠️ Low Stock'}
-              </span>
-            </div>
-            <div className="summary-row">
-              <label>Quantity Requested:</label>
-              <strong>{request.requestedQuantity} units</strong>
-            </div>
-            <div className="summary-row">
-              <label>Requested By:</label>
-              <span>
-                {request.requestedBy?.name} (Purchase Manager)
-                <br />
-                <small>📍 {request.balagruhaId?.name}</small>
-              </span>
-            </div>
-            <div className="summary-row">
-              <label>Reason:</label>
-              <p>{request.reason}</p>
-            </div>
-            {request.justification && (
-              <div className="summary-row">
-                <label>Justification:</label>
-                <p>{request.justification}</p>
-              </div>
-            )}
-            <div className="summary-row">
-              <label>Requested:</label>
-              <span>{dayjs(request.createdAt).format('DD-MM-YYYY HH:mm')} ({dayjs(request.createdAt).fromNow()})</span>
-            </div>
+  {/* ⭐ NEW: Attachments Section */}
+  {request.attachments?.length > 0 && (
+    <div className="attachments-section">
+      <h4>Attachments ({request.attachments.length})</h4>
+      <div className="attachments-list">
+        {request.attachments.map((file, index) => (
+          <div key={index} className="attachment-item">
+            <i className="fas fa-paperclip"></i>
+            <a
+              href={`${API_URL}${file.fileUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              download
+            >
+              {file.filename}
+            </a>
+            <small>({dayjs(file.uploadedAt).format('DD-MM-YYYY')})</small>
           </div>
-
-          <hr />
-
-          {/* Admin Notes */}
-          <div className="form-group">
-            <label>Admin Notes (Optional)</label>
-            <textarea
-              rows="3"
-              maxLength="500"
-              value={reviewNotes}
-              onChange={(e) => setReviewNotes(e.target.value)}
-              placeholder="Add any notes about this approval (e.g., supplier to use, special instructions)"
-            />
-            <small className="char-count">{reviewNotes.length}/500</small>
-          </div>
-
-          {/* Stock Projection */}
-          <div className="stock-projection">
-            <div className="projection-item">
-              <span>Current Stock:</span>
-              <strong>{request.currentStock}</strong>
-            </div>
-            <div className="projection-arrow">→</div>
-            <div className="projection-item">
-              <span>After Purchase:</span>
-              <strong className="text-success">
-                {request.currentStock + request.requestedQuantity}
-              </strong>
-            </div>
-          </div>
-
-          {/* Confirmation */}
-          <div className="confirmation-box">
-            <p>⚠️ Are you sure you want to <strong>approve</strong> this purchase request?</p>
-            <p>The Purchase Manager will be able to update stock after making the purchase.</p>
-          </div>
-        </div>
-
-        <div className="modal-footer">
-          <button
-            className="cancel-button"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Cancel
-          </button>
-          <button
-            className="approve-button"
-            onClick={handleApprove}
-            disabled={loading}
-          >
-            {loading ? 'Approving...' : '✅ Approve Request'}
-          </button>
-        </div>
+        ))}
       </div>
     </div>
-  );
-}
+  )}
+
+  <hr />
+
+  {/* Admin Notes */}
+  <div className="form-group">
+    <label>Admin Notes (Optional)</label>
+    <textarea
+      rows="3"
+      maxLength="500"
+      value={reviewNotes}
+      onChange={(e) => setReviewNotes(e.target.value)}
+      placeholder="Add any notes about this approval (e.g., supplier to use, special instructions)"
+    />
+    <small className="char-count">{reviewNotes.length}/500</small>
+  </div>
+
+  {/* Confirmation */}
+  <div className="confirmation-box">
+    <p>⚠️ Are you sure you want to <strong>approve</strong> this purchase request?</p>
+    <p>The Purchase Manager will be able to update stock for all {request.items?.length || 0} products after making the purchase.</p>
+  </div>
+</div>
 ```
 
 ---
 
-#### 3. Reject Request Modal
+#### 2. Update RejectRequestModal.jsx (Multi-Product Support)
 
 **File:** `frontend/src/components/purchaseManagement/modals/RejectRequestModal.jsx`
 
-```javascript
-import React, { useState } from 'react';
-import { rejectPurchaseRequest } from '../../../api';
-import showToast from '../../../utils/toast';
-import dayjs from 'dayjs';
+**Changes Required:**
 
-export default function RejectRequestModal({ request, onClose, onSuccess }) {
-  const [reviewNotes, setReviewNotes] = useState('');
-  const [loading, setLoading] = useState(false);
+```jsx
+<div className="modal-body">
+  {/* Request Summary */}
+  <div className="request-summary">
+    <div className="summary-row">
+      <label>Request ID:</label>
+      <strong>{request.requestId}</strong>
+    </div>
+    <div className="summary-row">
+      <label>Requested By:</label>
+      <span>{request.requestedBy?.name} (📍 {request.balagruhaId?.name})</span>
+    </div>
+    <div className="summary-row">
+      <label>Total Items:</label>
+      <strong>{request.items?.length || 0} products, {request.totalQuantity || 0} units</strong>
+    </div>
+    <div className="summary-row">
+      <label>Total Estimated Cost:</label>
+      <strong>₹{request.totalEstimatedCost?.toFixed(2) || '0.00'}</strong>
+    </div>
+    <div className="summary-row">
+      <label>Reason:</label>
+      <p>{request.reason}</p>
+    </div>
+  </div>
 
-  const handleReject = async () => {
-    if (!reviewNotes.trim()) {
-      showToast('Please provide a rejection reason', 'error');
-      return;
-    }
+  <hr />
 
-    try {
-      setLoading(true);
-      const response = await rejectPurchaseRequest(request._id, {
-        reviewNotes: reviewNotes.trim()
-      });
+  {/* ⭐ NEW: Items Table (same as approval modal) */}
+  <div className="items-section">
+    <h4>Items in Request</h4>
+    <div className="table-responsive">
+      <table className="items-table">
+        <thead>
+          <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Quantity</th>
+            <th>Unit Cost (₹)</th>
+            <th>Total (₹)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {request.items?.map((item, index) => (
+            <tr key={index}>
+              <td>{item.productName}</td>
+              <td>{item.productSKU}</td>
+              <td>{item.requestedQuantity}</td>
+              <td>₹{item.estimatedUnitCost.toFixed(2)}</td>
+              <td>₹{item.estimatedTotalCost.toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr className="total-row">
+            <td colSpan="4" className="total-label">
+              <strong>Total:</strong>
+            </td>
+            <td className="total-amount">
+              <strong>₹{request.totalEstimatedCost?.toFixed(2)}</strong>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
 
-      if (response.success) {
-        showToast('Purchase request rejected', 'success');
-        onSuccess();
-      } else {
-        showToast(response.message || 'Error rejecting request', 'error');
-      }
-    } catch (error) {
-      console.error('Error rejecting request:', error);
-      showToast('Error rejecting request', 'error');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-container rejection-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="modal-header">
-          <h3>❌ Reject Purchase Request</h3>
-          <button className="modal-close" onClick={onClose}>×</button>
-        </div>
-
-        <div className="modal-body">
-          {/* Request Summary */}
-          <div className="request-summary">
-            <div className="summary-row">
-              <label>Request ID:</label>
-              <strong>{request.requestId}</strong>
-            </div>
-            <div className="summary-row">
-              <label>Product:</label>
-              <strong>{request.productName} ({request.productSKU})</strong>
-            </div>
-            <div className="summary-row">
-              <label>Quantity:</label>
-              <strong>{request.requestedQuantity} units</strong>
-            </div>
-            <div className="summary-row">
-              <label>Requested By:</label>
-              <span>{request.requestedBy?.name} (📍 {request.balagruhaId?.name})</span>
-            </div>
-            <div className="summary-row">
-              <label>Reason:</label>
-              <p>{request.reason}</p>
-            </div>
+  {/* ⭐ NEW: Attachments Section */}
+  {request.attachments?.length > 0 && (
+    <div className="attachments-section">
+      <h4>Attachments ({request.attachments.length})</h4>
+      <div className="attachments-list">
+        {request.attachments.map((file, index) => (
+          <div key={index} className="attachment-item">
+            <i className="fas fa-paperclip"></i>
+            <a
+              href={`${API_URL}${file.fileUrl}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              {file.filename}
+            </a>
           </div>
-
-          <hr />
-
-          {/* Rejection Reason (Required) */}
-          <div className="form-group">
-            <label>Rejection Reason *</label>
-            <textarea
-              rows="4"
-              maxLength="500"
-              value={reviewNotes}
-              onChange={(e) => setReviewNotes(e.target.value)}
-              placeholder="Why is this request being rejected? (This will be visible to the Purchase Manager)"
-              required
-            />
-            <small className="char-count">{reviewNotes.length}/500</small>
-            {!reviewNotes.trim() && (
-              <small className="text-danger">Rejection reason is required</small>
-            )}
-          </div>
-
-          {/* Confirmation */}
-          <div className="confirmation-box warning">
-            <p>⚠️ Are you sure you want to <strong>reject</strong> this purchase request?</p>
-            <p>The Purchase Manager will be notified of the rejection and the reason.</p>
-          </div>
-        </div>
-
-        <div className="modal-footer">
-          <button
-            className="cancel-button"
-            onClick={onClose}
-            disabled={loading}
-          >
-            Cancel
-          </button>
-          <button
-            className="reject-button"
-            onClick={handleReject}
-            disabled={loading || !reviewNotes.trim()}
-          >
-            {loading ? 'Rejecting...' : '❌ Reject Request'}
-          </button>
-        </div>
+        ))}
       </div>
     </div>
-  );
+  )}
+
+  <hr />
+
+  {/* Rejection Reason (Required) */}
+  <div className="form-group">
+    <label>Rejection Reason *</label>
+    <textarea
+      rows="4"
+      maxLength="500"
+      value={reviewNotes}
+      onChange={(e) => setReviewNotes(e.target.value)}
+      placeholder="Why is this request being rejected? (This will be visible to the Purchase Manager)"
+      required
+    />
+    <small className="char-count">{reviewNotes.length}/500</small>
+    {!reviewNotes.trim() && (
+      <small className="text-danger">Rejection reason is required</small>
+    )}
+  </div>
+
+  {/* Confirmation */}
+  <div className="confirmation-box warning">
+    <p>⚠️ Are you sure you want to <strong>reject</strong> this purchase request?</p>
+    <p>The Purchase Manager will be notified of the rejection and the reason.</p>
+  </div>
+</div>
+```
+
+---
+
+#### 3. Update ShopInventoryView.jsx (Multi-Product Table Display)
+
+**File:** `frontend/src/components/purchaseManagement/views/ShopInventoryView.jsx`
+
+**Changes Required:**
+
+```jsx
+// Update table columns to show multi-product summary
+<thead>
+  <tr>
+    <th>Request ID</th>
+    <th>Total Items</th> {/* NEW - replaces single "Product" column */}
+    <th>Total Quantity</th> {/* NEW */}
+    <th>Total Cost (₹)</th> {/* NEW - replaces single cost */}
+    <th>Attachments</th> {/* NEW */}
+    <th>Requested By</th>
+    <th>Balagruha</th>
+    <th>Reason</th>
+    <th>Status</th>
+    <th>Date</th>
+    <th>Actions</th>
+  </tr>
+</thead>
+<tbody>
+  {requests.map(request => (
+    <tr key={request._id}>
+      <td className="request-id">{request.requestId}</td>
+
+      {/* ⭐ NEW: Total Items */}
+      <td className="items-count">
+        {request.items?.length || 0} product{request.items?.length !== 1 ? 's' : ''}
+      </td>
+
+      {/* ⭐ NEW: Total Quantity */}
+      <td className="total-quantity">
+        {request.items?.reduce((sum, item) => sum + item.requestedQuantity, 0) || 0} units
+      </td>
+
+      {/* ⭐ NEW: Total Cost */}
+      <td className="total-cost">
+        ₹{request.totalEstimatedCost?.toFixed(2) || '0.00'}
+      </td>
+
+      {/* ⭐ NEW: Attachments */}
+      <td className="attachments-count">
+        {request.attachments?.length > 0 ? (
+          <span title={`${request.attachments.length} file(s)`}>
+            📎 {request.attachments.length}
+          </span>
+        ) : (
+          <span className="text-muted">—</span>
+        )}
+      </td>
+
+      <td className="requester">
+        {request.requestedBy?.name}
+        <br />
+        <small className="text-muted">{request.requestedBy?.email}</small>
+      </td>
+
+      <td className="balagruha">
+        {request.balagruhaId?.name || 'N/A'}
+      </td>
+
+      <td className="reason" title={request.reason}>
+        {request.reason.length > 50 ? `${request.reason.substring(0, 50)}...` : request.reason}
+      </td>
+
+      <td className="status">
+        <span className={`status-badge status-${request.status}`}>
+          {getStatusDisplay(request.status)}
+        </span>
+      </td>
+
+      <td className="date">
+        {dayjs(request.createdAt).format('DD-MM-YYYY')}
+        <br />
+        <small className="text-muted">{dayjs(request.createdAt).fromNow()}</small>
+      </td>
+
+      <td className="actions">
+        {/* Admin actions for pending requests */}
+        {userRole === 'admin' && request.status === 'pending_approval' && (
+          <>
+            <button
+              className="icon-button approve"
+              onClick={() => handleApprove(request)}
+              title="Approve Request"
+            >
+              ✅
+            </button>
+            <button
+              className="icon-button reject"
+              onClick={() => handleReject(request)}
+              title="Reject Request"
+            >
+              ❌
+            </button>
+          </>
+        )}
+
+        {/* View details button */}
+        <button
+          className="icon-button view"
+          onClick={() => {
+            setSelectedRequest(request);
+            setShowViewModal(true);
+          }}
+          title="View Details"
+        >
+          👁️
+        </button>
+      </td>
+    </tr>
+  ))}
+</tbody>
+```
+
+---
+
+## UI Changes Summary
+
+### Request List View Changes
+
+| Field | Obsolete Version | New Version (Story 18) |
+|-------|------------------|------------------------|
+| **Product** | Single product name + SKU | **"3 products"** (count) |
+| **Quantity** | Single number (e.g., "50") | **"225 units"** (sum across all items) |
+| **Cost** | Single cost or N/A | **"₹1,025.00"** (total estimated cost) |
+| **Attachments** | ❌ Not shown | **"📎 2 files"** (count) |
+
+### Approval Modal Changes
+
+| Section | Obsolete Version | New Version (Story 18) |
+|---------|------------------|------------------------|
+| **Product Info** | Single product summary | **Items table** (all products with totals) |
+| **Stock Display** | Single stock level | **Per-product stock** in table rows |
+| **Cost Display** | Single cost or text | **Per-product costs + total** |
+| **Attachments** | ❌ Not shown | **Attachments section** with download links |
+
+### Rejection Modal Changes
+
+| Section | Obsolete Version | New Version (Story 18) |
+|---------|------------------|------------------------|
+| **Request Summary** | Single product | **Items count + total cost** |
+| **Details** | Simple text | **Items table** (same as approval modal) |
+| **Attachments** | ❌ Not shown | **Attachments section** with download links |
+
+---
+
+## Implementation Notes
+
+### Code Reuse Strategy
+
+**GOOD NEWS:** Backend already complete from Story 17!
+
+**No backend changes needed:**
+- ✅ PurchaseRequest model with items array (Story 17)
+- ✅ PurchaseRequest model with attachments array (Story 17)
+- ✅ Approval/rejection controller methods already handle multi-product data
+- ✅ Validation middleware already validates items array
+
+**Frontend changes only:**
+- Update ApproveRequestModal to show items table + attachments
+- Update RejectRequestModal to show items table + attachments
+- Update ShopInventoryView table columns for multi-product summary
+- Add CSS styling for items table and attachments section
+
+### Data Flow
+
+**Backend → Frontend:**
+```javascript
+// Backend returns (already implemented in Story 17):
+{
+  _id: "...",
+  requestId: "PR-001",
+  items: [
+    {
+      productId: "...",
+      productName: "Notebook",
+      productSKU: "NB-001",
+      requestedQuantity: 50,
+      currentStock: 5,
+      lowStockThreshold: 10,
+      estimatedUnitCost: 10.00,
+      estimatedTotalCost: 500.00
+    },
+    // ... more items
+  ],
+  attachments: [
+    {
+      filename: "quotation.pdf",
+      fileUrl: "/uploads/quotation-123.pdf",
+      uploadedAt: "2025-10-30T00:00:00Z"
+    }
+  ],
+  totalEstimatedCost: 1025.00,
+  requestedBy: { ... },
+  status: "pending_approval"
 }
 ```
 
+**Frontend Display:**
+- Table: Show `items.length` products, sum of quantities, `totalEstimatedCost`
+- Modal: Loop through `items[]` to build table rows
+- Modal: Loop through `attachments[]` to show download links
+
 ---
 
-#### 4. API Functions (Add to api.js)
+## Testing Strategy
 
-**File:** `frontend/src/api.js`
+### Unit Tests (Frontend)
 
 ```javascript
-// Purchase Request API endpoints
+describe('ApproveRequestModal - Multi-Product', () => {
+  it('should display items table with all products', () => {
+    const request = {
+      items: [
+        { productName: 'Notebook', requestedQuantity: 50, estimatedTotalCost: 500 },
+        { productName: 'Pencil', requestedQuantity: 100, estimatedTotalCost: 500 }
+      ],
+      totalEstimatedCost: 1000
+    };
 
-export const getAllPurchaseRequests = async (params) => {
-  try {
-    const response = await api.get('/api/v2/shop/admin/purchase-requests', { params });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+    render(<ApproveRequestModal request={request} />);
 
-export const getMyPurchaseRequests = async (params) => {
-  try {
-    const response = await api.get('/api/v2/shop/admin/purchase-requests/my', { params });
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+    expect(screen.getByText('Notebook')).toBeInTheDocument();
+    expect(screen.getByText('Pencil')).toBeInTheDocument();
+    expect(screen.getByText('₹1,000.00')).toBeInTheDocument();
+  });
 
-export const createPurchaseRequest = async (data) => {
-  try {
-    const response = await api.post('/api/v2/shop/admin/purchase-requests', data);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+  it('should display attachments section if files exist', () => {
+    const request = {
+      items: [...],
+      attachments: [
+        { filename: 'quotation.pdf', fileUrl: '/uploads/file.pdf' }
+      ]
+    };
 
-export const approvePurchaseRequest = async (id, data) => {
-  try {
-    const response = await api.post(`/api/v2/shop/admin/purchase-requests/${id}/approve`, data);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+    render(<ApproveRequestModal request={request} />);
 
-export const rejectPurchaseRequest = async (id, data) => {
-  try {
-    const response = await api.post(`/api/v2/shop/admin/purchase-requests/${id}/reject`, data);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+    expect(screen.getByText('Attachments (1)')).toBeInTheDocument();
+    expect(screen.getByText('quotation.pdf')).toBeInTheDocument();
+  });
 
-export const cancelPurchaseRequest = async (id) => {
-  try {
-    const response = await api.put(`/api/v2/shop/admin/purchase-requests/${id}/cancel`);
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+  it('should calculate total quantity across all items', () => {
+    const request = {
+      items: [
+        { requestedQuantity: 50 },
+        { requestedQuantity: 100 },
+        { requestedQuantity: 75 }
+      ]
+    };
 
-export const getPurchaseRequestStats = async () => {
-  try {
-    const response = await api.get('/api/v2/shop/admin/purchase-requests/stats');
-    return response.data;
-  } catch (error) {
-    throw error.response?.data || error;
-  }
-};
+    const totalQty = request.items.reduce((sum, item) => sum + item.requestedQuantity, 0);
+    expect(totalQty).toBe(225);
+  });
+});
 ```
 
----
+### E2E Tests (Playwright)
 
-## E2E Test Scenarios (Playwright)
-
-### Test Case 1: Admin Approves Purchase Request
 ```javascript
-test('TC-18.1: Admin can approve purchase request', async ({ page }) => {
+test('TC-18.1: Admin approves multi-product purchase request', async ({ page }) => {
   // Login as Admin
   await loginAsAdmin(page);
-
-  // Navigate to Shop Inventory
   await page.goto('/purchase');
   await page.selectOption('.purchase-type-dropdown', 'shop-inventory');
 
-  // Find pending request
-  const pendingRow = page.locator('table tbody tr').filter({ hasText: 'Pending' }).first();
+  // Find pending multi-product request
+  const pendingRow = page.locator('table tbody tr').filter({ hasText: '3 products' }).first();
   await expect(pendingRow).toBeVisible();
+  await expect(pendingRow).toContainText('225 units');
+  await expect(pendingRow).toContainText('₹1,025.00');
+  await expect(pendingRow).toContainText('📎 2');
 
   // Click Approve button
   await pendingRow.locator('button.approve').click();
@@ -985,9 +754,16 @@ test('TC-18.1: Admin can approve purchase request', async ({ page }) => {
   // Approval modal opens
   await expect(page.locator('.approval-modal')).toBeVisible();
 
-  // Verify request details shown
-  await expect(page.locator('.request-summary')).toContainText(request.productName);
-  await expect(page.locator('.request-summary')).toContainText(request.requestedBy.name);
+  // Verify items table shows all products
+  await expect(page.locator('.items-table tbody tr')).toHaveCount(3);
+  await expect(page.locator('.items-table')).toContainText('Notebook');
+  await expect(page.locator('.items-table')).toContainText('Pencil');
+  await expect(page.locator('.items-table')).toContainText('Eraser');
+  await expect(page.locator('.total-amount')).toContainText('₹1,025.00');
+
+  // Verify attachments section
+  await expect(page.locator('.attachments-section')).toContainText('Attachments (2)');
+  await expect(page.locator('.attachment-item').first()).toContainText('quotation.pdf');
 
   // Add admin notes
   await page.fill('textarea[placeholder*="notes"]', 'Approved - Order from StatCo supplier');
@@ -998,31 +774,30 @@ test('TC-18.1: Admin can approve purchase request', async ({ page }) => {
   // Verify success
   await expect(page.locator('.toast-success')).toContainText('approved successfully');
 
-  // Verify status updated
+  // Verify status updated in table
   await expect(pendingRow).toContainText('Approved');
-  await expect(pendingRow.locator('.status-badge.status-approved')).toBeVisible();
 });
-```
 
-### Test Case 2: Admin Rejects Purchase Request
-```javascript
-test('TC-18.2: Admin can reject purchase request with reason', async ({ page }) => {
+test('TC-18.2: Admin rejects multi-product request with reason', async ({ page }) => {
   await loginAsAdmin(page);
   await page.goto('/purchase');
   await page.selectOption('.purchase-type-dropdown', 'shop-inventory');
 
-  // Find pending request
-  const pendingRow = page.locator('table tbody tr').filter({ hasText: 'Pending' }).first();
-
-  // Click Reject button
+  const pendingRow = page.locator('table tbody tr').filter({ hasText: '3 products' }).first();
   await pendingRow.locator('button.reject').click();
 
   // Rejection modal opens
   await expect(page.locator('.rejection-modal')).toBeVisible();
 
-  // Try to submit without reason - should fail
-  await page.click('button:has-text("Reject Request")');
-  await expect(page.locator('.text-danger')).toContainText('required');
+  // Verify multi-product summary
+  await expect(page.locator('.summary-row')).toContainText('3 products, 225 units');
+  await expect(page.locator('.summary-row')).toContainText('₹1,025.00');
+
+  // Verify items table
+  await expect(page.locator('.items-table tbody tr')).toHaveCount(3);
+
+  // Verify attachments section
+  await expect(page.locator('.attachments-section')).toBeVisible();
 
   // Add rejection reason
   await page.fill('textarea', 'Budget exceeded for this month. Please resubmit next month.');
@@ -1034,72 +809,134 @@ test('TC-18.2: Admin can reject purchase request with reason', async ({ page }) 
   await expect(page.locator('.toast-success')).toContainText('rejected');
   await expect(pendingRow).toContainText('Rejected');
 });
-```
 
-### Test Case 3: Cannot Approve Own Request
-```javascript
-test('TC-18.3: Admin cannot approve their own request', async ({ page }) => {
-  // Admin creates a request (unlikely but possible)
+test('TC-18.3: Admin downloads attachment from approval modal', async ({ page }) => {
   await loginAsAdmin(page);
-  await createPurchaseRequest(page, {
-    product: 'Notebook',
-    quantity: 50,
-    reason: 'Admin testing'
-  });
+  await page.goto('/purchase');
+  await page.selectOption('.purchase-type-dropdown', 'shop-inventory');
 
-  // Try to approve own request
-  const ownRequest = page.locator('table tbody tr').first();
-  await ownRequest.locator('button.approve').click();
+  const pendingRow = page.locator('table tbody tr').first();
+  await pendingRow.locator('button.approve').click();
 
-  await page.click('button:has-text("Approve Request")');
+  // Wait for attachments section
+  await expect(page.locator('.attachments-section')).toBeVisible();
 
-  // Should get error
-  await expect(page.locator('.toast-error')).toContainText('Cannot approve your own request');
+  // Click download link
+  const downloadPromise = page.waitForEvent('download');
+  await page.click('.attachment-item a[download]');
+  const download = await downloadPromise;
+
+  // Verify file downloaded
+  expect(download.suggestedFilename()).toBe('quotation.pdf');
 });
 ```
 
 ---
 
+## Dependencies
+
+### Story Dependencies
+
+**CRITICAL DEPENDENCY: Story 17 must be COMPLETE before starting Story 18.**
+
+**Story 17 (Multi-Product Purchase Request Creation) provides:**
+- ✅ PurchaseRequest model with `items[]` array
+- ✅ PurchaseRequest model with `attachments[]` array
+- ✅ File upload middleware integration
+- ✅ Backend controller methods (approve/reject already support multi-product)
+- ✅ Validation middleware for items array
+
+**Story 18 builds on Story 17 by:**
+- Displaying multi-product data in approval/rejection modals
+- Showing attachments with download links
+- Updating table columns for multi-product summaries
+
+### Technical Dependencies
+
+✅ **Already Complete:**
+- PurchaseRequest model (Story 17)
+- File upload infrastructure (Story 17)
+- Approval/rejection backend controllers (Story 17)
+- OLD RBAC permissions system
+
+⚠️ **Requires:**
+- Story 19: Stock Update & Audit Trail (dependent - completes workflow)
+
+### Story Relationship
+
+**Story 17 (Complete):**
+- Purchase Manager creates multi-product requests with files
+- Status: `pending_approval`
+
+**Story 18 (This Story):**
+- Admin approves/rejects multi-product requests
+- Admin views items table and attachments
+- Status changes: `pending_approval` → `approved` / `rejected`
+
+**Story 19 (Dependent):**
+- Purchase Manager updates stock after approval (multi-product support)
+- Status changes: `approved` → `completed`
+- Creates InventoryTransaction records for each product
+
+**All 3 stories use the same PurchaseRequest model.**
+
+---
+
+## Key Differences from Obsolete Version
+
+| Aspect | Obsolete Version | New Version (Story 18) |
+|--------|-----------------|------------------------|
+| **Product Display (Table)** | Single product name + SKU | "3 products" (count) |
+| **Quantity Display (Table)** | Single number | "225 units" (sum) |
+| **Cost Display (Table)** | Single cost | "₹1,025.00" (total) |
+| **Attachments (Table)** | ❌ Not shown | "📎 2 files" (count) |
+| **Approval Modal - Product Info** | Single product summary | Items table (all products) |
+| **Approval Modal - Attachments** | ❌ Not shown | Attachments section with download links |
+| **Rejection Modal - Product Info** | Single product summary | Items table + total summary |
+| **Backend Changes** | Required controller updates | ✅ No changes needed (Story 17 complete) |
+
+---
+
 ## Dev Agent Record
 
-**Developer:** Dev Agent (Claude)
-**Development Start:** 2025-10-29 18:30:00
-**Development Complete:** 2025-10-29 18:54:27
-**Commits:**
-- Backend: `3fc5a7e` - Feat: Backend implementation for Admin Approval Workflow (Story 18)
-- Frontend: `bd4383e` - Feat: Frontend implementation for Admin Approval Workflow (Story 18)
+**Developer:** (To be filled by Dev Agent)
+**Development Start:** (Timestamp)
+**Development Complete:** (Timestamp)
+**Agent Model Used:** (Model name)
 
-**Notes:**
-- Implemented approvePurchaseRequest, rejectPurchaseRequest, getPurchaseRequestStats controller methods
-- Added validateApproval and validateRejection middleware with proper validation rules
-- Created ApproveRequestModal.jsx and RejectRequestModal.jsx components
-- Integrated admin action buttons (approve/reject) into ShopInventoryView.jsx
-- Admin sees ALL requests with no frontend filtering
-- Self-approval prevention implemented in backend
-- Rejection reason is required (max 500 chars), approval notes are optional (max 500 chars)
-- All 7 acceptance criteria implemented successfully
-- Ready for QA testing
+### Commits
+- (Git commit hashes and messages)
+
+### Files Created/Modified
+- (List of files)
+
+### Change Log
+- (Summary of changes)
+
+### Completion Notes
+- (Implementation status, testing notes, known issues)
 
 ---
 
 ## QA Results
 
-**QA Agent:** [TBD - Will be filled by QA Agent]
-**Testing Start:** [TBD]
-**Testing Complete:** [TBD]
+**QA Agent:** (To be filled by QA Agent)
+**Testing Start:** (Timestamp)
+**Testing Complete:** (Timestamp)
 
-**Test Summary:**
-- Unit Tests: [TBD] / [TBD] passed
-- Integration Tests: [TBD] / [TBD] passed
-- E2E Tests: [TBD] / [TBD] passed
+### Test Execution Summary
+- (Test results)
 
-**Bugs Found:** [TBD]
+### Acceptance Criteria Validation
+- (AC pass/fail status)
 
-**Quality Score:** [TBD] / 100
+### Quality Gate Decision
+- (PASS/FAIL with score)
 
-**Status:** [TBD - PASS/FAIL]
+### Bugs Found
+- (Bug reports)
 
 ---
 
-**Last Updated:** 2025-10-29 18:54:27 (via `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Dev Agent (Claude)
+**Last Updated:** 2025-10-30 00:50:45 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Created By:** Documentation Agent (Task: Create comprehensive Story 18 document for multi-product approval workflow)
