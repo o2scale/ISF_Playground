@@ -1855,6 +1855,39 @@ export const cancelPurchaseRequest = async (requestId) => {
   }
 };
 
+// Approve purchase request (Admin) - Sprint5-Story-18
+export const approvePurchaseRequest = async (requestId, data) => {
+  try {
+    const response = await api.post(`/api/v2/shop/admin/purchase-requests/${requestId}/approve`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error approving purchase request:", error);
+    throw error;
+  }
+};
+
+// Reject purchase request (Admin) - Sprint5-Story-18
+export const rejectPurchaseRequest = async (requestId, data) => {
+  try {
+    const response = await api.post(`/api/v2/shop/admin/purchase-requests/${requestId}/reject`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error rejecting purchase request:", error);
+    throw error;
+  }
+};
+
+// Get purchase request statistics (Admin) - Sprint5-Story-18
+export const getPurchaseRequestStats = async () => {
+  try {
+    const response = await api.get('/api/v2/shop/admin/purchase-requests/stats');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching purchase request stats:", error);
+    throw error;
+  }
+};
+
 // Get all shop items (for product selection in create modal)
 export const getAllShopItems = async () => {
   try {

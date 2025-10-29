@@ -8,6 +8,8 @@ import {
 import showToast from '../../../utils/toast';
 import CreatePurchaseRequestModal from '../modals/CreatePurchaseRequestModal';
 import ViewRequestModal from '../modals/ViewRequestModal';
+import ApproveRequestModal from '../modals/ApproveRequestModal';
+import RejectRequestModal from '../modals/RejectRequestModal';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
@@ -33,6 +35,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
   // Filter states
@@ -186,6 +190,16 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const handleViewRequest = (request) => {
     setSelectedRequest(request);
     setShowViewModal(true);
+  };
+
+  const handleApprove = (request) => {
+    setSelectedRequest(request);
+    setShowApproveModal(true);
+  };
+
+  const handleReject = (request) => {
+    setSelectedRequest(request);
+    setShowRejectModal(true);
   };
 
   const exportToPDF = () => {
@@ -417,6 +431,27 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     👁️
                   </button>
 
+                  {/* Admin Actions - Story 18 */}
+                  {request.status === 'pending_approval' && userRole === 'admin' && (
+                    <>
+                      <button
+                        className="btn-icon btn-approve"
+                        onClick={() => handleApprove(request)}
+                        title="Approve Request"
+                      >
+                        ✅
+                      </button>
+                      <button
+                        className="btn-icon btn-reject"
+                        onClick={() => handleReject(request)}
+                        title="Reject Request"
+                      >
+                        ❌
+                      </button>
+                    </>
+                  )}
+
+                  {/* Purchase Manager Actions */}
                   {request.status === 'pending_approval' && userRole === 'purchase-manager' && (
                     <button
                       className="btn-icon btn-cancel"
@@ -490,6 +525,37 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           }}
           userRole={userRole}
           onRefresh={fetchPurchaseRequests}
+        />
+      )}
+
+      {/* Admin Approval Modals - Story 18 */}
+      {showApproveModal && selectedRequest && (
+        <ApproveRequestModal
+          request={selectedRequest}
+          onClose={() => {
+            setShowApproveModal(false);
+            setSelectedRequest(null);
+          }}
+          onSuccess={() => {
+            setShowApproveModal(false);
+            setSelectedRequest(null);
+            fetchPurchaseRequests();
+          }}
+        />
+      )}
+
+      {showRejectModal && selectedRequest && (
+        <RejectRequestModal
+          request={selectedRequest}
+          onClose={() => {
+            setShowRejectModal(false);
+            setSelectedRequest(null);
+          }}
+          onSuccess={() => {
+            setShowRejectModal(false);
+            setSelectedRequest(null);
+            fetchPurchaseRequests();
+          }}
         />
       )}
     </div>
