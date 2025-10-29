@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const coachGradingController = require("../../../../controllers/lms/coach/coachGradingController");
-const { authenticate } = require("../../../../middleware/authMiddleware");
+const { authenticate } = require("../../../../middleware/auth");
 
 /**
  * Grading Routes for Coaches
