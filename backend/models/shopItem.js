@@ -99,6 +99,14 @@ const shopItemSchema = new mongoose.Schema(
       type: [String],
       default: []
     },
+    balagruhaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Balagruha',
+      required: false,
+      index: true
+      // Optional: If set, product is specific to this balagruha
+      // If null/undefined, product is available shop-wide
+    },
     metadata: {
       type: Map,
       of: String,

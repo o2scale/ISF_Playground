@@ -1783,3 +1783,85 @@ export const markOrderDelivered = async (orderId, deliveryNotes = '') => {
     throw error;
   }
 };
+
+// ========================================
+// Purchase Request Management APIs - Sprint5-Story-17
+// ========================================
+
+// Create new purchase request (Purchase Manager)
+export const createPurchaseRequest = async (data) => {
+  try {
+    const response = await api.post('/api/v2/shop/admin/purchase-requests', data);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating purchase request:", error);
+    throw error;
+  }
+};
+
+// Get own purchase requests (Purchase Manager)
+export const getMyPurchaseRequests = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append('status', params.status);
+    if (params.balagruhaId) queryParams.append('balagruhaId', params.balagruhaId);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+
+    const response = await api.get(`/api/v2/shop/admin/purchase-requests/my?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching purchase requests:", error);
+    throw error;
+  }
+};
+
+// Get all purchase requests (Admin)
+export const getAllPurchaseRequests = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.status) queryParams.append('status', params.status);
+    if (params.balagruhaId) queryParams.append('balagruhaId', params.balagruhaId);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
+
+    const response = await api.get(`/api/v2/shop/admin/purchase-requests?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching all purchase requests:", error);
+    throw error;
+  }
+};
+
+// Get single purchase request by ID
+export const getPurchaseRequestById = async (requestId) => {
+  try {
+    const response = await api.get(`/api/v2/shop/admin/purchase-requests/${requestId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching purchase request:", error);
+    throw error;
+  }
+};
+
+// Cancel purchase request (Purchase Manager)
+export const cancelPurchaseRequest = async (requestId) => {
+  try {
+    const response = await api.put(`/api/v2/shop/admin/purchase-requests/${requestId}/cancel`);
+    return response.data;
+  } catch (error) {
+    console.error("Error cancelling purchase request:", error);
+    throw error;
+  }
+};
+
+// Get all shop items (for product selection in create modal)
+export const getAllShopItems = async () => {
+  try {
+    const response = await api.get('/api/v2/shop/admin/products?limit=1000');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching shop items:", error);
+    throw error;
+  }
+};
