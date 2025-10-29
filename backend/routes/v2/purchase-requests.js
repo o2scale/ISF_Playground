@@ -5,7 +5,9 @@ const { authenticate } = require('../../middleware/auth');
 const checkPermission = require('../../middleware/checkPermission');
 const {
   validateCreateRequest,
-  validateRequestId
+  validateRequestId,
+  validateApproval,
+  validateRejection
 } = require('../../middleware/validation/purchaseRequestValidation');
 
 /**
@@ -53,8 +55,16 @@ router.get(
 );
 
 /**
- * Admin Routes (will be expanded in Story 18)
+ * Admin Routes - Sprint5-Story-18
  */
+
+// Get purchase request statistics
+router.get(
+  '/stats',
+  authenticate,
+  checkPermission('Purchase Management', 'Manage'),
+  purchaseRequestController.getPurchaseRequestStats
+);
 
 // Get all purchase requests (Admin)
 router.get(
@@ -62,6 +72,26 @@ router.get(
   authenticate,
   checkPermission('Purchase Management', 'Manage'),
   purchaseRequestController.getAllPurchaseRequests
+);
+
+// Approve purchase request
+router.post(
+  '/:id/approve',
+  authenticate,
+  checkPermission('Purchase Management', 'Manage'),
+  validateRequestId,
+  validateApproval,
+  purchaseRequestController.approvePurchaseRequest
+);
+
+// Reject purchase request
+router.post(
+  '/:id/reject',
+  authenticate,
+  checkPermission('Purchase Management', 'Manage'),
+  validateRequestId,
+  validateRejection,
+  purchaseRequestController.rejectPurchaseRequest
 );
 
 module.exports = router;
