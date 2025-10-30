@@ -1,6 +1,8 @@
 const PurchaseRequest = require('../models/purchaseRequest');
 const ShopItem = require('../models/shopItem');
 const User = require('../models/user');
+const InventoryTransaction = require('../models/inventoryTransaction');
+const mongoose = require('mongoose');
 
 /**
  * Purchase Request Controller - Sprint5-Story-17
@@ -545,6 +547,192 @@ exports.getLowStockProducts = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error fetching low-stock products',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   POST /api/v2/shop/admin/purchase-requests/:id/complete
+ * @desc    Complete purchase request with multi-product stock update (Purchase Manager only) - Sprint5-Story-19
+ * @access  Private (Purchase Management:Update)
+ * @features
+ *   - ATOMIC multi-product stock update using MongoDB transactions
+ *   - Creates multiple InventoryTransaction records (one per product)
+ *   - Per-product received quantities and actual costs
+ *   - Idempotency: Prevents duplicate stock updates
+ *   - Complete audit trail for all products
+ */
+exports.completePurchaseRequest = async (req, res) => {
+  // Start a MongoDB session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    const { id } = req.params;
+    const { supplierName, invoiceNumber, purchaseDate, items } = req.body;
+    const userId = req.user._id;
+
+    // 1. FETCH AND VALIDATE REQUEST
+    const request = await PurchaseRequest.findById(id).session(session);
+
+    if (!request) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase request not found'
+      });
+    }
+
+    // Validate: Can only complete approved requests
+    if (request.status !== 'approved') {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: `Cannot complete ${request.status} request. Only approved requests can be completed.`
+      });
+    }
+
+    // Validate: Purchase Manager can only complete own requests
+    if (req.user.role === 'purchase-manager' && request.requestedBy.toString() !== userId.toString()) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(403).json({
+        success: false,
+        message: 'You can only complete your own requests'
+      });
+    }
+
+    // 2. IDEMPOTENCY CHECK
+    if (request.inventoryTransactionIds && request.inventoryTransactionIds.length > 0) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(400).json({
+        success: false,
+        message: 'This request has already been completed. Stock has already been updated.'
+      });
+    }
+
+    // 3. VALIDATE ALL PRODUCTS EXIST
+    const productIds = items.map(item => item.productId);
+    const products = await ShopItem.find({ _id: { $in: productIds } }).session(session);
+
+    if (products.length !== items.length) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: 'One or more products not found'
+      });
+    }
+
+    // Create a map for quick product lookup
+    const productMap = new Map(products.map(p => [p._id.toString(), p]));
+
+    // 4. ATOMIC MULTI-PRODUCT STOCK UPDATE
+    const inventoryTransactionIds = [];
+    const updatedItems = [];
+    let actualTotalCost = 0;
+
+    for (const itemUpdate of items) {
+      const product = productMap.get(itemUpdate.productId.toString());
+
+      if (!product) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(404).json({
+          success: false,
+          message: `Product ${itemUpdate.productId} not found`
+        });
+      }
+
+      const receivedQty = itemUpdate.receivedQuantity;
+      const actualUnitCost = itemUpdate.actualUnitCost;
+      const actualItemCost = itemUpdate.actualTotalCost;
+
+      // Update product stock (ATOMIC within transaction)
+      const previousStock = product.stock;
+      product.stock += receivedQty;
+      await product.save({ session });
+
+      // Create inventory transaction record
+      const transaction = new InventoryTransaction({
+        productId: product._id,
+        transactionType: 'purchase_request',
+        quantity: receivedQty,  // Positive for stock increase
+        previousStock: previousStock,
+        newStock: product.stock,
+        reference: {
+          type: 'purchase_request',
+          id: request._id
+        },
+        reason: `Purchase request ${request.requestId} completed`,
+        notes: `Supplier: ${supplierName || 'N/A'}, Invoice: ${invoiceNumber || 'N/A'}, Purchase Date: ${new Date(purchaseDate).toLocaleDateString()}`,
+        performedBy: userId
+      });
+
+      await transaction.save({ session });
+      inventoryTransactionIds.push(transaction._id);
+
+      // Update item in request with actual purchase details
+      const requestItem = request.items.find(
+        item => item.productId.toString() === itemUpdate.productId.toString()
+      );
+
+      if (requestItem) {
+        requestItem.receivedQuantity = receivedQty;
+        requestItem.actualUnitCost = actualUnitCost;
+        requestItem.actualTotalCost = actualItemCost;
+      }
+
+      actualTotalCost += actualItemCost;
+    }
+
+    // 5. UPDATE PURCHASE REQUEST
+    request.status = 'completed';
+    request.completedBy = userId;
+    request.completedAt = new Date();
+    request.supplierName = supplierName?.trim() || '';
+    request.invoiceNumber = invoiceNumber?.trim() || '';
+    request.purchaseDate = new Date(purchaseDate);
+    request.actualTotalCost = actualTotalCost;
+    request.inventoryTransactionIds = inventoryTransactionIds;
+
+    await request.save({ session });
+
+    // 6. COMMIT TRANSACTION
+    await session.commitTransaction();
+    session.endSession();
+
+    // 7. POPULATE AND RETURN RESPONSE
+    await request.populate('completedBy', 'name email');
+    await request.populate('requestedBy', 'name email');
+    await request.populate('reviewedBy', 'name email');
+    await request.populate('items.productId', 'name sku stock');
+    await request.populate('balagruhaId', 'name');
+    await request.populate('inventoryTransactionIds');
+
+    res.json({
+      success: true,
+      message: `Purchase request completed successfully. ${items.length} product(s) updated.`,
+      data: {
+        request,
+        transactionsCreated: inventoryTransactionIds.length,
+        totalStockAdded: items.reduce((sum, item) => sum + item.receivedQuantity, 0)
+      }
+    });
+
+  } catch (error) {
+    // ROLLBACK on any error
+    await session.abortTransaction();
+    session.endSession();
+
+    console.error('Error completing purchase request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error completing purchase request. All changes have been rolled back.',
       error: error.message
     });
   }

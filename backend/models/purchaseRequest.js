@@ -54,6 +54,19 @@ const purchaseRequestSchema = new mongoose.Schema(
         estimatedTotalCost: {
           type: Number,
           required: true
+        },
+        // Per-Product Purchase Details (filled during stock update)
+        receivedQuantity: {
+          type: Number,
+          min: [0, 'Received quantity cannot be negative']
+        },
+        actualUnitCost: {
+          type: Number,
+          min: [0, 'Cost cannot be negative']
+        },
+        actualTotalCost: {
+          type: Number,
+          min: [0, 'Cost cannot be negative']
         }
       }
     ],
@@ -122,7 +135,7 @@ const purchaseRequestSchema = new mongoose.Schema(
       maxlength: [500, 'Review notes cannot exceed 500 characters']
     },
 
-    // Purchase Details (filled after approval during stock update)
+    // Purchase Details (filled after approval during stock update - request-level)
     supplierName: {
       type: String,
       trim: true
@@ -134,16 +147,12 @@ const purchaseRequestSchema = new mongoose.Schema(
     purchaseDate: {
       type: Date
     },
-    actualCost: {
+    actualTotalCost: {
       type: Number,
       min: [0, 'Cost cannot be negative']
     },
-    receivedQuantity: {
-      type: Number,
-      min: [0, 'Received quantity cannot be negative']
-    },
 
-    // Completion
+    // Completion (multi-product tracking)
     completedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
@@ -151,11 +160,11 @@ const purchaseRequestSchema = new mongoose.Schema(
     completedAt: {
       type: Date
     },
-    inventoryTransactionId: {
+    inventoryTransactionIds: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'InventoryTransaction'
-      // Linked after stock update
-    }
+      // Array of transaction IDs (one per product)
+    }]
   },
   {
     timestamps: true,

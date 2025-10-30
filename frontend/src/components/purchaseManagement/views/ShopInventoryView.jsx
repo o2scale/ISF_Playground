@@ -10,6 +10,7 @@ import CreatePurchaseRequestModal from '../modals/CreatePurchaseRequestModal';
 import ViewRequestModal from '../modals/ViewRequestModal';
 import ApproveRequestModal from '../modals/ApproveRequestModal';
 import RejectRequestModal from '../modals/RejectRequestModal';
+import UpdateStockModal from '../modals/UpdateStockModal';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
@@ -37,6 +38,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const [showViewModal, setShowViewModal] = useState(false);
   const [showApproveModal, setShowApproveModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showUpdateStockModal, setShowUpdateStockModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
 
   // Filter states
@@ -213,6 +215,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const handleReject = (request) => {
     setSelectedRequest(request);
     setShowRejectModal(true);
+  };
+
+  const handleUpdateStock = (request) => {
+    setSelectedRequest(request);
+    setShowUpdateStockModal(true);
   };
 
   const exportToPDF = () => {
@@ -540,6 +547,17 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       ✖️
                     </button>
                   )}
+
+                  {/* Update Stock Button - Story 19 */}
+                  {request.status === 'approved' && userRole === 'purchase-manager' && (
+                    <button
+                      className="btn-icon btn-primary"
+                      onClick={() => handleUpdateStock(request)}
+                      title="Update Stock"
+                    >
+                      📦
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -633,6 +651,20 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           onSuccess={() => {
             setShowRejectModal(false);
             setSelectedRequest(null);
+            fetchPurchaseRequests();
+          }}
+        />
+      )}
+
+      {/* Update Stock Modal - Story 19 */}
+      {showUpdateStockModal && selectedRequest && (
+        <UpdateStockModal
+          request={selectedRequest}
+          onClose={() => {
+            setShowUpdateStockModal(false);
+            setSelectedRequest(null);
+          }}
+          onRefresh={() => {
             fetchPurchaseRequests();
           }}
         />

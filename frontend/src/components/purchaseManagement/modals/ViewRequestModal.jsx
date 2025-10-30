@@ -203,10 +203,10 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
             </div>
           )}
 
-          {/* Completion Details */}
+          {/* Completion Details - Story 19 (Multi-Product) */}
           {request.status === 'completed' && (
             <div className="detail-section">
-              <h4 className="section-title">Purchase & Stock Update Details</h4>
+              <h4 className="section-title">📦 Purchase & Stock Update Details</h4>
               <div className="detail-grid">
                 {request.supplierName && (
                   <div className="detail-item">
@@ -228,16 +228,10 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                     </span>
                   </div>
                 )}
-                {request.actualCost && (
+                {request.actualTotalCost !== undefined && (
                   <div className="detail-item">
-                    <span className="detail-label">Actual Cost:</span>
-                    <span className="detail-value">{request.actualCost.toLocaleString()} coins</span>
-                  </div>
-                )}
-                {request.receivedQuantity && (
-                  <div className="detail-item">
-                    <span className="detail-label">Received Quantity:</span>
-                    <span className="detail-value strong">{request.receivedQuantity} units</span>
+                    <span className="detail-label">Actual Total Cost:</span>
+                    <span className="detail-value strong">₹{request.actualTotalCost.toFixed(2)}</span>
                   </div>
                 )}
                 {request.completedBy && (
@@ -259,12 +253,62 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                 )}
               </div>
 
-              {request.inventoryTransactionId && (
-                <div className="detail-item full-width">
+              {/* Per-Product Completion Details */}
+              <div style={{ marginTop: '20px' }}>
+                <h5 style={{ fontSize: '14px', fontWeight: '600', marginBottom: '12px', color: '#495057' }}>
+                  Stock Update Summary (Per Product)
+                </h5>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f8f9fa', borderBottom: '2px solid #dee2e6' }}>
+                      <th style={{ padding: '10px', textAlign: 'left' }}>Product</th>
+                      <th style={{ padding: '10px', textAlign: 'center' }}>Requested</th>
+                      <th style={{ padding: '10px', textAlign: 'center' }}>Received</th>
+                      <th style={{ padding: '10px', textAlign: 'right' }}>Unit Cost</th>
+                      <th style={{ padding: '10px', textAlign: 'right' }}>Total Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {request.items && request.items.map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #e9ecef' }}>
+                        <td style={{ padding: '10px' }}>{item.productName}</td>
+                        <td style={{ padding: '10px', textAlign: 'center' }}>{item.requestedQuantity}</td>
+                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#28a745' }}>
+                          {item.receivedQuantity !== undefined ? item.receivedQuantity : '-'}
+                        </td>
+                        <td style={{ padding: '10px', textAlign: 'right' }}>
+                          {item.actualUnitCost !== undefined ? `₹${item.actualUnitCost.toFixed(2)}` : '-'}
+                        </td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
+                          {item.actualTotalCost !== undefined ? `₹${item.actualTotalCost.toFixed(2)}` : '-'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ backgroundColor: '#f8f9fa', borderTop: '2px solid #dee2e6', fontWeight: 'bold' }}>
+                      <td colSpan="2" style={{ padding: '12px', textAlign: 'right' }}>TOTALS:</td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#6366f1' }}>
+                        {request.items?.reduce((sum, item) => sum + (item.receivedQuantity || 0), 0)}
+                      </td>
+                      <td></td>
+                      <td style={{ padding: '12px', textAlign: 'right', color: '#6366f1', fontSize: '16px' }}>
+                        ₹{request.actualTotalCost?.toFixed(2) || '0.00'}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              {/* Audit Trail */}
+              {request.inventoryTransactionIds && request.inventoryTransactionIds.length > 0 && (
+                <div className="detail-item full-width" style={{ marginTop: '20px' }}>
                   <span className="detail-label">Audit Trail:</span>
                   <span className="detail-value">
-                    ✅ Linked to Inventory Transaction
-                    <span className="transaction-id">(ID: {request.inventoryTransactionId})</span>
+                    ✅ {request.inventoryTransactionIds.length} Inventory Transaction(s) Created
+                    <span className="transaction-id" style={{ display: 'block', marginTop: '4px', fontSize: '12px', color: '#6c757d' }}>
+                      Complete audit trail available in inventory system
+                    </span>
                   </span>
                 </div>
               )}

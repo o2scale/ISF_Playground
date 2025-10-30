@@ -102,4 +102,108 @@ exports.validateRejection = (req, res, next) => {
   next();
 };
 
+/**
+ * Validate complete purchase request (stock update) payload - Sprint5-Story-19
+ * Multi-product validation with per-product received quantities
+ */
+exports.validateStockUpdate = (req, res, next) => {
+  const { supplierName, invoiceNumber, purchaseDate, items } = req.body;
+
+  // Validate supplier name (optional but if provided, check length)
+  if (supplierName && (typeof supplierName !== 'string' || supplierName.trim().length === 0)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Supplier name must be a non-empty string'
+    });
+  }
+
+  // Validate invoice number (optional but if provided, check length)
+  if (invoiceNumber && (typeof invoiceNumber !== 'string' || invoiceNumber.trim().length === 0)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invoice number must be a non-empty string'
+    });
+  }
+
+  // Validate purchase date (required)
+  if (!purchaseDate) {
+    return res.status(400).json({
+      success: false,
+      message: 'Purchase date is required'
+    });
+  }
+
+  const parsedDate = new Date(purchaseDate);
+  if (isNaN(parsedDate.getTime())) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid purchase date format'
+    });
+  }
+
+  // Validate items array (required)
+  if (!items || !Array.isArray(items) || items.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Items array is required and must not be empty'
+    });
+  }
+
+  // Validate each item
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i];
+
+    // Validate productId
+    if (!item.productId || !mongoose.Types.ObjectId.isValid(item.productId)) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: Valid product ID is required`
+      });
+    }
+
+    // Validate receivedQuantity (required, must be positive integer)
+    if (typeof item.receivedQuantity !== 'number' || item.receivedQuantity < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: Received quantity must be a non-negative number`
+      });
+    }
+
+    if (!Number.isInteger(item.receivedQuantity)) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: Received quantity must be a whole number`
+      });
+    }
+
+    // Validate actualUnitCost (required, must be non-negative)
+    if (typeof item.actualUnitCost !== 'number' || item.actualUnitCost < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: Actual unit cost must be a non-negative number`
+      });
+    }
+
+    // Validate actualTotalCost (required, must be non-negative)
+    if (typeof item.actualTotalCost !== 'number' || item.actualTotalCost < 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: Actual total cost must be a non-negative number`
+      });
+    }
+
+    // Validate cost consistency (actualTotalCost should equal receivedQuantity * actualUnitCost)
+    const expectedTotal = item.receivedQuantity * item.actualUnitCost;
+    const tolerance = 0.01; // Allow small floating point differences
+    if (Math.abs(item.actualTotalCost - expectedTotal) > tolerance) {
+      return res.status(400).json({
+        success: false,
+        message: `Item ${i + 1}: Total cost (${item.actualTotalCost}) does not match quantity (${item.receivedQuantity}) × unit cost (${item.actualUnitCost})`
+      });
+    }
+  }
+
+  next();
+};
+
 module.exports = exports;

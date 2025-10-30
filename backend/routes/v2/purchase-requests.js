@@ -8,7 +8,8 @@ const {
   validateCreateRequest,
   validateRequestId,
   validateApproval,
-  validateRejection
+  validateRejection,
+  validateStockUpdate
 } = require('../../middleware/validation/purchaseRequestValidation');
 
 /**
@@ -102,6 +103,21 @@ router.post(
   validateRequestId,
   validateRejection,
   purchaseRequestController.rejectPurchaseRequest
+);
+
+/**
+ * Purchase Manager Routes - Sprint5-Story-19
+ * Stock Update / Complete Request
+ */
+
+// Complete purchase request with stock update (Purchase Manager)
+router.post(
+  '/:id/complete',
+  authenticate,
+  checkPermission('Purchase Management', 'Update'),
+  validateRequestId,
+  validateStockUpdate,
+  purchaseRequestController.completePurchaseRequest
 );
 
 module.exports = router;

@@ -1,37 +1,49 @@
-# Story 19: Stock Update & Audit Trail (Purchase Manager)
+# Story 19: Multi-Product Stock Update & Audit Trail (Purchase Manager)
 
 **Story ID:** Sprint5-Story-19
 **Epic:** Sprint5-Epic-05 (Purchase Manager Workflow)
 **Priority:** High
 **Status:** Ready for Development
-**Estimate:** 1 day
+**Estimate:** 1.5 days (increased from 1 day due to multi-product complexity)
 **Created:** 2025-10-29 16:37:42
-**Last Updated:** 2025-10-29 16:37:42
+**Last Updated:** 2025-10-30 13:08:54
 
 ---
 
 ## User Story
 
 **As a** Purchase Manager
-**I want to** update inventory stock after receiving purchased items
-**So that** the system reflects accurate stock levels with complete audit trail linking to the purchase request
+**I want to** update inventory stock for **MULTIPLE products** after receiving purchased items
+**So that** the system reflects accurate stock levels for all products with complete audit trail linking to the purchase request
 
 ---
 
 ## Business Context
 
-After Admin approves a purchase request, the Purchase Manager:
+After Admin approves a **multi-product** purchase request, the Purchase Manager:
 1. Places order with supplier
-2. Receives the items
-3. Needs to update the system to reflect new stock
+2. Receives the items (potentially all products or partial delivery)
+3. Needs to update the system to reflect new stock **for all products** in the request
 
 This story completes the purchase workflow by allowing Purchase Managers to:
-- Record supplier and purchase details (invoice, cost, date)
-- Update shop inventory stock
-- Create complete audit trail linking purchase request → inventory transaction
+- Record supplier and purchase details (invoice, cost, date) **for the entire order**
+- Update shop inventory stock **for MULTIPLE products atomically**
+- Create complete audit trail linking purchase request → **multiple inventory transactions** (one per product)
 - Mark request as completed
 
 This ensures every inventory change is traceable back to its original purchase request and approval.
+
+### Key Changes from Original Story 19:
+
+**CRITICAL UPDATE:** Story 17 introduced multi-product purchase requests with `items[]` array. Story 19 must now handle:
+- **Multiple products** in a single request (not single product)
+- **Atomic stock updates** across all products (MongoDB transaction required)
+- **Multiple InventoryTransaction records** (one per product)
+- **Per-product received quantities** (e.g., ordered 3 products, received different quantities for each)
+
+**Dependencies:**
+- ✅ Story 17 (Multi-Product Purchase Request Creation) - MUST BE COMPLETE
+- ✅ Story 18 (Admin Approval Workflow) - MUST BE COMPLETE
 
 ---
 
@@ -48,86 +60,151 @@ This ensures every inventory change is traceable back to its original purchase r
 - ✅ Cannot update stock for pending/rejected/cancelled/completed requests
 - ✅ Only own approved requests are visible (frontend filtered)
 
-### AC2: Update Stock Modal
+### AC2: Update Stock Modal (UPDATED FOR MULTI-PRODUCT)
 - ✅ Purchase Manager clicks [📦 Update Stock] button
-- ✅ Modal opens with two sections:
-  - **Part 1: Purchase Details** (supplier, invoice, cost)
-  - **Part 2: Stock Update** (quantity received, notes)
-- ✅ Form fields:
+- ✅ Modal opens with three sections:
+  - **Part 1: Request Summary** (shows all approved products)
+  - **Part 2: Purchase Details** (supplier, invoice, cost for entire order)
+  - **Part 3: Stock Update** (per-product quantities received)
+- ✅ **Part 1: Request Summary Table** - **NEW**
+  - Shows items table similar to Story 18 approval modal
+  - Columns: Product, SKU, Approved Qty, Current Stock
+  - Read-only display of what was approved
+- ✅ **Part 2: Purchase Details Form** (same as before)
   - Supplier Name (text, required, max 100 chars)
   - Invoice Number (text, required, max 50 chars)
   - Purchase Date (date, required, cannot be future date)
-  - Actual Cost (number, optional, min 0)
-  - Quantity Received (number, required, min 1, defaults to requested quantity)
+  - Actual Total Cost (number, optional, min 0) - **For entire order**
   - Receipt Notes (textarea, optional, max 500 chars)
-- ✅ Shows stock projection:
-  - Current Stock: [X]
-  - Quantity Received: [Y]
-  - New Stock: [X + Y]
-- ✅ Confirmation message before submitting
+- ✅ **Part 3: Stock Update Table** - **NEW**
+  - Editable table with columns:
+    - Product Name (read-only)
+    - SKU (read-only)
+    - Current Stock (read-only)
+    - Approved Qty (read-only)
+    - **Received Qty** (editable number input, required, defaults to approved qty)
+    - **New Stock** (calculated: Current + Received)
+  - Each row has independent quantity input
+  - Real-time calculation of new stock per product
+- ✅ Shows **aggregate stock projection** below table:
+  - Total Products: [N]
+  - Total Approved Units: [Sum of approved quantities]
+  - Total Received Units: [Sum of received quantities]
+  - Stock Updates: [N products will be updated]
+- ✅ Confirmation message before submitting shows multi-product impact
 
-### AC3: Stock Update Processing
+### AC3: Stock Update Processing (UPDATED FOR MULTI-PRODUCT)
 - ✅ On submit:
   - POST /api/v2/shop/admin/purchase-requests/:id/complete
-  - Backend performs atomic transaction:
-    1. Updates ShopItem.stock (add received quantity)
-    2. Creates InventoryTransaction record
-    3. Updates PurchaseRequest (status → 'completed', links inventoryTransactionId)
-  - Success toast: "Stock updated successfully"
+  - Request body: `{ supplierName, invoiceNumber, purchaseDate, actualCost, receivedQuantities: [50, 100, 75], receiptNotes }`
+  - Backend performs **atomic MongoDB transaction** across ALL products:
+    1. **Loop through each item** in request.items[]
+    2. For each item:
+       - Fetch ShopItem by productId
+       - Update ShopItem.stock (add received quantity for THIS product)
+       - Create InventoryTransaction record for THIS product
+       - Save both atomically
+    3. Update PurchaseRequest:
+       - status → 'completed'
+       - Store `inventoryTransactionIds[]` array (multiple IDs)
+       - Store `items[].receivedQuantity` per product
+       - Store supplier/invoice/date details
+  - **CRITICAL:** If ANY product update fails, rollback ALL changes (atomic transaction)
+  - Success toast: "Stock updated successfully for 3 products"
   - Modal closes
   - Request status changes to "✅ Completed"
 
-### AC4: Inventory Transaction Creation
-- ✅ System creates InventoryTransaction with:
-  - productId: [from request]
+### AC4: Inventory Transaction Creation (UPDATED FOR MULTI-PRODUCT)
+- ✅ System creates **MULTIPLE InventoryTransaction records** (one per product in request.items[])
+- ✅ Each transaction has:
+  - productId: [from request.items[i].productId]
   - transactionType: 'purchase_request'
-  - quantity: [quantity received]
-  - previousStock: [stock before update]
-  - newStock: [stock after update]
+  - quantity: [receivedQuantities[i] - quantity received for THIS product]
+  - previousStock: [stock before update for THIS product]
+  - newStock: [stock after update for THIS product]
   - reference.type: 'purchase_request'
-  - reference.id: [purchase request ID]
+  - reference.id: [purchase request ID - SAME for all products]
   - reason: "Purchase Request #{requestId} - {supplier name}"
-  - notes: [receipt notes from form]
+  - notes: [receipt notes from form - SAME for all products]
   - performedBy: [Purchase Manager user ID]
-- ✅ Transaction appears in Inventory Management audit trail
+- ✅ All transactions link back to the SAME purchase request ID
+- ✅ All transactions appear in Inventory Management audit trail
+- ✅ Example: Request with 3 products creates 3 separate InventoryTransaction records
 
-### AC5: Completed Request View
-- ✅ Completed requests show:
+### AC5: Completed Request View (UPDATED FOR MULTI-PRODUCT)
+- ✅ Completed requests show in table:
   - ✅ Completed status badge
+  - Total Items: [N products]
+  - Total Received: [Sum of received quantities]
   - Completed by: [Purchase Manager name]
   - Completed on: [Date/time]
-  - Supplier: [Name]
-  - Invoice: [Number]
-  - Purchase Date: [Date]
-  - Actual Cost: [₹Amount]
-  - Quantity Received: [X units]
-  - Final Stock: [New stock level]
 - ✅ [View Details] button shows full workflow timeline:
-  - Created by [PM] on [Date]
-  - Approved by [Admin] on [Date] - [Notes]
-  - Completed by [PM] on [Date] - [Supplier, Invoice]
-  - Stock Updated: [X] → [Y] units
-  - Inventory Transaction: [Link to audit trail]
+  - **Created by [PM] on [Date]**
+    - Items: 3 products, 225 units requested, ₹1,025.00 estimated
+  - **Approved by [Admin] on [Date]**
+    - Admin notes: [Notes]
+  - **Completed by [PM] on [Date]**
+    - Supplier: [Name]
+    - Invoice: [Number]
+    - Purchase Date: [Date]
+    - Actual Cost: [₹Amount] (total for all products)
+    - **Stock Updates Table:** (NEW)
+      - Product | Approved Qty | Received Qty | Stock Before | Stock After
+      - Notebook | 50 | 50 | 5 → 55
+      - Pencil | 100 | 100 | 10 → 110
+      - Eraser | 75 | 75 | 3 → 78
+    - Inventory Transactions: **3 transactions created** [Links to audit trail]
 
-### AC6: Validation & Error Handling
-- ✅ Cannot update stock twice (idempotency check)
+### AC6: Validation & Error Handling (UPDATED FOR MULTI-PRODUCT)
+- ✅ Cannot update stock twice (idempotency check using `inventoryTransactionIds` array)
 - ✅ If request already completed, show error: "This request has already been completed"
-- ✅ Validate received quantity > 0
+- ✅ **Validate receivedQuantities array:**
+  - Array length must match request.items.length
+  - Each quantity must be > 0
+  - Each quantity must be a valid number
 - ✅ Validate supplier name not empty
 - ✅ Validate invoice number not empty
 - ✅ Validate purchase date not in future
-- ✅ Atomic transaction - if any step fails, rollback all changes
+- ✅ **Atomic MongoDB transaction** - if ANY product update fails, rollback ALL changes
+  - Example: If updating 3 products and the 2nd product fails, rollback stock updates for product 1
+  - No partial updates allowed
+- ✅ **Frontend validation:**
+  - All received quantity inputs must be filled before submit
+  - Show error: "Please enter received quantity for all products"
 
-### AC7: Audit Trail Integration
-- ✅ Inventory Management page shows updated stock immediately
-- ✅ Audit trail in Inventory Management shows:
+### AC7: Audit Trail Integration (UPDATED FOR MULTI-PRODUCT)
+- ✅ Inventory Management page shows updated stock immediately **for all products**
+- ✅ Audit trail in Inventory Management shows **MULTIPLE transactions** (one per product):
+
+  **Example: For a 3-product request, audit trail shows 3 separate entries:**
+
+  **Transaction 1 (Notebook):**
   - Type: "Purchase Request"
   - Reason: "Purchase Request #PR-001 - StatCo Suppliers"
-  - Reference: Link to purchase request details
+  - Reference: Link to purchase request details (same request ID for all)
   - Performed by: [Purchase Manager]
   - Quantity: +50 units
   - Stock: 5 → 55
-- ✅ Can click reference link to view full purchase request
+
+  **Transaction 2 (Pencil):**
+  - Type: "Purchase Request"
+  - Reason: "Purchase Request #PR-001 - StatCo Suppliers"
+  - Reference: Link to purchase request details (same request ID)
+  - Performed by: [Purchase Manager]
+  - Quantity: +100 units
+  - Stock: 10 → 110
+
+  **Transaction 3 (Eraser):**
+  - Type: "Purchase Request"
+  - Reason: "Purchase Request #PR-001 - StatCo Suppliers"
+  - Reference: Link to purchase request details (same request ID)
+  - Performed by: [Purchase Manager]
+  - Quantity: +75 units
+  - Stock: 3 → 78
+
+- ✅ All 3 transactions have the SAME reference.id (purchase request ID)
+- ✅ Can click reference link from any transaction to view full purchase request details
+- ✅ Transactions appear with the SAME timestamp (created in same atomic operation)
 
 ---
 
@@ -135,7 +212,7 @@ This ensures every inventory change is traceable back to its original purchase r
 
 ### Backend Implementation
 
-#### 1. Controller Method (Add to purchaseRequestController.js)
+#### 1. Controller Method (UPDATED FOR MULTI-PRODUCT)
 
 **File:** `backend/controllers/purchaseRequestController.js`
 
@@ -145,8 +222,15 @@ const mongoose = require('mongoose');
 
 /**
  * @route   POST /api/v2/shop/admin/purchase-requests/:id/complete
- * @desc    Complete purchase request and update stock (Purchase Manager)
+ * @desc    Complete MULTI-PRODUCT purchase request and update stock atomically
  * @access  Private (Purchase Management:Update)
+ *
+ * CRITICAL CHANGES FROM ORIGINAL:
+ * - Handles items[] array (multiple products)
+ * - Accepts receivedQuantities[] array instead of single receivedQuantity
+ * - Creates MULTIPLE InventoryTransaction records (one per product)
+ * - Stores inventoryTransactionIds[] array instead of single ID
+ * - Uses atomic MongoDB transaction for ALL products
  */
 exports.completePurchaseRequest = async (req, res) => {
   const session = await mongoose.startSession();
@@ -159,7 +243,7 @@ exports.completePurchaseRequest = async (req, res) => {
       invoiceNumber,
       purchaseDate,
       actualCost,
-      receivedQuantity,
+      receivedQuantities,  // ⭐ CHANGED: Array instead of single value
       receiptNotes
     } = req.body;
     const userId = req.user._id;
@@ -189,11 +273,12 @@ exports.completePurchaseRequest = async (req, res) => {
       });
     }
 
-    if (!receivedQuantity || receivedQuantity < 1) {
+    // ⭐ NEW: Validate receivedQuantities array
+    if (!Array.isArray(receivedQuantities)) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
-        message: 'Received quantity must be at least 1'
+        message: 'Received quantities must be an array'
       });
     }
 
@@ -235,8 +320,29 @@ exports.completePurchaseRequest = async (req, res) => {
       });
     }
 
-    // 🔥 IDEMPOTENCY: Check if already completed
-    if (request.inventoryTransactionId) {
+    // ⭐ NEW: Validate receivedQuantities array length matches items
+    if (receivedQuantities.length !== request.items.length) {
+      await session.abortTransaction();
+      return res.status(400).json({
+        success: false,
+        message: `Received quantities count (${receivedQuantities.length}) must match number of items in request (${request.items.length})`
+      });
+    }
+
+    // ⭐ NEW: Validate each received quantity
+    for (let i = 0; i < receivedQuantities.length; i++) {
+      const qty = receivedQuantities[i];
+      if (!qty || typeof qty !== 'number' || qty < 1) {
+        await session.abortTransaction();
+        return res.status(400).json({
+          success: false,
+          message: `Received quantity for ${request.items[i].productName} must be at least 1`
+        });
+      }
+    }
+
+    // ⭐ UPDATED: Check if already completed using inventoryTransactionIds array
+    if (request.inventoryTransactionIds && request.inventoryTransactionIds.length > 0) {
       await session.abortTransaction();
       return res.status(400).json({
         success: false,
@@ -244,44 +350,64 @@ exports.completePurchaseRequest = async (req, res) => {
       });
     }
 
-    // Get product
-    const product = await ShopItem.findById(request.productId).session(session);
+    // ⭐ NEW: Arrays to track updates
+    const transactionIds = [];
+    const stockUpdates = [];
 
-    if (!product) {
-      await session.abortTransaction();
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found'
+    // 🔥 LOOP THROUGH ALL ITEMS AND UPDATE STOCK ATOMICALLY
+    for (let i = 0; i < request.items.length; i++) {
+      const item = request.items[i];
+      const receivedQty = receivedQuantities[i];
+
+      // Get product
+      const product = await ShopItem.findById(item.productId).session(session);
+
+      if (!product) {
+        await session.abortTransaction();
+        return res.status(404).json({
+          success: false,
+          message: `Product ${item.productName} (${item.productSKU}) not found`
+        });
+      }
+
+      // Store previous stock
+      const previousStock = product.stock;
+      const newStock = previousStock + receivedQty;
+
+      // 🔥 STEP 1: Update product stock
+      product.stock = newStock;
+      await product.save({ session });
+
+      // Track update for response
+      stockUpdates.push({
+        productId: product._id,
+        productName: item.productName,
+        previousStock,
+        newStock,
+        receivedQty
       });
+
+      // 🔥 STEP 2: Create inventory transaction for THIS product
+      const transaction = new InventoryTransaction({
+        productId: product._id,
+        transactionType: 'purchase_request',
+        quantity: receivedQty,
+        previousStock: previousStock,
+        newStock: newStock,
+        reference: {
+          type: 'purchase_request',
+          id: request._id
+        },
+        reason: `Purchase Request ${request.requestId} - ${supplierName.trim()}`,
+        notes: receiptNotes?.trim() || `Invoice: ${invoiceNumber.trim()}`,
+        performedBy: userId
+      });
+
+      await transaction.save({ session });
+      transactionIds.push(transaction._id);
     }
 
-    // Store previous stock
-    const previousStock = product.stock;
-    const newStock = previousStock + receivedQuantity;
-
-    // 🔥 STEP 1: Update product stock
-    product.stock = newStock;
-    await product.save({ session });
-
-    // 🔥 STEP 2: Create inventory transaction
-    const transaction = new InventoryTransaction({
-      productId: product._id,
-      transactionType: 'purchase_request',
-      quantity: receivedQuantity,
-      previousStock: previousStock,
-      newStock: newStock,
-      reference: {
-        type: 'purchase_request',
-        id: request._id
-      },
-      reason: `Purchase Request ${request.requestId} - ${supplierName.trim()}`,
-      notes: receiptNotes?.trim() || `Invoice: ${invoiceNumber.trim()}`,
-      performedBy: userId
-    });
-
-    await transaction.save({ session });
-
-    // 🔥 STEP 3: Update purchase request
+    // 🔥 STEP 3: Update purchase request with multi-product completion data
     request.status = 'completed';
     request.completedBy = userId;
     request.completedAt = new Date();
@@ -289,8 +415,15 @@ exports.completePurchaseRequest = async (req, res) => {
     request.invoiceNumber = invoiceNumber.trim();
     request.purchaseDate = new Date(purchaseDate);
     request.actualCost = actualCost || 0;
-    request.receivedQuantity = receivedQuantity;
-    request.inventoryTransactionId = transaction._id;
+
+    // ⭐ NEW: Store received quantities per item
+    request.items = request.items.map((item, index) => ({
+      ...item.toObject(),
+      receivedQuantity: receivedQuantities[index]
+    }));
+
+    // ⭐ NEW: Store multiple transaction IDs
+    request.inventoryTransactionIds = transactionIds;
 
     await request.save({ session });
 
@@ -301,17 +434,16 @@ exports.completePurchaseRequest = async (req, res) => {
     await request.populate('requestedBy', 'name email');
     await request.populate('reviewedBy', 'name email');
     await request.populate('completedBy', 'name email');
-    await request.populate('productId', 'name sku stock');
-    await request.populate('inventoryTransactionId');
+    await request.populate('items.productId', 'name sku stock');  // ⭐ CHANGED: Populate items array
+    await request.populate('inventoryTransactionIds');  // ⭐ CHANGED: Populate array of transactions
 
     res.json({
       success: true,
-      message: 'Stock updated successfully',
+      message: `Stock updated successfully for ${request.items.length} product${request.items.length !== 1 ? 's' : ''}`,  // ⭐ CHANGED: Dynamic message
       data: {
         request,
-        previousStock,
-        newStock,
-        transactionId: transaction._id
+        stockUpdates,  // ⭐ NEW: Array of stock changes per product
+        transactionIds  // ⭐ NEW: Array of transaction IDs
       }
     });
   } catch (error) {
@@ -332,7 +464,42 @@ module.exports = exports;
 
 ---
 
-#### 2. Update InventoryTransaction Model
+#### 2. Update PurchaseRequest Model (CRITICAL)
+
+**File:** `backend/models/purchaseRequest.js`
+
+**REQUIRED CHANGES:**
+
+```javascript
+// ⭐ ADD to schema (Story 17 already added items array, but need these new fields):
+
+// REMOVE (obsolete from original Story 19):
+// inventoryTransactionId: { type: mongoose.Schema.Types.ObjectId, ref: 'InventoryTransaction' }
+// receivedQuantity: Number
+
+// ⭐ ADD for multi-product completion tracking:
+inventoryTransactionIds: [{
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'InventoryTransaction'
+}],
+
+// Note: items array already has receivedQuantity added per item during completion:
+items: [
+  {
+    // ... existing fields from Story 17
+    receivedQuantity: { type: Number }  // Added during completion
+  }
+]
+```
+
+**Why this is critical:**
+- Original Story 19 used single `inventoryTransactionId` field
+- Multi-product version needs `inventoryTransactionIds[]` array to track multiple transactions
+- Each item gets its own `receivedQuantity` field (may differ from `requestedQuantity`)
+
+---
+
+#### 3. Update InventoryTransaction Model
 
 **File:** `backend/models/inventoryTransaction.js`
 
@@ -382,7 +549,7 @@ module.exports = router;
 
 ---
 
-#### 4. Validation Middleware
+#### 4. Validation Middleware (UPDATED FOR MULTI-PRODUCT)
 
 **File:** `backend/middleware/validation/purchaseRequestValidation.js`
 
@@ -393,7 +560,7 @@ exports.validateStockUpdate = (req, res, next) => {
     invoiceNumber,
     purchaseDate,
     actualCost,
-    receivedQuantity
+    receivedQuantities  // ⭐ CHANGED: Array instead of single value
   } = req.body;
 
   // Validate supplier name
@@ -459,12 +626,30 @@ exports.validateStockUpdate = (req, res, next) => {
     }
   }
 
-  // Validate received quantity
-  if (!receivedQuantity || typeof receivedQuantity !== 'number' || receivedQuantity < 1) {
+  // ⭐ NEW: Validate receivedQuantities array
+  if (!receivedQuantities || !Array.isArray(receivedQuantities)) {
     return res.status(400).json({
       success: false,
-      message: 'Received quantity must be at least 1'
+      message: 'Received quantities must be an array'
     });
+  }
+
+  if (receivedQuantities.length === 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'At least one received quantity is required'
+    });
+  }
+
+  // Validate each quantity in array
+  for (let i = 0; i < receivedQuantities.length; i++) {
+    const qty = receivedQuantities[i];
+    if (typeof qty !== 'number' || qty < 1) {
+      return res.status(400).json({
+        success: false,
+        message: `Received quantity at index ${i} must be a number >= 1`
+      });
+    }
   }
 
   // Validate receipt notes (optional)
@@ -485,7 +670,7 @@ module.exports = exports;
 
 ### Frontend Implementation
 
-#### 1. Update Stock Modal
+#### 1. Update Stock Modal (UPDATED FOR MULTI-PRODUCT)
 
 **File:** `frontend/src/components/purchaseManagement/modals/UpdateStockModal.jsx`
 
@@ -496,15 +681,30 @@ import showToast from '../../../utils/toast';
 import dayjs from 'dayjs';
 
 export default function UpdateStockModal({ request, onClose, onSuccess }) {
+  // ⭐ CHANGED: Initialize receivedQuantities array (one per item)
   const [formData, setFormData] = useState({
     supplierName: '',
     invoiceNumber: '',
     purchaseDate: dayjs().format('YYYY-MM-DD'),
     actualCost: '',
-    receivedQuantity: request.requestedQuantity,
     receiptNotes: ''
   });
+
+  // ⭐ NEW: Separate state for per-product received quantities
+  const [receivedQuantities, setReceivedQuantities] = useState(
+    request.items.map(item => item.requestedQuantity)  // Default to approved quantities
+  );
+
   const [loading, setLoading] = useState(false);
+
+  // ⭐ NEW: Update individual item's received quantity
+  const updateReceivedQuantity = (index, value) => {
+    setReceivedQuantities(prev => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -525,14 +725,17 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
       return;
     }
 
-    if (formData.receivedQuantity < 1) {
-      showToast('Received quantity must be at least 1', 'error');
+    // ⭐ NEW: Validate all received quantities filled
+    const invalidQty = receivedQuantities.find(qty => !qty || qty < 1);
+    if (invalidQty !== undefined) {
+      showToast('Please enter received quantity for all products (must be >= 1)', 'error');
       return;
     }
 
-    // Confirm before updating
+    // ⭐ CHANGED: Confirm with multi-product summary
+    const totalReceived = receivedQuantities.reduce((sum, qty) => sum + qty, 0);
     const confirmed = window.confirm(
-      `Update stock from ${request.currentStock} to ${request.currentStock + formData.receivedQuantity} units?`
+      `Update stock for ${request.items.length} products (${totalReceived} total units)?`
     );
 
     if (!confirmed) return;
@@ -544,12 +747,12 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
         invoiceNumber: formData.invoiceNumber.trim(),
         purchaseDate: formData.purchaseDate,
         actualCost: formData.actualCost ? parseFloat(formData.actualCost) : 0,
-        receivedQuantity: parseInt(formData.receivedQuantity),
+        receivedQuantities: receivedQuantities.map(qty => parseInt(qty)),  // ⭐ CHANGED: Array
         receiptNotes: formData.receiptNotes.trim()
       });
 
       if (response.success) {
-        showToast('Stock updated successfully', 'success');
+        showToast(`Stock updated successfully for ${request.items.length} products`, 'success');
         onSuccess();
       } else {
         showToast(response.message || 'Error updating stock', 'error');
@@ -562,7 +765,9 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
     }
   };
 
-  const projectedStock = request.currentStock + parseInt(formData.receivedQuantity || 0);
+  // ⭐ NEW: Calculate totals
+  const totalApprovedQty = request.items.reduce((sum, item) => sum + item.requestedQuantity, 0);
+  const totalReceivedQty = receivedQuantities.reduce((sum, qty) => sum + (parseInt(qty) || 0), 0);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -583,16 +788,12 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
 
               <div className="summary-grid">
                 <div className="summary-item">
-                  <label>Product:</label>
-                  <span>{request.productName} ({request.productSKU})</span>
+                  <label>Total Items:</label>
+                  <span className="approved-qty">{request.items.length} products</span>
                 </div>
                 <div className="summary-item">
-                  <label>Current Stock:</label>
-                  <span className="stock-value">{request.currentStock} units</span>
-                </div>
-                <div className="summary-item">
-                  <label>Approved Quantity:</label>
-                  <span className="approved-qty">{request.requestedQuantity} units</span>
+                  <label>Total Approved Quantity:</label>
+                  <span className="approved-qty">{totalApprovedQty} units</span>
                 </div>
                 <div className="summary-item">
                   <label>Approved By:</label>
@@ -606,6 +807,39 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
                   <p>{request.reviewNotes}</p>
                 </div>
               )}
+            </div>
+
+            <hr />
+
+            {/* ⭐ NEW: Approved Items Table */}
+            <div className="approved-items-section">
+              <h4>📋 Approved Items</h4>
+              <table className="items-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Current Stock</th>
+                    <th>Approved Qty</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {request.items.map((item, index) => (
+                    <tr key={index}>
+                      <td>{item.productName}</td>
+                      <td>{item.productSKU}</td>
+                      <td>
+                        <span className={item.currentStock === 0 ? 'text-danger' : item.currentStock <= item.lowStockThreshold ? 'text-warning' : ''}>
+                          {item.currentStock} / {item.lowStockThreshold}
+                          {item.currentStock === 0 && ' 🔴'}
+                          {item.currentStock > 0 && item.currentStock <= item.lowStockThreshold && ' ⚠️'}
+                        </span>
+                      </td>
+                      <td>{item.requestedQuantity} units</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
 
             <hr />
@@ -668,32 +902,72 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
 
             <hr />
 
-            {/* Stock Update Section */}
+            {/* ⭐ NEW: Stock Update Section with editable table */}
             <div className="section">
               <h4>📦 Stock Received</h4>
 
-              <div className="form-group">
-                <label>Quantity Received *</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={formData.receivedQuantity}
-                  onChange={(e) => setFormData(prev => ({ ...prev, receivedQuantity: e.target.value }))}
-                  required
-                />
-                <small className="form-hint">
-                  Approved: {request.requestedQuantity} units
-                </small>
-              </div>
+              <table className="stock-update-table">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>SKU</th>
+                    <th>Current Stock</th>
+                    <th>Approved Qty</th>
+                    <th style={{width: '140px'}}>Received Qty *</th>
+                    <th>New Stock</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {request.items.map((item, index) => {
+                    const receivedQty = parseInt(receivedQuantities[index]) || 0;
+                    const newStock = item.currentStock + receivedQty;
 
-              <div className="form-group">
+                    return (
+                      <tr key={index}>
+                        <td>{item.productName}</td>
+                        <td>{item.productSKU}</td>
+                        <td className="stock-value">{item.currentStock}</td>
+                        <td className="approved-qty">{item.requestedQuantity}</td>
+                        <td>
+                          <input
+                            type="number"
+                            min="1"
+                            className="table-input"
+                            value={receivedQuantities[index]}
+                            onChange={(e) => updateReceivedQuantity(index, parseInt(e.target.value) || 0)}
+                            required
+                          />
+                        </td>
+                        <td className={`new-stock ${newStock > item.lowStockThreshold ? 'text-success' : 'text-warning'}`}>
+                          {newStock}
+                          {newStock > item.lowStockThreshold && ' ✅'}
+                          {newStock <= item.lowStockThreshold && ' ⚠️'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr className="totals-row">
+                    <td colSpan="4" className="total-label">
+                      <strong>Totals:</strong>
+                    </td>
+                    <td className="total-value">
+                      <strong>{totalReceivedQty} units</strong>
+                    </td>
+                    <td></td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div className="form-group" style={{marginTop: '20px'}}>
                 <label>Receipt Notes (Optional)</label>
                 <textarea
                   rows="3"
                   maxLength="500"
                   value={formData.receiptNotes}
                   onChange={(e) => setFormData(prev => ({ ...prev, receiptNotes: e.target.value }))}
-                  placeholder="Condition of items, packaging notes, etc."
+                  placeholder="Condition of items, packaging notes, discrepancies, etc."
                 />
                 <small className="char-count">{formData.receiptNotes.length}/500</small>
               </div>
@@ -701,39 +975,37 @@ export default function UpdateStockModal({ request, onClose, onSuccess }) {
 
             <hr />
 
-            {/* Stock Projection */}
+            {/* ⭐ UPDATED: Stock Projection Summary */}
             <div className="stock-projection-box">
               <h4>📊 Stock Update Summary</h4>
-              <div className="projection-display">
-                <div className="projection-item">
-                  <span className="label">Current Stock:</span>
-                  <span className="value current">{request.currentStock}</span>
+              <div className="projection-summary">
+                <div className="summary-stat">
+                  <span className="stat-label">Products to Update:</span>
+                  <span className="stat-value">{request.items.length}</span>
                 </div>
-                <div className="projection-arrow">+</div>
-                <div className="projection-item">
-                  <span className="label">Quantity Received:</span>
-                  <span className="value received">{formData.receivedQuantity}</span>
+                <div className="summary-stat">
+                  <span className="stat-label">Total Approved:</span>
+                  <span className="stat-value">{totalApprovedQty} units</span>
                 </div>
-                <div className="projection-arrow">=</div>
-                <div className="projection-item">
-                  <span className="label">New Stock:</span>
-                  <span className="value new">{projectedStock}</span>
+                <div className="summary-stat">
+                  <span className="stat-label">Total Received:</span>
+                  <span className="stat-value highlighted">{totalReceivedQty} units</span>
                 </div>
               </div>
 
-              {projectedStock > request.lowStockThreshold && (
-                <div className="success-message">
-                  ✅ Stock will be above threshold ({request.lowStockThreshold} units)
+              {totalReceivedQty !== totalApprovedQty && (
+                <div className="discrepancy-warning">
+                  ⚠️ Received quantity differs from approved quantity
                 </div>
               )}
             </div>
 
-            {/* Warning */}
+            {/* ⭐ UPDATED: Warning */}
             <div className="warning-box">
               <p>⚠️ This action will:</p>
               <ul>
-                <li>Update {request.productName} stock to <strong>{projectedStock} units</strong></li>
-                <li>Create inventory transaction record</li>
+                <li>Update stock for <strong>{request.items.length} products</strong></li>
+                <li>Create <strong>{request.items.length} inventory transaction records</strong></li>
                 <li>Mark this purchase request as completed</li>
                 <li><strong>This action cannot be undone</strong></li>
               </ul>
@@ -1016,5 +1288,5 @@ test('TC-19.3: Cannot update stock twice for same request', async ({ page }) => 
 
 ---
 
-**Last Updated:** 2025-10-29 16:37:42 (via `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Orchestrator (BMad)
+**Last Updated:** 2025-10-30 13:08:54 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Orchestrator (Updated for multi-product support - Story 17/18 integration)
