@@ -6,6 +6,7 @@ import TaskManagement from "../TaskManagement/taskmanagement";
 import UserManagement from "../usermanagement/usermanagement";
 import { createMedicalCheckin, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
 import showToast from '../../utils/toast';
+import DateRangeSelector from "../shop/DateRangeSelector";
 
 const MedicInchargeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -16,6 +17,8 @@ const MedicInchargeDashboard = () => {
   const [search, setSearch] = useState();
   const [medicalStatus, setMedicalStatus] = useState('all');
   const [selectedBalagruha, setSelectedBalagruha] = useState('all');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [editData, setEditData] = useState();
   const [editMode, setEditMode] = useState(false);
   const [checkIns, setCheckIns] = useState([
@@ -199,8 +202,6 @@ const MedicInchargeDashboard = () => {
   };
 
   const handleSubmitCheckIn = async(formData) => {
-
-    console.log(formData.uploadedImages, formData.uploadedPdfs);
     setEditMode(false);
 
     const formDataToSend = new FormData();
@@ -306,12 +307,19 @@ const MedicInchargeDashboard = () => {
   const fetchBalagruha = async () => {
     const response = await getBalagruha();
     if(response.success) {
-      const balagruhaIdsFromStorage = localStorage.getItem('balagruhaIds')?.split(',');
+      // Parse the JSON stringified array from localStorage
+      const balagruhaIdsFromStorage = JSON.parse(localStorage.getItem('balagruhaIds') || '[]');
 
-      const filteredBalagruhas = response.data.balagruhas.filter(balagruha =>
-        balagruhaIdsFromStorage.includes(balagruha._id)
-      );
-      console.log("User Balagruha Data: ", filteredBalagruhas);
+      console.log("Balagruha IDs from storage:", balagruhaIdsFromStorage);
+      console.log("All balagruhas from API:", response.data.balagruhas);
+
+      const filteredBalagruhas = response.data.balagruhas.filter(balagruha => {
+        const includes = balagruhaIdsFromStorage.includes(balagruha._id);
+        console.log(`Checking ${balagruha.name} (${balagruha._id}): ${includes}`);
+        return includes;
+      });
+
+      console.log("Filtered Balagruha Data: ", filteredBalagruhas);
       setBalagruhaData(filteredBalagruhas);
     } else {
       showToast("Error fetching balagruha", "error")
@@ -320,18 +328,22 @@ const MedicInchargeDashboard = () => {
   }
 
   const fetchMedicalData = async() => {
-    const response = await getMedicalConditionBasedOnBalagruha();
+    // Parse the JSON stringified array from localStorage
+    const balagruhaIdsFromStorage = JSON.parse(localStorage.getItem('balagruhaIds') || '[]');
+    const response = await getMedicalConditionBasedOnBalagruha(balagruhaIdsFromStorage);
     if(response.success) {
-      const user = localStorage.getItem('userId');
-
-      const filterData = response?.data?.medicalCheckIns?.filter(item => item.createdBy === user)
-      setRecentHealthCheckins(filterData);
-
+      // Show all check-ins for students in assigned balagruhas (not just ones created by this user)
+      setRecentHealthCheckins(response?.data?.medicalCheckIns || []);
     } else {
       showToast("Error in fetching Medical Condition Details", "error")
     }
     console.log(response)
   }
+
+  const handleDateRangeChange = (start, end) => {
+    setStartDate(start);
+    setEndDate(end);
+  };
 
   const filterMedicalCheckInData = recentHealthCheckins.filter((user) => {
     if(search &&
@@ -343,9 +355,31 @@ const MedicInchargeDashboard = () => {
     if(medicalStatus !== "all" && user?.healthStatus !== medicalStatus) {
       return false;
     }
-    
+
     if(selectedBalagruha !== 'all' && user?.balagruhaIds[0] !== selectedBalagruha) {
       return false;
+    }
+
+    // Date range filtering
+    if (startDate || endDate) {
+      const checkInDate = new Date(user.date);
+      checkInDate.setHours(0, 0, 0, 0); // Normalize to midnight for comparison
+
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        if (checkInDate < start) {
+          return false;
+        }
+      }
+
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // Set to end of day
+        if (checkInDate > end) {
+          return false;
+        }
+      }
     }
 
     return true;
@@ -567,7 +601,7 @@ const MedicInchargeDashboard = () => {
                           <td>
                             <button
                               className="medic-icon-button"
-                              // onClick={() => handleOpenModal(checkin)}
+                              onClick={() => handleOpenModal(checkin, true)}
                             >
                               📝
                             </button>
@@ -592,6 +626,11 @@ const MedicInchargeDashboard = () => {
             <div className="medic-checkins-section">
               <div className="medic-section-header">
                 <h2>Health Check-ins</h2>
+                <DateRangeSelector
+                  startDate={startDate}
+                  endDate={endDate}
+                  onDateRangeChange={handleDateRangeChange}
+                />
                 <div className="medic-search-filter">
                   <input type="text" placeholder="Search student..." onChange={(e) => setSearch(e.target.value)} />
                   <select onChange={(e) => setMedicalStatus(e.target.value)}>

@@ -432,13 +432,10 @@ class MedicalCheckIns {
         balagruhaIds,
       });
       if (result.success) {
-        let medicalCheckIns = [];
-        result.data.forEach((item) => {
-          medicalCheckIns.push(item.medicalCheckIns);
-        });
+        // Data structure changed - now returns flat array of medical check-ins with student info
         return {
           success: true,
-          data: { medicalCheckIns },
+          data: { medicalCheckIns: result.data },
           message: "Fetched medical check-ins by balagruha Ids successfully",
         };
       }

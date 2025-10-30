@@ -13,10 +13,11 @@ const ProductCard = ({ product }) => {
   const { user } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
 
-  // Check if user is admin or coach - they cannot purchase from shop
+  // Check if user is admin, coach, or purchase-manager - they cannot purchase from shop
   const isAdmin = user?.role?.toLowerCase() === 'admin';
   const isCoach = user?.role?.toLowerCase() === 'coach';
-  const cannotPurchase = isAdmin || isCoach;
+  const isPurchaseManager = user?.role?.toLowerCase() === 'purchase-manager';
+  const cannotPurchase = isAdmin || isCoach || isPurchaseManager;
 
   const handleAddToCart = async () => {
     if (!product.inStock || isAdding || cannotPurchase) return;
@@ -109,7 +110,7 @@ const ProductCard = ({ product }) => {
               : 'bg-slate-300 text-slate-500 cursor-not-allowed'
           }`}
           aria-label={`Add ${product.name} to cart`}
-          title={cannotPurchase ? 'Admins and coaches cannot purchase from the shop' : ''}
+          title={cannotPurchase ? 'Admins, coaches, and purchase managers cannot purchase from the shop' : ''}
         >
           {isAdding ? (
             <>

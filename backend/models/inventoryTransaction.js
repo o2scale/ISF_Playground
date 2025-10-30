@@ -15,7 +15,7 @@ const inventoryTransactionSchema = new mongoose.Schema(
     },
     transactionType: {
       type: String,
-      enum: ['purchase', 'sale', 'adjustment', 'return', 'correction'],
+      enum: ['purchase', 'sale', 'adjustment', 'return', 'correction', 'purchase_request'],
       required: true
     },
     quantity: {
@@ -32,10 +32,10 @@ const inventoryTransactionSchema = new mongoose.Schema(
       required: true
     },
     reference: {
-      // Reference to related document (e.g., order, purchase order)
+      // Reference to related document (e.g., order, purchase order, purchase request)
       type: {
         type: String,
-        enum: ['order', 'purchase', 'manual', 'bulk_import'],
+        enum: ['order', 'purchase', 'manual', 'bulk_import', 'purchase_request'],
         default: 'manual'
       },
       id: {

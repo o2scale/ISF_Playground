@@ -1,0 +1,53 @@
+import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import MachineRepairsView from './views/MachineRepairsView';
+import ShopInventoryView from './views/ShopInventoryView';
+import './PurchaseManagement.css';
+
+/**
+ * Purchase Management - Sprint5-Story-17
+ * Dropdown-based UI for Machine Repairs and Shop Inventory purchase requests
+ */
+export default function PurchaseManagement() {
+  const { user } = useAuth();
+  const [purchaseType, setPurchaseType] = useState('machine-repairs');
+
+  return (
+    <div className="purchase-management-container">
+      {/* Header with Dropdown Selector */}
+      <div className="purchase-header">
+        <h1 className="page-title">Purchase Management</h1>
+
+        <div className="purchase-type-selector">
+          <label htmlFor="purchase-type" className="selector-label">
+            Purchase Type:
+          </label>
+          <select
+            id="purchase-type"
+            value={purchaseType}
+            onChange={(e) => setPurchaseType(e.target.value)}
+            className="purchase-type-dropdown"
+          >
+            <option value="machine-repairs">📋 Machine Repairs</option>
+            <option value="shop-inventory">🛒 Shop Inventory</option>
+          </select>
+        </div>
+      </div>
+
+      {/* Content View based on selected purchase type */}
+      <div className="purchase-content">
+        {purchaseType === 'machine-repairs' && (
+          <MachineRepairsView />
+        )}
+
+        {purchaseType === 'shop-inventory' && (
+          <ShopInventoryView
+            userRole={user?.role}
+            userId={user?._id}
+            userBalagruhas={user?.balagruhaIds || []}
+          />
+        )}
+      </div>
+    </div>
+  );
+}

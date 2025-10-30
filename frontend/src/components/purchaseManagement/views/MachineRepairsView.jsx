@@ -5,20 +5,20 @@ import {
   getAllPurchases,
   getBalagruha,
   updatePurchaseOrder,
-} from "../../api";
-import showToast from "../../utils/toast";
+} from "../../../api";
+import showToast from "../../../utils/toast";
 
 import dayjs from "dayjs";
 import isSameOrAfter from "dayjs/plugin/isSameOrAfter";
 import isSameOrBefore from "dayjs/plugin/isSameOrBefore";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import "./PurchaseManagement.css";
+import "../PurchaseManagement.css";
 
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-export default function PurchaseManagement() {
+export default function MachineRepairsView() {
   const [purchaseForm, setPurchaseForm] = useState({
     balagruhaId: "",
     status: "",

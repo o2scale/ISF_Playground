@@ -1,0 +1,471 @@
+# Quality Gate: Sprint 5 - Story 17
+# Multi-Product Purchase Request Creation with File Upload
+# Created: 2025-10-30 11:38:46
+# Status: Ready for Testing
+
+story:
+  id: sprint5-story-17
+  title: "Multi-Product Purchase Request Creation with File Upload"
+  description: "Purchase Managers can create purchase requests with multiple products and attach supporting files"
+  priority: P0_CRITICAL
+  sprint: Sprint 5
+
+environment:
+  frontend_url: "http://localhost:3000"
+  backend_url: "http://localhost:5001"
+  database: "MongoDB - isfplayground"
+
+test_users:
+  purchase_manager:
+    username: "ravi@iskonwb.org"
+    password: "password"
+    role: "purchase-manager"
+    assigned_balagruhas: ["Sadashraya Charitable Trust", "Mathrudhama"]
+
+acceptance_criteria:
+  - id: AC1
+    description: "Purchase Manager can select multiple products from low-stock list"
+    test_cases: [TC-S17-001, TC-S17-002, TC-S17-003]
+
+  - id: AC2
+    description: "Can specify quantity and estimated cost per product"
+    test_cases: [TC-S17-004, TC-S17-005, TC-S17-006]
+
+  - id: AC3
+    description: "Can upload up to 5 file attachments"
+    test_cases: [TC-S17-007, TC-S17-008, TC-S17-009]
+
+  - id: AC4
+    description: "Form shows real-time total estimated cost"
+    test_cases: [TC-S17-010, TC-S17-011]
+
+  - id: AC5
+    description: "Can submit multi-product request with reason/justification"
+    test_cases: [TC-S17-012, TC-S17-013, TC-S17-014]
+
+  - id: AC6
+    description: "Backend validates all products and enforces balagruha access"
+    test_cases: [TC-S17-015, TC-S17-016]
+
+  - id: AC7
+    description: "Request stored with items[] array and attachments[] in MongoDB"
+    test_cases: [TC-S17-017, TC-S17-018]
+
+test_cases:
+  # AC1: Multi-Product Selection
+  - id: TC-S17-001
+    title: "Select single product via checkbox"
+    priority: P0
+    preconditions:
+      - "Logged in as Purchase Manager (ravi)"
+      - "At least one low-stock product exists"
+    steps:
+      - action: "Navigate to Purchase → Shop Inventory"
+        expected: "Page loads with 'New Purchase Request' button"
+      - action: "Click 'New Purchase Request' button"
+        expected: "Modal opens with title 'Create Purchase Request'"
+      - action: "Select a balagruha from dropdown"
+        expected: "Product list loads below"
+      - action: "Click checkbox next to 'Umbrella (Compact)'"
+        expected: "Product appears in 'Selected Products' table below"
+    expected_result: "Product successfully added to selection with default quantity 1"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-002
+    title: "Select multiple products (2-3 products)"
+    priority: P0
+    preconditions:
+      - "Logged in as Purchase Manager"
+      - "Multiple low-stock products exist"
+    steps:
+      - action: "Open Create Purchase Request modal"
+        expected: "Modal opens"
+      - action: "Select balagruha"
+        expected: "Product list loads"
+      - action: "Check 'Umbrella (Compact)' checkbox"
+        expected: "Umbrella added to table"
+      - action: "Check 'Notebook (A4)' checkbox"
+        expected: "Notebook added to table"
+      - action: "Check 'Pen (Blue)' checkbox"
+        expected: "Pen added to table"
+    expected_result: "All 3 products appear in Selected Products table"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-003
+    title: "Toggle 'Show all products' checkbox"
+    priority: P1
+    preconditions:
+      - "Logged in as Purchase Manager"
+      - "Products exist with different stock levels"
+    steps:
+      - action: "Open Create Purchase Request modal"
+        expected: "Modal opens"
+      - action: "Select balagruha"
+        expected: "Only low-stock products shown by default"
+      - action: "Toggle 'Show all products' checkbox ON"
+        expected: "All active products (including well-stocked) now visible"
+      - action: "Toggle 'Show all products' checkbox OFF"
+        expected: "Back to low-stock products only"
+    expected_result: "Checkbox correctly filters between low-stock and all products"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC2: Quantity and Cost Input
+  - id: TC-S17-004
+    title: "Edit quantity for selected product"
+    priority: P0
+    preconditions:
+      - "Product already selected in table"
+    steps:
+      - action: "Locate quantity input field for 'Umbrella'"
+        expected: "Shows default value: 1"
+      - action: "Click quantity field and change to 50"
+        expected: "Value updates to 50"
+      - action: "Check Total Cost footer"
+        expected: "Total recalculates based on new quantity"
+    expected_result: "Quantity updates and total cost recalculates"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-005
+    title: "Edit estimated unit cost for selected product"
+    priority: P0
+    preconditions:
+      - "Product already selected in table"
+    steps:
+      - action: "Locate 'Estimated Unit Cost' field for 'Umbrella'"
+        expected: "Shows default value: 0"
+      - action: "Click cost field and enter 100"
+        expected: "Value updates to 100"
+      - action: "Check Total Cost footer"
+        expected: "Shows: ₹5,000 (50 × 100)"
+    expected_result: "Cost updates and total calculates correctly"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-006
+    title: "Validation: Invalid quantity (0 or negative)"
+    priority: P1
+    preconditions:
+      - "Product selected in table"
+    steps:
+      - action: "Set quantity to 0"
+        expected: "Field accepts input"
+      - action: "Try to submit form"
+        expected: "Error toast: 'Please enter quantity and cost for all selected products'"
+      - action: "Set quantity to -5"
+        expected: "Field accepts input"
+      - action: "Try to submit form"
+        expected: "Error toast shown, submission blocked"
+    expected_result: "Form validation prevents submission with invalid quantities"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC3: File Upload
+  - id: TC-S17-007
+    title: "Upload single file (PDF)"
+    priority: P1
+    preconditions:
+      - "Have a test PDF file ready"
+    steps:
+      - action: "Click 'Choose Files' button in Attachments section"
+        expected: "File picker dialog opens"
+      - action: "Select a PDF file (e.g., quotation.pdf)"
+        expected: "File picker closes"
+      - action: "Check preview area"
+        expected: "File preview appears with PDF icon and filename"
+      - action: "Check file count"
+        expected: "Shows 'Selected Files (1):'"
+    expected_result: "File uploaded and preview displayed"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-008
+    title: "Upload multiple files (up to 5)"
+    priority: P1
+    preconditions:
+      - "Have 5 test files ready (mix of PDF, JPG, PNG)"
+    steps:
+      - action: "Click 'Choose Files' button"
+        expected: "File picker opens"
+      - action: "Select 5 files (quotation.pdf, photo1.jpg, photo2.png, doc.pdf, invoice.pdf)"
+        expected: "File picker closes"
+      - action: "Check preview area"
+        expected: "All 5 files show with appropriate previews"
+      - action: "Check file count"
+        expected: "Shows 'Selected Files (5):'"
+    expected_result: "All 5 files uploaded successfully"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-009
+    title: "Remove uploaded file"
+    priority: P2
+    preconditions:
+      - "At least 2 files uploaded"
+    steps:
+      - action: "Locate 'X' button on first file preview"
+        expected: "X button visible"
+      - action: "Click 'X' button"
+        expected: "File removed from preview"
+      - action: "Check file count"
+        expected: "Count decreases by 1"
+    expected_result: "File successfully removed from upload list"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC4: Real-Time Cost Calculation
+  - id: TC-S17-010
+    title: "Total cost updates when quantity changes"
+    priority: P0
+    preconditions:
+      - "2 products selected with costs entered"
+    steps:
+      - action: "Product 1: Qty=50, Cost=100 (Total: ₹5,000)"
+        expected: "Total shows ₹5,000"
+      - action: "Product 2: Qty=20, Cost=60 (Total: ₹1,200)"
+        expected: "Total shows ₹6,200"
+      - action: "Change Product 1 quantity to 100"
+        expected: "Total immediately updates to ₹11,200"
+    expected_result: "Total cost recalculates in real-time"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-011
+    title: "Total cost updates when cost changes"
+    priority: P0
+    preconditions:
+      - "2 products selected with quantities entered"
+    steps:
+      - action: "Product 1: Qty=50, Cost=100"
+        expected: "Total shows ₹5,000"
+      - action: "Change Product 1 cost to 150"
+        expected: "Total immediately updates to ₹7,500"
+      - action: "Add Product 2: Qty=10, Cost=500"
+        expected: "Total updates to ₹12,500"
+    expected_result: "Total cost recalculates correctly with each change"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC5: Form Submission
+  - id: TC-S17-012
+    title: "Submit multi-product request (happy path)"
+    priority: P0
+    preconditions:
+      - "Logged in as Purchase Manager"
+      - "2-3 products selected with valid quantities and costs"
+      - "Reason field filled"
+    steps:
+      - action: "Fill all required fields correctly"
+        expected: "Form valid"
+      - action: "Click 'Submit Request' button"
+        expected: "Button shows 'Creating...' spinner"
+      - action: "Wait for response"
+        expected: "Success toast: 'Purchase request created successfully'"
+      - action: "Check modal state"
+        expected: "Modal closes automatically"
+      - action: "Check request list"
+        expected: "New request appears at top with status 'Pending Approval'"
+    expected_result: "Request created successfully and displayed in list"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-013
+    title: "Validation: Submit without products"
+    priority: P1
+    preconditions:
+      - "Modal open, no products selected"
+    steps:
+      - action: "Fill reason field"
+        expected: "Reason entered"
+      - action: "Click 'Submit Request' button"
+        expected: "Error toast: 'Please select at least one product'"
+      - action: "Check modal state"
+        expected: "Modal remains open"
+    expected_result: "Submission blocked with appropriate error"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-014
+    title: "Validation: Submit without reason"
+    priority: P1
+    preconditions:
+      - "Products selected, reason field empty"
+    steps:
+      - action: "Select 2 products with quantities and costs"
+        expected: "Products in table"
+      - action: "Leave reason field empty"
+        expected: "Field empty"
+      - action: "Click 'Submit Request' button"
+        expected: "Error toast: 'Reason is required'"
+    expected_result: "Submission blocked, reason validation enforced"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC6: Backend Validation
+  - id: TC-S17-015
+    title: "Backend validates product IDs"
+    priority: P0
+    preconditions:
+      - "Valid products selected"
+    steps:
+      - action: "Submit request with valid products"
+        expected: "Request accepted"
+      - action: "Check browser network tab for 201 Created"
+        expected: "POST /api/v2/shop/admin/purchase-requests returns 201"
+      - action: "Check response body"
+        expected: "Contains purchaseRequest object with items[] array"
+    expected_result: "Backend successfully validates and creates request"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-016
+    title: "Backend enforces balagruha access control"
+    priority: P1
+    preconditions:
+      - "Logged in as Purchase Manager with limited balagruha access"
+    steps:
+      - action: "Select balagruha: 'Sadashraya Charitable Trust'"
+        expected: "Only products from this balagruha shown"
+      - action: "Submit request"
+        expected: "Request accepted (200/201)"
+      - action: "Check backend logs"
+        expected: "No permission errors"
+    expected_result: "Backend correctly filters products by balagruha access"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC7: MongoDB Storage
+  - id: TC-S17-017
+    title: "Verify items[] array structure in database"
+    priority: P0
+    preconditions:
+      - "Request successfully created"
+    steps:
+      - action: "Open MongoDB Compass"
+        expected: "Connected to isfplayground database"
+      - action: "Navigate to 'purchaserequests' collection"
+        expected: "Collection opened"
+      - action: "Find latest request (sort by createdAt desc)"
+        expected: "Request document displayed"
+      - action: "Check 'items' field structure"
+        expected: |
+          items: [
+            {
+              productId: ObjectId,
+              productName: String,
+              productSKU: String,
+              requestedQuantity: Number,
+              currentStock: Number,
+              lowStockThreshold: Number,
+              estimatedUnitCost: Number,
+              estimatedTotalCost: Number
+            }
+          ]
+    expected_result: "Database structure matches multi-product schema"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S17-018
+    title: "Verify attachments[] array in database"
+    priority: P1
+    preconditions:
+      - "Request created with file attachments"
+    steps:
+      - action: "Open MongoDB Compass"
+        expected: "Connected"
+      - action: "Find request with attachments"
+        expected: "Request document displayed"
+      - action: "Check 'attachments' field"
+        expected: |
+          attachments: [
+            {
+              filename: String,
+              fileUrl: String (starts with /uploads/),
+              uploadedAt: Date
+            }
+          ]
+      - action: "Verify file exists on server"
+        expected: "File found in backend/uploads/ directory"
+    expected_result: "Attachments stored correctly with metadata"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+edge_cases:
+  - id: EDGE-S17-001
+    title: "Deselect product after adding to table"
+    steps:
+      - "Select product (checkbox checked)"
+      - "Product appears in table"
+      - "Uncheck product checkbox"
+      - "Product removed from table"
+      - "Total cost recalculates"
+    expected: "Product properly removed from selection"
+    status: NOT_TESTED
+
+  - id: EDGE-S17-002
+    title: "Large quantity/cost values"
+    steps:
+      - "Enter quantity: 10000"
+      - "Enter cost: 5000"
+      - "Total: ₹50,000,000"
+    expected: "Large numbers handled correctly with comma formatting"
+    status: NOT_TESTED
+
+  - id: EDGE-S17-003
+    title: "Change balagruha after selecting products"
+    steps:
+      - "Select balagruha A"
+      - "Select 2 products"
+      - "Change balagruha to B"
+      - "Product table clears"
+      - "New products load"
+    expected: "Product selection resets when balagruha changes"
+    status: NOT_TESTED
+
+bugs_discovered: []
+
+test_summary:
+  total_test_cases: 18
+  critical_test_cases: 8
+  executed: 0
+  passed: 0
+  failed: 0
+  blocked: 0
+  not_tested: 18
+
+final_status: NOT_TESTED
+tested_by: ""
+tested_date: ""
+notes: |
+  Test cases ready for execution.
+
+  Prerequisites:
+  - Backend running on port 5001
+  - Frontend running on port 3000
+  - Test data: Low-stock products exist in database
+  - Test files: Prepare 5 files for upload testing (PDF, JPG, PNG)
+
+  Known Issues Fixed:
+  - BUG-S17-006: Validation middleware (Commit: a1b25ba)
+  - BUG-S17-007: Controller populate paths (Commit: 60d12a7)

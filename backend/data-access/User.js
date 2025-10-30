@@ -1069,10 +1069,36 @@ exports.getStudentMedicalCheckInsByBalagruhaIds = async ({ balagruhaIds }) => {
         },
       },
       {
-        $project: {
-          // only return the medical check-ins array for each student
-          medicalCheckIns: 1,
-          _id: 0,
+        $unwind: {
+          path: "$medicalCheckIns",
+          preserveNullAndEmptyArrays: false,
+        },
+      },
+      {
+        $lookup: {
+          from: "balagruhas",
+          localField: "balagruhaIds",
+          foreignField: "_id",
+          as: "balagruhaDetails",
+        },
+      },
+      {
+        $addFields: {
+          "medicalCheckIns.studentId": "$_id",
+          "medicalCheckIns.userName": "$name",
+          "medicalCheckIns.userEmail": "$email",
+          "medicalCheckIns.balagruhaIds": "$balagruhaIds",
+          "medicalCheckIns.balagruhaDetails": "$balagruhaDetails",
+        },
+      },
+      {
+        $replaceRoot: {
+          newRoot: "$medicalCheckIns",
+        },
+      },
+      {
+        $sort: {
+          date: -1,
         },
       },
     ]);
