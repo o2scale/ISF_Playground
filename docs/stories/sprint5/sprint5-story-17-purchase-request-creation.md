@@ -1193,7 +1193,7 @@ test('TC-17.1: Create multi-product purchase request with files', async ({ page 
 - Screenshot saved: `.playwright-mcp/story17-dropdown-ui-enhancement.png`
 
 ### Commits
-- (To be added after commit)
+- `d23177c` - fix(story-17): Fix product loading bugs and implement dropdown UI enhancement
 
 ### Files Created/Modified
 
