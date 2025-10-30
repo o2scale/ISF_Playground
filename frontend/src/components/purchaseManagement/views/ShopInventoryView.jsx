@@ -45,6 +45,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     fromDate: '',
     toDate: '',
     balagruha: 'all',
+    purchaseManager: 'all',
     status: 'all',
     search: ''
   });
@@ -93,14 +94,16 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     let filtered = [...requests];
 
     // FRONTEND FILTERING for Purchase Manager
+    // Note: Backend already filters by requestedBy for getMyPurchaseRequests()
+    // So we only need to filter by balagruha on frontend
     if (userRole === 'purchase-manager') {
       filtered = filtered.filter(request => {
         // Only show requests from assigned balagruhas
+        const balagruhaIdStr = request.balagruhaId?._id || request.balagruhaId;
         const matchesBalagruha = !request.balagruhaId ||
-          userBalagruhas.includes(request.balagruhaId._id);
-        // Only show own requests
-        const isOwnRequest = request.requestedBy?._id === userId;
-        return matchesBalagruha && isOwnRequest;
+          userBalagruhas.some(bgId => bgId === balagruhaIdStr);
+
+        return matchesBalagruha;
       });
     }
 
@@ -131,20 +134,30 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       );
     }
 
+    // Purchase Manager filter (Admin only)
+    if (filters.purchaseManager !== 'all') {
+      filtered = filtered.filter(request =>
+        request.requestedBy?._id === filters.purchaseManager
+      );
+    }
+
     // Status filter
     if (filters.status !== 'all') {
       filtered = filtered.filter(request => request.status === filters.status);
     }
 
-    // Search filter (product name, SKU, reason)
+    // Search filter (product name, SKU, reason, requestId)
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       filtered = filtered.filter(request => {
-        const matchesProduct = request.productName?.toLowerCase().includes(searchLower);
-        const matchesSKU = request.productSKU?.toLowerCase().includes(searchLower);
+        // Search in items array for multi-product requests
+        const matchesProduct = request.items?.some(item =>
+          item.productName?.toLowerCase().includes(searchLower) ||
+          item.productSKU?.toLowerCase().includes(searchLower)
+        );
         const matchesReason = request.reason?.toLowerCase().includes(searchLower);
         const matchesRequestId = request.requestId?.toLowerCase().includes(searchLower);
-        return matchesProduct || matchesSKU || matchesReason || matchesRequestId;
+        return matchesProduct || matchesReason || matchesRequestId;
       });
     }
 
@@ -248,6 +261,39 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     return balagruhas.filter(bg => userBalagruhas.includes(bg._id));
   };
 
+  // Get unique purchase managers from requests, optionally filtered by balagruha
+  const getAvailablePurchaseManagers = () => {
+    let relevantRequests = requests;
+
+    // If a balagruha is selected, only show purchase managers who have requests for that balagruha
+    if (filters.balagruha !== 'all') {
+      relevantRequests = requests.filter(req => req.balagruhaId?._id === filters.balagruha);
+    }
+
+    // Extract unique purchase managers
+    const uniqueManagers = new Map();
+    relevantRequests.forEach(req => {
+      if (req.requestedBy) {
+        uniqueManagers.set(req.requestedBy._id, {
+          _id: req.requestedBy._id,
+          name: req.requestedBy.name,
+          email: req.requestedBy.email
+        });
+      }
+    });
+
+    return Array.from(uniqueManagers.values());
+  };
+
+  // Reset purchase manager filter when balagruha changes
+  const handleBalagruhaChange = (balagruhaId) => {
+    setFilters({
+      ...filters,
+      balagruha: balagruhaId,
+      purchaseManager: 'all' // Reset purchase manager when balagruha changes
+    });
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -329,7 +375,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             <label>Balagruha:</label>
             <select
               value={filters.balagruha}
-              onChange={(e) => setFilters({ ...filters, balagruha: e.target.value })}
+              onChange={(e) => handleBalagruhaChange(e.target.value)}
               className="filter-select"
             >
               <option value="all">All Balagruhas</option>
@@ -338,6 +384,25 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               ))}
             </select>
           </div>
+
+          {/* Purchase Manager Filter (Admin only) */}
+          {userRole === 'admin' && (
+            <div className="filter-group">
+              <label>Purchase Manager:</label>
+              <select
+                value={filters.purchaseManager}
+                onChange={(e) => setFilters({ ...filters, purchaseManager: e.target.value })}
+                className="filter-select"
+              >
+                <option value="all">All Purchase Managers</option>
+                {getAvailablePurchaseManagers().map(pm => (
+                  <option key={pm._id} value={pm._id}>
+                    {pm.name} ({pm.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Status Filter */}
           <div className="filter-group">
@@ -380,6 +445,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <th>Total Items / Quantity</th>
               <th>Total Cost</th>
               <th>Reason</th>
+              {userRole === 'admin' && <th>Requested By</th>}
               <th>Status</th>
               <th>Requested</th>
               <th>Actions</th>
@@ -424,6 +490,12 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   ₹{request.totalEstimatedCost ? request.totalEstimatedCost.toLocaleString() : '0'}
                 </td>
                 <td className="reason-cell">{request.reason}</td>
+                {userRole === 'admin' && (
+                  <td className="requester-cell">
+                    <div className="requester-name">{request.requestedBy?.name || 'Unknown'}</div>
+                    <div className="requester-email">{request.requestedBy?.email || ''}</div>
+                  </td>
+                )}
                 <td>{getStatusBadge(request.status)}</td>
                 <td className="date-cell">
                   <div>{dayjs(request.createdAt).format('DD-MM-YYYY')}</div>
@@ -473,7 +545,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             ))}
             {filteredRequests.length === 0 && (
               <tr>
-                <td colSpan="8" className="no-data">
+                <td colSpan={userRole === 'admin' ? "9" : "8"} className="no-data">
                   {userRole === 'purchase-manager'
                     ? "No purchase requests found. Click '+ New Purchase Request' to create one."
                     : "No purchase requests found."}

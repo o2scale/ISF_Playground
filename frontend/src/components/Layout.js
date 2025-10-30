@@ -67,7 +67,7 @@ const Layout = () => {
     },
     { id: 2, name: "Users", link: "/users", roles: ["admin", "coach"] },
     { id: 3, name: "Machines", link: "/machines", roles: ["admin"] },
-    { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach"] },
+    { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach", "purchase-manager"] },
     {
       id: 5,
       name: "Attendance",
@@ -92,7 +92,7 @@ const Layout = () => {
       id: 10,
       name: "Shop",
       link: "/shop",
-      roles: ["student", "admin", "coach"],
+      roles: ["student", "admin", "coach", "purchase-manager"],
     },
     {
       id: 11,
@@ -103,7 +103,6 @@ const Layout = () => {
         "coach",
         "balagruha-incharge",
         "student",
-        "purchase-manager",
         "medical-incharge",
         "sports-coach",
         "music-coach",

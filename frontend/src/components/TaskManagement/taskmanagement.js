@@ -162,7 +162,7 @@ const TaskFilter = ({ onFilterChange, filters, balagruhas, users }) => {
           (type) => type.id === "music" || type.id === "general"
         );
       case "purchase-manager":
-        return taskTypes.fillter(
+        return taskTypes.filter(
           (type) => type.id === "purchase" || type.id === "general"
         );
       default:
@@ -965,6 +965,10 @@ const CreateTaskForm = ({
       case "music-coach":
         return taskTypes.filter(
           (type) => type.id === "music" || type.id === "general"
+        );
+      case "purchase-manager":
+        return taskTypes.filter(
+          (type) => type.id === "purchase" || type.id === "general"
         );
       default:
         return taskTypes;
