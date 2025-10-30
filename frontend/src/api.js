@@ -1913,8 +1913,12 @@ export const getPurchaseRequestStats = async () => {
 // Get all shop items (for product selection in create modal)
 export const getAllShopItems = async () => {
   try {
-    const response = await api.get('/api/v2/shop/admin/products?limit=1000');
-    return response.data;
+    const response = await api.get('/api/v2/shop/products?limit=1000');
+    // Wrap response to match expected format in modal
+    return {
+      success: true,
+      data: response.data.products || []
+    };
   } catch (error) {
     console.error("Error fetching shop items:", error);
     throw error;

@@ -1131,22 +1131,121 @@ test('TC-17.1: Create multi-product purchase request with files', async ({ page 
 
 ## Dev Agent Record
 
-**Developer:** (To be filled by Dev Agent)
-**Development Start:** (Timestamp)
-**Development Complete:** (Timestamp)
-**Agent Model Used:** (Model name)
+**Developer:** Claude (Anthropic AI Assistant)
+**Development Start:** 2025-10-30 (continued from previous session)
+**Development Complete:** 2025-10-30 19:34:23
+**Agent Model Used:** Claude 3.5 Sonnet (claude-sonnet-4-5-20250929)
+
+### Bug Fixes Completed
+
+**BUG-S17-PRODUCT-FILTER - Double Filtering Issue**
+- **Problem:** Products weren't displaying due to redundant filtering logic
+- **Root Cause:** Products filtered twice - once in `fetchProducts()` and again in render
+- **Fix:** Removed redundant `.filter()` call on line 398 in CreatePurchaseRequestModal.jsx
+- **File:** `frontend/src/components/purchaseManagement/modals/CreatePurchaseRequestModal.jsx:398`
+
+**BUG-S17-API-ENDPOINT - Wrong API URL**
+- **Problem:** API call returning 400 Bad Request error
+- **Error:** `Failed to load resource: 400 (Bad Request) @ http://localhost:5001/api/v2/shop/admin/products`
+- **Root Cause:** Calling non-existent `/api/v2/shop/admin/products` endpoint
+- **Fix:** Changed to correct public endpoint `/api/v2/shop/products`
+- **File:** `frontend/src/api.js:1916`
+- **Verification:** Tested with curl - endpoint works, returns 42 products
+
+**BUG-S17-API-RESPONSE-FORMAT - Response Format Mismatch**
+- **Problem:** Products still not appearing even after endpoint fix
+- **Root Cause:** API returns `{products: [...], pagination: {...}}` but modal expected `{success: true, data: [...]}`
+- **Fix:** Wrapped API response to match expected format
+- **File:** `frontend/src/api.js:1918-1921`
+- **Code Change:**
+  ```javascript
+  return {
+    success: true,
+    data: response.data.products || []
+  };
+  ```
+
+### UI Enhancement - Multi-Select Dropdown with Search
+
+**Motivation:** User feedback that long vertical checkbox list was "visually very unappealing"
+
+**Implementation Details:**
+- Replaced long vertical checkbox list with professional dropdown component
+- Added dropdown trigger button showing selection count (e.g., "3 products selected")
+- Implemented search bar at top for filtering by product name or SKU
+- Scrollable panel with max-height: 400px for better usability
+- Checkboxes on left with product details (name, SKU, stock info)
+- Real-time case-insensitive search filtering
+- Professional hover effects and styling
+
+**Features:**
+- Click dropdown to expand/collapse product list
+- Search bar filters products in real-time
+- Select multiple products via checkboxes
+- Visual feedback for selection count
+- Responsive design with smooth transitions
+
+**Testing:**
+- Tested with 42 products loading correctly
+- Search functionality verified with "umbrella" query - correctly filtered to 1 result
+- Dropdown open/close functionality verified
+- Product selection state management verified
+- Screenshot saved: `.playwright-mcp/story17-dropdown-ui-enhancement.png`
 
 ### Commits
-- (Git commit hashes and messages)
+- (To be added after commit)
 
 ### Files Created/Modified
-- (List of files)
+
+1. **frontend/src/api.js** (lines 1914-1926)
+   - Fixed API endpoint from `/api/v2/shop/admin/products` to `/api/v2/shop/products`
+   - Wrapped API response to match expected format `{success: true, data: products}`
+
+2. **frontend/src/components/purchaseManagement/modals/CreatePurchaseRequestModal.jsx**
+   - Lines 33-40: Added dropdown state (`productDropdownOpen`, `productSearchQuery`)
+   - Lines 383-481: Replaced checkbox list with multi-select dropdown UI
+   - Added dropdown trigger button, search bar, scrollable options panel
+
+3. **frontend/src/components/purchaseManagement/PurchaseManagement.css**
+   - Added 150+ lines of dropdown styling
+   - Styles for `.multi-select-dropdown`, `.dropdown-trigger`, `.dropdown-panel`
+   - Search input, dropdown options, hover effects
+   - Responsive and accessible design
 
 ### Change Log
-- (Summary of changes)
+
+**2025-10-30 - Bug Fixes and UI Enhancement**
+- Fixed three critical bugs preventing product display in create purchase request modal
+- Implemented professional multi-select dropdown with search functionality
+- Improved user experience with better visual design
+- All 42 shop products now load and display correctly
+- Search filtering works on both product name and SKU
+- Tested end-to-end with Playwright MCP - all functionality verified
 
 ### Completion Notes
-- (Implementation status, testing notes, known issues)
+
+**Implementation Status:** ✅ COMPLETE
+
+**Testing Results:**
+- All three bugs successfully fixed
+- Products now loading correctly (42 products verified)
+- Dropdown UI enhancement fully functional
+- Search feature working as expected
+- No console errors
+- End-to-end testing completed with Playwright MCP
+
+**User Acceptance:**
+- User manually tested the flow
+- Identified the bugs that were preventing product display
+- Requested the dropdown UI enhancement for better usability
+- All requested features have been implemented and verified
+
+**Known Issues:** None
+
+**Next Steps:**
+- Documentation complete
+- Ready for commit and push to git
+- Ready for QA testing
 
 ---
 
@@ -1170,5 +1269,6 @@ test('TC-17.1: Create multi-product purchase request with files', async ({ page 
 
 ---
 
-**Last Updated:** 2025-10-30 00:46:43 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Last Updated:** 2025-10-30 19:34:23 (via `date '+%Y-%m-%d %H:%M:%S'`)
 **Created By:** Documentation Agent (Task: Create comprehensive Story 17 document)
+**Updated By:** Dev Agent (Task: Document bug fixes and UI enhancement)

@@ -36,6 +36,8 @@ export default function CreatePurchaseRequestModal({
   const [showAllProducts, setShowAllProducts] = useState(false);
   const [loading, setLoading] = useState(false);
   const [fetchingProducts, setFetchingProducts] = useState(false);
+  const [productDropdownOpen, setProductDropdownOpen] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
 
   // ============================================================================
   // FILE PREVIEW COMPONENT (Copied from MachineRepairsView.jsx)
@@ -391,27 +393,74 @@ export default function CreatePurchaseRequestModal({
                 </label>
               </div>
 
-              {/* Product Checkbox List */}
+              {/* Product Multi-Select Dropdown */}
               {formData.balagruhaId && !fetchingProducts && (
-                <div className="product-checklist">
-                  {(showAllProducts ? products : lowStockProducts)
-                    .filter(p => !p.balagruhaId || p.balagruhaId === formData.balagruhaId)
-                    .map(product => (
-                      <label key={product._id} className="product-checkbox-item">
+                <div className="multi-select-dropdown">
+                  <button
+                    type="button"
+                    className="dropdown-trigger"
+                    onClick={() => setProductDropdownOpen(!productDropdownOpen)}
+                    disabled={!formData.balagruhaId || fetchingProducts}
+                  >
+                    <span>
+                      {selectedProducts.size === 0
+                        ? 'Select products...'
+                        : `${selectedProducts.size} product${selectedProducts.size > 1 ? 's' : ''} selected`}
+                    </span>
+                    <span className="dropdown-arrow">{productDropdownOpen ? '▲' : '▼'}</span>
+                  </button>
+
+                  {productDropdownOpen && (
+                    <div className="dropdown-panel">
+                      {/* Search Bar */}
+                      <div className="dropdown-search">
                         <input
-                          type="checkbox"
-                          checked={selectedProducts.has(product._id)}
-                          onChange={() => handleProductToggle(product)}
+                          type="text"
+                          placeholder="Search products by name or SKU..."
+                          value={productSearchQuery}
+                          onChange={(e) => setProductSearchQuery(e.target.value)}
+                          className="search-input"
                         />
-                        <span className="product-details">
-                          <span className="product-name">{product.name}</span>
-                          <span className="product-meta">
-                            {product.sku} · Stock: {product.stock}/{product.lowStockThreshold}
-                            {getStockBadge(product)}
-                          </span>
-                        </span>
-                      </label>
-                    ))}
+                      </div>
+
+                      {/* Product Checklist */}
+                      <div className="dropdown-options">
+                        {(showAllProducts ? products : lowStockProducts)
+                          .filter(product =>
+                            productSearchQuery === '' ||
+                            product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                            product.sku.toLowerCase().includes(productSearchQuery.toLowerCase())
+                          )
+                          .map(product => (
+                            <label key={product._id} className="dropdown-option">
+                              <input
+                                type="checkbox"
+                                checked={selectedProducts.has(product._id)}
+                                onChange={() => handleProductToggle(product)}
+                              />
+                              <span className="product-details">
+                                <span className="product-name">{product.name}</span>
+                                <span className="product-meta">
+                                  {product.sku} · Stock: {product.stock}/{product.lowStockThreshold}
+                                  {getStockBadge(product)}
+                                </span>
+                              </span>
+                            </label>
+                          ))}
+
+                        {(showAllProducts ? products : lowStockProducts)
+                          .filter(product =>
+                            productSearchQuery === '' ||
+                            product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
+                            product.sku.toLowerCase().includes(productSearchQuery.toLowerCase())
+                          ).length === 0 && (
+                          <div className="no-results">
+                            No products found matching "{productSearchQuery}"
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
