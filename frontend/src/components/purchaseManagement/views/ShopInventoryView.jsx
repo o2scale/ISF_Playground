@@ -376,9 +376,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           <thead>
             <tr>
               <th>Request ID</th>
-              <th>Product</th>
-              <th>Quantity</th>
-              <th>Stock Status</th>
+              <th>Products</th>
+              <th>Total Items / Quantity</th>
+              <th>Total Cost</th>
               <th>Reason</th>
               <th>Status</th>
               <th>Requested</th>
@@ -398,23 +398,30 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                 </td>
                 <td>
                   <div className="product-info">
-                    <div className="product-name">{request.productName}</div>
-                    <div className="product-sku">SKU: {request.productSKU}</div>
+                    {request.items && request.items.length > 0 ? (
+                      <>
+                        <div className="product-name">{request.items.length} product{request.items.length > 1 ? 's' : ''}</div>
+                        <div className="product-sku">
+                          {request.items.slice(0, 2).map((item, idx) => (
+                            <span key={idx}>
+                              {item.productName}
+                              {idx < 1 && idx < request.items.length - 1 && ', '}
+                            </span>
+                          ))}
+                          {request.items.length > 2 && ` +${request.items.length - 2} more`}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="product-name">No items</div>
+                    )}
                   </div>
                 </td>
-                <td className="quantity-cell">{request.requestedQuantity}</td>
-                <td className="stock-cell">
-                  <div className="stock-info">
-                    <span className="stock-value">
-                      {request.currentStock} / {request.lowStockThreshold}
-                    </span>
-                    {request.currentStock === 0 && (
-                      <span className="stock-badge out-of-stock">Out of Stock</span>
-                    )}
-                    {request.currentStock > 0 && request.currentStock <= request.lowStockThreshold && (
-                      <span className="stock-badge low-stock">Low Stock</span>
-                    )}
-                  </div>
+                <td className="quantity-cell">
+                  {request.items ? request.items.length : 0} items / {' '}
+                  {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0} units
+                </td>
+                <td className="cost-cell">
+                  ₹{request.totalEstimatedCost ? request.totalEstimatedCost.toLocaleString() : '0'}
                 </td>
                 <td className="reason-cell">{request.reason}</td>
                 <td>{getStatusBadge(request.status)}</td>

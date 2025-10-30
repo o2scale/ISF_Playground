@@ -51,14 +51,51 @@ export default function RejectRequestModal({ request, onClose, onSuccess }) {
               <label>Request ID:</label>
               <strong>{request.requestId}</strong>
             </div>
+
+            {/* Multi-Product Display */}
             <div className="summary-row">
-              <label>Product:</label>
-              <strong>{request.productName} ({request.productSKU})</strong>
+              <label>Products:</label>
+              <div style={{ marginTop: '8px', width: '100%' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>Product</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>SKU</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>Qty</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {request.items && request.items.length > 0 ? (
+                      request.items.map((item, idx) => (
+                        <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                          <td style={{ padding: '8px' }}>{item.productName}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', color: '#666' }}>{item.productSKU}</td>
+                          <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>{item.requestedQuantity}</td>
+                          <td style={{ padding: '8px', textAlign: 'right' }}>₹{item.estimatedTotalCost?.toLocaleString()}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="4" style={{ padding: '8px', textAlign: 'center', color: '#999' }}>No items</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot>
+                    <tr style={{ borderTop: '2px solid #ddd', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                      <td colSpan="2" style={{ padding: '8px' }}>Total</td>
+                      <td style={{ padding: '8px', textAlign: 'center' }}>
+                        {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0}
+                      </td>
+                      <td style={{ padding: '8px', textAlign: 'right', color: '#dc3545' }}>
+                        ₹{request.totalEstimatedCost?.toLocaleString()}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
             </div>
-            <div className="summary-row">
-              <label>Quantity:</label>
-              <strong>{request.requestedQuantity} units</strong>
-            </div>
+
             <div className="summary-row">
               <label>Requested By:</label>
               <span>{request.requestedBy?.name} (📍 {request.balagruhaId?.name || 'Shop-wide'})</span>
