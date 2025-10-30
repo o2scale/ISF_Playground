@@ -133,7 +133,7 @@ exports.createPurchaseRequest = async (req, res) => {
 
 /**
  * @route   GET /api/v2/shop/admin/purchase-requests/my
- * @desc    Get own purchase requests (Purchase Manager)
+ * @desc    Get own purchase requests (Purchase Manager) - MULTI-PRODUCT
  * @access  Private (Purchase Management:Read)
  */
 exports.getMyPurchaseRequests = async (req, res) => {
@@ -161,7 +161,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
     const requests = await PurchaseRequest.find(query)
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
-      .populate('productId', 'name sku stock lowStockThreshold images')
+      .populate('items.productId', 'name sku stock lowStockThreshold images')
       .populate('balagruhaId', 'name')
       .sort({ createdAt: -1 });
 
@@ -181,7 +181,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
 
 /**
  * @route   GET /api/v2/shop/admin/purchase-requests (for Admins)
- * @desc    Get all purchase requests (Admin sees all)
+ * @desc    Get all purchase requests (Admin sees all) - MULTI-PRODUCT
  * @access  Private (Purchase Management:Manage)
  */
 exports.getAllPurchaseRequests = async (req, res) => {
@@ -208,7 +208,7 @@ exports.getAllPurchaseRequests = async (req, res) => {
     const requests = await PurchaseRequest.find(query)
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
-      .populate('productId', 'name sku stock lowStockThreshold images')
+      .populate('items.productId', 'name sku stock lowStockThreshold images')
       .populate('balagruhaId', 'name')
       .sort({ createdAt: -1 });
 
@@ -281,7 +281,7 @@ exports.cancelPurchaseRequest = async (req, res) => {
 
 /**
  * @route   GET /api/v2/shop/admin/purchase-requests/:id
- * @desc    Get single purchase request details
+ * @desc    Get single purchase request details - MULTI-PRODUCT
  * @access  Private
  */
 exports.getPurchaseRequestById = async (req, res) => {
@@ -294,7 +294,7 @@ exports.getPurchaseRequestById = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
       .populate('completedBy', 'name email')
-      .populate('productId', 'name sku stock lowStockThreshold images')
+      .populate('items.productId', 'name sku stock lowStockThreshold images')
       .populate('balagruhaId', 'name')
       .populate('inventoryTransactionId');
 
@@ -374,7 +374,7 @@ exports.approvePurchaseRequest = async (req, res) => {
     // Populate for response
     await request.populate('reviewedBy', 'name email');
     await request.populate('requestedBy', 'name email');
-    await request.populate('productId', 'name sku');
+    await request.populate('items.productId', 'name sku');
     await request.populate('balagruhaId', 'name');
 
     res.json({
@@ -439,7 +439,7 @@ exports.rejectPurchaseRequest = async (req, res) => {
     // Populate for response
     await request.populate('reviewedBy', 'name email');
     await request.populate('requestedBy', 'name email');
-    await request.populate('productId', 'name sku');
+    await request.populate('items.productId', 'name sku');
     await request.populate('balagruhaId', 'name');
 
     res.json({
