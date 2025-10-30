@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   createPurchaseRequest,
-  getLowStockProducts
+  getLowStockProducts,
+  getAllShopItems
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import '../PurchaseManagement.css';
@@ -101,20 +102,25 @@ export default function CreatePurchaseRequestModal({
   const fetchProducts = async (balagruhaId) => {
     try {
       setFetchingProducts(true);
-      // Use new endpoint that Purchase Managers can access
-      const response = await getLowStockProducts();
+      // Fetch ALL products for the balagruha
+      const response = await getAllShopItems();
 
       if (response.success) {
-        const allProducts = response.products || [];
+        const allProducts = response.data || [];
 
-        // Filter products by selected balagruha (backend already filters low stock)
-        const filtered = allProducts.filter(item => {
+        // Filter products by selected balagruha
+        const balagruhaProducts = allProducts.filter(item => {
           const matchesBalagruha = !item.balagruhaId || item.balagruhaId === balagruhaId;
           return matchesBalagruha;
         });
 
-        setProducts(allProducts);
-        setLowStockProducts(filtered);
+        // Further filter to get only low-stock products
+        const lowStock = balagruhaProducts.filter(item => {
+          return item.stock <= item.lowStockThreshold;
+        });
+
+        setProducts(balagruhaProducts);  // All products for this balagruha
+        setLowStockProducts(lowStock);   // Only low-stock products
       }
     } catch (error) {
       console.error('Error fetching products:', error);
