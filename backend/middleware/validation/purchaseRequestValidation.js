@@ -5,24 +5,17 @@ const mongoose = require('mongoose');
  */
 
 /**
- * Validate create purchase request payload
+ * Validate create purchase request payload - MULTI-PRODUCT (Sprint5-Story-17)
  */
 exports.validateCreateRequest = (req, res, next) => {
-  const { productId, requestedQuantity, reason, justification } = req.body;
+  const { items, reason, justification } = req.body;
 
-  // Validate productId
-  if (!productId || !mongoose.Types.ObjectId.isValid(productId)) {
+  // Note: items comes as JSON string from FormData, will be parsed in controller
+  // Just validate that it exists here
+  if (!items) {
     return res.status(400).json({
       success: false,
-      message: 'Valid product ID is required'
-    });
-  }
-
-  // Validate quantity
-  if (!requestedQuantity || typeof requestedQuantity !== 'number' || requestedQuantity < 1) {
-    return res.status(400).json({
-      success: false,
-      message: 'Requested quantity must be a positive number'
+      message: 'Items are required'
     });
   }
 
