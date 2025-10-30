@@ -66,40 +66,74 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
             </div>
           </div>
 
-          {/* Product Information */}
+          {/* Product Information - Multi-Product */}
           <div className="detail-section">
             <h4 className="section-title">Product Information</h4>
-            <div className="detail-grid">
-              <div className="detail-item">
-                <span className="detail-label">Product Name:</span>
-                <span className="detail-value">{request.productName}</span>
+
+            {/* Balagruha Info */}
+            {request.balagruhaId && (
+              <div className="detail-item" style={{ marginBottom: '16px' }}>
+                <span className="detail-label">Balagruha:</span>
+                <span className="detail-value">📍 {request.balagruhaId.name}</span>
               </div>
-              <div className="detail-item">
-                <span className="detail-label">SKU:</span>
-                <span className="detail-value">{request.productSKU}</span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Current Stock:</span>
-                <span className="detail-value">
-                  {request.currentStock} units
-                  {request.currentStock === 0 && (
-                    <span className="stock-badge out-of-stock ml-2">Out of Stock</span>
+            )}
+
+            {/* Products Table */}
+            <div style={{ overflowX: 'auto', marginTop: '12px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '14px' }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
+                    <th style={{ padding: '10px', textAlign: 'left' }}>Product</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>SKU</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Requested Qty</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Current Stock</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Threshold</th>
+                    <th style={{ padding: '10px', textAlign: 'right' }}>Unit Cost</th>
+                    <th style={{ padding: '10px', textAlign: 'right' }}>Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {request.items && request.items.length > 0 ? (
+                    request.items.map((item, idx) => (
+                      <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
+                        <td style={{ padding: '10px' }}>{item.productName}</td>
+                        <td style={{ padding: '10px', textAlign: 'center', color: '#666' }}>{item.productSKU}</td>
+                        <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{item.requestedQuantity}</td>
+                        <td style={{ padding: '10px', textAlign: 'center' }}>
+                          <span className={item.currentStock === 0 ? 'text-danger' : item.currentStock <= item.lowStockThreshold ? 'text-warning' : ''}>
+                            {item.currentStock}
+                          </span>
+                          {item.currentStock === 0 && (
+                            <span className="stock-badge out-of-stock ml-1">Out</span>
+                          )}
+                          {item.currentStock > 0 && item.currentStock <= item.lowStockThreshold && (
+                            <span className="stock-badge low-stock ml-1">Low</span>
+                          )}
+                        </td>
+                        <td style={{ padding: '10px', textAlign: 'center', color: '#999' }}>{item.lowStockThreshold}</td>
+                        <td style={{ padding: '10px', textAlign: 'right' }}>₹{item.estimatedUnitCost?.toLocaleString()}</td>
+                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>₹{item.estimatedTotalCost?.toLocaleString()}</td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No items found</td>
+                    </tr>
                   )}
-                  {request.currentStock > 0 && request.currentStock <= request.lowStockThreshold && (
-                    <span className="stock-badge low-stock ml-2">Low Stock</span>
-                  )}
-                </span>
-              </div>
-              <div className="detail-item">
-                <span className="detail-label">Low Stock Threshold:</span>
-                <span className="detail-value">{request.lowStockThreshold} units</span>
-              </div>
-              {request.balagruhaId && (
-                <div className="detail-item">
-                  <span className="detail-label">Balagruha:</span>
-                  <span className="detail-value">📍 {request.balagruhaId.name}</span>
-                </div>
-              )}
+                </tbody>
+                <tfoot>
+                  <tr style={{ borderTop: '2px solid #ddd', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
+                    <td colSpan="2" style={{ padding: '10px' }}>Total</td>
+                    <td style={{ padding: '10px', textAlign: 'center', color: '#0066cc' }}>
+                      {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0} units
+                    </td>
+                    <td colSpan="3"></td>
+                    <td style={{ padding: '10px', textAlign: 'right', color: '#28a745', fontSize: '16px' }}>
+                      ₹{request.totalEstimatedCost?.toLocaleString()}
+                    </td>
+                  </tr>
+                </tfoot>
+              </table>
             </div>
           </div>
 
@@ -107,10 +141,6 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           <div className="detail-section">
             <h4 className="section-title">Request Details</h4>
             <div className="detail-grid">
-              <div className="detail-item">
-                <span className="detail-label">Requested Quantity:</span>
-                <span className="detail-value strong">{request.requestedQuantity} units</span>
-              </div>
               <div className="detail-item">
                 <span className="detail-label">Requested By:</span>
                 <span className="detail-value">
