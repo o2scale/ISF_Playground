@@ -14,12 +14,18 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
     uploadedImages: [],
     uploadedPdfs: [],
   });
-  const [selectedBalagruha, setSelectedBalagruha] = useState();
-  const [selectedStudent, setSelectedStudent] = useState();
+  const [selectedBalagruha, setSelectedBalagruha] = useState("");
+  const [selectedStudent, setSelectedStudent] = useState("");
   const [students, setStudents] = useState([]);
 
   useEffect(() => {
     if(studentData) {
+      console.log('CheckInModal - studentData.attachments:', studentData.attachments);
+      const images = studentData.attachments?.filter(att => att.fileType.startsWith("image/")) || [];
+      const pdfs = studentData.attachments?.filter(att => att.fileType === "application/pdf") || [];
+      console.log('CheckInModal - filtered images:', images);
+      console.log('CheckInModal - filtered pdfs:', pdfs);
+
       setSelectedBalagruha(studentData.balagruhaIds[0]);
       fetchStudents(studentData.balagruhaIds[0]);
       setSelectedStudent(studentData.studentId);
@@ -31,8 +37,8 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         time: new Date(studentData.updatedAt).toISOString().split("T")[1].slice(0, 5),
         healthStatus: studentData.healthStatus,
         notes: studentData.notes,
-        uploadedImages: studentData.attachments?.filter(att => att.fileType.startsWith("image/")) || [],
-        uploadedPdfs: studentData.attachments?.filter(att => att.fileType === "application/pdf") || [],
+        uploadedImages: images,
+        uploadedPdfs: pdfs,
       })
       // setSelectedStudent(studentData.balagruhaIds[0]);
       // setSelectedStudent(studentData.studentId)
@@ -48,10 +54,14 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         uploadedImages: [],
         uploadedPdfs: [],
       })
-      setSelectedStudent();
+      setSelectedBalagruha("");
+      setSelectedStudent("");
+      setStudents([]);
     }
 
-    console.log(studentData, 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA')
+    console.log('CheckInModal - studentData:', studentData);
+    console.log('CheckInModal - editMode:', editMode);
+    console.log('CheckInModal - formData.uploadedImages:', formData.uploadedImages);
   }, [studentData]);
 
   if (!isOpen) return null;
@@ -134,14 +144,26 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   };
 
   const fetchStudents = async (balId) => {
-    setSelectedBalagruha(balId);
-    const response = await getAnyUserBasedonRoleandBalagruha("student", balId);
-    if (response.success) {
-      const filteredStudents = response?.data?.users.filter((student) =>
-        student.balagruhaIds.includes(balId)
-      );
+    console.log("fetchStudents called with balId:", balId);
+    if (!balId) {
+      console.log("No balId provided, clearing students");
+      setStudents([]);
+      return;
+    }
 
-      setStudents(filteredStudents);
+    setSelectedBalagruha(balId);
+    console.log("Calling API to fetch students for balagruha:", balId);
+    const response = await getAnyUserBasedonRoleandBalagruha("student", balId);
+    console.log("API response:", response);
+
+    if (response.success) {
+      // Backend already filters by balagruhaId, no need to filter again
+      const students = response?.data?.users || [];
+      console.log("Students from API:", students);
+      setStudents(students);
+    } else {
+      console.log("API call failed or no success");
+      setStudents([]);
     }
   };
 
@@ -301,7 +323,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
              {formData.uploadedImages.map((file, index) => (
                <div key={index} className="uploaded-item">
                  <span>{file.name}</span>
-                 <button onClick={() => handleRemovePdf(index)}>❌</button>
+                 <button type="button" onClick={() => handleRemoveImage(index)}>❌</button>
                </div>
              ))}
            </div>

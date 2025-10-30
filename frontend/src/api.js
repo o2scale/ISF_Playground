@@ -543,7 +543,7 @@ export const getBalagruhaListByAssignedID = async (id) => {
 
 export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
   try {
-    const response = await api.get(`/api/v1/users/role/${role}?${balagruhaId}`);
+    const response = await api.get(`/api/v1/users/role/${role}?balagruhaId=${balagruhaId}`);
     return response.data;
   } catch (error) {
     console.error("Error balagruha list by user id", error);
@@ -678,7 +678,7 @@ export const getMoodBasedOnBalagruha = async (balagruhaIds) => {
 
 export const createMedicalCheckin = async (data) => {
   try {
-    const response = await api.post("/api/medical-check-ins", data);
+    const response = await api.post("/api/medical-check-ins", data, { headers });
     return response.data;
   } catch (error) {
     console.error("Error creating medical check-in:", error);
@@ -1884,6 +1884,17 @@ export const rejectPurchaseRequest = async (requestId, data) => {
     return response.data;
   } catch (error) {
     console.error("Error rejecting purchase request:", error);
+    throw error;
+  }
+};
+
+// Complete purchase request with stock update (Purchase Manager) - Sprint5-Story-19
+export const completePurchaseRequest = async (requestId, data) => {
+  try {
+    const response = await api.post(`/api/v2/shop/admin/purchase-requests/${requestId}/complete`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error completing purchase request:", error);
     throw error;
   }
 };
