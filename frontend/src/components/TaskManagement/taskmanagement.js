@@ -849,6 +849,7 @@ const CreateTaskForm = ({
   const [isBalagruhaDropdownOpen, setIsBalagruhaDropdownOpen] = useState(false);
   const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
   const [isAssignToDropdownOpen, setIsAssignToDropdownOpen] = useState(false);
+  const [assignToSearchQuery, setAssignToSearchQuery] = useState("");
   const balagruhaDropdownRef = useRef(null);
   const studentDropdownRef = useRef(null);
   const assignToDropdownRef = useRef(null);
@@ -972,33 +973,45 @@ const CreateTaskForm = ({
   const fetchMedicalManagersByBalagruha = async () => {
     try {
       const currentUserId = localStorage.getItem("userId");
-      const allManagers = [];
+      const allUsers = [];
 
-      // Fetch medical incharges/managers from ALL balagruhas that the current user has access to
+      // All roles except 'student'
+      const rolesToFetch = [
+        "admin",
+        "coach",
+        "balagruha-incharge",
+        "purchase-manager",
+        "medical-incharge",
+        "sports-coach",
+        "music-coach",
+        "amma"
+      ];
+
+      // Fetch admins first (they're global, not tied to specific balagruhas)
+      const adminResponse = await getAnyUserBasedonRoleandBalagruha("admin", availableBalagruhas[0]?._id);
+      if (adminResponse.success) {
+        const admins = adminResponse.data.users || [];
+        allUsers.push(...admins);
+      }
+
+      // Fetch all other roles from ALL balagruhas that the current user has access to
       for (const balagruha of availableBalagruhas) {
-        // Try both role names for compatibility
-        const response1 = await getAnyUserBasedonRoleandBalagruha("medical-incharge", balagruha._id);
-        const response2 = await getAnyUserBasedonRoleandBalagruha("medical-manager", balagruha._id);
-
-        if (response1.success) {
-          const managers = response1.data.users || [];
-          allManagers.push(...managers);
-        }
-        if (response2.success) {
-          const managers = response2.data.users || [];
-          allManagers.push(...managers);
+        for (const role of rolesToFetch) {
+          if (role !== "admin") { // Skip admin since we already fetched them globally
+            const response = await getAnyUserBasedonRoleandBalagruha(role, balagruha._id);
+            if (response.success) {
+              const users = response.data.users || [];
+              allUsers.push(...users);
+            }
+          }
         }
       }
 
-      // Fetch ALL admins (they have access to everything)
-      const adminResponse = await getAnyUserBasedonRoleandBalagruha("admin", availableBalagruhas[0]?._id);
-      const admins = adminResponse.success ? adminResponse.data.users || [] : [];
-
-      // Remove duplicates (but keep current user for self-assignment)
-      const uniqueUsers = Array.from(new Map([...allManagers, ...admins].map(u => [u._id, u])).values());
+      // Remove duplicates based on user ID
+      const uniqueUsers = Array.from(new Map(allUsers.map(u => [u._id, u])).values());
       setAvailableMedicalManagers(uniqueUsers);
     } catch (error) {
-      console.error("Error fetching medical managers:", error);
+      console.error("Error fetching assignable users:", error);
     }
   };
 
@@ -1022,6 +1035,7 @@ const CreateTaskForm = ({
   const handleAssignToSelect = (userId) => {
     setFormData((prev) => ({ ...prev, assignedUser: userId }));
     setIsAssignToDropdownOpen(false);
+    setAssignToSearchQuery(""); // Clear search when user is selected
   };
 
   // Fetch balagruhas when medical type is selected
@@ -1425,23 +1439,47 @@ const CreateTaskForm = ({
 
                   {isAssignToDropdownOpen && (
                     <div className="dropdown-menu">
-                      {availableMedicalManagers.length > 0 ? (
-                        availableMedicalManagers.map((user) => (
-                          <div
-                            key={user._id}
-                            className={`dropdown-item ${
-                              formData.assignedUser === user._id ? "selected" : ""
-                            }`}
-                            onClick={() => handleAssignToSelect(user._id)}
-                          >
-                            {user.name} ({user.role})
+                      {/* Search input */}
+                      <div style={{ padding: "8px", borderBottom: "1px solid #e0e0e0" }}>
+                        <input
+                          type="text"
+                          placeholder="Search users..."
+                          value={assignToSearchQuery}
+                          onChange={(e) => setAssignToSearchQuery(e.target.value)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{
+                            width: "100%",
+                            padding: "6px 10px",
+                            border: "1px solid #ccc",
+                            borderRadius: "4px",
+                            fontSize: "14px"
+                          }}
+                        />
+                      </div>
+                      {/* Filtered users list */}
+                      {(() => {
+                        const filteredUsers = availableMedicalManagers.filter((user) =>
+                          user.name.toLowerCase().includes(assignToSearchQuery.toLowerCase()) ||
+                          user.role.toLowerCase().includes(assignToSearchQuery.toLowerCase())
+                        );
+                        return filteredUsers.length > 0 ? (
+                          filteredUsers.map((user) => (
+                            <div
+                              key={user._id}
+                              className={`dropdown-item ${
+                                formData.assignedUser === user._id ? "selected" : ""
+                              }`}
+                              onClick={() => handleAssignToSelect(user._id)}
+                            >
+                              {user.name} ({user.role})
+                            </div>
+                          ))
+                        ) : (
+                          <div className="dropdown-item" style={{ opacity: 0.6 }}>
+                            No users found
                           </div>
-                        ))
-                      ) : (
-                        <div className="dropdown-item" style={{ opacity: 0.6 }}>
-                          No users found
-                        </div>
-                      )}
+                        );
+                      })()}
                     </div>
                   )}
                 </div>
