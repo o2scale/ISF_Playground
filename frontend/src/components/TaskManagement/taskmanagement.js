@@ -3593,7 +3593,9 @@ const TaskManagement = () => {
     try {
       const response = await coachBasedUsers();
       console.log("usdsdsds", response);
-      setCoachUsers(response || []);
+      // Filter out students from the list
+      const filteredUsers = (response || []).filter(user => user.role !== 'student');
+      setCoachUsers(filteredUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
     }

@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import CheckInModal from "./CheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
 import UserManagement from "../usermanagement/usermanagement";
-import { createMedicalCheckin, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
+import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
 import showToast from '../../utils/toast';
 import DateRangeSelector from "../shop/DateRangeSelector";
 
@@ -201,39 +201,70 @@ const MedicInchargeDashboard = () => {
     setIsModalOpen(false);
   };
 
-  const handleSubmitCheckIn = async(formData) => {
-    setEditMode(false);
+  const handleSubmitCheckIn = async(formData, checkInId = null) => {
+    try {
+      if (editMode && checkInId) {
+        // Update existing check-in
+        const updateData = {
+          studentId: formData.studentId,
+          temperature: formData.temperature,
+          date: `${formData.date} ${formData.time}`,
+          healthStatus: formData.healthStatus,
+          notes: formData.notes
+        };
 
-    const formDataToSend = new FormData();
+        const response = await updateMedicalCheckin(checkInId, updateData);
+        if(response.success) {
+          showToast("Medical Check-in updated successfully", "success");
+          fetchMedicalData();
+        } else {
+          showToast("Failed to update medical check-in", "error");
+        }
+      } else {
+        // Create new check-in
+        const formDataToSend = new FormData();
+        formDataToSend.append("studentId", formData.studentId);
+        formDataToSend.append("temperature", formData.temperature);
+        formDataToSend.append("date", `${formData.date} ${formData.time}`);
+        formDataToSend.append("healthStatus", formData.healthStatus);
+        formDataToSend.append("notes", formData.notes);
 
-    // formDataToSend.append("id", `HC${String(checkIns.length + 1).padStart(3, "0")}`);
-    formDataToSend.append("studentId", formData.studentId);
-    // formDataToSend.append("studentName", formData.studentName);
-    formDataToSend.append("temperature", formData.temperature);
-    formDataToSend.append("date", `${formData.date} ${formData.time}`);
-    formDataToSend.append("healthStatus", formData.healthStatus);
-    formDataToSend.append("notes", formData.notes);
-    
-    // Append each file under the SAME field name: "attachments"
-    formData.uploadedImages.forEach((file) => {
-      formDataToSend.append("attachments", file);
-    });
-    formData.uploadedPdfs.forEach((file) => {
-      formDataToSend.append("attachments", file);
-    });
-    
-    const response = await createMedicalCheckin(formDataToSend);
-    if(response.success) {
-      showToast("Medical Check-in created Successfully", "success")
-      fetchMedicalData();
+        // Append each file under the SAME field name: "attachments"
+        formData.uploadedImages.forEach((file) => {
+          formDataToSend.append("attachments", file);
+        });
+        formData.uploadedPdfs.forEach((file) => {
+          formDataToSend.append("attachments", file);
+        });
+
+        const response = await createMedicalCheckin(formDataToSend);
+        if(response.success) {
+          showToast("Medical Check-in created successfully", "success");
+          fetchMedicalData();
+        } else {
+          showToast("Failed to create medical check-in", "error");
+        }
+      }
+      setEditMode(false);
+    } catch (error) {
+      console.error("Error submitting check-in:", error);
+      showToast("Error submitting medical check-in", "error");
     }
-    console.log(response)
   };
 
-  const handleDeleteCheckIn = (id) => {
-    setCheckIns((prevCheckIns) =>
-      prevCheckIns.filter((checkIn) => checkIn.id !== id)
-    );
+  const handleDeleteCheckIn = async (id) => {
+    try {
+      const response = await deleteMedicalCheckin(id);
+      if (response.success) {
+        showToast("Medical Check-in deleted successfully", "success");
+        fetchMedicalData(); // Refresh the list
+      } else {
+        showToast("Failed to delete medical check-in", "error");
+      }
+    } catch (error) {
+      console.error("Error deleting check-in:", error);
+      showToast("Error deleting medical check-in", "error");
+    }
   };
 
   const [uploadedImages, setUploadedImages] = useState([]);

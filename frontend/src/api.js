@@ -686,6 +686,26 @@ export const createMedicalCheckin = async (data) => {
   }
 };
 
+export const updateMedicalCheckin = async (checkInId, data) => {
+  try {
+    const response = await api.put(`/api/medical-check-ins/${checkInId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating medical check-in:", error);
+    throw error;
+  }
+};
+
+export const deleteMedicalCheckin = async (checkInId) => {
+  try {
+    const response = await api.delete(`/api/medical-check-ins/${checkInId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting medical check-in:", error);
+    throw error;
+  }
+};
+
 export const createMood = async (data) => {
   try {
     const response = await api.post("/api/v1/mood-tracker", data);

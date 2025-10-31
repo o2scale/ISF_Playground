@@ -34,7 +34,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         studentName: studentData.userName,
         temperature: studentData.temperature,
         date: new Date(studentData.date).toISOString().split("T")[0],
-        time: new Date(studentData.updatedAt).toISOString().split("T")[1].slice(0, 5),
+        time: new Date(studentData.date).toISOString().split("T")[1].slice(0, 5),
         healthStatus: studentData.healthStatus,
         notes: studentData.notes,
         uploadedImages: images,
@@ -68,7 +68,9 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSubmit(formData);
+    // Pass the check-in ID if in edit mode
+    const checkInId = studentData?._id || null;
+    onSubmit(formData, checkInId);
     onClose();
 
     // Reset form
