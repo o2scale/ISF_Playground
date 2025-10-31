@@ -38,9 +38,10 @@ const taskSchema = new mongoose.Schema(
         "music",
         "purchase",
         "repair",
+        "medical",
       ],
       default: "general",
-    }, // Type of task (sports, fitness, nutrition)
+    }, // Type of task (sports, fitness, nutrition, medical)
     comments: [
       {
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -81,6 +82,18 @@ const taskSchema = new mongoose.Schema(
 
     // for the repair
     repairDetails: { type: String },
+
+    // for medical tasks
+    balagruhaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Balagruha",
+    }, // Reference to Balagruha for medical tasks
+    students: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ], // Array of student references for medical tasks
   },
   { timestamps: true }
 );
