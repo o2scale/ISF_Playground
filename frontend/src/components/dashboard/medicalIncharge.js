@@ -598,7 +598,7 @@ const MedicInchargeDashboard = () => {
                     <tbody style={{textAlign: "center"}}>
                       {recentHealthCheckins.map((checkin, index) => (
                         <tr
-                          key={checkin.id}
+                          key={checkin._id}
                           className={checkin?.healthStatus?.toLowerCase()}
                         >
                           <td>{index + 1}</td>
@@ -638,7 +638,7 @@ const MedicInchargeDashboard = () => {
                             </button>
                             <button
                               className="medic-icon-button"
-                              onClick={() => handleDeleteCheckIn(checkin.id)}
+                              onClick={() => handleDeleteCheckIn(checkin._id)}
                             >
                               🗑️
                             </button>
