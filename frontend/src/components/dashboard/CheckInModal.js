@@ -220,7 +220,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
             <label>Temperature (°C)</label>
             <input
               type="number"
-              step="0.1"
+              step="any"
               min="30"
               max="45"
               value={formData.temperature}
@@ -328,34 +328,28 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               ))}
             </div> */}
 
-           {!editMode ? (
-             <div className="uploaded-files">
+           <div className="uploaded-files">
              {formData.uploadedImages.map((file, index) => (
                <div key={index} className="uploaded-item">
-                 <span>{file.name}</span>
+                 {file instanceof File ? (
+                   // New file upload - show file name
+                   <span>{file.name}</span>
+                 ) : (
+                   // Existing database attachment - show image preview
+                   <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                     <img
+                       src={file.fileUrl}
+                       alt={file.fileName || "Uploaded image"}
+                       width="50"
+                       height="50"
+                       style={{ cursor: "pointer" }}
+                     />
+                   </a>
+                 )}
                  <button type="button" onClick={() => handleRemoveImage(index)}>❌</button>
                </div>
              ))}
            </div>
-           ) : (
-            <div className="uploaded-files">
-            {formData.uploadedImages.map((file, index) => (
-              <div key={index} className="uploaded-item">
-                <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
-                  <img
-                    src={file.fileUrl}
-                    alt={file.fileName || "Uploaded image"}
-                    width="50"
-                    height="50"
-                    style={{ cursor: "pointer" }}
-                  />
-                </a>
-                <button type="button" onClick={() => handleRemoveImage(index)}>❌</button>
-              </div>
-            ))}
-          </div>
-          
-           )}
 
           </div>
 
@@ -386,32 +380,27 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
                 hidden
               />
             </label>
-            
-            {!editMode ? (
-              <div className="uploaded-files">
+
+            <div className="uploaded-files">
               {formData.uploadedPdfs.map((file, index) => (
                 <div key={index} className="uploaded-item">
-                  <span>{file.name}</span>
-                  <button onClick={() => handleRemovePdf(index)}>❌</button>
-                </div>
-              ))}
-            </div>
-            ) : (
-              <div className="uploaded-files">
-              {formData.uploadedPdfs.map((file, index) => (
-                <div key={index} className="uploaded-item">
-                  <a
-                    href={file.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {file.fileName || `PDF-${index + 1}`}
-                  </a>
+                  {file instanceof File ? (
+                    // New file upload - show file name
+                    <span>{file.name}</span>
+                  ) : (
+                    // Existing database attachment - show link
+                    <a
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {file.fileName || `PDF-${index + 1}`}
+                    </a>
+                  )}
                   <button type="button" onClick={() => handleRemovePdf(index)}>❌</button>
                 </div>
               ))}
             </div>
-            )}
           </div>
 
           <div className="modal-footer">
