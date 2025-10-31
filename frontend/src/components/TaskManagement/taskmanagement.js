@@ -28,6 +28,7 @@ import {
   updateSportsTask,
   updateTask,
   updateTaskAttachments,
+  getAnyUserBasedonRoleandBalagruha,
 } from "../../api";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
@@ -104,6 +105,7 @@ const TaskFilter = ({ onFilterChange, filters, balagruhas, users }) => {
     { id: "general", label: "📝 General Tasks" },
     { id: "purchase", label: "🛒 Purchase Tasks" },
     { id: "order", label: "🔧 Repair Tasks" },
+    { id: "medical", label: "🏥 Medical Tasks" },
   ];
 
   useEffect(() => {
@@ -164,6 +166,11 @@ const TaskFilter = ({ onFilterChange, filters, balagruhas, users }) => {
       case "purchase-manager":
         return taskTypes.filter(
           (type) => type.id === "purchase" || type.id === "general"
+        );
+      case "medical-manager":
+      case "medical-incharge":
+        return taskTypes.filter(
+          (type) => type.id === "medical" || type.id === "general"
         );
       default:
         return taskTypes;
@@ -321,6 +328,8 @@ const TaskFilter = ({ onFilterChange, filters, balagruhas, users }) => {
         return ["sports"];
       case "music-coach":
         return ["music"];
+      case "medical-manager":
+        return ["medical"];
       default:
         return ["general"];
     }
@@ -822,6 +831,9 @@ const CreateTaskForm = ({
     requiredParts: "",
     repairDetails: "",
     type: "general",
+    // Medical task specific fields
+    medicalBalagruhaId: "",
+    students: [],
   });
   const [files, setFiles] = useState([]);
   const [formErrors, setFormErrors] = useState({});
@@ -829,6 +841,17 @@ const CreateTaskForm = ({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   const role = localStorage.getItem("role");
+
+  // Medical task specific state
+  const [availableBalagruhas, setAvailableBalagruhas] = useState([]);
+  const [availableStudents, setAvailableStudents] = useState([]);
+  const [availableMedicalManagers, setAvailableMedicalManagers] = useState([]);
+  const [isBalagruhaDropdownOpen, setIsBalagruhaDropdownOpen] = useState(false);
+  const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
+  const [isAssignToDropdownOpen, setIsAssignToDropdownOpen] = useState(false);
+  const balagruhaDropdownRef = useRef(null);
+  const studentDropdownRef = useRef(null);
+  const assignToDropdownRef = useRef(null);
   console.log("coach", coachUsers);
   const filteredUsers = coachUsers;
   // role === "sports-coach" || role === "music-coach" || role === "coach"
@@ -840,6 +863,8 @@ const CreateTaskForm = ({
       ? "sports"
       : role === "music-coach"
       ? "music"
+      : role === "medical-manager" || role === "medical-incharge"
+      ? "medical"
       : "general";
 
   const [type, setType] = useState(initialType);
@@ -851,6 +876,7 @@ const CreateTaskForm = ({
     { id: "general", label: "📝 General Tasks" },
     { id: "purchase", label: "🛒 Purchase Tasks" },
     { id: "repair", label: "🔧 Repair Tasks" },
+    { id: "medical", label: "🏥 Medical Tasks" },
   ];
 
   useEffect(() => {
@@ -919,6 +945,110 @@ const CreateTaskForm = ({
     setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
   };
 
+  // Medical task handlers
+  const fetchMedicalManagerBalagruhas = async () => {
+    try {
+      const userId = localStorage.getItem("userId");
+      const response = await getBalagruhaById(userId);
+      if (response.success && response.data) {
+        setAvailableBalagruhas(response.data.balagruhas || []);
+      }
+    } catch (error) {
+      console.error("Error fetching balagruhas:", error);
+    }
+  };
+
+  const fetchStudentsByBalagruha = async (balagruhaId) => {
+    try {
+      const response = await getAnyUserBasedonRoleandBalagruha("student", balagruhaId);
+      if (response.success) {
+        setAvailableStudents(response.data.users || []);
+      }
+    } catch (error) {
+      console.error("Error fetching students:", error);
+    }
+  };
+
+  const fetchMedicalManagersByBalagruha = async () => {
+    try {
+      const currentUserId = localStorage.getItem("userId");
+      const allManagers = [];
+
+      // Fetch medical incharges/managers from ALL balagruhas that the current user has access to
+      for (const balagruha of availableBalagruhas) {
+        // Try both role names for compatibility
+        const response1 = await getAnyUserBasedonRoleandBalagruha("medical-incharge", balagruha._id);
+        const response2 = await getAnyUserBasedonRoleandBalagruha("medical-manager", balagruha._id);
+
+        if (response1.success) {
+          const managers = response1.data.users || [];
+          allManagers.push(...managers);
+        }
+        if (response2.success) {
+          const managers = response2.data.users || [];
+          allManagers.push(...managers);
+        }
+      }
+
+      // Fetch ALL admins (they have access to everything)
+      const adminResponse = await getAnyUserBasedonRoleandBalagruha("admin", availableBalagruhas[0]?._id);
+      const admins = adminResponse.success ? adminResponse.data.users || [] : [];
+
+      // Remove duplicates (but keep current user for self-assignment)
+      const uniqueUsers = Array.from(new Map([...allManagers, ...admins].map(u => [u._id, u])).values());
+      setAvailableMedicalManagers(uniqueUsers);
+    } catch (error) {
+      console.error("Error fetching medical managers:", error);
+    }
+  };
+
+  const handleBalagruhaSelect = async (balagruhaId) => {
+    setFormData((prev) => ({ ...prev, medicalBalagruhaId: balagruhaId, students: [], assignedUser: "" }));
+    setAvailableStudents([]);
+    await fetchStudentsByBalagruha(balagruhaId);
+    await fetchMedicalManagersByBalagruha();
+    setIsBalagruhaDropdownOpen(false);
+  };
+
+  const handleStudentToggle = (studentId) => {
+    setFormData((prev) => ({
+      ...prev,
+      students: prev.students.includes(studentId)
+        ? prev.students.filter((id) => id !== studentId)
+        : [...prev.students, studentId],
+    }));
+  };
+
+  const handleAssignToSelect = (userId) => {
+    setFormData((prev) => ({ ...prev, assignedUser: userId }));
+    setIsAssignToDropdownOpen(false);
+  };
+
+  // Fetch balagruhas when medical type is selected
+  useEffect(() => {
+    if (type === "medical" && (role === "medical-manager" || role === "medical-incharge")) {
+      fetchMedicalManagerBalagruhas();
+    }
+  }, [type, role]);
+
+  // Close dropdowns on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (balagruhaDropdownRef.current && !balagruhaDropdownRef.current.contains(event.target)) {
+        setIsBalagruhaDropdownOpen(false);
+      }
+      if (studentDropdownRef.current && !studentDropdownRef.current.contains(event.target)) {
+        setIsStudentDropdownOpen(false);
+      }
+      if (assignToDropdownRef.current && !assignToDropdownRef.current.contains(event.target)) {
+        setIsAssignToDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const validateForm = () => {
     const errors = {};
 
@@ -953,6 +1083,12 @@ const CreateTaskForm = ({
       attachments: files,
     };
 
+    // For medical tasks, use medicalBalagruhaId as balagruhaId
+    if (type === "medical") {
+      taskData.balagruhaId = formData.medicalBalagruhaId;
+      taskData.students = formData.students;
+    }
+
     onSubmit(taskData);
   };
 
@@ -969,6 +1105,11 @@ const CreateTaskForm = ({
       case "purchase-manager":
         return taskTypes.filter(
           (type) => type.id === "purchase" || type.id === "general"
+        );
+      case "medical-manager":
+      case "medical-incharge":
+        return taskTypes.filter(
+          (type) => type.id === "medical" || type.id === "general"
         );
       default:
         return taskTypes;
@@ -1085,41 +1226,44 @@ const CreateTaskForm = ({
           </div>
         </div>
 
-        <div className="form-group dropdown-container" ref={dropdownRef}>
-          <label>Assign To</label>
-          <div className="dropdown">
-            <button
-              type="button"
-              className="dropdown-toggle"
-              onClick={toggleDropdown}
-            >
-              {formData.assignedUser.length > 0
-                ? formData.assignedUser
-                    .map(
-                      (id) => coachUsers.find((user) => user._id === id)?.name
-                    )
-                    .join(", ")
-                : "Select Users"}
-              <span className="arrow">&#9662;</span>
-            </button>
+        {/* General Assign To field - exclude medical tasks as they have their own assign logic */}
+        {type !== "medical" && (
+          <div className="form-group dropdown-container" ref={dropdownRef}>
+            <label>Assign To</label>
+            <div className="dropdown">
+              <button
+                type="button"
+                className="dropdown-toggle"
+                onClick={toggleDropdown}
+              >
+                {formData.assignedUser.length > 0
+                  ? formData.assignedUser
+                      .map(
+                        (id) => coachUsers.find((user) => user._id === id)?.name
+                      )
+                      .join(", ")
+                  : "Select Users"}
+                <span className="arrow">&#9662;</span>
+              </button>
 
-            {isDropdownOpen && (
-              <div className="dropdown-menu">
-                {filteredUsers.map((user) => (
-                  <label key={user._id} className="dropdown-item">
-                    <input
-                      type="checkbox"
-                      value={user._id}
-                      checked={formData.assignedUser.includes(user._id)}
-                      onChange={handleCheckboxChange}
-                    />
-                    {user.name} ({user.role})
-                  </label>
-                ))}
-              </div>
-            )}
+              {isDropdownOpen && (
+                <div className="dropdown-menu">
+                  {filteredUsers.map((user) => (
+                    <label key={user._id} className="dropdown-item">
+                      <input
+                        type="checkbox"
+                        value={user._id}
+                        checked={formData.assignedUser.includes(user._id)}
+                        onChange={handleCheckboxChange}
+                      />
+                      {user.name} ({user.role})
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
 
         {(localStorage.getItem("role") === "sports-coach" ||
           type == "sports" ||
@@ -1221,6 +1365,129 @@ const CreateTaskForm = ({
               placeholder="Required Details"
             />
           </div>
+        )}
+
+        {/* Medical Task Specific Fields */}
+        {(localStorage.getItem("role") === "medical-manager" || localStorage.getItem("role") === "medical-incharge" || type === "medical") && (
+          <>
+            {/* Balagruha Selection */}
+            <div className="form-group dropdown-container" ref={balagruhaDropdownRef}>
+              <label>
+                Balagruha <span className="required">*</span>
+              </label>
+              <div className="dropdown">
+                <button
+                  type="button"
+                  className="dropdown-toggle"
+                  onClick={() => setIsBalagruhaDropdownOpen(!isBalagruhaDropdownOpen)}
+                >
+                  {formData.medicalBalagruhaId
+                    ? availableBalagruhas.find((b) => b._id === formData.medicalBalagruhaId)?.name || "Select Balagruha"
+                    : "Select Balagruha"}
+                  <span className="arrow">&#9662;</span>
+                </button>
+
+                {isBalagruhaDropdownOpen && (
+                  <div className="dropdown-menu">
+                    {availableBalagruhas.map((balagruha) => (
+                      <div
+                        key={balagruha._id}
+                        className={`dropdown-item ${
+                          formData.medicalBalagruhaId === balagruha._id ? "selected" : ""
+                        }`}
+                        onClick={() => handleBalagruhaSelect(balagruha._id)}
+                      >
+                        {balagruha.name}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Assign To - Medical Managers or Admin (appears after balagruha selection) */}
+            {formData.medicalBalagruhaId && (
+              <div className="form-group dropdown-container" ref={assignToDropdownRef}>
+                <label>
+                  Assign To <span className="required">*</span>
+                </label>
+                <div className="dropdown">
+                  <button
+                    type="button"
+                    className="dropdown-toggle"
+                    onClick={() => setIsAssignToDropdownOpen(!isAssignToDropdownOpen)}
+                  >
+                    {formData.assignedUser
+                      ? availableMedicalManagers.find((u) => u._id === formData.assignedUser)?.name || "Select User"
+                      : "Select User"}
+                    <span className="arrow">&#9662;</span>
+                  </button>
+
+                  {isAssignToDropdownOpen && (
+                    <div className="dropdown-menu">
+                      {availableMedicalManagers.length > 0 ? (
+                        availableMedicalManagers.map((user) => (
+                          <div
+                            key={user._id}
+                            className={`dropdown-item ${
+                              formData.assignedUser === user._id ? "selected" : ""
+                            }`}
+                            onClick={() => handleAssignToSelect(user._id)}
+                          >
+                            {user.name} ({user.role})
+                          </div>
+                        ))
+                      ) : (
+                        <div className="dropdown-item" style={{ opacity: 0.6 }}>
+                          No users found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Students Multi-Select (appears after balagruha selection) */}
+            {formData.medicalBalagruhaId && (
+              <div className="form-group dropdown-container" ref={studentDropdownRef}>
+                <label>Select Students (Optional)</label>
+                <div className="dropdown">
+                  <button
+                    type="button"
+                    className="dropdown-toggle"
+                    onClick={() => setIsStudentDropdownOpen(!isStudentDropdownOpen)}
+                  >
+                    {formData.students.length > 0
+                      ? `${formData.students.length} student${formData.students.length > 1 ? "s" : ""} selected`
+                      : "Select Students"}
+                    <span className="arrow">&#9662;</span>
+                  </button>
+
+                  {isStudentDropdownOpen && (
+                    <div className="dropdown-menu" style={{ maxHeight: "250px", overflowY: "auto" }}>
+                      {availableStudents.length > 0 ? (
+                        availableStudents.map((student) => (
+                          <label key={student._id} className="dropdown-item">
+                            <input
+                              type="checkbox"
+                              checked={formData.students.includes(student._id)}
+                              onChange={() => handleStudentToggle(student._id)}
+                            />
+                            {student.name}
+                          </label>
+                        ))
+                      ) : (
+                        <div className="dropdown-item" style={{ opacity: 0.6 }}>
+                          No students found
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         <div className="form-group">
@@ -3212,6 +3479,10 @@ const TaskManagement = () => {
       finalFilters.type = ["sports"];
     } else if (role === "music-coach") {
       finalFilters.type = ["music"];
+    } else if (role === "medical-manager" || role === "medical-incharge") {
+      if (!finalFilters.type || finalFilters.type.length === 0) {
+        finalFilters.type = ["medical", "general"];
+      }
     } else if (!finalFilters.type) {
       finalFilters.type = ["general"];
     }
@@ -3268,6 +3539,19 @@ const TaskManagement = () => {
         formData.append("repairDetails", taskData.repairDetails);
       } else if (taskData.type === "purchase") {
         formData.append("requiredParts", taskData.requiredParts);
+      }
+
+      // Handle medical tasks
+      if (taskData.type === "medical") {
+        formData.append("type", taskData.type);
+        if (taskData.balagruhaId) {
+          formData.append("balagruhaId", taskData.balagruhaId);
+        }
+        if (taskData.students && taskData.students.length > 0) {
+          taskData.students.forEach((studentId) => {
+            formData.append("students[]", studentId);
+          });
+        }
       }
 
       if (taskData.attachments && taskData.attachments.length > 0) {
