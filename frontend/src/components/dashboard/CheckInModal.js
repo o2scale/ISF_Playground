@@ -37,7 +37,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       const timeString = localDate.toISOString().split("T")[1].slice(0, 5);
 
       setFormData({
-        // studentId: ,
+        studentId: studentData.studentId,
         studentName: studentData.userName,
         temperature: studentData.temperature,
         date: dateString,
