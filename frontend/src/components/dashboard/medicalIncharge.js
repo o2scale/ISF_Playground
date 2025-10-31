@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import CheckInModal from "./CheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
 import UserManagement from "../usermanagement/usermanagement";
-import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
+import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
 import showToast from '../../utils/toast';
 import DateRangeSelector from "../shop/DateRangeSelector";
 
@@ -215,7 +215,32 @@ const MedicInchargeDashboard = () => {
 
         const response = await updateMedicalCheckin(checkInId, updateData);
         if(response.success) {
-          showToast("Medical Check-in updated successfully", "success");
+          // Check if there are new attachments (File objects, not existing DB attachments with fileUrl)
+          const newImages = formData.uploadedImages.filter(file => file instanceof File);
+          const newPdfs = formData.uploadedPdfs.filter(file => file instanceof File);
+          const hasNewAttachments = newImages.length > 0 || newPdfs.length > 0;
+
+          if (hasNewAttachments) {
+            // Send new attachments separately
+            const attachmentFormData = new FormData();
+            attachmentFormData.append("createdBy", localStorage.getItem("userId"));
+
+            newImages.forEach((file) => {
+              attachmentFormData.append("attachments", file);
+            });
+            newPdfs.forEach((file) => {
+              attachmentFormData.append("attachments", file);
+            });
+
+            const attachmentResponse = await addMedicalCheckinAttachments(checkInId, attachmentFormData);
+            if (attachmentResponse.success) {
+              showToast("Medical Check-in and attachments updated successfully", "success");
+            } else {
+              showToast("Check-in updated but failed to add attachments", "warning");
+            }
+          } else {
+            showToast("Medical Check-in updated successfully", "success");
+          }
           fetchMedicalData();
         } else {
           showToast("Failed to update medical check-in", "error");

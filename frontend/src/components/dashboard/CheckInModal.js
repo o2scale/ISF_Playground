@@ -29,12 +29,19 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       setSelectedBalagruha(studentData.balagruhaIds[0]);
       fetchStudents(studentData.balagruhaIds[0]);
       setSelectedStudent(studentData.studentId);
+
+      // Convert date to local timezone for editing
+      const dateObj = new Date(studentData.date);
+      const localDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+      const dateString = localDate.toISOString().split("T")[0];
+      const timeString = localDate.toISOString().split("T")[1].slice(0, 5);
+
       setFormData({
         // studentId: ,
         studentName: studentData.userName,
         temperature: studentData.temperature,
-        date: new Date(studentData.date).toISOString().split("T")[0],
-        time: new Date(studentData.date).toISOString().split("T")[1].slice(0, 5),
+        date: dateString,
+        time: timeString,
         healthStatus: studentData.healthStatus,
         notes: studentData.notes,
         uploadedImages: images,
@@ -214,10 +221,13 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
             <input
               type="number"
               step="0.1"
+              min="30"
+              max="45"
               value={formData.temperature}
               onChange={(e) =>
                 setFormData({ ...formData, temperature: e.target.value })
               }
+              autoComplete="off"
               required
             />
           </div>
@@ -269,8 +279,6 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               rows="3"
             ></textarea>
           </div>
-
-          <input type="file" placeholder="hello hi" />
 
           {/* File Upload Section */}
           <div className="form-group">
