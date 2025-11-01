@@ -17,6 +17,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   const [selectedBalagruha, setSelectedBalagruha] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
   const [students, setStudents] = useState([]);
+  const [removedAttachmentIds, setRemovedAttachmentIds] = useState([]);
 
   useEffect(() => {
     if(studentData) {
@@ -64,6 +65,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       setSelectedBalagruha("");
       setSelectedStudent("");
       setStudents([]);
+      setRemovedAttachmentIds([]);
     }
 
     console.log('CheckInModal - studentData:', studentData);
@@ -77,7 +79,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
     e.preventDefault();
     // Pass the check-in ID if in edit mode
     const checkInId = studentData?._id || null;
-    onSubmit(formData, checkInId);
+    onSubmit(formData, checkInId, removedAttachmentIds);
     onClose();
 
     // Reset form
@@ -94,6 +96,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       uploadedImages: [],
       uploadedPdfs: [],
     });
+    setRemovedAttachmentIds([]);
   };
 
   const handleStudentChange = (e) => {
@@ -139,6 +142,11 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   };
 
   const handleRemoveImage = (index) => {
+    const fileToRemove = formData.uploadedImages[index];
+    // If it's a database attachment (has _id), track it for deletion
+    if (fileToRemove && !( fileToRemove instanceof File) && fileToRemove._id) {
+      setRemovedAttachmentIds((prev) => [...prev, fileToRemove._id]);
+    }
     setFormData((prev) => ({
       ...prev,
       uploadedImages: prev.uploadedImages.filter((_, i) => i !== index),
@@ -146,6 +154,11 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   };
 
   const handleRemovePdf = (index) => {
+    const fileToRemove = formData.uploadedPdfs[index];
+    // If it's a database attachment (has _id), track it for deletion
+    if (fileToRemove && !(fileToRemove instanceof File) && fileToRemove._id) {
+      setRemovedAttachmentIds((prev) => [...prev, fileToRemove._id]);
+    }
     setFormData((prev) => ({
       ...prev,
       uploadedPdfs: prev.uploadedPdfs.filter((_, i) => i !== index),

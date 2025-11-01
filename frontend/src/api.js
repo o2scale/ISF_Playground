@@ -716,6 +716,16 @@ export const addMedicalCheckinAttachments = async (checkInId, formData) => {
   }
 };
 
+export const deleteMedicalCheckinAttachment = async (checkInId, attachmentId) => {
+  try {
+    const response = await api.delete(`/api/medical-check-ins/attachments/${checkInId}/${attachmentId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting medical check-in attachment:", error);
+    throw error;
+  }
+};
+
 export const createMood = async (data) => {
   try {
     const response = await api.post("/api/v1/mood-tracker", data);

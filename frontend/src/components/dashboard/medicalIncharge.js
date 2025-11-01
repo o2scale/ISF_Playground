@@ -4,7 +4,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import CheckInModal from "./CheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
 import UserManagement from "../usermanagement/usermanagement";
-import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
+import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, deleteMedicalCheckinAttachment, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
 import showToast from '../../utils/toast';
 import DateRangeSelector from "../shop/DateRangeSelector";
 
@@ -201,7 +201,7 @@ const MedicInchargeDashboard = () => {
     setIsModalOpen(false);
   };
 
-  const handleSubmitCheckIn = async(formData, checkInId = null) => {
+  const handleSubmitCheckIn = async(formData, checkInId = null, removedAttachmentIds = []) => {
     try {
       if (editMode && checkInId) {
         // Update existing check-in
@@ -215,6 +215,17 @@ const MedicInchargeDashboard = () => {
 
         const response = await updateMedicalCheckin(checkInId, updateData);
         if(response.success) {
+          // Delete removed attachments first
+          if (removedAttachmentIds && removedAttachmentIds.length > 0) {
+            for (const attachmentId of removedAttachmentIds) {
+              try {
+                await deleteMedicalCheckinAttachment(checkInId, attachmentId);
+              } catch (error) {
+                console.error(`Failed to delete attachment ${attachmentId}:`, error);
+              }
+            }
+          }
+
           // Check if there are new attachments (File objects, not existing DB attachments with fileUrl)
           const newImages = formData.uploadedImages.filter(file => file instanceof File);
           const newPdfs = formData.uploadedPdfs.filter(file => file instanceof File);
