@@ -210,7 +210,18 @@ const MedicInchargeDashboard = () => {
           temperature: formData.temperature,
           date: `${formData.date} ${formData.time}`,
           healthStatus: formData.healthStatus,
-          notes: formData.notes
+          notes: formData.notes,
+          // NEW FIELDS
+          symptoms: formData.symptoms,
+          customSymptom: formData.customSymptom,
+          doctorVisit: {
+            doctorName: formData.doctorVisit.doctorName,
+            hospitalName: formData.doctorVisit.hospitalName,
+            visitDate: formData.doctorVisit.visitDate,
+            testDetails: formData.doctorVisit.testDetails,
+            conclusion: formData.doctorVisit.conclusion,
+          },
+          followUp: formData.followUp,
         };
 
         const response = await updateMedicalCheckin(checkInId, updateData);
@@ -265,12 +276,45 @@ const MedicInchargeDashboard = () => {
         formDataToSend.append("healthStatus", formData.healthStatus);
         formDataToSend.append("notes", formData.notes);
 
-        // Append each file under the SAME field name: "attachments"
+        // NEW FIELDS
+        formDataToSend.append("symptoms", JSON.stringify(formData.symptoms));
+        formDataToSend.append("customSymptom", formData.customSymptom);
+        formDataToSend.append(
+          "doctorVisit",
+          JSON.stringify({
+            doctorName: formData.doctorVisit.doctorName,
+            hospitalName: formData.doctorVisit.hospitalName,
+            visitDate: formData.doctorVisit.visitDate,
+            testDetails: formData.doctorVisit.testDetails,
+            conclusion: formData.doctorVisit.conclusion,
+          })
+        );
+        formDataToSend.append("followUp", JSON.stringify(formData.followUp));
+
+        // Append general attachments
         formData.uploadedImages.forEach((file) => {
-          formDataToSend.append("attachments", file);
+          if (file instanceof File) {
+            formDataToSend.append("attachments", file);
+          }
         });
         formData.uploadedPdfs.forEach((file) => {
-          formDataToSend.append("attachments", file);
+          if (file instanceof File) {
+            formDataToSend.append("attachments", file);
+          }
+        });
+
+        // Append prescription files
+        formData.doctorVisit.prescriptionFiles.forEach((file) => {
+          if (file instanceof File) {
+            formDataToSend.append("prescriptions", file);
+          }
+        });
+
+        // Append test result files
+        formData.doctorVisit.testResultFiles.forEach((file) => {
+          if (file instanceof File) {
+            formDataToSend.append("testResults", file);
+          }
         });
 
         const response = await createMedicalCheckin(formDataToSend);

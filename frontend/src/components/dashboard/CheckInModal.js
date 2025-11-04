@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from "react";
 import "./CheckInModal.css";
 import { getAnyUserBasedonRoleandBalagruha } from "../../api";
+import SymptomsSelector from "./SymptomsSelector";
+import DoctorVisitsSection from "./DoctorVisitsSection";
+import FollowUpSection from "./FollowUpSection";
 
 const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, editMode }) => {
   const [formData, setFormData] = useState({
@@ -13,6 +16,25 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
     notes: "",
     uploadedImages: [],
     uploadedPdfs: [],
+    // NEW FIELDS
+    symptoms: [],
+    customSymptom: "",
+    doctorVisit: {
+      doctorName: "",
+      hospitalName: "",
+      visitDate: "",
+      prescriptionFiles: [],
+      testDetails: "",
+      testResultFiles: [],
+      conclusion: "",
+    },
+    followUp: {
+      followUpDate: "",
+      hospital: "",
+      doctor: "",
+      assignedCoaches: [],
+      status: "",
+    },
   });
   const [selectedBalagruha, setSelectedBalagruha] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -47,6 +69,25 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         notes: studentData.notes,
         uploadedImages: images,
         uploadedPdfs: pdfs,
+        // NEW FIELDS
+        symptoms: studentData.symptoms || [],
+        customSymptom: studentData.customSymptom || "",
+        doctorVisit: studentData.doctorVisit || {
+          doctorName: "",
+          hospitalName: "",
+          visitDate: "",
+          prescriptionFiles: [],
+          testDetails: "",
+          testResultFiles: [],
+          conclusion: "",
+        },
+        followUp: studentData.followUp || {
+          followUpDate: "",
+          hospital: "",
+          doctor: "",
+          assignedCoaches: [],
+          status: "",
+        },
       })
       // setSelectedStudent(studentData.balagruhaIds[0]);
       // setSelectedStudent(studentData.studentId)
@@ -61,6 +102,24 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         notes: "",
         uploadedImages: [],
         uploadedPdfs: [],
+        symptoms: [],
+        customSymptom: "",
+        doctorVisit: {
+          doctorName: "",
+          hospitalName: "",
+          visitDate: "",
+          prescriptionFiles: [],
+          testDetails: "",
+          testResultFiles: [],
+          conclusion: "",
+        },
+        followUp: {
+          followUpDate: "",
+          hospital: "",
+          doctor: "",
+          assignedCoaches: [],
+          status: "",
+        },
       })
       setSelectedBalagruha("");
       setSelectedStudent("");
@@ -95,6 +154,24 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       notes: "",
       uploadedImages: [],
       uploadedPdfs: [],
+      symptoms: [],
+      customSymptom: "",
+      doctorVisit: {
+        doctorName: "",
+        hospitalName: "",
+        visitDate: "",
+        prescriptionFiles: [],
+        testDetails: "",
+        testResultFiles: [],
+        conclusion: "",
+      },
+      followUp: {
+        followUpDate: "",
+        hospital: "",
+        doctor: "",
+        assignedCoaches: [],
+        status: "",
+      },
     });
     setRemovedAttachmentIds([]);
   };
@@ -244,6 +321,14 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               required
             />
           </div>
+
+          {/* NEW: Symptoms Section */}
+          <SymptomsSelector
+            symptoms={formData.symptoms}
+            customSymptom={formData.customSymptom}
+            onChange={(updates) => setFormData({ ...formData, ...updates })}
+          />
+
           <div className="form-row">
             <div className="form-group">
               <label>Date</label>
@@ -282,6 +367,20 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               <option value="alert">Alert</option>
             </select>
           </div>
+
+          {/* NEW: Doctor Visits Section */}
+          <DoctorVisitsSection
+            doctorVisit={formData.doctorVisit}
+            onChange={(doctorVisit) => setFormData({ ...formData, doctorVisit })}
+          />
+
+          {/* NEW: Follow-up Section */}
+          <FollowUpSection
+            followUp={formData.followUp}
+            balagruhaId={selectedBalagruha}
+            onChange={(followUp) => setFormData({ ...formData, followUp })}
+          />
+
           <div className="form-group">
             <label>Notes</label>
             <textarea

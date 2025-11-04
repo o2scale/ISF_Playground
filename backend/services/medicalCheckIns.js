@@ -29,6 +29,11 @@ class MedicalCheckIns {
     this.notes = obj.notes || "";
     this.attachments = obj.attachments || [];
     this.createdBy = obj.createdBy || null;
+    // New fields
+    this.symptoms = obj.symptoms || [];
+    this.customSymptom = obj.customSymptom || "";
+    this.doctorVisit = obj.doctorVisit || null;
+    this.followUp = obj.followUp || null;
   }
 
   toJSON() {
@@ -40,13 +45,28 @@ class MedicalCheckIns {
       notes: this.notes,
       attachments: this.attachments,
       createdBy: this.createdBy,
+      symptoms: this.symptoms,
+      customSymptom: this.customSymptom,
+      doctorVisit: this.doctorVisit,
+      followUp: this.followUp,
     };
   }
 
-  static async createMedicalCheckIn(payload, attachmentFiles) {
+  static async createMedicalCheckIn(payload, fileGroups) {
     try {
-      const { studentId, temperature, date, healthStatus, notes, createdBy } =
-        payload;
+      const {
+        studentId,
+        temperature,
+        date,
+        healthStatus,
+        notes,
+        createdBy,
+        symptoms,
+        customSymptom,
+        doctorVisit,
+        followUp,
+      } = payload;
+
       if (!studentId || !temperature || !date || !createdBy) {
         return {
           success: false,
@@ -73,10 +93,11 @@ class MedicalCheckIns {
         };
       }
 
+      // Process general attachments
       let processedAttachments = [];
-      if (attachmentFiles && attachmentFiles.length > 0) {
-        for (let i = 0; i < attachmentFiles.length; i++) {
-          let file = attachmentFiles[i];
+      if (fileGroups?.attachments && fileGroups.attachments.length > 0) {
+        for (let i = 0; i < fileGroups.attachments.length; i++) {
+          let file = fileGroups.attachments[i];
           let fileName = file.replace("uploads/", "");
           let result = await uploadFileToS3(
             file,
@@ -102,6 +123,76 @@ class MedicalCheckIns {
         }
       }
 
+      // Process prescription files
+      let processedPrescriptions = [];
+      if (fileGroups?.prescriptions && fileGroups.prescriptions.length > 0) {
+        for (let i = 0; i < fileGroups.prescriptions.length; i++) {
+          let file = fileGroups.prescriptions[i];
+          let fileName = file.replace("uploads/", "");
+          let result = await uploadFileToS3(
+            file,
+            process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (result.success) {
+            let prescriptionObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              fileSize: result.size,
+              uploadedBy: createdBy,
+            };
+            processedPrescriptions.push(prescriptionObj);
+          } else {
+            return {
+              success: false,
+              data: {},
+              message: "Failed to upload prescription files.",
+            };
+          }
+        }
+      }
+
+      // Process test result files
+      let processedTestResults = [];
+      if (fileGroups?.testResults && fileGroups.testResults.length > 0) {
+        for (let i = 0; i < fileGroups.testResults.length; i++) {
+          let file = fileGroups.testResults[i];
+          let fileName = file.replace("uploads/", "");
+          let result = await uploadFileToS3(
+            file,
+            process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (result.success) {
+            let testResultObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              fileSize: result.size,
+              uploadedBy: createdBy,
+            };
+            processedTestResults.push(testResultObj);
+          } else {
+            return {
+              success: false,
+              data: {},
+              message: "Failed to upload test result files.",
+            };
+          }
+        }
+      }
+
+      // Prepare doctorVisit object with processed files
+      let doctorVisitData = null;
+      if (doctorVisit) {
+        doctorVisitData = {
+          ...doctorVisit,
+          prescriptionFiles: processedPrescriptions,
+          testResultFiles: processedTestResults,
+        };
+      }
+
       const medicalCheckIn = new MedicalCheckIns({
         studentId,
         temperature,
@@ -110,6 +201,10 @@ class MedicalCheckIns {
         notes,
         attachments: processedAttachments,
         createdBy,
+        symptoms: symptoms || [],
+        customSymptom: customSymptom || "",
+        doctorVisit: doctorVisitData,
+        followUp: followUp || null,
       });
 
       const result = await createMedicalCheckIn(medicalCheckIn);

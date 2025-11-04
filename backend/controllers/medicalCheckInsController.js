@@ -14,16 +14,52 @@ exports.createMedicalCheckIn = async (req, res) => {
       "Request received to create a new medical check-in"
     );
     let createdBy = req.user._id;
-    const { studentId, temperature, date, healthStatus, notes } = req.body;
+    const {
+      studentId,
+      temperature,
+      date,
+      healthStatus,
+      notes,
+      symptoms,
+      customSymptom,
+      doctorVisit,
+      followUp,
+    } = req.body;
 
     let attachmentFiles = [];
-    if (req.files && req.files.attachments) {
-      attachmentFiles = req.files.attachments.map((file) => file.path);
+    let prescriptionFiles = [];
+    let testResultFiles = [];
+
+    if (req.files) {
+      if (req.files.attachments) {
+        attachmentFiles = req.files.attachments.map((file) => file.path);
+      }
+      if (req.files.prescriptions) {
+        prescriptionFiles = req.files.prescriptions.map((file) => file.path);
+      }
+      if (req.files.testResults) {
+        testResultFiles = req.files.testResults.map((file) => file.path);
+      }
     }
 
     const result = await MedicalCheckIns.createMedicalCheckIn(
-      { studentId, temperature, date, healthStatus, notes, createdBy },
-      attachmentFiles
+      {
+        studentId,
+        temperature,
+        date,
+        healthStatus,
+        notes,
+        createdBy,
+        symptoms,
+        customSymptom,
+        doctorVisit,
+        followUp,
+      },
+      {
+        attachments: attachmentFiles,
+        prescriptions: prescriptionFiles,
+        testResults: testResultFiles,
+      }
     );
 
     if (result.success) {
@@ -284,7 +320,17 @@ exports.getMedicalCheckInById = async (req, res) => {
 exports.updateMedicalCheckIn = async (req, res) => {
   try {
     const { checkInId } = req.params;
-    const { studentId, temperature, date, healthStatus, notes } = req.body;
+    const {
+      studentId,
+      temperature,
+      date,
+      healthStatus,
+      notes,
+      symptoms,
+      customSymptom,
+      doctorVisit,
+      followUp,
+    } = req.body;
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -300,6 +346,13 @@ exports.updateMedicalCheckIn = async (req, res) => {
     if (date) updateData.date = new Date(date);
     if (healthStatus) updateData.healthStatus = healthStatus;
     if (notes !== undefined) updateData.notes = notes;
+
+    // New fields
+    if (symptoms !== undefined) updateData.symptoms = symptoms;
+    if (customSymptom !== undefined) updateData.customSymptom = customSymptom;
+    if (doctorVisit !== undefined) updateData.doctorVisit = doctorVisit;
+    if (followUp !== undefined) updateData.followUp = followUp;
+
     const result = await MedicalCheckIns.updateMedicalCheckIn(
       checkInId,
       updateData
