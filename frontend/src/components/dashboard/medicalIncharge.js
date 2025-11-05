@@ -7,6 +7,7 @@ import UserManagement from "../usermanagement/usermanagement";
 import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, deleteMedicalCheckinAttachment, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
 import showToast from '../../utils/toast';
 import DateRangeSelector from "../shop/DateRangeSelector";
+import StudentDetailsTooltip from "./StudentDetailsTooltip";
 
 const MedicInchargeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -21,6 +22,10 @@ const MedicInchargeDashboard = () => {
   const [endDate, setEndDate] = useState('');
   const [editData, setEditData] = useState();
   const [editMode, setEditMode] = useState(false);
+  // New state for dashboard filters
+  const [selectedStatusFilters, setSelectedStatusFilters] = useState(['normal', 'important', 'critical']);
+  const [hoveredStudent, setHoveredStudent] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
   const [checkIns, setCheckIns] = useState([
     // {
     //   id: "HC001",
@@ -205,22 +210,21 @@ const MedicInchargeDashboard = () => {
     try {
       if (editMode && checkInId) {
         // Update existing check-in
+        // Use dot notation for nested doctor visit fields to prevent overwriting other fields
         const updateData = {
           studentId: formData.studentId,
           temperature: formData.temperature,
           date: `${formData.date} ${formData.time}`,
           healthStatus: formData.healthStatus,
           notes: formData.notes,
-          // NEW FIELDS
           symptoms: formData.symptoms,
           customSymptom: formData.customSymptom,
-          doctorVisit: {
-            doctorName: formData.doctorVisit.doctorName,
-            hospitalName: formData.doctorVisit.hospitalName,
-            visitDate: formData.doctorVisit.visitDate,
-            testDetails: formData.doctorVisit.testDetails,
-            conclusion: formData.doctorVisit.conclusion,
-          },
+          // Use dot notation for doctor visit to avoid replacing the entire object
+          "doctorVisit.doctorName": formData.doctorVisit.doctorName,
+          "doctorVisit.hospitalName": formData.doctorVisit.hospitalName,
+          "doctorVisit.visitDate": formData.doctorVisit.visitDate,
+          "doctorVisit.testDetails": formData.doctorVisit.testDetails,
+          "doctorVisit.conclusion": formData.doctorVisit.conclusion,
           followUp: formData.followUp,
         };
 
@@ -240,7 +244,9 @@ const MedicInchargeDashboard = () => {
           // Check if there are new attachments (File objects, not existing DB attachments with fileUrl)
           const newImages = formData.uploadedImages.filter(file => file instanceof File);
           const newPdfs = formData.uploadedPdfs.filter(file => file instanceof File);
-          const hasNewAttachments = newImages.length > 0 || newPdfs.length > 0;
+          const newPrescriptions = formData.doctorVisit.prescriptionFiles?.filter(file => file instanceof File) || [];
+          const newTestResults = formData.doctorVisit.testResultFiles?.filter(file => file instanceof File) || [];
+          const hasNewAttachments = newImages.length > 0 || newPdfs.length > 0 || newPrescriptions.length > 0 || newTestResults.length > 0;
 
           if (hasNewAttachments) {
             // Send new attachments separately
@@ -253,6 +259,12 @@ const MedicInchargeDashboard = () => {
             newPdfs.forEach((file) => {
               attachmentFormData.append("attachments", file);
             });
+            newPrescriptions.forEach((file) => {
+              attachmentFormData.append("prescriptions", file);
+            });
+            newTestResults.forEach((file) => {
+              attachmentFormData.append("testResults", file);
+            });
 
             const attachmentResponse = await addMedicalCheckinAttachments(checkInId, attachmentFormData);
             if (attachmentResponse.success) {
@@ -263,7 +275,7 @@ const MedicInchargeDashboard = () => {
           } else {
             showToast("Medical Check-in updated successfully", "success");
           }
-          fetchMedicalData();
+          await fetchMedicalData();
         } else {
           showToast("Failed to update medical check-in", "error");
         }
@@ -320,7 +332,7 @@ const MedicInchargeDashboard = () => {
         const response = await createMedicalCheckin(formDataToSend);
         if(response.success) {
           showToast("Medical Check-in created successfully", "success");
-          fetchMedicalData();
+          await fetchMedicalData();
         } else {
           showToast("Failed to create medical check-in", "error");
         }
@@ -572,7 +584,7 @@ const MedicInchargeDashboard = () => {
                 <div className="medic-stat-card">
                   <div className="medic-stat-icon normal">🌡️</div>
                   <div className="medic-stat-info">
-                    <h3>37.1°C</h3>
+                    <h3>{(recentHealthCheckins.reduce((sum, c) => sum + c.temperature, 0) / (recentHealthCheckins.length || 1)).toFixed(1)}°C</h3>
                     <p>Avg. Temperature Today</p>
                   </div>
                 </div>
@@ -586,15 +598,15 @@ const MedicInchargeDashboard = () => {
                 <div className="medic-stat-card">
                   <div className="medic-stat-icon warning">⚠️</div>
                   <div className="medic-stat-info">
-                    <h3>3</h3>
+                    <h3>{recentHealthCheckins.filter(c => c.healthStatus === 'important' || c.healthStatus === 'critical').length}</h3>
                     <p>Health Warnings</p>
                   </div>
                 </div>
                 <div className="medic-stat-card">
                   <div className="medic-stat-icon alert">🚨</div>
                   <div className="medic-stat-info">
-                    <h3>1</h3>
-                    <p>Emergency Alerts</p>
+                    <h3>{recentHealthCheckins.filter(c => c.healthStatus === 'critical').length}</h3>
+                    <p>Critical Cases</p>
                   </div>
                 </div>
               </div>
@@ -653,6 +665,73 @@ const MedicInchargeDashboard = () => {
                 </div>
               </div> */}
 
+              {/* Balagruha Filter Navigation */}
+              <div className="balagruha-filter-section">
+                <button className="bg-scroll-arrow" onClick={() => document.getElementById('bg-filter-container').scrollBy({left: -200, behavior: 'smooth'})}>
+                  ←
+                </button>
+                <div id="bg-filter-container" className="bg-filter-container">
+                  <button
+                    className={`bg-filter-btn ${selectedBalagruha === 'all' ? 'active' : ''}`}
+                    onClick={() => setSelectedBalagruha('all')}
+                  >
+                    All BGs
+                  </button>
+                  {balagruhaData.map((bal) => (
+                    <button
+                      key={bal._id}
+                      className={`bg-filter-btn ${selectedBalagruha === bal._id ? 'active' : ''}`}
+                      onClick={() => setSelectedBalagruha(bal._id)}
+                    >
+                      {bal.name}
+                    </button>
+                  ))}
+                </div>
+                <button className="bg-scroll-arrow" onClick={() => document.getElementById('bg-filter-container').scrollBy({left: 200, behavior: 'smooth'})}>
+                  →
+                </button>
+              </div>
+
+              {/* Status Filter Badges */}
+              <div className="status-filter-badges">
+                <button
+                  className={`status-badge normal ${selectedStatusFilters.includes('normal') ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedStatusFilters(prev =>
+                      prev.includes('normal')
+                        ? prev.filter(s => s !== 'normal')
+                        : [...prev, 'normal']
+                    );
+                  }}
+                >
+                  Normal
+                </button>
+                <button
+                  className={`status-badge important ${selectedStatusFilters.includes('important') ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedStatusFilters(prev =>
+                      prev.includes('important')
+                        ? prev.filter(s => s !== 'important')
+                        : [...prev, 'important']
+                    );
+                  }}
+                >
+                  Important
+                </button>
+                <button
+                  className={`status-badge critical ${selectedStatusFilters.includes('critical') ? 'active' : ''}`}
+                  onClick={() => {
+                    setSelectedStatusFilters(prev =>
+                      prev.includes('critical')
+                        ? prev.filter(s => s !== 'critical')
+                        : [...prev, 'critical']
+                    );
+                  }}
+                >
+                  Critical
+                </button>
+              </div>
+
               <div className="medic-dashboard-card medic-recent-checkins">
                 <div className="medic-card-header">
                   <h3>Recent Health Check-ins</h3>
@@ -668,65 +747,90 @@ const MedicInchargeDashboard = () => {
                     <thead>
                       <tr>
                         <th>SI NO</th>
-                        <th>Student</th>
-                        <th>Temperature</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                        <th>Actions</th>
+                        <th>Name</th>
+                        <th>Date</th>
+                        <th>Symptoms</th>
+                        <th>Dr Visits</th>
+                        <th>Tests</th>
+                        <th>Prescription</th>
+                        <th>Conclusion</th>
                       </tr>
                     </thead>
                     <tbody style={{textAlign: "center"}}>
-                      {recentHealthCheckins.map((checkin, index) => (
-                        <tr
-                          key={checkin._id}
-                          className={checkin?.healthStatus?.toLowerCase()}
-                        >
-                          <td>{index + 1}</td>
-                          <td>{checkin.userName}</td>
-                          <td
-                            className={
-                              checkin.temperature >= 38.0
-                                ? "alert"
-                                : checkin.temperature >= 37.5
-                                ? "warning"
-                                : "normal"
+                      {recentHealthCheckins
+                        .filter(c => selectedStatusFilters.includes(c.healthStatus))
+                        .map((checkin, index) => {
+                          const formatSymptoms = () => {
+                            if (!checkin.symptoms || checkin.symptoms.length === 0) return '-';
+                            return checkin.symptoms.filter(s => s).join(', ');
+                          };
+
+                          const formatFileDisplay = (files) => {
+                            if (!files || files.length === 0) return '-';
+                            const firstName = files[0].fileName;
+                            const remaining = files.length - 1;
+                            if (remaining > 0) {
+                              return `${firstName.length > 15 ? firstName.substring(0, 15) + '...' : firstName} (+${remaining})`;
                             }
-                          >
-                            {checkin.temperature}°C
-                          </td>
-                          <td>{new Date(checkin.date).toLocaleString('en-IN', {
-                              day: '2-digit',
-                              month: 'short',
-                              year: 'numeric',
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              hour12: true
-                          })}</td>
-                          <td>
-                            <span
-                              className={`medic-tag medic-status-${checkin?.healthStatus?.toLowerCase()}`}
+                            return firstName.length > 20 ? firstName.substring(0, 20) + '...' : firstName;
+                          };
+
+                          const handleMouseEnter = (e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setTooltipPosition({ x: rect.right + 10, y: rect.top });
+                            setHoveredStudent(checkin);
+                          };
+
+                          const handleMouseLeave = () => {
+                            setHoveredStudent(null);
+                          };
+
+                          return (
+                            <tr
+                              key={checkin._id}
+                              className={checkin?.healthStatus?.toLowerCase()}
                             >
-                              {checkin.healthStatus}
-                            </span>
-                          </td>
-                          <td>
-                            <button
-                              className="medic-icon-button"
-                              onClick={() => handleOpenModal(checkin, true)}
-                            >
-                              📝
-                            </button>
-                            <button
-                              className="medic-icon-button"
-                              onClick={() => handleDeleteCheckIn(checkin._id)}
-                            >
-                              🗑️
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              <td>{index + 1}</td>
+                              <td
+                                onMouseEnter={handleMouseEnter}
+                                onMouseLeave={handleMouseLeave}
+                                style={{ cursor: 'pointer', fontWeight: 600, color: '#6366f1' }}
+                              >
+                                {checkin.userName}
+                              </td>
+                              <td>{new Date(checkin.date).toLocaleDateString('en-IN', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                              })}</td>
+                              <td>{formatSymptoms()}</td>
+                              <td>{checkin.doctorVisit?.doctorName || '-'}</td>
+                              <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {checkin.doctorVisit?.testDetails ?
+                                  (checkin.doctorVisit.testDetails.length > 30 ?
+                                    checkin.doctorVisit.testDetails.substring(0, 30) + '...' :
+                                    checkin.doctorVisit.testDetails)
+                                  : '-'}
+                              </td>
+                              <td>{formatFileDisplay(checkin.doctorVisit?.prescriptionFiles)}</td>
+                              <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {checkin.doctorVisit?.conclusion ?
+                                  (checkin.doctorVisit.conclusion.length > 30 ?
+                                    checkin.doctorVisit.conclusion.substring(0, 30) + '...' :
+                                    checkin.doctorVisit.conclusion)
+                                  : '-'}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
+                  {hoveredStudent && (
+                    <StudentDetailsTooltip
+                      checkIn={hoveredStudent}
+                      position={tooltipPosition}
+                    />
+                  )}
                 </div>
               </div>
             </div>
@@ -747,8 +851,8 @@ const MedicInchargeDashboard = () => {
                   <select onChange={(e) => setMedicalStatus(e.target.value)}>
                     <option value={'all'}>All Statuses</option>
                     <option value={'normal'}>Normal</option>
-                    <option value={'warning'}>Warning</option>
-                    <option value={'alert'}>Alert</option>
+                    <option value={'important'}>Important</option>
+                    <option value={'critical'}>Critical</option>
                   </select>
                   <select onChange={(e) => setSelectedBalagruha(e.target.value)}>
                     <option value={'all'}>All Balagruhas</option>
@@ -767,67 +871,117 @@ const MedicInchargeDashboard = () => {
               <div className="medic-data-table">
                 <table>
                   <thead>
-                  <tr>
-                        <th>SI NO</th>
-                        <th>Student</th>
-                        <th>Temperature</th>
-                        <th>Time</th>
-                        <th>Status</th>
-                        <th>Actions</th>
-                      </tr>
+                    <tr>
+                      <th>SI NO</th>
+                      <th>Name</th>
+                      <th>Date</th>
+                      <th>Symptoms</th>
+                      <th>Dr Visits</th>
+                      <th>Tests</th>
+                      <th>Prescription</th>
+                      <th>Conclusion</th>
+                      <th>Actions</th>
+                    </tr>
                   </thead>
                   <tbody>
-                    {filterMedicalCheckInData.map((checkin, index) => (
-                      <tr
-                        key={checkin._id}
-                        className={checkin?.healthStatus?.toLowerCase()}
-                      >
-                        <td>{index + 1}</td>
-                        <td>{checkin.userName}</td>
-                        <td
-                          className={
-                            checkin.temperature >= 38.0
-                              ? "alert"
-                              : checkin.temperature >= 37.5
-                              ? "warning"
-                              : "normal"
-                          }
-                        >
-                          {checkin.temperature}°C
-                        </td>
-                        <td>{new Date(checkin.date).toLocaleString('en-IN', {
+                    {filterMedicalCheckInData.map((checkin, index) => {
+                      // Format symptoms
+                      const formatSymptoms = () => {
+                        if (!checkin.symptoms || checkin.symptoms.length === 0) return '-';
+                        const symptomLabels = {
+                          cough_cold: 'Cough + Cold',
+                          fever: 'Fever',
+                          stomach_ache: 'Stomach ache',
+                          headache: 'Headache',
+                          injury: 'Injury',
+                          other: 'Other'
+                        };
+                        const symptoms = checkin.symptoms
+                          .filter(s => s)
+                          .map(s => symptomLabels[s] || s)
+                          .join(', ');
+                        if (checkin.customSymptom) {
+                          return `${symptoms} (${checkin.customSymptom})`;
+                        }
+                        return symptoms;
+                      };
+
+                      // Format file display
+                      const formatFileDisplay = (files) => {
+                        if (!files || files.length === 0) return '-';
+                        const firstName = files[0].fileName || 'File';
+                        const remaining = files.length - 1;
+                        return remaining > 0
+                          ? `${firstName.substring(0, 15)}... (+${remaining})`
+                          : firstName.substring(0, 20);
+                      };
+
+                      // Handle mouse enter for tooltip
+                      const handleMouseEnter = (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setTooltipPosition({ x: rect.right + 10, y: rect.top });
+                        setHoveredStudent(checkin);
+                      };
+
+                      return (
+                        <tr key={checkin._id}>
+                          <td style={{ textAlign: 'center' }}>{index + 1}</td>
+                          <td
+                            className="student-name"
+                            onMouseEnter={handleMouseEnter}
+                            onMouseLeave={() => setHoveredStudent(null)}
+                          >
+                            {checkin.userName}
+                          </td>
+                          <td>
+                            {new Date(checkin.date).toLocaleString('en-IN', {
                               day: '2-digit',
                               month: 'short',
                               year: 'numeric',
                               hour: '2-digit',
                               minute: '2-digit',
                               hour12: true
-                          })}</td>
-                        <td>
-                          <span
-                            className={`medic-tag medic-status-${checkin?.healthStatus?.toLowerCase()}`}
-                          >
-                            {checkin.healthStatus}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            className="medic-icon-button"
-                            onClick={() => handleOpenModal(checkin, true)}
-                          >
-                            📝
-                          </button>
-                          <button
-                            className="medic-icon-button"
-                            onClick={() => handleDeleteCheckIn(checkin._id)}
-                          >
-                            🗑️
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                            })}
+                          </td>
+                          <td className="truncate">{formatSymptoms()}</td>
+                          <td className="truncate">
+                            {checkin.doctorVisit?.doctorName || '-'}
+                          </td>
+                          <td className="truncate">
+                            {checkin.doctorVisit?.testDetails
+                              ? checkin.doctorVisit.testDetails.substring(0, 30) + '...'
+                              : '-'}
+                          </td>
+                          <td className="file-display">
+                            {formatFileDisplay(checkin.doctorVisit?.prescriptionFiles)}
+                          </td>
+                          <td className="truncate">
+                            {checkin.doctorVisit?.conclusion
+                              ? checkin.doctorVisit.conclusion.substring(0, 30) + '...'
+                              : '-'}
+                          </td>
+                          <td>
+                            <button
+                              className="medic-icon-button"
+                              onClick={() => handleOpenModal(checkin, true)}
+                            >
+                              📝
+                            </button>
+                            <button
+                              className="medic-icon-button"
+                              onClick={() => handleDeleteCheckIn(checkin._id)}
+                            >
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
+                {hoveredStudent && (
+                  <StudentDetailsTooltip checkIn={hoveredStudent} position={tooltipPosition} />
+                )}
               </div>
               {/* <div className="medic-checkin-details-panel">
                 <h3>Health Check-in Details</h3>

@@ -80,7 +80,7 @@ exports.getMedicalCheckInById = async (checkInId) => {
 };
 
 exports.updateMedicalCheckIn = async (checkInId, payload) => {
-  return await MedicalCheckIn.findByIdAndUpdate(checkInId, payload, {
+  return await MedicalCheckIn.findByIdAndUpdate(checkInId, { $set: payload }, {
     new: true,
   })
     .then((result) => ({
@@ -105,10 +105,10 @@ exports.deleteMedicalCheckIn = async (checkInId) => {
     });
 };
 
-exports.updateMedicalCheckInAttachments = async (checkInId, attachments) => {
+exports.updateMedicalCheckInAttachments = async (checkInId, updateData) => {
   return await MedicalCheckIn.findByIdAndUpdate(
     checkInId,
-    { $set: { attachments: attachments } },
+    { $set: updateData },
     { new: true }
   )
     .then((result) => ({

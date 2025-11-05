@@ -52,7 +52,11 @@ router.delete(
 router.put(
   "/attachments/:checkInId",
   authenticate,
-  upload.fields([{ name: "attachments", maxCount: 5 }]),
+  upload.fields([
+    { name: "attachments", maxCount: 5 },
+    { name: "prescriptions", maxCount: 5 },
+    { name: "testResults", maxCount: 5 },
+  ]),
   medicalCheckInsController.addOrUpdateAttachments
 );
 

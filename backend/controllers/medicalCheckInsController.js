@@ -478,9 +478,21 @@ exports.addOrUpdateAttachments = async (req, res) => {
       `Request received to add/update attachments for medical check-in with ID: ${checkInId}`
     );
     let attachmentFiles = [];
-    if (req.files && req.files.attachments) {
-      attachmentFiles = req.files.attachments.map((file) => file.path);
+    let prescriptionFiles = [];
+    let testResultFiles = [];
+
+    if (req.files) {
+      if (req.files.attachments) {
+        attachmentFiles = req.files.attachments.map((file) => file.path);
+      }
+      if (req.files.prescriptions) {
+        prescriptionFiles = req.files.prescriptions.map((file) => file.path);
+      }
+      if (req.files.testResults) {
+        testResultFiles = req.files.testResults.map((file) => file.path);
+      }
     }
+
     if (!createdBy) {
       return res
         .status(HTTP_STATUS_CODE.BAD_REQUEST)
@@ -488,7 +500,11 @@ exports.addOrUpdateAttachments = async (req, res) => {
     }
     const result = await MedicalCheckIns.addOrUpdateAttachments(
       checkInId,
-      attachmentFiles,
+      {
+        attachments: attachmentFiles,
+        prescriptions: prescriptionFiles,
+        testResults: testResultFiles,
+      },
       createdBy
     );
     if (result.success) {

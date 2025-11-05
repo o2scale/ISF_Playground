@@ -393,7 +393,7 @@ class MedicalCheckIns {
     }
   }
 
-  static async addOrUpdateAttachments(checkInId, attachmentFiles, createdById) {
+  static async addOrUpdateAttachments(checkInId, fileGroups, createdById) {
     try {
       if (
         !mongoose.Types.ObjectId.isValid(checkInId) ||
@@ -413,10 +413,12 @@ class MedicalCheckIns {
           message: "Medical check-in not found.",
         };
       }
+
+      // Process general attachments
       let processedAttachments = checkInExists.data.attachments || [];
-      if (attachmentFiles && attachmentFiles.length > 0) {
-        for (let i = 0; i < attachmentFiles.length; i++) {
-          let file = attachmentFiles[i];
+      if (fileGroups.attachments && fileGroups.attachments.length > 0) {
+        for (let i = 0; i < fileGroups.attachments.length; i++) {
+          let file = fileGroups.attachments[i];
           let fileName = file.replace("uploads/", "");
           let result = await uploadFileToS3(
             file,
@@ -442,9 +444,65 @@ class MedicalCheckIns {
           }
         }
       }
+
+      // Process prescription files
+      let processedPrescriptions = checkInExists.data.doctorVisit?.prescriptionFiles || [];
+      if (fileGroups.prescriptions && fileGroups.prescriptions.length > 0) {
+        for (let i = 0; i < fileGroups.prescriptions.length; i++) {
+          let file = fileGroups.prescriptions[i];
+          let fileName = file.replace("uploads/", "");
+          let result = await uploadFileToS3(
+            file,
+            process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (result.success) {
+            let prescriptionObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              fileSize: result.size,
+              uploadedBy: createdById,
+            };
+            processedPrescriptions.push(prescriptionObj);
+          }
+        }
+      }
+
+      // Process test result files
+      let processedTestResults = checkInExists.data.doctorVisit?.testResultFiles || [];
+      if (fileGroups.testResults && fileGroups.testResults.length > 0) {
+        for (let i = 0; i < fileGroups.testResults.length; i++) {
+          let file = fileGroups.testResults[i];
+          let fileName = file.replace("uploads/", "");
+          let result = await uploadFileToS3(
+            file,
+            process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (result.success) {
+            let testResultObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              fileSize: result.size,
+              uploadedBy: createdById,
+            };
+            processedTestResults.push(testResultObj);
+          }
+        }
+      }
+
+      // Update check-in with all processed files
+      const updateData = {
+        attachments: processedAttachments,
+        "doctorVisit.prescriptionFiles": processedPrescriptions,
+        "doctorVisit.testResultFiles": processedTestResults,
+      };
+
       const result = await updateMedicalCheckInAttachments(
         checkInId,
-        processedAttachments
+        updateData
       );
       if (result.success) {
         return {
