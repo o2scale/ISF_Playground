@@ -17,6 +17,7 @@ exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}) => {
   return await MedicalCheckIn.find(filters)
     .populate("student", "firstName lastName studentId balagruhaId")
     .populate("createdBy", "name email")
+    .populate("followUp.assignedCoaches", "name email")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit))
@@ -42,6 +43,7 @@ exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}) => {
   return await MedicalCheckIn.find({ student: studentId })
     .populate("student", "firstName lastName studentId")
     .populate("createdBy", "name email")
+    .populate("followUp.assignedCoaches", "name email")
     .sort({ createdAt: -1 })
     .skip((page - 1) * limit)
     .limit(parseInt(limit))
@@ -68,6 +70,7 @@ exports.getMedicalCheckInById = async (checkInId) => {
   return await MedicalCheckIn.findById(checkInId)
     .populate("studentId", "firstName lastName studentId")
     .populate("createdBy", "name email")
+    .populate("followUp.assignedCoaches", "name email")
     .lean()
     .then((result) => ({
       success: true,
