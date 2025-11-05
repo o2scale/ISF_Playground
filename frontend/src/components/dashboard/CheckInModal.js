@@ -363,8 +363,8 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               required
             >
               <option value="normal">Normal</option>
-              <option value="warning">Warning</option>
-              <option value="alert">Alert</option>
+              <option value="important">Important</option>
+              <option value="critical">Critical</option>
             </select>
           </div>
 

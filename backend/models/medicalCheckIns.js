@@ -11,7 +11,7 @@ const medicalCheckInSchema = new mongoose.Schema(
     date: { type: Date, required: true },
     healthStatus: {
       type: String,
-      enum: ["normal", "warning", "alert"],
+      enum: ["normal", "important", "critical"],
       default: "normal",
     },
     notes: { type: String },

@@ -15,19 +15,23 @@ const DoctorVisitsSection = ({ doctorVisit, onChange }) => {
     const files = Array.from(e.target.files);
     const field = fileType === "prescription" ? "prescriptionFiles" : "testResultFiles";
 
-    // Validate files
+    // Validate files with separate limits for images and PDFs
     const validFiles = files.filter((file) => {
-      const isValidType = file.type.startsWith("image/") || file.type === "application/pdf";
-      const isValidSize = file.size <= 10 * 1024 * 1024; // 10MB limit
+      const isImage = file.type.startsWith("image/");
+      const isPdf = file.type === "application/pdf";
 
-      if (!isValidType) {
+      if (!isImage && !isPdf) {
         alert(`File ${file.name} must be an image or PDF`);
         return false;
       }
-      if (!isValidSize) {
-        alert(`File ${file.name} exceeds 10MB limit`);
+
+      // Images: 5MB limit, PDFs: 10MB limit
+      const maxSize = isImage ? 5 * 1024 * 1024 : 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        alert(`File ${file.name} exceeds ${isImage ? '5MB' : '10MB'} limit`);
         return false;
       }
+
       return true;
     });
 
@@ -84,19 +88,72 @@ const DoctorVisitsSection = ({ doctorVisit, onChange }) => {
           </div>
 
           <div className="form-group">
-            <label>Prescription Files (img/pdf)</label>
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              multiple
-              onChange={(e) => handleFileUpload(e, "prescription")}
-            />
+            <label className="upload-button">
+              📎 Upload Prescription Files (Images: 5MB, PDFs: 10MB)
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                onChange={(e) => handleFileUpload(e, "prescription")}
+                hidden
+              />
+            </label>
             {doctorVisit.prescriptionFiles && doctorVisit.prescriptionFiles.length > 0 && (
               <div className="file-list">
                 {doctorVisit.prescriptionFiles.map((file, index) => (
-                  <div key={index} className="file-item">
-                    <span>{file.name || file.fileName}</span>
-                    <button type="button" onClick={() => handleRemoveFile(index, "prescription")}>
+                  <div key={index} className="file-item-preview">
+                    {file instanceof File ? (
+                      // New file upload
+                      file.type.startsWith("image/") ? (
+                        <div className="file-preview-container">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="file-thumbnail"
+                          />
+                          <span className="file-name">{file.name}</span>
+                        </div>
+                      ) : (
+                        <div className="file-preview-container">
+                          <div className="pdf-icon">📄</div>
+                          <span className="file-name">{file.name}</span>
+                        </div>
+                      )
+                    ) : (
+                      // Existing database attachment
+                      <div className="file-preview-container">
+                        {file.fileType?.startsWith("image/") ? (
+                          <>
+                            <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={file.fileUrl}
+                                alt={file.fileName || "Prescription"}
+                                className="file-thumbnail"
+                              />
+                            </a>
+                            <span className="file-name">
+                              <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                                {file.fileName}
+                              </a>
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="pdf-icon">📄</div>
+                            <span className="file-name">
+                              <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                                {file.fileName}
+                              </a>
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="remove-file-btn"
+                      onClick={() => handleRemoveFile(index, "prescription")}
+                    >
                       ❌
                     </button>
                   </div>
@@ -116,19 +173,72 @@ const DoctorVisitsSection = ({ doctorVisit, onChange }) => {
           </div>
 
           <div className="form-group">
-            <label>Test Result Files (img/pdf)</label>
-            <input
-              type="file"
-              accept="image/*,.pdf"
-              multiple
-              onChange={(e) => handleFileUpload(e, "testResult")}
-            />
+            <label className="upload-button">
+              📎 Upload Test Result Files (Images: 5MB, PDFs: 10MB)
+              <input
+                type="file"
+                accept="image/*,.pdf"
+                multiple
+                onChange={(e) => handleFileUpload(e, "testResult")}
+                hidden
+              />
+            </label>
             {doctorVisit.testResultFiles && doctorVisit.testResultFiles.length > 0 && (
               <div className="file-list">
                 {doctorVisit.testResultFiles.map((file, index) => (
-                  <div key={index} className="file-item">
-                    <span>{file.name || file.fileName}</span>
-                    <button type="button" onClick={() => handleRemoveFile(index, "testResult")}>
+                  <div key={index} className="file-item-preview">
+                    {file instanceof File ? (
+                      // New file upload
+                      file.type.startsWith("image/") ? (
+                        <div className="file-preview-container">
+                          <img
+                            src={URL.createObjectURL(file)}
+                            alt={file.name}
+                            className="file-thumbnail"
+                          />
+                          <span className="file-name">{file.name}</span>
+                        </div>
+                      ) : (
+                        <div className="file-preview-container">
+                          <div className="pdf-icon">📄</div>
+                          <span className="file-name">{file.name}</span>
+                        </div>
+                      )
+                    ) : (
+                      // Existing database attachment
+                      <div className="file-preview-container">
+                        {file.fileType?.startsWith("image/") ? (
+                          <>
+                            <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={file.fileUrl}
+                                alt={file.fileName || "Test Result"}
+                                className="file-thumbnail"
+                              />
+                            </a>
+                            <span className="file-name">
+                              <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                                {file.fileName}
+                              </a>
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <div className="pdf-icon">📄</div>
+                            <span className="file-name">
+                              <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                                {file.fileName}
+                              </a>
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      className="remove-file-btn"
+                      onClick={() => handleRemoveFile(index, "testResult")}
+                    >
                       ❌
                     </button>
                   </div>

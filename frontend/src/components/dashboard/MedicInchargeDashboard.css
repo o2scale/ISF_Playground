@@ -1001,3 +1001,251 @@ pre {
     padding: 2px 5px;
     border-radius: 50%;
 }
+
+/* Balagruha Filter Navigation Section */
+.balagruha-filter-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+    background-color: white;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.bg-scroll-arrow {
+    background-color: #6366F1;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.bg-scroll-arrow:hover {
+    background-color: #4f46e5;
+    transform: scale(1.05);
+}
+
+.bg-scroll-arrow:active {
+    transform: scale(0.95);
+}
+
+.bg-filter-container {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    flex: 1;
+    padding: 5px 0;
+    scroll-behavior: smooth;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+}
+
+.bg-filter-container::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+.bg-filter-btn {
+    background-color: #f3f4f6;
+    color: #4b5563;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 15px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.bg-filter-btn:hover {
+    background-color: #e5e7eb;
+    border-color: #d1d5db;
+}
+
+.bg-filter-btn.active {
+    background-color: #6366F1;
+    color: white;
+    border-color: #6366F1;
+    font-weight: 600;
+}
+
+/* Status Filter Badges Section */
+.status-filter-badges {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    align-items: center;
+}
+
+.status-badge {
+    background-color: #f3f4f6;
+    color: #6b7280;
+    border: 2px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 8px 20px;
+    font-family: 'Patrick Hand', cursive;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+}
+
+.status-badge:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-badge.normal {
+    color: #065f46;
+}
+
+.status-badge.normal.active {
+    background-color: #10b981;
+    color: white;
+    border-color: #10b981;
+    font-weight: 600;
+}
+
+.status-badge.important {
+    color: #92400e;
+}
+
+.status-badge.important.active {
+    background-color: #f97316;
+    color: white;
+    border-color: #f97316;
+    font-weight: 600;
+}
+
+.status-badge.critical {
+    color: #991b1b;
+}
+
+.status-badge.critical.active {
+    background-color: #dc2626;
+    color: white;
+    border-color: #dc2626;
+    font-weight: 600;
+}
+
+/* Update table to be horizontally scrollable with new columns */
+.medic-checkins-table {
+    overflow-x: auto;
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.medic-data-table table {
+    width: 100%;
+    min-width: 1200px; /* Ensure table doesn't squish */
+    border-collapse: collapse;
+}
+
+.medic-data-table th {
+    background-color: #f9fafb;
+    color: #3da5d9;
+    font-weight: bold;
+    padding: 14px 12px;
+    text-align: left;
+    border-bottom: 2px solid #e5e7eb;
+    white-space: nowrap;
+}
+
+.medic-data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: top;
+}
+
+/* Student name column - hoverable */
+.medic-data-table td.student-name {
+    color: #6366F1;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s ease;
+}
+
+.medic-data-table td.student-name:hover {
+    color: #4f46e5;
+    text-decoration: underline;
+}
+
+/* Column width adjustments for new table structure */
+.medic-data-table th:nth-child(1),
+.medic-data-table td:nth-child(1) {
+    width: 60px; /* SI NO */
+    text-align: center;
+}
+
+.medic-data-table th:nth-child(2),
+.medic-data-table td:nth-child(2) {
+    width: 150px; /* Name */
+}
+
+.medic-data-table th:nth-child(3),
+.medic-data-table td:nth-child(3) {
+    width: 140px; /* Date */
+}
+
+.medic-data-table th:nth-child(4),
+.medic-data-table td:nth-child(4) {
+    width: 200px; /* Symptoms */
+}
+
+.medic-data-table th:nth-child(5),
+.medic-data-table td:nth-child(5) {
+    width: 150px; /* Dr Visits */
+}
+
+.medic-data-table th:nth-child(6),
+.medic-data-table td:nth-child(6) {
+    width: 180px; /* Tests */
+}
+
+.medic-data-table th:nth-child(7),
+.medic-data-table td:nth-child(7) {
+    width: 180px; /* Prescription */
+}
+
+.medic-data-table th:nth-child(8),
+.medic-data-table td:nth-child(8) {
+    width: 200px; /* Conclusion */
+}
+
+.medic-data-table th:nth-child(9),
+.medic-data-table td:nth-child(9) {
+    width: 100px; /* Actions */
+    text-align: center;
+}
+
+/* Text truncation for long content */
+.medic-data-table .truncate {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* File display styling */
+.file-display {
+    color: #6366F1;
+    font-size: 13px;
+}
+
+.file-count {
+    color: #9ca3af;
+    font-weight: 600;
+}
