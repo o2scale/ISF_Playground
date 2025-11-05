@@ -225,7 +225,12 @@ const MedicInchargeDashboard = () => {
           "doctorVisit.visitDate": formData.doctorVisit.visitDate,
           "doctorVisit.testDetails": formData.doctorVisit.testDetails,
           "doctorVisit.conclusion": formData.doctorVisit.conclusion,
-          followUp: formData.followUp,
+          // Use dot notation for follow-up to avoid replacing the entire object
+          "followUp.followUpDate": formData.followUp.followUpDate,
+          "followUp.hospital": formData.followUp.hospital,
+          "followUp.doctor": formData.followUp.doctor,
+          "followUp.assignedCoaches": formData.followUp.assignedCoaches,
+          "followUp.status": formData.followUp.status,
         };
 
         const response = await updateMedicalCheckin(checkInId, updateData);
