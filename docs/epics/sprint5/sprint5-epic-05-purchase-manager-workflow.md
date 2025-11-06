@@ -265,6 +265,34 @@ Build a **Purchase Manager Workflow** integrated into the existing `/purchase` p
 
 ---
 
+### Story 25: Inline Product Addition for Purchase Requests
+**As a** Coach, Medical Incharge, Admin, or Purchase Manager
+**I want to** add new products to the catalog while creating a purchase request
+**So that** I can request items that don't exist in inventory yet without breaking my workflow or waiting for Admin to add products first
+
+**Context:**
+This story addresses a **critical workflow gap** identified during Story 21 implementation. Currently, users can only create purchase requests for products that already exist in the Shop Inventory catalog. If a user needs to purchase a new item (e.g., "Pee proof Pants"), they must contact Admin to add it to the catalog first, interrupting the procurement workflow.
+
+**Acceptance Criteria:**
+- "+ Add New Product" button visible in product selection section of Create Purchase Request modal
+- Inline product addition form with fields: Product Name (required), Category (required), Unit (required), SKU (optional - auto-generated), Description (optional)
+- Auto-generated SKU format: `NEW-{TIMESTAMP}` with manual override option
+- Form validation: Required fields, SKU uniqueness, max character limits
+- New product added to selected products table with "New Product" badge
+- Backend creates ShopItem with `isPendingProduct: true, isActive: false` flags
+- Pending products linked to originating request via `createdInRequest` field
+- **Product activation on fulfillment:** When Purchase Manager fulfills request, pending products become active with stock set to received quantity and `lowStockThreshold` assigned
+- Pending products visible in Inventory Management with filter option
+- Pending products available for selection in other users' purchase requests with "Pending Product" badge
+- Multiple new products can be added in same request
+- Pending products remain in catalog even if request rejected (for future use)
+
+**Story ID:** Sprint5-Story-25
+**Story Link:** [Story 25 - Inline Product Addition](../../stories/sprint5/sprint5-story-25-inline-product-addition.md)
+**Estimate:** 1 day
+
+---
+
 ## Technical Architecture
 
 ### New Database Models
@@ -691,5 +719,5 @@ const filteredRequests = allRequests.filter(request => {
 
 ---
 
-**Last Updated:** 2025-11-06 14:15:45 (via `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Dev Agent - Added Stories 20-24 based on client feedback
+**Last Updated:** 2025-11-06 19:27:45 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent - Added Story 25: Inline Product Addition to address workflow gap
