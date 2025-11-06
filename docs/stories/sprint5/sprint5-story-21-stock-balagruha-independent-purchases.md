@@ -957,6 +957,9 @@ describe('Purchase Request - STOCK Feature', () => {
 2025-11-06 15:45:00 - Frontend: Servers restarted successfully, compilation complete
 2025-11-06 15:48:51 - Documentation: Updated Story 21 markdown with completion notes
 2025-11-06 15:48:51 - Ready for git commit and QA review
+2025-11-06 18:24:40 - CRITICAL FIX: Implemented AC3 visibility logic (STOCK requests visible to all users)
+2025-11-06 18:24:40 - Backend: Updated getMyPurchaseRequests to use $or query for STOCK visibility
+2025-11-06 18:24:40 - Backend: Users now see their own requests + all STOCK requests automatically
 ```
 
 ### File List (7 files modified)
@@ -1034,7 +1037,11 @@ describe('Purchase Request - STOCK Feature', () => {
 2. **Purchase Request Controller** (backend/controllers/purchaseRequestController.js)
    - Line 42-52: Added STOCK validation in createPurchaseRequest
    - Line 89-91: Skip populate when balagruhaId === 'STOCK' (createPurchaseRequest)
-   - Line 175-178: Manual populate loop skips STOCK (getMyPurchaseRequests)
+   - **Line 180-199: [AC3 FIX] Implemented $or query for STOCK visibility in getMyPurchaseRequests**
+     - Users see their own requests OR all STOCK requests
+     - Query structure: `{ $or: [{ requestedBy: userId }, { balagruhaId: 'STOCK' }] }`
+     - When filtering by specific Balagruha, reverts to own requests only
+   - Line 207-212: Manual populate loop skips STOCK (getMyPurchaseRequests)
    - Line 254-257: Manual populate loop skips STOCK (getAllPurchaseRequests)
 
 3. **Balagruha Controller** (backend/controllers/balagruha.js:366-427)
@@ -1152,5 +1159,5 @@ describe('Purchase Request - STOCK Feature', () => {
 
 **Story Status:** Draft → Ready for Development → In Progress → Code Review → QA Testing → Done
 
-**Last Updated:** 2025-11-06 15:48:51 (via `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Dev Agent (James) - Implementation Complete
+**Last Updated:** 2025-11-06 18:24:40 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent (James) - AC3 Critical Fix Applied - ALL 7 ACs NOW COMPLETE

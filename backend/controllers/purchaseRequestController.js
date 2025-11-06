@@ -177,15 +177,25 @@ exports.getMyPurchaseRequests = async (req, res) => {
     const userId = req.user._id;
     const { status, balagruhaId, category, startDate, endDate } = req.query;
 
-    // Build query
-    const query = { requestedBy: userId };
+    // Sprint5-Story-21 AC3: STOCK requests visible to ALL users
+    // Build base query: show own requests OR all STOCK requests
+    const query = {
+      $or: [
+        { requestedBy: userId },           // Own requests
+        { balagruhaId: 'STOCK' }           // All STOCK requests (visible to everyone)
+      ]
+    };
 
     if (status && status !== 'all') {
       query.status = status;
     }
 
     if (balagruhaId && balagruhaId !== 'all') {
+      // User explicitly filtering by specific balagruha
+      // Override the $or query to show only selected balagruha
+      delete query.$or;
       query.balagruhaId = balagruhaId;
+      query.requestedBy = userId;  // Still restrict to own requests when filtering
     }
 
     if (category && category !== 'All Categories') {
