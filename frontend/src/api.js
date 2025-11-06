@@ -161,6 +161,12 @@ export const getBalagruhaWithStock = async () => {
   return response.data;
 };
 
+// Sprint5-Story-24: Get current user's assigned Balagruhas (with STOCK option)
+export const getUserBalagruhas = async () => {
+  const response = await api.get(`/api/users/me/balagruhas`);
+  return response.data;
+};
+
 export const addMachines = async (data) => {
   const response = await api.post("/api/v1/machines", data);
   return response.data;

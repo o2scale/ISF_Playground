@@ -3,7 +3,7 @@ import {
   getMyPurchaseRequests,
   getAllPurchaseRequests,
   cancelPurchaseRequest,
-  getBalagruhaWithStock  // Sprint5-Story-21: Use with-stock endpoint
+  getUserBalagruhas  // Sprint5-Story-24: Get user's assigned Balagruhas
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import { formatDate, formatDateTime, getReadableDate } from '../../../utils/dateFormatter';  // Sprint5-Story-23: Date formatting utilities
@@ -150,12 +150,14 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
   const fetchBalagruhas = async () => {
     try {
-      const response = await getBalagruhaWithStock();  // Sprint5-Story-21: Fetch with STOCK option
+      // Sprint5-Story-24: Fetch user's assigned Balagruhas (includes STOCK option)
+      const response = await getUserBalagruhas();
       if (response.success) {
-        setBalagruhas(response.data.balagruhas || []);
+        setBalagruhas(response.data || []);
       }
     } catch (error) {
       console.error('Error fetching balagruhas:', error);
+      showToast('Failed to load Balagruhas', 'error');
     }
   };
 

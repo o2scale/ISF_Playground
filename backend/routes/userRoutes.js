@@ -7,6 +7,7 @@ const {
   deleteUser,
 } = require("../controllers/userController");
 const { authenticate, authorize } = require("../middleware/auth");
+const User = require("../models/User");
 
 const router = express.Router();
 
@@ -198,6 +199,42 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized - Authentication required
  */
+
+// Sprint5-Story-24: Get current user's assigned Balagruhas
+router.get('/me/balagruhas', authenticate, async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).populate('balagruhaIds', 'name location');
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Always include STOCK option first, then user's assigned Balagruhas
+    const balagruhas = [
+      { _id: 'STOCK', name: 'STOCK', isStock: true },
+      ...user.balagruhaIds.map(b => ({
+        _id: b._id,
+        name: b.name,
+        location: b.location,
+        isStock: false
+      }))
+    ];
+
+    res.status(200).json({
+      success: true,
+      data: balagruhas
+    });
+  } catch (error) {
+    console.error('Error fetching user Balagruhas:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
 
 router.get(
   "/",
