@@ -271,7 +271,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     if (userRole === 'admin') {
       return balagruhas;
     }
-    return balagruhas.filter(bg => userBalagruhas.includes(bg._id));
+    // Sprint5-Story-21 (S21-BUG-002 FIX): Always include STOCK + user's assigned Balagruhas
+    return balagruhas.filter(bg => bg._id === 'STOCK' || userBalagruhas.includes(bg._id));
   };
 
   // Get unique purchase managers from requests, optionally filtered by balagruha
