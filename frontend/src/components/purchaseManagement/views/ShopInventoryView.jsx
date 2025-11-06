@@ -101,9 +101,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     // So we only need to filter by balagruha on frontend
     if (userRole === 'purchase-manager') {
       filtered = filtered.filter(request => {
-        // Only show requests from assigned balagruhas
+        // Sprint5-Story-21 (S21-BUG-003): Show requests from assigned balagruhas + ALL STOCK requests
         const balagruhaIdStr = request.balagruhaId?._id || request.balagruhaId;
         const matchesBalagruha = !request.balagruhaId ||
+          balagruhaIdStr === 'STOCK' ||  // Always show STOCK requests to all users
           userBalagruhas.some(bgId => bgId === balagruhaIdStr);
 
         return matchesBalagruha;
