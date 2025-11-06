@@ -451,7 +451,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       <div className="view-header">
         <h2 className="view-title">🛒 Shop Inventory Purchase Requests</h2>
         <div className="header-actions">
-          {userRole === 'purchase-manager' && (
+          {/* Sprint5-Story-24: Multi-role access to purchase request creation */}
+          {['purchase-manager', 'coach', 'medical-incharge', 'admin'].includes(userRole) && (
             <button
               className="btn btn-primary"
               onClick={() => setShowCreateModal(true)}

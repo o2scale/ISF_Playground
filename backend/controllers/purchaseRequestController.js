@@ -203,16 +203,29 @@ exports.createPurchaseRequest = async (req, res) => {
 exports.getMyPurchaseRequests = async (req, res) => {
   try {
     const userId = req.user._id;
+    const userRole = req.user.role;
     const { status, balagruhaId, category, startDate, endDate } = req.query;
 
-    // Sprint5-Story-21 AC3: STOCK requests visible to ALL users
-    // Build base query: show own requests OR all STOCK requests
-    const query = {
-      $or: [
-        { requestedBy: userId },           // Own requests
-        { balagruhaId: 'STOCK' }           // All STOCK requests (visible to everyone)
-      ]
-    };
+    // Sprint5-Story-24: Role-based filtering
+    // Build base query based on user role
+    let query = {};
+
+    if (userRole === 'purchase-manager') {
+      // PM sees ALL requests system-wide (no restriction)
+      query = {};
+    } else {
+      // Coach/Medical/Admin: See own requests + requests for assigned Balagruhas + STOCK
+      const user = await User.findById(userId).select('balagruhaIds');
+      const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
+
+      query = {
+        $or: [
+          { requestedBy: userId },                           // Own requests
+          { balagruhaId: 'STOCK' },                          // All STOCK requests
+          { balagruhaId: { $in: userBalagruhaIds } }        // Requests for assigned Balagruhas
+        ]
+      };
+    }
 
     if (status && status !== 'all') {
       query.status = status;
@@ -220,10 +233,25 @@ exports.getMyPurchaseRequests = async (req, res) => {
 
     if (balagruhaId && balagruhaId !== 'all') {
       // User explicitly filtering by specific balagruha
-      // Override the $or query to show only selected balagruha
-      delete query.$or;
-      query.balagruhaId = balagruhaId;
-      query.requestedBy = userId;  // Still restrict to own requests when filtering
+      if (userRole === 'purchase-manager') {
+        // PM can filter by any balagruha
+        query.balagruhaId = balagruhaId;
+      } else {
+        // Other roles: only filter by assigned balagruhas or STOCK
+        const user = await User.findById(userId).select('balagruhaIds');
+        const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
+
+        if (balagruhaId === 'STOCK' || userBalagruhaIds.includes(balagruhaId)) {
+          query.balagruhaId = balagruhaId;
+          delete query.$or;  // Override $or when filtering by specific balagruha
+        } else {
+          // User trying to filter by unassigned balagruha - return empty
+          return res.json({
+            success: true,
+            data: { requests: [], count: 0 }
+          });
+        }
+      }
     }
 
     if (category && category !== 'All Categories') {
