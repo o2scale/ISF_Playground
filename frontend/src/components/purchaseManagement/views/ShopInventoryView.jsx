@@ -6,6 +6,7 @@ import {
   getBalagruhaWithStock  // Sprint5-Story-21: Use with-stock endpoint
 } from '../../../api';
 import showToast from '../../../utils/toast';
+import { formatDate, formatDateTime, getReadableDate } from '../../../utils/dateFormatter';  // Sprint5-Story-23: Date formatting utilities
 import CreatePurchaseRequestModal from '../modals/CreatePurchaseRequestModal';
 import ViewRequestModal from '../modals/ViewRequestModal';
 import ApproveRequestModal from '../modals/ApproveRequestModal';
@@ -111,6 +112,12 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     search: ''
   });
 
+  // Sprint5-Story-23: Sorting state for date column
+  const [sortConfig, setSortConfig] = useState({
+    key: 'createdAt',
+    direction: 'desc' // Default: most recent first
+  });
+
   useEffect(() => {
     fetchBalagruhas();
     fetchPurchaseRequests();
@@ -138,7 +145,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
   useEffect(() => {
     applyFilters();
-  }, [requests, filters, userRole, userId, userBalagruhas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [requests, filters, sortConfig, userRole, userId, userBalagruhas]);
 
   const fetchBalagruhas = async () => {
     try {
@@ -247,7 +255,41 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       });
     }
 
+    // Sprint5-Story-23: Apply sorting
+    if (sortConfig.direction) {
+      filtered.sort((a, b) => {
+        const aValue = sortConfig.key === 'createdAt' ? new Date(a[sortConfig.key]) : a[sortConfig.key];
+        const bValue = sortConfig.key === 'createdAt' ? new Date(b[sortConfig.key]) : b[sortConfig.key];
+
+        if (sortConfig.direction === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+    }
+
     setFilteredRequests(filtered);
+  };
+
+  // Sprint5-Story-23: Handle sorting for date column
+  const handleSort = (key) => {
+    let direction = 'asc';
+
+    if (sortConfig.key === key) {
+      // Cycle through: desc → asc → null (remove sort)
+      if (sortConfig.direction === 'desc') {
+        direction = 'asc';
+      } else if (sortConfig.direction === 'asc') {
+        direction = null; // Remove sort
+      } else {
+        direction = 'desc';
+      }
+    } else {
+      direction = 'desc'; // Default for new column
+    }
+
+    setSortConfig({ key, direction });
   };
 
   const getStatusBadge = (status) => {
@@ -559,7 +601,18 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               {userRole === 'admin' && <th>Requested By</th>}
               <th>Status</th>
               <th>Category</th>
-              <th>Requested</th>
+              {/* Sprint5-Story-23: Sortable date column */}
+              <th
+                onClick={() => handleSort('createdAt')}
+                style={{ cursor: 'pointer', userSelect: 'none' }}
+                title="Click to sort by date"
+              >
+                Created Date {' '}
+                {sortConfig.key === 'createdAt' && (
+                  sortConfig.direction === 'desc' ? '▼' :
+                  sortConfig.direction === 'asc' ? '▲' : ''
+                )}
+              </th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -615,8 +668,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                 )}
                 <td>{getStatusBadge(request.status)}</td>
                 <td className="category-cell">{request.category || 'Not Categorized'}</td>
-                <td className="date-cell">
-                  <div>{dayjs(request.createdAt).format('DD-MM-YYYY')}</div>
+                {/* Sprint5-Story-23: Date column with new format and tooltip */}
+                <td
+                  className="date-cell"
+                  title={`Created on: ${formatDateTime(request.createdAt)}`}
+                  aria-label={`Created on ${getReadableDate(request.createdAt)}`}
+                >
+                  <div>{formatDate(request.createdAt, 'dd/mm/yy')}</div>
                   <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
                 </td>
                 <td className="actions-cell">

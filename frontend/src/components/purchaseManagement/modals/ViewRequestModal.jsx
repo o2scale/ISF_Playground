@@ -2,6 +2,7 @@ import React from 'react';
 import dayjs from 'dayjs';
 import { cancelPurchaseRequest } from '../../../api';
 import showToast from '../../../utils/toast';
+import { formatDateTime } from '../../../utils/dateFormatter';  // Sprint5-Story-23
 import '../PurchaseManagement.css';
 
 /**
@@ -166,10 +167,11 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                   <span className="user-email">({request.requestedBy?.email})</span>
                 </span>
               </div>
+              {/* Sprint5-Story-23: Updated to use date formatter */}
               <div className="detail-item">
-                <span className="detail-label">Request Date:</span>
+                <span className="detail-label">Created On:</span>
                 <span className="detail-value">
-                  {dayjs(request.createdAt).format('DD-MM-YYYY HH:mm')}
+                  {formatDateTime(request.createdAt)}
                   <span className="time-ago">({dayjs(request.createdAt).fromNow()})</span>
                 </span>
               </div>
