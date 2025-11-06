@@ -118,9 +118,22 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
   // Sprint5-Story-22: Refetch data when date filter changes
   useEffect(() => {
-    if (filters.dateRange !== null) {
-      fetchPurchaseRequests();
+    // Skip if dateRange is null (initial state)
+    if (filters.dateRange === null) {
+      return;
     }
+
+    // For custom range, only fetch when at least one date is provided
+    if (filters.dateRange === 'custom') {
+      if (!filters.fromDate && !filters.toDate) {
+        // User selected "Custom Range" but hasn't entered dates yet - don't fetch
+        return;
+      }
+    }
+
+    // All other cases: fetch with the current filter values
+    fetchPurchaseRequests();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.dateRange, filters.fromDate, filters.toDate]);
 
   useEffect(() => {
