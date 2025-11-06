@@ -155,6 +155,12 @@ export const getBalagruha = async () => {
   return response.data;
 };
 
+// Sprint5-Story-21: Get Balagruhas with STOCK option
+export const getBalagruhaWithStock = async () => {
+  const response = await api.get(`/api/v1/balagruha/with-stock`);
+  return response.data;
+};
+
 export const addMachines = async (data) => {
   const response = await api.post("/api/v1/machines", data);
   return response.data;

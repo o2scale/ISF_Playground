@@ -3,7 +3,7 @@ import {
   getMyPurchaseRequests,
   getAllPurchaseRequests,
   cancelPurchaseRequest,
-  getBalagruha
+  getBalagruhaWithStock  // Sprint5-Story-21: Use with-stock endpoint
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import CreatePurchaseRequestModal from '../modals/CreatePurchaseRequestModal';
@@ -64,7 +64,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
   const fetchBalagruhas = async () => {
     try {
-      const response = await getBalagruha();
+      const response = await getBalagruhaWithStock();  // Sprint5-Story-21: Fetch with STOCK option
       if (response.success) {
         setBalagruhas(response.data.balagruhas || []);
       }
