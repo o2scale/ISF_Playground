@@ -364,18 +364,36 @@ export default function CreatePurchaseRequestModal({
                 value={formData.balagruhaId}
                 onChange={handleBalagruhaChange}
                 required
-                disabled={userBalagruhas.length === 1}
+                disabled={userBalagruhas.length === 1 && !balagruhas.some(bg => bg._id === 'STOCK')}
                 className="form-select"
               >
-                <option value="">Select Balagruha</option>
-                {balagruhas.map(bg => (
+                <option value="">Select Balagruha or STOCK</option>
+
+                {/* Sprint5-Story-21: STOCK Option - First in list */}
+                {balagruhas.filter(bg => bg._id === 'STOCK').map(bg => (
+                  <option key={bg._id} value={bg._id} style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                    📦 {bg.name} (General Inventory)
+                  </option>
+                ))}
+
+                {balagruhas.some(bg => bg._id === 'STOCK') && balagruhas.some(bg => bg._id !== 'STOCK') && (
+                  <option disabled>──────────</option>
+                )}
+
+                {/* Regular Balagruhas */}
+                {balagruhas.filter(bg => bg._id !== 'STOCK').map(bg => (
                   <option key={bg._id} value={bg._id}>
                     {bg.name}
                   </option>
                 ))}
               </select>
-              {userBalagruhas.length === 1 && (
+              {userBalagruhas.length === 1 && !balagruhas.some(bg => bg._id === 'STOCK') && (
                 <small className="form-hint">Only one balagruha assigned to you</small>
+              )}
+              {formData.balagruhaId === 'STOCK' && (
+                <small className="form-hint" style={{ color: '#1976d2' }}>
+                  💡 STOCK purchases are visible to all users and can be allocated to Balagruhas later
+                </small>
               )}
             </div>
 

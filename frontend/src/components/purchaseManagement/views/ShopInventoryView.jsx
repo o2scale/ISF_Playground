@@ -392,7 +392,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               className="filter-select"
             >
               <option value="all">All Balagruhas</option>
-              {getFilteredBalagruhas().map(bg => (
+
+              {/* Sprint5-Story-21: STOCK filter option */}
+              <option value="STOCK" style={{ fontWeight: 'bold' }}>📦 STOCK (General Inventory)</option>
+
+              {getFilteredBalagruhas().filter(bg => bg._id !== 'STOCK').map(bg => (
                 <option key={bg._id} value={bg._id}>{bg.name}</option>
               ))}
             </select>
@@ -485,7 +489,12 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <tr key={request._id} className={`request-row status-${request.status}`}>
                 <td className="request-id-cell">
                   <strong>{request.requestId}</strong>
-                  {request.balagruhaId && (
+                  {/* Sprint5-Story-21: STOCK badge styling */}
+                  {request.balagruhaId === 'STOCK' ? (
+                    <div className="balagruha-tag stock-tag" style={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
+                      📦 STOCK
+                    </div>
+                  ) : request.balagruhaId && (
                     <div className="balagruha-tag">
                       📍 {request.balagruhaId.name}
                     </div>

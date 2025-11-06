@@ -9,11 +9,19 @@ const purchaseRequestSchema = new mongoose.Schema(
       // Auto-generated: "PR-" + counter (e.g., PR-001, PR-002)
     },
 
-    // Balagruha (optional for shop-wide requests)
+    // Balagruha or STOCK (Sprint5-Story-21)
+    // Can be either:
+    //   - ObjectId: Specific Balagruha (visible to that Balagruha's users only)
+    //   - String 'STOCK': General inventory (visible to ALL users)
     balagruhaId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Balagruha',
-      required: false,  // Optional for shop-wide products
+      type: mongoose.Schema.Types.Mixed,  // Allow ObjectId or String 'STOCK'
+      required: true,
+      validate: {
+        validator: function(v) {
+          return v === 'STOCK' || mongoose.Types.ObjectId.isValid(v);
+        },
+        message: 'balagruhaId must be either "STOCK" or a valid Balagruha ID'
+      },
       index: true
     },
 
@@ -173,6 +181,35 @@ const purchaseRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'InventoryTransaction'
       // Array of transaction IDs (one per product)
+    }],
+
+    // STOCK Allocation Tracking (Sprint5-Story-21)
+    // Future feature: Allocate STOCK purchases to specific Balagruhas
+    // OUT OF SCOPE for Story 21 - prepared for future implementation
+    allocatedToBalagruhas: [{
+      balagruhaId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Balagruha',
+        required: true
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: [1, 'Allocated quantity must be at least 1']
+      },
+      allocatedAt: {
+        type: Date,
+        default: Date.now
+      },
+      allocatedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      notes: {
+        type: String,
+        maxlength: [200, 'Allocation notes cannot exceed 200 characters']
+      }
     }]
   },
   {

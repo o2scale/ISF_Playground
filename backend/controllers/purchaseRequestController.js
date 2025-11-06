@@ -38,6 +38,22 @@ exports.createPurchaseRequest = async (req, res) => {
       });
     }
 
+    // Validate balagruhaId (Sprint5-Story-21: Support STOCK)
+    if (!balagruhaId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Balagruha or STOCK selection is required'
+      });
+    }
+
+    // Validate balagruhaId is either 'STOCK' or valid ObjectId
+    if (balagruhaId !== 'STOCK' && !mongoose.Types.ObjectId.isValid(balagruhaId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid Balagruha ID format'
+      });
+    }
+
     // Validate items
     if (!items) {
       return res.status(400).json({
@@ -115,7 +131,7 @@ exports.createPurchaseRequest = async (req, res) => {
 
     // Create purchase request
     const purchaseRequest = new PurchaseRequest({
-      balagruhaId: balagruhaId || null,
+      balagruhaId: balagruhaId,  // Now required: either 'STOCK' or ObjectId
       category: category.trim(),
       items: validatedItems,
       attachments,
@@ -130,7 +146,8 @@ exports.createPurchaseRequest = async (req, res) => {
     // Populate for response
     await purchaseRequest.populate('requestedBy', 'name email role');
     await purchaseRequest.populate('items.productId', 'name sku stock lowStockThreshold');
-    if (balagruhaId) {
+    // Sprint5-Story-21: Skip populate if STOCK
+    if (balagruhaId && balagruhaId !== 'STOCK') {
       await purchaseRequest.populate('balagruhaId', 'name');
     }
 
@@ -185,8 +202,14 @@ exports.getMyPurchaseRequests = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
       .populate('items.productId', 'name sku stock lowStockThreshold images')
-      .populate('balagruhaId', 'name')
       .sort({ createdAt: -1 });
+
+    // Sprint5-Story-21: Manually populate balagruhaId (skip if STOCK)
+    for (const request of requests) {
+      if (request.balagruhaId && request.balagruhaId !== 'STOCK') {
+        await request.populate('balagruhaId', 'name');
+      }
+    }
 
     res.json({
       success: true,
@@ -236,8 +259,14 @@ exports.getAllPurchaseRequests = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
       .populate('items.productId', 'name sku stock lowStockThreshold images')
-      .populate('balagruhaId', 'name')
       .sort({ createdAt: -1 });
+
+    // Sprint5-Story-21: Manually populate balagruhaId (skip if STOCK)
+    for (const request of requests) {
+      if (request.balagruhaId && request.balagruhaId !== 'STOCK') {
+        await request.populate('balagruhaId', 'name');
+      }
+    }
 
     res.json({
       success: true,

@@ -362,3 +362,66 @@ exports.getBalagruhaListByAssignedID = async (req, res) => {
       .json({ success: false, message: error.message });
   }
 };
+
+// Sprint5-Story-21: Get all Balagruhas with STOCK option
+// Returns Balagruhas list with STOCK as first option for purchase request dropdown
+exports.getBalagruhasWithStock = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+      },
+      `Request received to fetch balagruhas with STOCK option`
+    );
+
+    const result = await Balagruha.getAll();
+
+    if (result.success) {
+      // Add STOCK as first option
+      const balagruhas = result.data.balagruhas || [];
+      const options = [
+        { _id: 'STOCK', name: 'STOCK', isStock: true },
+        ...balagruhas.map(b => ({ ...b, isStock: false }))
+      ];
+
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+        },
+        `Successfully fetched balagruhas with STOCK option`
+      );
+
+      res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: { balagruhas: options }
+      });
+    } else {
+      errorLogger.error(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+        },
+        `Failed to fetch balagruhas with STOCK option`
+      );
+      res.status(HTTP_STATUS_CODE.BAD_REQUEST).json(result);
+    }
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+      },
+      `Error occurred while fetching balagruhas with STOCK option`
+    );
+    res
+      .status(HTTP_STATUS_CODE.BAD_REQUEST)
+      .json({ success: false, message: error.message });
+  }
+};

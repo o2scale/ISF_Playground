@@ -8,6 +8,7 @@ const {
   deleteBalagruha,
   getBalagruhaListByUserId,
   getBalagruhaListByAssignedID,
+  getBalagruhasWithStock,  // Sprint5-Story-21
 } = require("../../controllers/balagruha");
 const router = express.Router();
 
@@ -23,6 +24,14 @@ router.get(
   authenticate,
   authorize("User Management", "Read"),
   getAllBalagruha
+);
+// Sprint5-Story-21: Get Balagruhas with STOCK option
+// MUST be before /:id route to avoid matching 'with-stock' as an ID
+router.get(
+  "/with-stock",
+  authenticate,
+  authorize("User Management", "Read"),
+  getBalagruhasWithStock
 );
 router.get(
   "/:id",

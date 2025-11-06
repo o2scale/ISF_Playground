@@ -70,11 +70,29 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           <div className="detail-section">
             <h4 className="section-title">Product Information</h4>
 
-            {/* Balagruha Info */}
+            {/* Balagruha Info - Sprint5-Story-21: STOCK support */}
             {request.balagruhaId && (
               <div className="detail-item" style={{ marginBottom: '16px' }}>
                 <span className="detail-label">Balagruha:</span>
-                <span className="detail-value">📍 {request.balagruhaId.name}</span>
+                {request.balagruhaId === 'STOCK' ? (
+                  <span className="detail-value" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{
+                      backgroundColor: '#e3f2fd',
+                      color: '#1976d2',
+                      padding: '4px 12px',
+                      borderRadius: '4px',
+                      fontWeight: 'bold',
+                      fontSize: '14px'
+                    }}>
+                      📦 STOCK
+                    </span>
+                    <span style={{ fontSize: '13px', color: '#666' }} title="This purchase is for general inventory and can be allocated to Balagruhas later">
+                      ℹ️ (General Inventory)
+                    </span>
+                  </span>
+                ) : (
+                  <span className="detail-value">📍 {request.balagruhaId.name}</span>
+                )}
               </div>
             )}
 
