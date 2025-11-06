@@ -293,17 +293,23 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   };
 
   const getStatusBadge = (status) => {
+    // Sprint5-Story-24: Updated status badges with new workflow statuses
     const badges = {
-      pending_approval: { icon: '🟡', label: 'Pending', className: 'status-pending' },
-      approved: { icon: '✅', label: 'Approved', className: 'status-approved' },
-      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected' },
-      completed: { icon: '✅', label: 'Completed', className: 'status-completed' },
-      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled' }
+      pending_approval: { icon: '🔴', label: 'Pending Approval', className: 'status-pending-approval', tooltip: 'Requires admin approval' },
+      pending_fulfillment: { icon: '🟡', label: 'Pending Fulfillment', className: 'status-pending-fulfillment', tooltip: 'Ready for purchase manager to fulfill' },
+      approved: { icon: '🔵', label: 'Approved', className: 'status-approved', tooltip: 'Approved by admin, awaiting fulfillment' },
+      fulfilled: { icon: '✅', label: 'Fulfilled', className: 'status-fulfilled', tooltip: 'Purchase completed' },
+      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected', tooltip: 'Request was rejected' },
+      completed: { icon: '✅', label: 'Completed', className: 'status-completed', tooltip: 'Request completed' },
+      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled', tooltip: 'Request cancelled' }
     };
 
     const badge = badges[status] || badges.pending_approval;
     return (
-      <span className={`status-badge ${badge.className}`}>
+      <span
+        className={`status-badge ${badge.className}`}
+        title={badge.tooltip}
+      >
         {badge.icon} {badge.label}
       </span>
     );

@@ -22,6 +22,15 @@ exports.createPurchaseRequest = async (req, res) => {
     // Files are in req.files (uploaded by multer automatically)
     const uploadedFiles = req.files || [];
 
+    // Sprint5-Story-24: Role-based access control
+    const user = await User.findById(userId).select('role balagruhaIds');
+    if (!user.canCreatePurchaseRequest()) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to create purchase requests. Only Coach, Medical Incharge, Admin, and Purchase Manager can create requests.'
+      });
+    }
+
     // Validate category
     if (!category) {
       return res.status(400).json({
@@ -129,6 +138,18 @@ exports.createPurchaseRequest = async (req, res) => {
       uploadedAt: new Date()
     }));
 
+    // Sprint5-Story-24: Calculate approval threshold
+    const maxItemCost = Math.max(...validatedItems.map(item => item.estimatedUnitCost));
+    const totalOrderCost = validatedItems.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
+
+    const ITEM_THRESHOLD = 1000; // Rs 1,000 per item
+    const ORDER_THRESHOLD = 25000; // Rs 25,000 total order
+
+    const isSmallPurchase = (maxItemCost <= ITEM_THRESHOLD) && (totalOrderCost <= ORDER_THRESHOLD);
+
+    // Set initial status based on threshold
+    const initialStatus = isSmallPurchase ? 'pending_fulfillment' : 'pending_approval';
+
     // Create purchase request
     const purchaseRequest = new PurchaseRequest({
       balagruhaId: balagruhaId,  // Now required: either 'STOCK' or ObjectId
@@ -138,7 +159,14 @@ exports.createPurchaseRequest = async (req, res) => {
       reason: reason.trim(),
       justification: justification?.trim() || '',
       requestedBy: userId,
-      status: 'pending_approval'
+      status: initialStatus,
+      thresholdAnalysis: {
+        maxItemCost,
+        totalOrderCost,
+        itemThreshold: ITEM_THRESHOLD,
+        orderThreshold: ORDER_THRESHOLD,
+        requiresApproval: !isSmallPurchase
+      }
     });
 
     await purchaseRequest.save();

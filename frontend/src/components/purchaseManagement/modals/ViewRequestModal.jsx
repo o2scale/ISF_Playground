@@ -11,17 +11,23 @@ import '../PurchaseManagement.css';
  */
 export default function ViewRequestModal({ request, onClose, userRole, onRefresh }) {
   const getStatusBadge = (status) => {
+    // Sprint5-Story-24: Updated status badges with new workflow statuses
     const badges = {
-      pending_approval: { icon: '🟡', label: 'Pending Approval', className: 'status-pending' },
-      approved: { icon: '✅', label: 'Approved', className: 'status-approved' },
-      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected' },
-      completed: { icon: '✅', label: 'Completed', className: 'status-completed' },
-      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled' }
+      pending_approval: { icon: '🔴', label: 'Pending Approval', className: 'status-pending-approval', tooltip: 'Requires admin approval' },
+      pending_fulfillment: { icon: '🟡', label: 'Pending Fulfillment', className: 'status-pending-fulfillment', tooltip: 'Ready for purchase manager to fulfill' },
+      approved: { icon: '🔵', label: 'Approved', className: 'status-approved', tooltip: 'Approved by admin, awaiting fulfillment' },
+      fulfilled: { icon: '✅', label: 'Fulfilled', className: 'status-fulfilled', tooltip: 'Purchase completed' },
+      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected', tooltip: 'Request was rejected' },
+      completed: { icon: '✅', label: 'Completed', className: 'status-completed', tooltip: 'Request completed' },
+      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled', tooltip: 'Request cancelled' }
     };
 
     const badge = badges[status] || badges.pending_approval;
     return (
-      <span className={`status-badge large ${badge.className}`}>
+      <span
+        className={`status-badge large ${badge.className}`}
+        title={badge.tooltip}
+      >
         {badge.icon} {badge.label}
       </span>
     );
@@ -194,6 +200,61 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
               </div>
             )}
           </div>
+
+          {/* Sprint5-Story-24: Threshold Analysis Section */}
+          {request.thresholdAnalysis && (
+            <div className="detail-section" style={{ backgroundColor: '#f8f9fa', padding: '16px', borderRadius: '4px' }}>
+              <h4 className="section-title">Approval Threshold Analysis</h4>
+              <div className="detail-grid">
+                <div className="detail-item">
+                  <span className="detail-label">Max Item Cost:</span>
+                  <span className="detail-value">
+                    ₹{request.thresholdAnalysis.maxItemCost?.toLocaleString() || 0}
+                    {' '}
+                    <span style={{ fontSize: '12px', color: '#666' }}>
+                      (Threshold: ₹{request.thresholdAnalysis.itemThreshold?.toLocaleString() || 1000})
+                    </span>
+                    {' '}
+                    {request.thresholdAnalysis.maxItemCost > (request.thresholdAnalysis.itemThreshold || 1000) ? (
+                      <span style={{ color: '#f44336' }}>❌ Exceeds</span>
+                    ) : (
+                      <span style={{ color: '#4caf50' }}>✅ Within</span>
+                    )}
+                  </span>
+                </div>
+                <div className="detail-item">
+                  <span className="detail-label">Total Order Cost:</span>
+                  <span className="detail-value">
+                    ₹{request.thresholdAnalysis.totalOrderCost?.toLocaleString() || 0}
+                    {' '}
+                    <span style={{ fontSize: '12px', color: '#666' }}>
+                      (Threshold: ₹{request.thresholdAnalysis.orderThreshold?.toLocaleString() || 25000})
+                    </span>
+                    {' '}
+                    {request.thresholdAnalysis.totalOrderCost > (request.thresholdAnalysis.orderThreshold || 25000) ? (
+                      <span style={{ color: '#f44336' }}>❌ Exceeds</span>
+                    ) : (
+                      <span style={{ color: '#4caf50' }}>✅ Within</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+              <div className="detail-item full-width" style={{ marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #dee2e6' }}>
+                <span className="detail-label">Result:</span>
+                <span className="detail-value">
+                  {request.thresholdAnalysis.requiresApproval ? (
+                    <span style={{ color: '#ff9800', fontWeight: 'bold' }}>
+                      🔴 Admin approval required (exceeds threshold)
+                    </span>
+                  ) : (
+                    <span style={{ color: '#4caf50', fontWeight: 'bold' }}>
+                      ✅ Direct to fulfillment (within threshold)
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+          )}
 
           {/* Approval/Rejection Details */}
           {(request.status === 'approved' || request.status === 'rejected') && (
