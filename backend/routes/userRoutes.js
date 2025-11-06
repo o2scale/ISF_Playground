@@ -200,10 +200,18 @@ const router = express.Router();
  *         description: Unauthorized - Authentication required
  */
 
+router.get(
+  "/",
+  authenticate,
+  authorize("User Management", "Read"),
+  getAllUsers
+);
+
 // Sprint5-Story-24: Get current user's assigned Balagruhas
+// IMPORTANT: This route MUST come before /:_id to avoid Express matching "me" as an _id parameter
 router.get('/me/balagruhas', authenticate, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).populate('balagruhaIds', 'name location');
+    const user = await User.findById(req.user._id).populate('balagruhaIds', 'name location');
 
     if (!user) {
       return res.status(404).json({
@@ -236,12 +244,6 @@ router.get('/me/balagruhas', authenticate, async (req, res) => {
   }
 });
 
-router.get(
-  "/",
-  authenticate,
-  authorize("User Management", "Read"),
-  getAllUsers
-);
 router.get(
   "/:_id",
   authenticate,
