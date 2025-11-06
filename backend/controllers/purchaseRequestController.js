@@ -202,21 +202,21 @@ exports.getMyPurchaseRequests = async (req, res) => {
       query.category = category;
     }
 
-    // Sprint5-Story-22: Date filtering with proper timezone handling
+    // Sprint5-Story-22: Date filtering with proper timezone handling (S22-BUG-002 FIX)
     if (startDate || endDate) {
       query.createdAt = {};
 
       if (startDate) {
-        // Parse start date and set to beginning of day (00:00:00)
+        // Parse start date and set to beginning of day in UTC (00:00:00)
         const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
+        start.setUTCHours(0, 0, 0, 0);
         query.createdAt.$gte = start;
       }
 
       if (endDate) {
-        // Parse end date and set to END of day (23:59:59.999)
+        // Parse end date and set to END of day in UTC (23:59:59.999)
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }
@@ -272,21 +272,21 @@ exports.getAllPurchaseRequests = async (req, res) => {
       query.category = category;
     }
 
-    // Sprint5-Story-22: Date filtering with proper timezone handling
+    // Sprint5-Story-22: Date filtering with proper timezone handling (S22-BUG-002 FIX)
     if (startDate || endDate) {
       query.createdAt = {};
 
       if (startDate) {
-        // Parse start date and set to beginning of day (00:00:00)
+        // Parse start date and set to beginning of day in UTC (00:00:00)
         const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0);
+        start.setUTCHours(0, 0, 0, 0);
         query.createdAt.$gte = start;
       }
 
       if (endDate) {
-        // Parse end date and set to END of day (23:59:59.999)
+        // Parse end date and set to END of day in UTC (23:59:59.999)
         const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999);
+        end.setUTCHours(23, 59, 59, 999);
         query.createdAt.$lte = end;
       }
     }
