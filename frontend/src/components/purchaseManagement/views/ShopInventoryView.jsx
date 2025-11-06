@@ -24,6 +24,64 @@ dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
 /**
+ * Sprint5-Story-22: Calculate date range for filter options
+ * @param {string} filterValue - Filter option ('today', 'thisWeek', etc.)
+ * @returns {Object} Object with startDate and endDate in YYYY-MM-DD format
+ */
+const getDateRangeFromFilter = (filterValue) => {
+  const now = new Date();
+  let startDate, endDate;
+
+  switch (filterValue) {
+    case 'today':
+      startDate = new Date(now);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'thisWeek':
+      // Week starts on Monday (ISO standard)
+      startDate = new Date(now);
+      const dayOfWeek = startDate.getDay(); // 0 = Sunday, 1 = Monday, ...
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Adjust for Sunday
+      startDate.setDate(startDate.getDate() + daysToMonday);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6); // Add 6 days to get Sunday
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'thisMonth':
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of month
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'thisYear':
+      startDate = new Date(now.getFullYear(), 0, 1); // January 1st
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(now.getFullYear(), 11, 31); // December 31st
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'all':
+    default:
+      return { startDate: null, endDate: null };
+  }
+
+  // Format as YYYY-MM-DD for backend
+  return {
+    startDate: startDate.toISOString().split('T')[0],
+    endDate: endDate.toISOString().split('T')[0]
+  };
+};
+
+/**
  * Shop Inventory View - Sprint5-Story-17
  * Displays purchase requests for shop inventory with frontend filtering
  */
@@ -58,6 +116,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     fetchPurchaseRequests();
   }, []);
 
+  // Sprint5-Story-22: Refetch data when date filter changes
+  useEffect(() => {
+    if (filters.dateRange !== null) {
+      fetchPurchaseRequests();
+    }
+  }, [filters.dateRange, filters.fromDate, filters.toDate]);
+
   useEffect(() => {
     applyFilters();
   }, [requests, filters, userRole, userId, userBalagruhas]);
@@ -76,9 +141,25 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const fetchPurchaseRequests = async () => {
     try {
       setLoading(true);
+
+      // Sprint5-Story-22: Calculate date range params based on filter
+      const params = {};
+      if (filters.dateRange && filters.dateRange !== 'all') {
+        if (filters.dateRange === 'custom') {
+          // Custom date range
+          if (filters.fromDate) params.startDate = filters.fromDate;
+          if (filters.toDate) params.endDate = filters.toDate;
+        } else {
+          // Preset date range (today, thisWeek, thisMonth, thisYear)
+          const { startDate, endDate } = getDateRangeFromFilter(filters.dateRange);
+          if (startDate) params.startDate = startDate;
+          if (endDate) params.endDate = endDate;
+        }
+      }
+
       const response = userRole === 'admin'
-        ? await getAllPurchaseRequests()
-        : await getMyPurchaseRequests();
+        ? await getAllPurchaseRequests(params)
+        : await getMyPurchaseRequests(params);
 
       if (response.success) {
         setRequests(response.data.requests || []);
@@ -111,25 +192,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       });
     }
 
-    // Date range filter
-    if (filters.dateRange && filters.dateRange !== 'all') {
-      const now = dayjs();
-      filtered = filtered.filter(request => {
-        const createdDate = dayjs(request.createdAt);
-
-        if (filters.dateRange === 'today') {
-          return createdDate.isSame(now, 'day');
-        } else if (filters.dateRange === 'thisWeek') {
-          return createdDate.isSame(now, 'week');
-        } else if (filters.dateRange === 'thisMonth') {
-          return createdDate.isSame(now, 'month');
-        } else if (filters.dateRange === 'custom' && filters.fromDate && filters.toDate) {
-          return createdDate.isSameOrAfter(dayjs(filters.fromDate), 'day') &&
-                 createdDate.isSameOrBefore(dayjs(filters.toDate), 'day');
-        }
-        return true;
-      });
-    }
+    // Sprint5-Story-22: Date filtering now handled by backend API
+    // Removed client-side date filtering - backend handles date range queries with proper timezone support
 
     // Balagruha filter
     if (filters.balagruha !== 'all') {
