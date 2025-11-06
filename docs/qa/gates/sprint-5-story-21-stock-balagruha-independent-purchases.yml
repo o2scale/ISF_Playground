@@ -1,0 +1,358 @@
+# Quality Gate: Sprint 5 - Story 21
+# STOCK Balagruha-Independent Purchase Requests
+# Created: 2025-11-06 14:09:17
+# Status: Ready for Testing
+
+story:
+  id: sprint5-story-21
+  title: "STOCK Balagruha-Independent Purchase Requests"
+  description: "Users can create purchase requests for 'STOCK' inventory not assigned to specific Balagruhas"
+  priority: P0_CRITICAL
+  sprint: Sprint 5
+
+environment:
+  frontend_url: "http://localhost:3000"
+  backend_url: "http://localhost:5001"
+  database: "MongoDB - isfplayground"
+
+test_users:
+  purchase_manager:
+    username: "ravi@iskonwb.org"
+    password: "password"
+    role: "purchase-manager"
+    assigned_balagruhas: ["Sadashraya Charitable Trust"]
+
+  coach:
+    username: "priya@iskonwb.org"
+    password: "password"
+    role: "coach"
+    assigned_balagruhas: ["Mathrudhama"]
+
+acceptance_criteria:
+  - id: AC1
+    description: "STOCK option in Balagruha dropdown"
+    test_cases: [TC-S21-001, TC-S21-002, TC-S21-003]
+
+  - id: AC2
+    description: "Backend supports STOCK as special balagruhaId value"
+    test_cases: [TC-S21-004, TC-S21-005]
+
+  - id: AC3
+    description: "STOCK requests visible to ALL users"
+    test_cases: [TC-S21-006, TC-S21-007, TC-S21-008]
+
+  - id: AC4
+    description: "STOCK display in purchase request list"
+    test_cases: [TC-S21-009, TC-S21-010]
+
+  - id: AC5
+    description: "STOCK filtering options"
+    test_cases: [TC-S21-011, TC-S21-012]
+
+  - id: AC6
+    description: "STOCK display in request details"
+    test_cases: [TC-S21-013]
+
+test_cases:
+  # AC1: STOCK in Dropdown
+  - id: TC-S21-001
+    title: "STOCK appears as first option in Balagruha dropdown"
+    priority: P0
+    preconditions:
+      - "Logged in as any role with purchase request access"
+      - "Create Purchase Request modal open"
+    steps:
+      - action: "Click Balagruha dropdown"
+        expected: "Dropdown opens"
+      - action: "Verify first option is 'STOCK' with icon/badge"
+        expected: "STOCK is first option before divider"
+      - action: "Verify divider separates STOCK from Balagruha list"
+        expected: "Visual separator present"
+      - action: "Verify Balagruha options follow after STOCK"
+        expected: "Balagruhas listed after STOCK"
+    expected_result: "STOCK is first option with clear visual distinction"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S21-002
+    title: "STOCK option shows descriptive text"
+    priority: P1
+    preconditions:
+      - "Balagruha dropdown open"
+    steps:
+      - action: "Hover over STOCK option"
+        expected: "Hover state active"
+      - action: "Verify descriptive text: '(General inventory - not specific to Balagruha)'"
+        expected: "Helper text visible"
+    expected_result: "STOCK option has clear description"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S21-003
+    title: "Successfully create STOCK purchase request"
+    priority: P0
+    preconditions:
+      - "All required fields can be filled"
+    steps:
+      - action: "Select 'STOCK' from Balagruha dropdown"
+        expected: "STOCK selected"
+      - action: "Select category: 'Consumables (Including medicines)'"
+        expected: "Category selected"
+      - action: "Enter reason: 'Pee proof pants for general inventory'"
+        expected: "Reason entered"
+      - action: "Select products and quantities"
+        expected: "Products selected"
+      - action: "Click Submit"
+        expected: "Request created successfully"
+      - action: "Verify success message"
+        expected: "Toast: 'Purchase request created successfully'"
+    expected_result: "STOCK request created without errors"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC2: Backend Support
+  - id: TC-S21-004
+    title: "Backend accepts balagruhaId: 'STOCK'"
+    priority: P0
+    preconditions:
+      - "Access to backend API"
+    steps:
+      - action: "POST /api/purchaseRequests with balagruhaId: 'STOCK'"
+        expected: "Request accepted (201 status)"
+      - action: "Verify response contains balagruhaId: 'STOCK' (not populated)"
+        expected: "STOCK value preserved as string"
+      - action: "Query database for created request"
+        expected: "balagruhaId stored as 'STOCK' string"
+    expected_result: "Backend stores STOCK as string literal"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S21-005
+    title: "Backend validation: STOCK or valid ObjectId only"
+    priority: P0
+    preconditions:
+      - "Access to backend API"
+    steps:
+      - action: "POST with balagruhaId: 'INVALID_VALUE'"
+        expected: "Request rejected (400 status)"
+      - action: "Verify error: 'balagruhaId must be either STOCK or valid Balagruha ID'"
+        expected: "Validation error returned"
+    expected_result: "Backend validates STOCK or ObjectId"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC3: STOCK Visibility
+  - id: TC-S21-006
+    title: "STOCK requests visible to user NOT assigned to STOCK creator's Balagruha"
+    priority: P0
+    preconditions:
+      - "PM (Ravi) assigned to 'Sadashraya' creates STOCK request"
+      - "Coach (Priya) assigned ONLY to 'Mathrudhama'"
+    steps:
+      - action: "Login as PM (Ravi), create STOCK request"
+        expected: "STOCK request created"
+      - action: "Logout, login as Coach (Priya)"
+        expected: "Logged in as Coach"
+      - action: "Navigate to purchase requests view"
+        expected: "Purchase requests list loads"
+      - action: "Verify STOCK request created by Ravi is visible"
+        expected: "STOCK request appears in list"
+    expected_result: "STOCK requests visible regardless of creator's Balagruha assignment"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CRITICAL TEST: Validates cross-Balagruha visibility"
+
+  - id: TC-S21-007
+    title: "All users can see same STOCK requests (consistency check)"
+    priority: P0
+    preconditions:
+      - "3 users assigned to different Balagruhas"
+      - "5 STOCK requests exist"
+    steps:
+      - action: "Login as User 1, count STOCK requests"
+        expected: "5 STOCK requests visible"
+      - action: "Login as User 2, count STOCK requests"
+        expected: "5 STOCK requests visible"
+      - action: "Login as User 3, count STOCK requests"
+        expected: "5 STOCK requests visible"
+    expected_result: "All users see identical STOCK request count"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S21-008
+    title: "STOCK requests not filtered by user's Balagruha assignments"
+    priority: P0
+    preconditions:
+      - "User assigned to Balagruha A only"
+      - "STOCK requests exist"
+    steps:
+      - action: "Login, navigate to purchase requests"
+        expected: "Requests list loads"
+      - action: "Apply filter: Show ALL requests"
+        expected: "Filter applied"
+      - action: "Verify STOCK requests visible"
+        expected: "STOCK requests present"
+      - action: "Apply filter: Balagruha A only"
+        expected: "Filter applied"
+      - action: "Verify STOCK requests STILL visible"
+        expected: "STOCK requests not filtered out"
+    expected_result: "STOCK always included in visibility regardless of Balagruha filter"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC4: STOCK Display in List
+  - id: TC-S21-009
+    title: "STOCK badge displayed in Balagruha column"
+    priority: P0
+    preconditions:
+      - "STOCK request exists in list"
+    steps:
+      - action: "Locate STOCK request row in table"
+        expected: "Row visible"
+      - action: "Check Balagruha column for STOCK request"
+        expected: "Displays 'STOCK' badge with icon (e.g., 📦)"
+      - action: "Verify badge styling different from regular Balagruha names"
+        expected: "Badge has distinct color (blue/purple vs green)"
+    expected_result: "STOCK displayed as visually distinct badge"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S21-010
+    title: "STOCK requests sortable in table"
+    priority: P1
+    preconditions:
+      - "Mix of STOCK and Balagruha-specific requests exist"
+    steps:
+      - action: "Click Balagruha column header to sort"
+        expected: "Table sorts"
+      - action: "Verify STOCK requests grouped consistently (top or bottom)"
+        expected: "STOCK requests together"
+    expected_result: "STOCK requests sort consistently"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC5: STOCK Filtering
+  - id: TC-S21-011
+    title: "Balagruha filter includes STOCK option"
+    priority: P0
+    preconditions:
+      - "Purchase requests view loaded"
+    steps:
+      - action: "Click Balagruha filter dropdown"
+        expected: "Dropdown opens"
+      - action: "Verify options: 'All Balagruhas', 'STOCK', [divider], Balagruha list"
+        expected: "STOCK option present after 'All'"
+      - action: "Select 'STOCK' filter"
+        expected: "Filter applied"
+      - action: "Verify ONLY STOCK requests shown"
+        expected: "Balagruha-specific requests hidden"
+    expected_result: "STOCK filter shows only STOCK requests"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S21-012
+    title: "Specific Balagruha filter excludes STOCK requests"
+    priority: P1
+    preconditions:
+      - "STOCK and Balagruha-specific requests exist"
+    steps:
+      - action: "Select specific Balagruha from filter (e.g., 'Mathrudhama')"
+        expected: "Filter applied"
+      - action: "Verify only Mathrudhama requests shown"
+        expected: "Mathrudhama requests visible"
+      - action: "Verify STOCK requests NOT shown"
+        expected: "STOCK requests filtered out"
+    expected_result: "Balagruha-specific filter excludes STOCK"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC6: STOCK in Details
+  - id: TC-S21-013
+    title: "STOCK displayed in request details with info tooltip"
+    priority: P0
+    preconditions:
+      - "STOCK request exists"
+    steps:
+      - action: "Click STOCK request row"
+        expected: "Details modal opens"
+      - action: "Locate Balagruha field"
+        expected: "Field shows 'STOCK' badge"
+      - action: "Hover over info icon next to STOCK"
+        expected: "Tooltip appears"
+      - action: "Verify tooltip text: 'This purchase is for general inventory...'"
+        expected: "Explanatory tooltip shown"
+    expected_result: "STOCK in details has explanatory tooltip"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+regression_tests:
+  - id: REG-S21-001
+    title: "Regular Balagruha requests still work correctly"
+    description: "Ensure STOCK feature doesn't break existing Balagruha functionality"
+    steps:
+      - "Create request for specific Balagruha"
+      - "Verify request only visible to users assigned to that Balagruha"
+      - "Verify populate() works for Balagruha ObjectId"
+    expected: "Existing Balagruha logic unaffected"
+    status: NOT_TESTED
+
+  - id: REG-S21-002
+    title: "Story 17-19 workflows work with STOCK"
+    description: "STOCK requests can go through approval and fulfillment"
+    steps:
+      - "Create STOCK request"
+      - "Admin approves STOCK request (if applicable)"
+      - "PM fulfills STOCK request"
+    expected: "STOCK requests complete workflow successfully"
+    status: NOT_TESTED
+
+edge_cases:
+  - scenario: "User with zero Balagruha assignments"
+    test: "Verify only STOCK option available in dropdown"
+    status: NOT_TESTED
+
+  - scenario: "Large number of STOCK requests (100+)"
+    test: "Verify performance of visibility query with STOCK filtering"
+    status: NOT_TESTED
+
+  - scenario: "STOCK value case sensitivity"
+    test: "Verify 'STOCK' (uppercase) is required, 'stock' or 'Stock' rejected"
+    status: NOT_TESTED
+
+gate_criteria:
+  must_pass:
+    - TC-S21-001
+    - TC-S21-003
+    - TC-S21-004
+    - TC-S21-005
+    - TC-S21-006
+    - TC-S21-007
+    - TC-S21-008
+    - TC-S21-009
+    - TC-S21-011
+    - TC-S21-013
+
+  nice_to_pass:
+    - TC-S21-002
+    - TC-S21-010
+    - TC-S21-012
+    - REG-S21-001
+    - REG-S21-002
+
+notes: |
+  - CRITICAL: TC-S21-006 validates the core requirement - STOCK visible to all
+  - Future story needed for STOCK allocation to specific Balagruhas
+  - Database field type: Mixed (String or ObjectId) - ensure migrations handle this
+  - Monitoring: Track how many STOCK vs Balagruha-specific requests created

@@ -17,6 +17,15 @@ const purchaseRequestSchema = new mongoose.Schema(
       index: true
     },
 
+    // Category Classification
+    category: {
+      type: String,
+      required: true,
+      enum: ['New Equipment', 'Consumables (Including medicines)', 'Others'],
+      trim: true,
+      index: true
+    },
+
     // Multi-Product Items Array
     items: [
       {

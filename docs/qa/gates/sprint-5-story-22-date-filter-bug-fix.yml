@@ -1,0 +1,366 @@
+# Quality Gate: Sprint 5 - Story 22
+# Purchase Request Date Filter Bug Fix
+# Created: 2025-11-06 14:09:17
+# Status: Ready for Testing
+
+story:
+  id: sprint5-story-22
+  title: "Purchase Request Date Filter Bug Fix"
+  description: "Fix date filter bug where only 'ALL' works - other filters (Today, This Week, etc.) now show correct results"
+  priority: P0_CRITICAL
+  sprint: Sprint 5
+  type: BUG_FIX
+
+environment:
+  frontend_url: "http://localhost:3000"
+  backend_url: "http://localhost:5001"
+  database: "MongoDB - isfplayground"
+
+test_users:
+  purchase_manager:
+    username: "ravi@iskonwb.org"
+    password: "password"
+    role: "purchase-manager"
+
+test_data:
+  - description: "Request created TODAY at 10:00 AM"
+    requestId: "PR-TODAY-001"
+    createdAt: "2025-11-06T10:00:00"
+
+  - description: "Request created YESTERDAY at 14:00"
+    requestId: "PR-YESTERDAY-001"
+    createdAt: "2025-11-05T14:00:00"
+
+  - description: "Request created LAST WEEK"
+    requestId: "PR-LASTWEEK-001"
+    createdAt: "2025-10-30T09:00:00"
+
+  - description: "Request created LAST MONTH"
+    requestId: "PR-LASTMONTH-001"
+    createdAt: "2025-10-06T15:00:00"
+
+acceptance_criteria:
+  - id: AC1
+    description: "'Today' filter works correctly"
+    test_cases: [TC-S22-001, TC-S22-002]
+
+  - id: AC2
+    description: "'This Week' filter works correctly"
+    test_cases: [TC-S22-003, TC-S22-004]
+
+  - id: AC3
+    description: "'This Month' filter works correctly"
+    test_cases: [TC-S22-005]
+
+  - id: AC4
+    description: "'This Year' filter works correctly"
+    test_cases: [TC-S22-006]
+
+  - id: AC5
+    description: "Custom date range filter works correctly"
+    test_cases: [TC-S22-007, TC-S22-008, TC-S22-009]
+
+  - id: AC6
+    description: "Filter persistence and interaction"
+    test_cases: [TC-S22-010, TC-S22-011]
+
+  - id: AC7
+    description: "Timezone handling"
+    test_cases: [TC-S22-012]
+
+test_cases:
+  # AC1: Today Filter
+  - id: TC-S22-001
+    title: "'Today' filter shows only today's requests"
+    priority: P0
+    preconditions:
+      - "Requests exist from today, yesterday, and last week"
+      - "Current date: 2025-11-06"
+    steps:
+      - action: "Navigate to Purchase Manager view"
+        expected: "All requests visible (default: ALL filter)"
+      - action: "Click Date Range filter dropdown"
+        expected: "Dropdown opens"
+      - action: "Select 'Today'"
+        expected: "Filter applied, page refreshes"
+      - action: "Verify ONLY requests from today (2025-11-06) shown"
+        expected: "PR-TODAY-001 visible"
+      - action: "Verify yesterday's requests NOT shown"
+        expected: "PR-YESTERDAY-001 hidden"
+    expected_result: "Only today's requests displayed"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "BUG FIX VERIFICATION: Previously showed zero results or all results"
+
+  - id: TC-S22-002
+    title: "Empty state when no requests created today"
+    priority: P1
+    preconditions:
+      - "No requests exist from today"
+      - "Requests from other dates exist"
+    steps:
+      - action: "Select 'Today' filter"
+        expected: "Filter applied"
+      - action: "Verify empty state message: 'No purchase requests found for today'"
+        expected: "Empty state shown"
+      - action: "Verify yesterday's requests NOT shown"
+        expected: "List empty"
+    expected_result: "Empty state displayed correctly"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC2: This Week Filter
+  - id: TC-S22-003
+    title: "'This Week' filter shows only current week requests (Monday-Sunday)"
+    priority: P0
+    preconditions:
+      - "Current date: Wednesday, 2025-11-06"
+      - "Requests exist from this week and last week"
+    steps:
+      - action: "Select 'This Week' filter"
+        expected: "Filter applied"
+      - action: "Verify requests from Monday 2025-11-04 onwards shown"
+        expected: "This week's requests visible"
+      - action: "Verify requests from previous Sunday (2025-11-03) NOT shown"
+        expected: "Last week's requests hidden"
+    expected_result: "Only current week requests shown (ISO week: Monday-Sunday)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "BUG FIX VERIFICATION"
+
+  - id: TC-S22-004
+    title: "Week boundary test: Sunday/Monday transition"
+    priority: P1
+    preconditions:
+      - "Requests exist from Sunday (week end) and Monday (week start)"
+    steps:
+      - action: "Select 'This Week' filter"
+        expected: "Filter applied"
+      - action: "Verify Monday request included"
+        expected: "Monday 00:00:01 included"
+      - action: "Verify previous Sunday NOT included"
+        expected: "Sunday 23:59:59 excluded"
+    expected_result: "Week boundary correctly handled"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Edge case test"
+
+  # AC3: This Month Filter
+  - id: TC-S22-005
+    title: "'This Month' filter shows only current month requests"
+    priority: P0
+    preconditions:
+      - "Current date: 2025-11-06"
+      - "Requests from November and October exist"
+    steps:
+      - action: "Select 'This Month' filter"
+        expected: "Filter applied"
+      - action: "Verify requests from Nov 1-30 shown"
+        expected: "November requests visible"
+      - action: "Verify October requests NOT shown"
+        expected: "PR-LASTMONTH-001 hidden"
+    expected_result: "Only current month requests displayed"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "BUG FIX VERIFICATION"
+
+  # AC4: This Year Filter
+  - id: TC-S22-006
+    title: "'This Year' filter shows only current year requests"
+    priority: P0
+    preconditions:
+      - "Current year: 2025"
+      - "Requests from 2025 and 2024 exist"
+    steps:
+      - action: "Select 'This Year' filter"
+        expected: "Filter applied"
+      - action: "Verify requests from Jan 1, 2025 - Dec 31, 2025 shown"
+        expected: "2025 requests visible"
+      - action: "Verify 2024 requests NOT shown"
+        expected: "2024 requests hidden"
+    expected_result: "Only current year requests displayed"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "BUG FIX VERIFICATION"
+
+  # AC5: Custom Date Range
+  - id: TC-S22-007
+    title: "Custom date range filter with start and end dates"
+    priority: P0
+    preconditions:
+      - "Requests exist across multiple dates"
+    steps:
+      - action: "Select 'Custom Range' from date filter"
+        expected: "Date picker fields appear"
+      - action: "Set Start Date: 2025-11-01"
+        expected: "Start date set"
+      - action: "Set End Date: 2025-11-05"
+        expected: "End date set"
+      - action: "Verify requests from Nov 1-5 shown (inclusive)"
+        expected: "Requests within range visible"
+      - action: "Verify requests from Nov 6 onwards NOT shown"
+        expected: "Requests outside range hidden"
+    expected_result: "Custom range filter works with inclusive dates"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S22-008
+    title: "Validation: Start date cannot be after end date"
+    priority: P0
+    preconditions:
+      - "Custom date range selected"
+    steps:
+      - action: "Set Start Date: 2025-11-10"
+        expected: "Start date set"
+      - action: "Set End Date: 2025-11-05"
+        expected: "End date set (before start)"
+      - action: "Verify error message: 'Start date cannot be after end date'"
+        expected: "Validation error shown"
+      - action: "Verify no API call made"
+        expected: "Filtered blocked"
+    expected_result: "Date validation prevents invalid ranges"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S22-009
+    title: "Edge case: Request created at exactly 00:00:01 and 23:59:59"
+    priority: P1
+    preconditions:
+      - "Request A created at 2025-11-05 00:00:01"
+      - "Request B created at 2025-11-05 23:59:59"
+    steps:
+      - action: "Set custom range: 2025-11-05 to 2025-11-05"
+        expected: "Range set (single day)"
+      - action: "Verify Request A (00:00:01) included"
+        expected: "Request A visible"
+      - action: "Verify Request B (23:59:59) included"
+        expected: "Request B visible"
+    expected_result: "Edge-of-day timestamps handled correctly"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Critical edge case - backend must use 23:59:59.999 for end of day"
+
+  # AC6: Filter Persistence
+  - id: TC-S22-010
+    title: "Date filter works with other filters (status, category)"
+    priority: P1
+    preconditions:
+      - "Multiple requests with different statuses and dates"
+    steps:
+      - action: "Select Status: 'Pending'"
+        expected: "Status filter applied"
+      - action: "Select Date: 'Today'"
+        expected: "Date filter applied"
+      - action: "Verify only pending requests from today shown"
+        expected: "Filters combine correctly"
+    expected_result: "Date filter combines with other filters"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S22-011
+    title: "Clear filters button resets date filter"
+    priority: P1
+    preconditions:
+      - "Date filter applied"
+    steps:
+      - action: "Select 'This Week' filter"
+        expected: "Filter applied"
+      - action: "Click 'Clear Filters' button"
+        expected: "All filters cleared"
+      - action: "Verify Date filter reset to 'ALL'"
+        expected: "All dates shown again"
+    expected_result: "Clear filters resets date filter"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC7: Timezone
+  - id: TC-S22-012
+    title: "Date filtering respects user's local timezone"
+    priority: P1
+    preconditions:
+      - "Test in multiple timezones (IST, PST, UTC)"
+    steps:
+      - action: "Set browser timezone to IST (UTC+5:30)"
+        expected: "Timezone set"
+      - action: "Select 'Today' filter"
+        expected: "Shows today's requests in IST"
+      - action: "Change timezone to PST (UTC-8)"
+        expected: "Timezone changed"
+      - action: "Select 'Today' filter again"
+        expected: "Shows today's requests in PST"
+    expected_result: "Date filtering uses local timezone"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "May require manual testing in different timezones"
+
+regression_tests:
+  - id: REG-S22-001
+    title: "'ALL' filter still works (no regression)"
+    description: "Ensure fixing other filters didn't break 'ALL'"
+    steps:
+      - "Select 'ALL' date filter"
+      - "Verify all requests shown (no date filtering)"
+    expected: "'ALL' filter works as before"
+    status: NOT_TESTED
+
+  - id: REG-S22-002
+    title: "Date filtering doesn't break pagination (if implemented)"
+    description: "Ensure date filter works with paginated results"
+    steps:
+      - "Apply date filter with many matching results"
+      - "Verify pagination works correctly"
+    expected: "Pagination unaffected"
+    status: NOT_TESTED
+
+edge_cases:
+  - scenario: "Leap year February 29th"
+    test: "Verify 'This Month' filter handles Feb 29 correctly in leap year"
+    status: NOT_TESTED
+
+  - scenario: "Different month lengths (28, 29, 30, 31 days)"
+    test: "Verify 'This Month' filter correctly handles last day of month"
+    status: NOT_TESTED
+
+  - scenario: "Year boundary (Dec 31 to Jan 1)"
+    test: "Verify 'This Year' filter excludes Dec 31 2024 when viewing Jan 1 2025"
+    status: NOT_TESTED
+
+gate_criteria:
+  must_pass:
+    - TC-S22-001 # Today filter
+    - TC-S22-003 # This Week filter
+    - TC-S22-005 # This Month filter
+    - TC-S22-006 # This Year filter
+    - TC-S22-007 # Custom range
+    - TC-S22-008 # Validation
+    - TC-S22-009 # Edge case timestamps
+    - REG-S22-001 # No regression on ALL
+
+  nice_to_pass:
+    - TC-S22-002
+    - TC-S22-004
+    - TC-S22-010
+    - TC-S22-011
+    - TC-S22-012
+
+bug_fix_verification:
+  original_bug: "Date filters (Today, This Week, etc.) didn't work - showed zero results or all results"
+  root_cause_1: "Backend: endDate not set to end of day (23:59:59.999)"
+  root_cause_2: "Frontend: Date range calculation mutated 'now' variable and had off-by-one errors"
+  fix_verification:
+    - "TC-S22-001 verifies Today filter works"
+    - "TC-S22-003 verifies This Week filter works"
+    - "TC-S22-005 verifies This Month filter works"
+    - "TC-S22-009 verifies edge-of-day timestamps handled (23:59:59)"
+
+notes: |
+  - Client specifically reported: "Currently only 'ALL' works"
+  - Backend fix: Use getEndOfDay() helper to set 23:59:59.999
+  - Frontend fix: Proper date range calculation without mutation
+  - Manual timezone testing recommended for AC7
+  - Consider automated E2E tests with date seeding for future

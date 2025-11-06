@@ -1,0 +1,311 @@
+# Quality Gate: Sprint 5 - Story 23
+# Purchase Request Date Column Addition
+# Created: 2025-11-06 14:09:17
+# Status: Ready for Testing
+
+story:
+  id: sprint5-story-23
+  title: "Purchase Request Date Column Addition"
+  description: "Add 'Created Date' column to purchase request list displaying date in dd/mm/yy format"
+  priority: P2_MEDIUM
+  sprint: Sprint 5
+
+environment:
+  frontend_url: "http://localhost:3000"
+  backend_url: "http://localhost:5001"
+  database: "MongoDB - isfplayground"
+
+test_users:
+  purchase_manager:
+    username: "ravi@iskonwb.org"
+    password: "password"
+    role: "purchase-manager"
+
+acceptance_criteria:
+  - id: AC1
+    description: "Date column added to purchase request table"
+    test_cases: [TC-S23-001, TC-S23-002]
+
+  - id: AC2
+    description: "Date formatting function (dd/mm/yy)"
+    test_cases: [TC-S23-003, TC-S23-004]
+
+  - id: AC3
+    description: "Sorting by date column"
+    test_cases: [TC-S23-005, TC-S23-006]
+
+  - id: AC4
+    description: "Responsive design for date column"
+    test_cases: [TC-S23-007, TC-S23-008]
+
+  - id: AC5
+    description: "Date display in request details modal"
+    test_cases: [TC-S23-009]
+
+  - id: AC6
+    description: "Accessibility and internationalization"
+    test_cases: [TC-S23-010, TC-S23-011]
+
+test_cases:
+  # AC1: Date Column in Table
+  - id: TC-S23-001
+    title: "Date column visible in purchase request table"
+    priority: P0
+    preconditions:
+      - "Purchase requests exist"
+      - "Desktop viewport (≥ 768px)"
+    steps:
+      - action: "Navigate to Purchase Manager view"
+        expected: "Purchase request table loads"
+      - action: "Locate 'Created Date' column header"
+        expected: "Column visible after 'Category', before 'Total Cost'"
+      - action: "Verify column header text: 'Created Date'"
+        expected: "Correct header text"
+      - action: "Verify dates displayed for all requests"
+        expected: "All rows show date values"
+    expected_result: "Created Date column visible and populated"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S23-002
+    title: "Date column width and alignment"
+    priority: P1
+    preconditions:
+      - "Date column visible"
+    steps:
+      - action: "Measure column width"
+        expected: "Column width: 120px (fixed)"
+      - action: "Check text alignment"
+        expected: "Center-aligned"
+      - action: "Verify no text overflow or truncation"
+        expected: "Full date visible (dd/mm/yy fits within 120px)"
+    expected_result: "Column has appropriate width and alignment"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC2: Date Formatting
+  - id: TC-S23-003
+    title: "Date format is dd/mm/yy"
+    priority: P0
+    preconditions:
+      - "Request created on 2025-11-06"
+    steps:
+      - action: "Locate request in table"
+        expected: "Request row visible"
+      - action: "Read Created Date value"
+        expected: "Date displayed as '06/11/25'"
+      - action: "Verify format: 2 digits / 2 digits / 2 digits"
+        expected: "Matches dd/mm/yy pattern"
+    expected_result: "Date formatted as dd/mm/yy (e.g., 06/11/25)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Client requirement: dd/mm/yy format"
+
+  - id: TC-S23-004
+    title: "Invalid date handled gracefully"
+    priority: P1
+    preconditions:
+      - "Request with corrupted/missing createdAt field"
+    steps:
+      - action: "Locate request with invalid date"
+        expected: "Request row visible"
+      - action: "Check Created Date cell"
+        expected: "Shows 'N/A' or 'Invalid Date'"
+      - action: "Verify no JavaScript errors in console"
+        expected: "No errors"
+    expected_result: "Invalid dates don't break UI"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC3: Sorting
+  - id: TC-S23-005
+    title: "Date column is sortable - descending (most recent first)"
+    priority: P0
+    preconditions:
+      - "Multiple requests with different dates"
+    steps:
+      - action: "Click 'Created Date' column header"
+        expected: "Sort applied (first click: descending)"
+      - action: "Verify sort icon appears (downward arrow)"
+        expected: "Sort indicator shown"
+      - action: "Verify most recent request at top"
+        expected: "Requests ordered newest to oldest"
+      - action: "Verify oldest request at bottom"
+        expected: "Chronological order (desc)"
+    expected_result: "First click sorts descending (newest first)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Default sort: descending"
+
+  - id: TC-S23-006
+    title: "Date column sorting toggles: desc → asc → remove"
+    priority: P1
+    preconditions:
+      - "Date column header clickable"
+    steps:
+      - action: "First click: Sort descending"
+        expected: "Newest first, down arrow icon"
+      - action: "Second click: Sort ascending"
+        expected: "Oldest first, up arrow icon"
+      - action: "Third click: Remove sort"
+        expected: "Revert to default sort, no arrow icon"
+    expected_result: "Three-state sorting works correctly"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC4: Responsive Design
+  - id: TC-S23-007
+    title: "Date column hidden on mobile (< 768px)"
+    priority: P0
+    preconditions:
+      - "Mobile viewport (e.g., 375px width)"
+    steps:
+      - action: "Resize browser to mobile width"
+        expected: "Mobile responsive layout active"
+      - action: "Check if 'Created Date' column visible in table"
+        expected: "Column hidden (not rendered)"
+      - action: "Click first request row"
+        expected: "Row expands or navigates to details"
+      - action: "Verify date shown in expanded row/details"
+        expected: "Date visible in alternative location"
+    expected_result: "Date column hidden on mobile, shown in expanded view"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S23-008
+    title: "Date column responsive behavior at breakpoint (768px)"
+    priority: P1
+    preconditions:
+      - "Browser at 768px width"
+    steps:
+      - action: "Set viewport to 768px"
+        expected: "At tablet breakpoint"
+      - action: "Verify date column visible"
+        expected: "Column shown at ≥ 768px"
+      - action: "Reduce to 767px"
+        expected: "Below breakpoint"
+      - action: "Verify date column hidden"
+        expected: "Column hidden at < 768px"
+    expected_result: "Breakpoint at 768px works correctly"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC5: Date in Details Modal
+  - id: TC-S23-009
+    title: "Date shown in request details with full format"
+    priority: P0
+    preconditions:
+      - "Request created on 2025-11-06 at 14:03:01"
+    steps:
+      - action: "Click request row to open details modal"
+        expected: "Modal opens"
+      - action: "Locate 'Created On' field"
+        expected: "Field visible below Request ID"
+      - action: "Verify format: 'DD/MM/YYYY at HH:MM'"
+        expected: "Shows: '06/11/2025 at 14:03'"
+      - action: "Verify includes both date AND time"
+        expected: "Full datetime displayed"
+    expected_result: "Details modal shows full date and time"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Details view uses extended format with time"
+
+  # AC6: Accessibility
+  - id: TC-S23-010
+    title: "Date column has proper ARIA label"
+    priority: P1
+    preconditions:
+      - "Screen reader active"
+    steps:
+      - action: "Navigate to date column header with screen reader"
+        expected: "Header focused"
+      - action: "Verify ARIA label: 'Created Date'"
+        expected: "Label announced"
+      - action: "Navigate to date cell"
+        expected: "Cell focused"
+      - action: "Verify screen reader announces readable date"
+        expected: "Announces: 'Created on November 6, 2025'"
+    expected_result: "Screen reader announces dates in readable format"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Use NVDA or JAWS for testing"
+
+  - id: TC-S23-011
+    title: "Tooltip shows full date and time on hover"
+    priority: P1
+    preconditions:
+      - "Date cell in table"
+    steps:
+      - action: "Hover mouse over date cell (06/11/25)"
+        expected: "Tooltip appears"
+      - action: "Verify tooltip text: 'Created on: 06/11/2025 at 14:03:01'"
+        expected: "Full datetime shown in tooltip"
+      - action: "Move mouse away"
+        expected: "Tooltip disappears"
+    expected_result: "Tooltip provides full date/time context"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+regression_tests:
+  - id: REG-S23-001
+    title: "Other table columns unaffected by date column addition"
+    description: "Ensure no layout issues or column shifting"
+    steps:
+      - "Verify all existing columns still visible and aligned"
+      - "Check Request ID, Balagruha, Status, Category, Total Cost, Actions columns"
+      - "Verify no horizontal scroll on desktop"
+    expected: "No regression in table layout"
+    status: NOT_TESTED
+
+  - id: REG-S23-002
+    title: "Existing sorting on other columns still works"
+    description: "Adding date sort didn't break other column sorting"
+    steps:
+      - "Sort by Status column"
+      - "Sort by Category column"
+      - "Verify sorting works correctly"
+    expected: "Other column sorting unaffected"
+    status: NOT_TESTED
+
+edge_cases:
+  - scenario: "Request created on Feb 29 (leap year)"
+    test: "Verify date displays correctly: 29/02/24"
+    status: NOT_TESTED
+
+  - scenario: "Request created on Jan 1, 2000 (Y2K date)"
+    test: "Verify displays as 01/01/00 (not 01/01/100)"
+    status: NOT_TESTED
+
+  - scenario: "Very old request (created 2+ years ago)"
+    test: "Verify date formatting still works correctly"
+    status: NOT_TESTED
+
+gate_criteria:
+  must_pass:
+    - TC-S23-001
+    - TC-S23-003
+    - TC-S23-005
+    - TC-S23-007
+    - TC-S23-009
+
+  nice_to_pass:
+    - TC-S23-002
+    - TC-S23-004
+    - TC-S23-006
+    - TC-S23-008
+    - TC-S23-010
+    - TC-S23-011
+    - REG-S23-001
+
+notes: |
+  - Client requirement: dd/mm/yy format (not mm/dd/yy US format)
+  - Date formatter utility (dateFormatter.js) can be reused across app
+  - Future enhancement: Make date format configurable via environment variable
+  - Story 22 (date filter fix) and Story 23 (date column) work together to improve date visibility

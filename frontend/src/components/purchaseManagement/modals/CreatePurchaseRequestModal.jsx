@@ -24,6 +24,7 @@ export default function CreatePurchaseRequestModal({
 
   const [formData, setFormData] = useState({
     balagruhaId: '',
+    category: '',  // NEW - Sprint5-Story-20
     items: [],  // Array of {productId, productName, productSKU, requestedQuantity, estimatedUnitCost}
     reason: '',
     justification: '',
@@ -272,6 +273,12 @@ export default function CreatePurchaseRequestModal({
       return;
     }
 
+    // Validation - Category (Sprint5-Story-20)
+    if (!formData.category) {
+      showToast('Please select a purchase category', 'error');
+      return;
+    }
+
     // Validation - At least one product
     if (formData.items.length === 0) {
       showToast('Please select at least one product', 'error');
@@ -303,6 +310,7 @@ export default function CreatePurchaseRequestModal({
 
       // Add regular fields
       submitData.append('balagruhaId', formData.balagruhaId);
+      submitData.append('category', formData.category); // Sprint5-Story-20
       submitData.append('items', JSON.stringify(formData.items)); // Stringify items array
       submitData.append('reason', formData.reason.trim());
       submitData.append('justification', formData.justification.trim());
@@ -369,6 +377,30 @@ export default function CreatePurchaseRequestModal({
               {userBalagruhas.length === 1 && (
                 <small className="form-hint">Only one balagruha assigned to you</small>
               )}
+            </div>
+
+            {/* ================================================================ */}
+            {/* CATEGORY SELECTION - Sprint5-Story-20 */}
+            {/* ================================================================ */}
+
+            <div className="form-group">
+              <label className="form-label">
+                Category <span className="required">*</span>
+              </label>
+              <select
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
+                required
+                className="form-select"
+              >
+                <option value="">Select category...</option>
+                <option value="New Equipment">New Equipment</option>
+                <option value="Consumables (Including medicines)">Consumables (Including medicines)</option>
+                <option value="Others">Others</option>
+              </select>
+              <small className="form-hint">
+                Categorize this purchase request for better tracking and reporting
+              </small>
             </div>
 
             {/* ================================================================ */}

@@ -151,6 +151,120 @@ Build a **Purchase Manager Workflow** integrated into the existing `/purchase` p
 
 ---
 
+### Story 20: Purchase Request Category Classification
+**As a** Purchase Manager
+**I want to** categorize purchase requests into "New Equipment", "Consumables (Including medicines)", or "Others"
+**So that** I can better organize and track purchase requests by their nature and facilitate better inventory management and budget allocation
+
+**Acceptance Criteria:**
+- Category dropdown field required in purchase request creation modal
+- Three predefined categories: "New Equipment", "Consumables (Including medicines)", "Others"
+- Category displayed in purchase request list view as sortable column
+- Category filter available in purchase request list
+- Category displayed in request details view
+- Backend validates category using enum
+
+**Story ID:** Sprint5-Story-20
+**Story Link:** [Story 20 - Purchase Category Classification](../../stories/sprint5/sprint5-story-20-purchase-category-classification.md)
+**Estimate:** 1 day
+
+---
+
+### Story 21: STOCK Balagruha-Independent Purchase Requests
+**As a** Purchase Manager
+**I want to** create purchase requests for "STOCK" inventory that is not specific to any Balagruha
+**So that** I can efficiently purchase shared resources (e.g., "Pee proof Pants") that can be allocated to Balagruhas as needed later
+
+**Acceptance Criteria:**
+- "STOCK" option appears as first option in Balagruha dropdown
+- Backend accepts balagruhaId: 'STOCK' as valid value (string, not ObjectId)
+- STOCK requests visible to ALL users regardless of their Balagruha assignments
+- STOCK badge displayed distinctly in purchase request list (with icon)
+- STOCK filtering option available
+- STOCK requests can go through complete approval and fulfillment workflow
+- Database supports future allocation tracking (allocatedToBalagruhas field)
+
+**Story ID:** Sprint5-Story-21
+**Story Link:** [Story 21 - STOCK Purchase Requests](../../stories/sprint5/sprint5-story-21-stock-balagruha-independent-purchases.md)
+**Estimate:** 1.5 days
+
+---
+
+### Story 22: Purchase Request Date Filter Bug Fix
+**As a** Purchase Manager
+**I want** date filters (Today, This Week, This Month, etc.) to work correctly
+**So that** I can view purchase requests filtered by specific time periods instead of only seeing "ALL" requests
+
+**Type:** Bug Fix
+
+**Acceptance Criteria:**
+- "Today" filter shows only today's requests (00:00 to 23:59)
+- "This Week" filter shows current week requests (Monday-Sunday)
+- "This Month" filter shows current month requests (1st to last day)
+- "This Year" filter shows current year requests (Jan 1 to Dec 31)
+- Custom date range filter works with start and end dates (inclusive)
+- Edge-of-day timestamps handled correctly (00:00:01 and 23:59:59)
+- Date filter works in combination with other filters
+- Backend sets end-of-day to 23:59:59.999 (fix for root cause)
+- Frontend date calculation doesn't mutate variables (fix for root cause)
+
+**Story ID:** Sprint5-Story-22
+**Story Link:** [Story 22 - Date Filter Bug Fix](../../stories/sprint5/sprint5-story-22-date-filter-bug-fix.md)
+**Estimate:** 0.5 days
+
+---
+
+### Story 23: Purchase Request Date Column Addition
+**As a** Purchase Manager
+**I want to** see the creation date of each purchase request displayed as a column in the list view
+**So that** I can quickly identify when each request was submitted without opening the details
+
+**Acceptance Criteria:**
+- "Created Date" column added to purchase request table
+- Date format: dd/mm/yy (e.g., "06/11/25")
+- Column placement: After "Category", before "Total Cost"
+- Date column is sortable (desc → asc → remove sort)
+- Responsive design: Hidden on mobile (<768px), shown in expanded row
+- Tooltip shows full date and time on hover
+- Request details modal shows full date/time format (DD/MM/YYYY at HH:MM)
+- Reusable date formatter utility created (dateFormatter.js)
+
+**Story ID:** Sprint5-Story-23
+**Story Link:** [Story 23 - Date Column Addition](../../stories/sprint5/sprint5-story-23-purchase-request-date-column.md)
+**Estimate:** 0.5 days
+
+---
+
+### Story 24: Multi-Role Purchase Request Creation with Approval Thresholds
+**As a** Coach, Medical Incharge, or Admin
+**I want to** create purchase requests for items needed at my assigned Balagruha(s)
+**So that** I can initiate the procurement process without relying solely on the Purchase Manager
+
+**Acceptance Criteria:**
+- Coach, Medical Incharge, Admin, and Purchase Manager can all create purchase requests
+- Balagruha dropdown filtered by user's assigned Balagruhas + STOCK (always available)
+- Backend enforces Balagruha assignment security (cannot create for unassigned)
+- **Automatic approval workflow based on thresholds:**
+  - **Small Purchase:** Max item cost ≤ Rs 1,000 AND total cost ≤ Rs 25,000
+    - Status: `pending_fulfillment` (skip admin approval)
+    - Workflow: Create → PM Fulfillment
+  - **Large Purchase:** Max item cost > Rs 1,000 OR total cost > Rs 25,000
+    - Status: `pending_approval` (requires admin approval)
+    - Workflow: Create → Admin Approval → PM Fulfillment
+- Role-based visibility filtering:
+  - Coach/Medical/Admin: See requests for assigned Balagruhas + STOCK + own created requests
+  - Purchase Manager: See pending_fulfillment and approved requests for assigned Balagruhas
+  - Admin: See all pending_approval requests + assigned Balagruha requests
+- New status badges: pending_approval (red/orange), pending_fulfillment (yellow), approved (blue)
+- Request details show threshold analysis with visual indicators
+- Backend calculates thresholds automatically (cannot be manually overridden)
+
+**Story ID:** Sprint5-Story-24
+**Story Link:** [Story 24 - Multi-Role Purchase Requests](../../stories/sprint5/sprint5-story-24-multi-role-purchase-requests.md)
+**Estimate:** 2 days
+
+---
+
 ## Technical Architecture
 
 ### New Database Models
@@ -577,5 +691,5 @@ const filteredRequests = allRequests.filter(request => {
 
 ---
 
-**Last Updated:** 2025-10-29 16:33:25 (via `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Orchestrator (BMad) - Corrected to Epic 05
+**Last Updated:** 2025-11-06 14:15:45 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent - Added Stories 20-24 based on client feedback

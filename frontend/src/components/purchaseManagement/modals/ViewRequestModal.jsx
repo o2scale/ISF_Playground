@@ -155,6 +155,11 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                   <span className="time-ago">({dayjs(request.createdAt).fromNow()})</span>
                 </span>
               </div>
+              {/* Category - Sprint5-Story-20 */}
+              <div className="detail-item">
+                <span className="detail-label">Category:</span>
+                <span className="detail-value">{request.category || 'Not Categorized'}</span>
+              </div>
             </div>
 
             <div className="detail-item full-width">

@@ -16,11 +16,27 @@ const mongoose = require('mongoose');
  */
 exports.createPurchaseRequest = async (req, res) => {
   try {
-    const { balagruhaId, items, reason, justification } = req.body;
+    const { balagruhaId, category, items, reason, justification } = req.body;
     const userId = req.user._id;
 
     // Files are in req.files (uploaded by multer automatically)
     const uploadedFiles = req.files || [];
+
+    // Validate category
+    if (!category) {
+      return res.status(400).json({
+        success: false,
+        message: 'Category is required'
+      });
+    }
+
+    const validCategories = ['New Equipment', 'Consumables (Including medicines)', 'Others'];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid category value. Must be one of: New Equipment, Consumables (Including medicines), Others'
+      });
+    }
 
     // Validate items
     if (!items) {
@@ -100,6 +116,7 @@ exports.createPurchaseRequest = async (req, res) => {
     // Create purchase request
     const purchaseRequest = new PurchaseRequest({
       balagruhaId: balagruhaId || null,
+      category: category.trim(),
       items: validatedItems,
       attachments,
       reason: reason.trim(),
@@ -141,7 +158,7 @@ exports.createPurchaseRequest = async (req, res) => {
 exports.getMyPurchaseRequests = async (req, res) => {
   try {
     const userId = req.user._id;
-    const { status, balagruhaId, startDate, endDate } = req.query;
+    const { status, balagruhaId, category, startDate, endDate } = req.query;
 
     // Build query
     const query = { requestedBy: userId };
@@ -152,6 +169,10 @@ exports.getMyPurchaseRequests = async (req, res) => {
 
     if (balagruhaId && balagruhaId !== 'all') {
       query.balagruhaId = balagruhaId;
+    }
+
+    if (category && category !== 'All Categories') {
+      query.category = category;
     }
 
     if (startDate || endDate) {
@@ -188,7 +209,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
  */
 exports.getAllPurchaseRequests = async (req, res) => {
   try {
-    const { status, balagruhaId, startDate, endDate } = req.query;
+    const { status, balagruhaId, category, startDate, endDate } = req.query;
 
     // Build query
     const query = {};
@@ -199,6 +220,10 @@ exports.getAllPurchaseRequests = async (req, res) => {
 
     if (balagruhaId && balagruhaId !== 'all') {
       query.balagruhaId = balagruhaId;
+    }
+
+    if (category && category !== 'All Categories') {
+      query.category = category;
     }
 
     if (startDate || endDate) {

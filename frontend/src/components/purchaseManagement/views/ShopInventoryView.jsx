@@ -48,6 +48,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     toDate: '',
     balagruha: 'all',
     purchaseManager: 'all',
+    category: 'All Categories',  // Sprint5-Story-20
     status: 'all',
     search: ''
   });
@@ -141,6 +142,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       filtered = filtered.filter(request =>
         request.requestedBy?._id === filters.purchaseManager
       );
+    }
+
+    // Category filter (Sprint5-Story-20)
+    if (filters.category !== 'All Categories') {
+      filtered = filtered.filter(request => request.category === filters.category);
     }
 
     // Status filter
@@ -411,6 +417,21 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             </div>
           )}
 
+          {/* Category Filter - Sprint5-Story-20 */}
+          <div className="filter-group">
+            <label>Category:</label>
+            <select
+              value={filters.category}
+              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+              className="filter-select"
+            >
+              <option value="All Categories">All Categories</option>
+              <option value="New Equipment">New Equipment</option>
+              <option value="Consumables (Including medicines)">Consumables (Including medicines)</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
           {/* Status Filter */}
           <div className="filter-group">
             <label>Status:</label>
@@ -454,6 +475,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <th>Reason</th>
               {userRole === 'admin' && <th>Requested By</th>}
               <th>Status</th>
+              <th>Category</th>
               <th>Requested</th>
               <th>Actions</th>
             </tr>
@@ -504,6 +526,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   </td>
                 )}
                 <td>{getStatusBadge(request.status)}</td>
+                <td className="category-cell">{request.category || 'Not Categorized'}</td>
                 <td className="date-cell">
                   <div>{dayjs(request.createdAt).format('DD-MM-YYYY')}</div>
                   <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
@@ -563,7 +586,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             ))}
             {filteredRequests.length === 0 && (
               <tr>
-                <td colSpan={userRole === 'admin' ? "9" : "8"} className="no-data">
+                <td colSpan={userRole === 'admin' ? "10" : "9"} className="no-data">
                   {userRole === 'purchase-manager'
                     ? "No purchase requests found. Click '+ New Purchase Request' to create one."
                     : "No purchase requests found."}

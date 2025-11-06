@@ -1,0 +1,651 @@
+# Quality Gate: Sprint 5 - Story 24
+# Multi-Role Purchase Request Creation with Approval Thresholds
+# Created: 2025-11-06 14:09:17
+# Status: Ready for Testing
+
+story:
+  id: sprint5-story-24
+  title: "Multi-Role Purchase Request Creation with Approval Thresholds"
+  description: "Coach, Medical Incharge, Admin can create purchase requests with automatic approval workflow based on thresholds (Rs 1,000/item or Rs 25,000 total)"
+  priority: P0_CRITICAL
+  sprint: Sprint 5
+
+environment:
+  frontend_url: "http://localhost:3000"
+  backend_url: "http://localhost:5001"
+  database: "MongoDB - isfplayground"
+
+test_users:
+  coach:
+    username: "priya@iskonwb.org"
+    password: "password"
+    role: "coach"
+    assigned_balagruhas: ["Mathrudhama"]
+
+  medical_incharge:
+    username: "dr.sharma@iskonwb.org"
+    password: "password"
+    role: "medical-incharge"
+    assigned_balagruhas: ["Sadashraya Charitable Trust"]
+
+  admin:
+    username: "admin@iskonwb.org"
+    password: "password"
+    role: "admin"
+    assigned_balagruhas: ["All"]
+
+  purchase_manager:
+    username: "ravi@iskonwb.org"
+    password: "password"
+    role: "purchase-manager"
+    assigned_balagruhas: ["Sadashraya Charitable Trust", "Mathrudhama"]
+
+approval_thresholds:
+  item_cost_threshold: 1000  # Rs 1,000 per item
+  total_cost_threshold: 25000  # Rs 25,000 total order
+
+  small_purchase:
+    criteria: "Max item cost ≤ Rs 1,000 AND Total cost ≤ Rs 25,000"
+    initial_status: "pending_fulfillment"
+    workflow: "Create → PM Fulfillment (skip admin approval)"
+
+  large_purchase:
+    criteria: "Max item cost > Rs 1,000 OR Total cost > Rs 25,000"
+    initial_status: "pending_approval"
+    workflow: "Create → Admin Approval → PM Fulfillment"
+
+acceptance_criteria:
+  - id: AC1
+    description: "Multi-role access to purchase request creation"
+    test_cases: [TC-S24-001, TC-S24-002, TC-S24-003, TC-S24-004]
+
+  - id: AC2
+    description: "Balagruha dropdown filtered by user assignment"
+    test_cases: [TC-S24-005, TC-S24-006, TC-S24-007]
+
+  - id: AC3
+    description: "Automatic status assignment based on thresholds"
+    test_cases: [TC-S24-008, TC-S24-009, TC-S24-010, TC-S24-011]
+
+  - id: AC4
+    description: "Small purchase workflow (direct to fulfillment)"
+    test_cases: [TC-S24-012, TC-S24-013]
+
+  - id: AC5
+    description: "Large purchase workflow (admin approval required)"
+    test_cases: [TC-S24-014, TC-S24-015]
+
+  - id: AC6
+    description: "Purchase request list filtering by user role"
+    test_cases: [TC-S24-016, TC-S24-017, TC-S24-018]
+
+  - id: AC7
+    description: "Status badge updates and colors"
+    test_cases: [TC-S24-019, TC-S24-020]
+
+  - id: AC8
+    description: "Request details show threshold calculation"
+    test_cases: [TC-S24-021, TC-S24-022]
+
+test_cases:
+  # AC1: Multi-Role Access
+  - id: TC-S24-001
+    title: "Coach can access Create Purchase Request button"
+    priority: P0
+    preconditions:
+      - "Logged in as Coach (Priya)"
+    steps:
+      - action: "Navigate to Coach Dashboard"
+        expected: "Dashboard loads"
+      - action: "Locate 'Create Purchase Request' button"
+        expected: "Button visible in dashboard"
+      - action: "Click button"
+        expected: "Create Purchase Request modal opens"
+    expected_result: "Coach has access to create purchase requests"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "NEW FEATURE: Previously only Purchase Manager could create requests"
+
+  - id: TC-S24-002
+    title: "Medical Incharge can create purchase request"
+    priority: P0
+    preconditions:
+      - "Logged in as Medical Incharge (Dr. Sharma)"
+    steps:
+      - action: "Navigate to Medical Dashboard"
+        expected: "Dashboard loads"
+      - action: "Click 'Create Purchase Request' button"
+        expected: "Modal opens"
+      - action: "Fill all required fields"
+        expected: "Form filled"
+      - action: "Submit request"
+        expected: "Request created successfully"
+    expected_result: "Medical Incharge can create requests"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-003
+    title: "Admin can create purchase request"
+    priority: P0
+    preconditions:
+      - "Logged in as Admin"
+    steps:
+      - action: "Navigate to Admin Purchase Requests panel"
+        expected: "Panel loads"
+      - action: "Click 'Create Purchase Request' button"
+        expected: "Modal opens"
+      - action: "Create request for 'Mathrudhama'"
+        expected: "Request created"
+    expected_result: "Admin can create requests"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-004
+    title: "Purchase Manager retains create access (no regression)"
+    priority: P0
+    preconditions:
+      - "Logged in as Purchase Manager (Ravi)"
+    steps:
+      - action: "Navigate to Purchase Manager view"
+        expected: "View loads"
+      - action: "Verify 'New Purchase Request' button still present"
+        expected: "Button visible"
+      - action: "Create request"
+        expected: "Works as before"
+    expected_result: "Purchase Manager access unchanged"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Regression test"
+
+  # AC2: Balagruha Filtering by Assignment
+  - id: TC-S24-005
+    title: "Balagruha dropdown shows ONLY user's assigned Balagruhas + STOCK"
+    priority: P0
+    preconditions:
+      - "Coach (Priya) assigned ONLY to 'Mathrudhama'"
+    steps:
+      - action: "Login as Coach, open Create Request modal"
+        expected: "Modal opens"
+      - action: "Click Balagruha dropdown"
+        expected: "Dropdown opens"
+      - action: "Verify options: 'STOCK', [divider], 'Mathrudhama'"
+        expected: "Only assigned Balagruha shown"
+      - action: "Verify 'Sadashraya Charitable Trust' NOT in list"
+        expected: "Unassigned Balagruha hidden"
+    expected_result: "Dropdown filtered by user assignments"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CRITICAL: Security test - prevents cross-Balagruha requests"
+
+  - id: TC-S24-006
+    title: "Backend rejects request for unassigned Balagruha"
+    priority: P0
+    preconditions:
+      - "Coach (Priya) assigned to 'Mathrudhama'"
+      - "Attempting to create request for 'Sadashraya'"
+    steps:
+      - action: "POST /api/purchaseRequests with balagruhaId: 'sadashraya-id'"
+        expected: "Request rejected"
+      - action: "Verify status: 403 Forbidden"
+        expected: "403 status"
+      - action: "Verify error: 'You can only create requests for Balagruhas you are assigned to'"
+        expected: "Error message returned"
+    expected_result: "Backend enforces Balagruha assignment security"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CRITICAL SECURITY TEST"
+
+  - id: TC-S24-007
+    title: "STOCK option always available regardless of assignments"
+    priority: P0
+    preconditions:
+      - "User with limited Balagruha assignments"
+    steps:
+      - action: "Open Create Request modal"
+        expected: "Modal opens"
+      - action: "Click Balagruha dropdown"
+        expected: "Dropdown opens"
+      - action: "Verify 'STOCK' is first option"
+        expected: "STOCK present"
+      - action: "Select STOCK and create request"
+        expected: "Request created successfully"
+    expected_result: "STOCK available to all users"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "Integrates with Story 21"
+
+  # AC3: Threshold Logic
+  - id: TC-S24-008
+    title: "Small purchase: Status set to 'pending_fulfillment'"
+    priority: P0
+    preconditions:
+      - "Creating request with items totaling ≤ Rs 25,000 and max item ≤ Rs 1,000"
+    test_data:
+      items:
+        - product: "Umbrella"
+          quantity: 10
+          unit_cost: 500
+          total: 5000
+        - product: "Notebook"
+          quantity: 20
+          unit_cost: 50
+          total: 1000
+      max_item_cost: 500
+      total_cost: 6000
+    steps:
+      - action: "Create request with above items"
+        expected: "Request submitted"
+      - action: "Check backend calculated status"
+        expected: "Status: 'pending_fulfillment'"
+      - action: "Verify thresholdAnalysis.requiresApproval: false"
+        expected: "requiresApproval = false"
+    expected_result: "Small purchase skips admin approval"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CORE THRESHOLD LOGIC TEST"
+
+  - id: TC-S24-009
+    title: "Large purchase (item cost exceeds): Status 'pending_approval'"
+    priority: P0
+    preconditions:
+      - "Creating request with item cost > Rs 1,000"
+    test_data:
+      items:
+        - product: "Laptop"
+          quantity: 5
+          unit_cost: 50000
+          total: 250000
+      max_item_cost: 50000  # Exceeds Rs 1,000
+      total_cost: 250000    # Also exceeds Rs 25,000
+    steps:
+      - action: "Create request with Laptop (Rs 50,000 each)"
+        expected: "Request submitted"
+      - action: "Check backend calculated status"
+        expected: "Status: 'pending_approval'"
+      - action: "Verify thresholdAnalysis.requiresApproval: true"
+        expected: "requiresApproval = true"
+    expected_result: "Large purchase requires admin approval"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-010
+    title: "Large purchase (total exceeds): Status 'pending_approval'"
+    priority: P0
+    preconditions:
+      - "Items with low unit cost but high total"
+    test_data:
+      items:
+        - product: "Pen"
+          quantity: 1000
+          unit_cost: 50
+          total: 50000
+      max_item_cost: 50    # Within Rs 1,000
+      total_cost: 50000    # Exceeds Rs 25,000
+    steps:
+      - action: "Create request with 1,000 pens (Rs 50 each)"
+        expected: "Request submitted"
+      - action: "Verify max item cost: Rs 50"
+        expected: "Below item threshold"
+      - action: "Verify total cost: Rs 50,000"
+        expected: "Exceeds total threshold"
+      - action: "Check status: 'pending_approval'"
+        expected: "Requires approval due to total"
+    expected_result: "Total cost threshold triggers approval"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-011
+    title: "Boundary test: Exactly Rs 1,000/item and Rs 25,000 total"
+    priority: P0
+    preconditions:
+      - "Creating request at exact threshold limits"
+    test_data:
+      items:
+        - product: "Equipment"
+          quantity: 25
+          unit_cost: 1000
+          total: 25000
+      max_item_cost: 1000  # Exactly at threshold
+      total_cost: 25000    # Exactly at threshold
+    steps:
+      - action: "Create request with exact threshold values"
+        expected: "Request submitted"
+      - action: "Verify status: 'pending_fulfillment'"
+        expected: "Status is small purchase"
+    expected_result: "Exactly at threshold = small purchase (≤ threshold)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CRITICAL BOUNDARY TEST: <= is small, > is large"
+
+  # AC4: Small Purchase Workflow
+  - id: TC-S24-012
+    title: "Small purchase bypasses admin approval"
+    priority: P0
+    preconditions:
+      - "Small purchase created (status: pending_fulfillment)"
+    steps:
+      - action: "Login as Admin"
+        expected: "Admin logged in"
+      - action: "Navigate to pending_approval queue"
+        expected: "Approval queue loads"
+      - action: "Verify small purchase NOT in list"
+        expected: "Request not visible to admin"
+      - action: "Login as Purchase Manager"
+        expected: "PM logged in"
+      - action: "Navigate to pending_fulfillment queue"
+        expected: "Fulfillment queue loads"
+      - action: "Verify small purchase IS in list"
+        expected: "Request ready for fulfillment"
+    expected_result: "Small purchase visible to PM, not Admin"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-013
+    title: "Small purchase badge shows 'Pending Fulfillment' (yellow)"
+    priority: P1
+    preconditions:
+      - "Small purchase in list"
+    steps:
+      - action: "Locate request in table"
+        expected: "Request visible"
+      - action: "Check status badge"
+        expected: "Badge text: 'Pending Fulfillment'"
+      - action: "Verify badge color: Yellow/Info blue"
+        expected: "Color indicates ready for PM"
+      - action: "Hover over badge"
+        expected: "Tooltip explains: 'Under approval threshold...'"
+    expected_result: "Status badge correctly shows pending_fulfillment"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC5: Large Purchase Workflow
+  - id: TC-S24-014
+    title: "Large purchase requires admin approval first"
+    priority: P0
+    preconditions:
+      - "Large purchase created (status: pending_approval)"
+    steps:
+      - action: "Login as Admin"
+        expected: "Admin logged in"
+      - action: "Navigate to pending_approval queue"
+        expected: "Queue loads"
+      - action: "Verify large purchase visible"
+        expected: "Request in approval queue"
+      - action: "Login as Purchase Manager"
+        expected: "PM logged in"
+      - action: "Navigate to pending_fulfillment queue"
+        expected: "Queue loads"
+      - action: "Verify large purchase NOT in PM queue yet"
+        expected: "Not visible until approved"
+    expected_result: "Large purchase visible to Admin, not PM (until approved)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-015
+    title: "Large purchase badge shows 'Pending Approval' (red/orange)"
+    priority: P1
+    preconditions:
+      - "Large purchase in list"
+    steps:
+      - action: "Locate request in table"
+        expected: "Request visible"
+      - action: "Check status badge"
+        expected: "Badge text: 'Pending Approval'"
+      - action: "Verify badge color: Red/Orange/Warning"
+        expected: "Color indicates needs admin action"
+      - action: "Hover over badge"
+        expected: "Tooltip explains threshold exceeded"
+    expected_result: "Status badge correctly shows pending_approval"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC6: Role-Based Filtering
+  - id: TC-S24-016
+    title: "Coach sees only requests for assigned Balagruhas + STOCK"
+    priority: P0
+    preconditions:
+      - "Coach assigned to 'Mathrudhama'"
+      - "Requests exist for multiple Balagruhas"
+    steps:
+      - action: "Login as Coach (Priya)"
+        expected: "Coach logged in"
+      - action: "Navigate to purchase requests view"
+        expected: "Requests list loads"
+      - action: "Verify requests for 'Mathrudhama' visible"
+        expected: "Mathrudhama requests shown"
+      - action: "Verify STOCK requests visible"
+        expected: "STOCK requests shown"
+      - action: "Verify requests for 'Sadashraya' NOT visible"
+        expected: "Unassigned Balagruha requests hidden"
+    expected_result: "Coach visibility filtered by assignment"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-017
+    title: "Admin sees pending_approval requests + assigned Balagruhas"
+    priority: P0
+    preconditions:
+      - "Admin assigned to specific Balagruhas"
+      - "Mix of pending_approval and pending_fulfillment requests"
+    steps:
+      - action: "Login as Admin"
+        expected: "Admin logged in"
+      - action: "Navigate to purchase requests"
+        expected: "List loads"
+      - action: "Verify ALL pending_approval requests visible"
+        expected: "Approval queue populated"
+      - action: "Verify requests for assigned Balagruhas visible"
+        expected: "Assigned requests shown"
+      - action: "Verify small purchases (pending_fulfillment) for unassigned Balagruhas NOT visible"
+        expected: "Filtered correctly"
+    expected_result: "Admin sees approval queue + assigned requests"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-018
+    title: "Purchase Manager sees pending_fulfillment + approved requests"
+    priority: P0
+    preconditions:
+      - "PM assigned to specific Balagruhas"
+      - "Requests in various statuses"
+    steps:
+      - action: "Login as Purchase Manager"
+        expected: "PM logged in"
+      - action: "Navigate to purchase requests"
+        expected: "List loads"
+      - action: "Verify pending_fulfillment requests visible"
+        expected: "Small purchases shown"
+      - action: "Verify approved requests visible"
+        expected: "Admin-approved large purchases shown"
+      - action: "Verify pending_approval requests NOT visible"
+        expected: "Unapproved requests hidden"
+    expected_result: "PM sees requests ready for fulfillment"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC7: Status Badges
+  - id: TC-S24-019
+    title: "Status filter includes new status values"
+    priority: P1
+    preconditions:
+      - "Status filter dropdown"
+    steps:
+      - action: "Click Status filter"
+        expected: "Dropdown opens"
+      - action: "Verify options include: 'Pending Approval', 'Pending Fulfillment', 'Approved', 'Fulfilled', 'Rejected'"
+        expected: "All status values present"
+    expected_result: "Status filter updated with new values"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-020
+    title: "Status badge colors match workflow stages"
+    priority: P1
+    preconditions:
+      - "Requests in different statuses visible"
+    steps:
+      - action: "Verify 'pending_approval' badge: Red/Orange"
+        expected: "Warning color"
+      - action: "Verify 'pending_fulfillment' badge: Yellow/Blue"
+        expected: "Info color"
+      - action: "Verify 'approved' badge: Blue"
+        expected: "Primary color"
+      - action: "Verify 'fulfilled' badge: Green"
+        expected: "Success color"
+    expected_result: "Badge colors semantically correct"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC8: Threshold Display
+  - id: TC-S24-021
+    title: "Request details show threshold analysis section"
+    priority: P0
+    preconditions:
+      - "Large purchase request exists"
+    steps:
+      - action: "Click request row to open details"
+        expected: "Details modal opens"
+      - action: "Locate 'Approval Threshold Analysis' section"
+        expected: "Section visible"
+      - action: "Verify displays: Max Item Cost, Total Order Cost, Thresholds"
+        expected: "All values shown"
+      - action: "Verify visual indicators (✅ / ❌) for threshold comparison"
+        expected: "Checkmarks/X icons shown"
+      - action: "Verify result message: 'Admin approval required (exceeds threshold)'"
+        expected: "Clear explanation"
+    expected_result: "Threshold analysis clearly displayed"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S24-022
+    title: "Small purchase shows 'No admin approval required' message"
+    priority: P1
+    preconditions:
+      - "Small purchase request exists"
+    steps:
+      - action: "Open small purchase request details"
+        expected: "Details modal opens"
+      - action: "Locate threshold analysis section"
+        expected: "Section visible"
+      - action: "Verify both thresholds show green checkmarks (✅)"
+        expected: "Within thresholds"
+      - action: "Verify message: 'No admin approval required (within threshold)'"
+        expected: "Success message"
+    expected_result: "Small purchase threshold analysis shows success state"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+regression_tests:
+  - id: REG-S24-001
+    title: "Story 17-19 workflows still work"
+    description: "Multi-role access doesn't break existing PM workflows"
+    steps:
+      - "PM creates request (Story 17)"
+      - "Admin approves (Story 18 - if large purchase)"
+      - "PM fulfills (Story 19)"
+    expected: "Complete workflow functions correctly"
+    status: NOT_TESTED
+
+  - id: REG-S24-002
+    title: "Story 20-21 features integrate with multi-role"
+    description: "Category and STOCK work with all roles"
+    steps:
+      - "Coach creates request with category (Story 20)"
+      - "Medical creates STOCK request (Story 21)"
+      - "Verify all features work together"
+    expected: "All features compatible"
+    status: NOT_TESTED
+
+edge_cases:
+  - scenario: "User with ZERO Balagruha assignments"
+    test: "Verify can only create STOCK requests"
+    status: NOT_TESTED
+
+  - scenario: "Request with mixed items (some over, some under threshold)"
+    test: "Verify MAX item cost used for threshold calculation"
+    status: NOT_TESTED
+
+  - scenario: "Exactly Rs 1,001 (Rs 1 over threshold)"
+    test: "Verify triggers large purchase workflow"
+    status: NOT_TESTED
+
+  - scenario: "Exactly Rs 25,001 (Rs 1 over total threshold)"
+    test: "Verify triggers large purchase workflow"
+    status: NOT_TESTED
+
+security_tests:
+  - id: SEC-S24-001
+    title: "Cannot create request for unassigned Balagruha via API tampering"
+    priority: P0
+    steps:
+      - "Intercept API request"
+      - "Change balagruhaId to unassigned Balagruha"
+      - "Send tampered request"
+      - "Verify 403 Forbidden response"
+    expected: "Backend security prevents unauthorized Balagruha access"
+    status: NOT_TESTED
+
+  - id: SEC-S24-002
+    title: "Cannot bypass threshold logic via API tampering"
+    priority: P0
+    steps:
+      - "Create large purchase request"
+      - "Intercept API request"
+      - "Manually set status to 'pending_fulfillment'"
+      - "Send tampered request"
+      - "Verify backend recalculates and sets correct status"
+    expected: "Backend threshold calculation cannot be bypassed"
+    status: NOT_TESTED
+
+gate_criteria:
+  must_pass:
+    - TC-S24-001  # Coach access
+    - TC-S24-002  # Medical access
+    - TC-S24-003  # Admin access
+    - TC-S24-005  # Balagruha filtering
+    - TC-S24-006  # Security: Backend rejects unassigned
+    - TC-S24-008  # Small purchase threshold
+    - TC-S24-009  # Large purchase (item exceeds)
+    - TC-S24-010  # Large purchase (total exceeds)
+    - TC-S24-011  # Boundary test
+    - TC-S24-012  # Small workflow
+    - TC-S24-014  # Large workflow
+    - TC-S24-016  # Coach filtering
+    - TC-S24-017  # Admin filtering
+    - TC-S24-018  # PM filtering
+    - TC-S24-021  # Threshold display
+    - SEC-S24-001  # Security test
+
+  nice_to_pass:
+    - TC-S24-004
+    - TC-S24-007
+    - TC-S24-013
+    - TC-S24-015
+    - TC-S24-019
+    - TC-S24-020
+    - TC-S24-022
+    - REG-S24-001
+    - REG-S24-002
+
+notes: |
+  - CRITICAL STORY: Enables multi-role request creation with intelligent approval workflow
+  - Client requirement: "Let's not over-complicate this" - kept workflow simple (no role-based chains)
+  - Thresholds: Rs 1,000/item AND Rs 25,000 total (both must be met for small purchase)
+  - Security is paramount: Backend MUST enforce Balagruha assignment restrictions
+  - Performance monitoring: Track approval workflow efficiency metrics
+  - Future enhancement: Make thresholds configurable (environment variables)
