@@ -119,6 +119,9 @@ exports.createPurchaseRequest = async (req, res) => {
         });
       }
 
+      // Sprint5-Story-25: Track pending products
+      const isPendingProduct = product.isPendingProduct === true;
+
       validatedItems.push({
         productId: product._id,
         productName: product.name,
@@ -127,7 +130,8 @@ exports.createPurchaseRequest = async (req, res) => {
         currentStock: product.stock,
         lowStockThreshold: product.lowStockThreshold,
         estimatedUnitCost: parseFloat(item.estimatedUnitCost),
-        estimatedTotalCost: parseInt(item.requestedQuantity) * parseFloat(item.estimatedUnitCost)
+        estimatedTotalCost: parseInt(item.requestedQuantity) * parseFloat(item.estimatedUnitCost),
+        isPendingProduct  // Sprint5-Story-25: Mark if this is a pending product
       });
     }
 
@@ -170,6 +174,15 @@ exports.createPurchaseRequest = async (req, res) => {
     });
 
     await purchaseRequest.save();
+
+    // Sprint5-Story-25: Link pending products to this request
+    for (const item of validatedItems) {
+      if (item.isPendingProduct) {
+        await ShopItem.findByIdAndUpdate(item.productId, {
+          createdInRequest: purchaseRequest._id
+        });
+      }
+    }
 
     // Populate for response
     await purchaseRequest.populate('requestedBy', 'name email role');
@@ -798,9 +811,23 @@ exports.completePurchaseRequest = async (req, res) => {
       const actualUnitCost = itemUpdate.actualUnitCost;
       const actualItemCost = itemUpdate.actualTotalCost;
 
-      // Update product stock (ATOMIC within transaction)
+      // Sprint5-Story-25: Activate pending products on fulfillment
       const previousStock = product.stock;
-      product.stock += receivedQty;
+      if (product.isPendingProduct === true) {
+        // ACTIVATE PENDING PRODUCT
+        product.isPendingProduct = false;
+        product.isActive = true;
+        product.stock = receivedQty;  // Set initial stock (not increment)
+        product.lowStockThreshold = getDefaultThresholdForCategory(product.category);
+        product.price = actualUnitCost || 0;  // Set price based on actual cost
+        // Set balagruhaId based on request
+        if (request.balagruhaId && request.balagruhaId !== 'STOCK') {
+          product.balagruhaId = request.balagruhaId;
+        }
+      } else {
+        // Existing product: increment stock
+        product.stock += receivedQty;
+      }
       await product.save({ session });
 
       // Create inventory transaction record
@@ -883,5 +910,26 @@ exports.completePurchaseRequest = async (req, res) => {
     });
   }
 };
+
+/**
+ * Sprint5-Story-25: Helper function to get default low stock threshold based on category
+ * @param {String} category - Product category
+ * @returns {Number} Default threshold value
+ */
+function getDefaultThresholdForCategory(category) {
+  const thresholds = {
+    'Consumables': 20,
+    'Stationery': 15,
+    'Hygiene': 25,
+    'Equipment': 5,
+    'stationery': 15,
+    'sports': 10,
+    'books': 8,
+    'uniforms': 10,
+    'digital': 5,
+    'other': 10
+  };
+  return thresholds[category] || 10;  // Default to 10 if category not found
+}
 
 module.exports = exports;

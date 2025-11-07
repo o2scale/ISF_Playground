@@ -335,11 +335,102 @@ async function restoreProduct(req, res) {
   }
 }
 
+/**
+ * Create Pending Product - Sprint5-Story-25
+ * POST /api/v2/shop/admin/products/pending
+ * @access Multi-role (Coach, Medical, Admin, PM)
+ */
+async function createPendingProduct(req, res) {
+  try {
+    const { name, category, unit, sku, description } = req.body;
+    const userId = req.user._id;
+
+    // Validation
+    if (!name || !category || !unit) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name, category, and unit are required'
+      });
+    }
+
+    // Generate SKU if not provided
+    const generatedSKU = sku || `NEW-${Date.now()}`;
+
+    // Check SKU uniqueness
+    const existingProduct = await ShopItem.findOne({ sku: generatedSKU });
+    if (existingProduct) {
+      return res.status(400).json({
+        success: false,
+        error: 'SKU already exists. Please use a different SKU.'
+      });
+    }
+
+    // Create pending product
+    const newProduct = new ShopItem({
+      name,
+      sku: generatedSKU,
+      category,
+      unit,
+      description: description || '',
+      isPendingProduct: true,
+      isActive: false,
+      stock: 0,
+      lowStockThreshold: 0,
+      price: 0,  // Default price, will be set during fulfillment
+      balagruhaId: null,
+      createdBy: userId,
+      createdInRequest: null  // Will be set when added to request
+    });
+
+    await newProduct.save();
+
+    res.status(201).json({
+      success: true,
+      message: 'Pending product created successfully',
+      product: newProduct
+    });
+  } catch (error) {
+    console.error('Error creating pending product:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
+/**
+ * Get Pending Products - Sprint5-Story-25
+ * GET /api/v2/shop/admin/products/pending
+ * @access Multi-role (Coach, Medical, Admin, PM)
+ */
+async function getPendingProducts(req, res) {
+  try {
+    const products = await ShopItem.find({ isPendingProduct: true })
+      .populate('createdBy', 'name email')
+      .populate('createdInRequest', 'requestId')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: products.length,
+      products
+    });
+  } catch (error) {
+    console.error('Error fetching pending products:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+}
+
 module.exports = {
   getAllProducts,
   getProduct,
   createProduct,
   updateProduct,
   deleteProduct,
-  restoreProduct
+  restoreProduct,
+  createPendingProduct,
+  getPendingProducts
 };

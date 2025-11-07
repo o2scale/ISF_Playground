@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminProductController = require('../../controllers/adminProductController');
 const { authenticate, authorize } = require('../../middleware/auth');
+const checkPurchaseRequestAccess = require('../../middleware/checkPurchaseRequestAccess'); // Sprint5-Story-25
 const {
   validateProductCreate,
   validateProductUpdate,
@@ -90,6 +91,32 @@ router.post(
   authorize('Shop Management', 'Manage'),
   validateProductId,
   adminProductController.restoreProduct
+);
+
+// ==================== PENDING PRODUCTS (Sprint5-Story-25) ====================
+
+/**
+ * @route POST /api/v2/shop/admin/products/pending
+ * @desc Create pending product (inline product addition)
+ * @access Multi-role (Coach, Medical, Admin, PM)
+ */
+router.post(
+  '/products/pending',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  adminProductController.createPendingProduct
+);
+
+/**
+ * @route GET /api/v2/shop/admin/products/pending
+ * @desc Get all pending products
+ * @access Multi-role (Coach, Medical, Admin, PM)
+ */
+router.get(
+  '/products/pending',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  adminProductController.getPendingProducts
 );
 
 module.exports = router;
