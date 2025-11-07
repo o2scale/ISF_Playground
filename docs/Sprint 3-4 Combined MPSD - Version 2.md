@@ -1,9 +1,10 @@
 # **Master Project Specification Document (MPSD)**
 
 **Project:** ISF Playground - Combined Sprint 3 & Sprint 4
-**Version:** 2.0 (Client Version)
-**Date:** October 17, 2025
+**Version:** 2.1 (Technical Specification)
+**Last Updated:** 2025-11-04 17:48:38 (via `date '+%Y-%m-%d %H:%M:%S'`)
 **Sprint Duration:** 28 Days (4 Weeks)
+**Document Type:** Technical Specification for Development Team
 
 ---
 
@@ -79,11 +80,28 @@ To achieve the 28-day timeline, the development will be organized sequentially w
 
 * **Balagruh In-Charge Sunita (Age 45, Facility Manager):** The daily operations manager who will use her budget Android phone to mark attendance with photos, track student health records, receive attendance alerts, and enter routine health checkups. When students' vitals are abnormal, she receives immediate alerts and can link health incidents to SOS alerts.
 
+### **Additional Mobile Staff Personas:**
+
+* **Medical In-charge Dr. Kavita (Age 38):** Healthcare professional using mobile app for daily health check-ins, recording student vitals, uploading medical documents, and receiving critical temperature alerts. Monitors health trends across all Balagruhas and responds to medical emergencies via SOS system integration.
+
+* **Sports Coach Arun (Age 29) & Music Coach Meera (Age 31):** Specialized instructors using mobile app for session management, performance tracking, attendance marking, and task assignments. Receive mobile notifications for scheduled sessions and student progress updates.
+
+* **Amma (Senior Leadership):** High-level oversight role using mobile app for critical escalations, high-value purchase approvals, and monitoring system-wide metrics. Receives only URGENT/HIGH priority alerts for serious incidents.
+
+* **Playground Manager Kumar (Age 35):** Technical staff member using mobile app for bug reporting, system error logging, and issue management. Documents technical problems and tracks resolution status.
+
+* **Purchase Manager Ramesh (Age 42):** **Desktop/web-only user** (no mobile app). Accesses Admin portal via web browser to create multi-product purchase requests, monitor inventory levels, update stock after deliveries, and track supplier orders. Uses desktop for optimal workflow with file attachments and spreadsheets.
+
 ### **Secondary Personas:**
 
-* **Student Arjun (Age 16):** The desktop app user who accesses the prominent SOS button when feeling unwell. Within 5 seconds, Coach Rajesh receives an alert on his mobile phone, acknowledges, and arrives within 3 minutes. Arjun's health data is correlated with SOS incidents for pattern analysis.
+* **Student Arjun (Age 16):** The desktop app user who accesses the prominent SOS button when feeling unwell, browses ISF Shop to spend earned coins, and checks in emotions via 5-emoji interface. Desktop-only access (no mobile app for students). Arjun's health data and emotions are correlated with SOS incidents for pattern analysis.
 
 * **Parent/Guardian:** External user receiving WhatsApp notifications for daily attendance summaries and immediate alerts if their child triggers an SOS emergency.
+
+**User Role Summary:**
+- **10 Total Roles**: Students (desktop only) + 8 staff with mobile app + Purchase Manager (desktop/web only)
+- **8 Roles with Mobile App**: Coach, Admin, Balagruha In-charge, Amma, Medical In-charge, Sports Coach, Music Coach, Playground Manager
+- **Desktop/Web Only**: Students, Purchase Manager
 
 ---
 
@@ -97,17 +115,18 @@ To achieve the 28-day timeline, the development will be organized sequentially w
 * React Native mobile app for iOS (15.1+) and Android (8.0+)
 * JWT token-based authentication with biometric support (Face ID, Touch ID, Fingerprint)
 * Role-based navigation and dashboards
-* Offline-first architecture with queue & sync capabilities
-* App store deployment preparation (TestFlight, Firebase App Distribution)
+* Real-time data sync (requires active internet connection)
+* **Distribution:** Direct APK installation for Android, internal iOS builds (NOT App Store/Play Store published)
+* Note: Offline-first architecture with SQLite planned for future enhancement (not in Sprint 3-4 scope)
 
 **Mobile Attendance Tracking:**
 * Camera/gallery integration for photo capture
 * Photo upload to AWS S3 with automatic compression (5MB → ~2MB)
-* Integration with facial recognition backend (existing system)
+* Integration with facial recognition backend (existing system, ongoing refinements)
 * Real-time attendance processing and results display
 * Manual override and verification interface
 * Attendance history and reporting
-* Offline photo queuing with automatic sync when online
+* Basic offline photo queuing (limited implementation, full offline-first planned for future)
 
 **Mobile Media Management:**
 * Multi-file upload (videos up to 500MB, documents up to 50MB, images up to 25MB)
@@ -1252,6 +1271,281 @@ GET /api/mobile/dashboard/:userId
 - Notification history screen with mark-as-read functionality
 - High-priority notification support for SOS alerts (vibration, custom sound)
 
+**Notification Category Mapping:**
+
+#### **12.5. Push Notification Category to Priority Mapping**
+
+All 75 notification categories map to specific push notification behaviors based on their importance and urgency.
+
+**Priority Levels:**
+
+| Priority | Sound | Vibration | Display | Use When | Examples |
+|----------|-------|-----------|---------|----------|----------|
+| **URGENT** | Emergency alarm (loud, cannot be silenced) | Strong pattern (500ms × 3) | Full-screen alert, heads-up | Life-threatening, critical emergencies | SOS_EMERGENCY, MEDICAL_ALERT_CRITICAL, INVENTORY_OUT_OF_STOCK |
+| **HIGH** | Default notification sound | Standard vibration | Banner, lock screen | Time-sensitive actions, important alerts | TASK_ASSIGNED, SESSION_REMINDER, MEDICAL_ALERT_WARNING, PURCHASE_REQUEST_APPROVED |
+| **MEDIUM** | Default sound | Optional vibration | Badge only | Standard notifications, general updates | COINS_AWARDED, WTF_PIN_ADDED, TASK_COMPLETED, SHOP_ORDER_DELIVERED |
+| **LOW** | Silent | No vibration | Badge only | Informational, non-urgent | ATTENDANCE_MARKED, COMMUNITY_UPDATE, WTF_INTERACTION |
+
+#### **12.6. Complete Category to Push Notification Configuration Map**
+
+**URGENT Priority (Full-Screen Alerts):**
+```javascript
+const urgentCategories = {
+  SOS_EMERGENCY: {
+    sound: "emergency_siren.mp3",
+    vibration: [0, 500, 250, 500, 250, 500],
+    channelId: "sos_alerts",
+    priority: "max",
+    interruption: "critical", // iOS bypasses Focus/DND
+    ttl: 0, // Never expire
+    color: "#DC2626" // Red
+  },
+  SOS_ESCALATED: { /* Same as SOS_EMERGENCY */ },
+  MEDICAL_ALERT_CRITICAL: {
+    sound: "medical_alert.mp3",
+    vibration: [0, 500, 250, 500],
+    channelId: "medical_critical",
+    priority: "max",
+    interruption: "critical",
+    ttl: 3600, // 1 hour
+    color: "#DC2626" // Red
+  },
+  INVENTORY_OUT_OF_STOCK: {
+    sound: "alert_urgent.mp3",
+    vibration: [0, 500, 250],
+    channelId: "inventory_alerts",
+    priority: "max",
+    ttl: 86400, // 24 hours
+    color: "#DC2626" // Red
+  }
+};
+```
+
+**HIGH Priority (Banner + Sound):**
+```javascript
+const highCategories = {
+  TASK_ASSIGNED: {
+    sound: "notification_task.mp3",
+    vibration: [0, 250],
+    channelId: "tasks",
+    priority: "high",
+    ttl: 86400, // 24 hours
+    color: "#1E40AF", // ISF Blue
+    deepLink: "/tasks/{taskId}"
+  },
+  TASK_DEADLINE_APPROACHING: { /* Similar */ },
+  TASK_OVERDUE: { /* Similar */ },
+  SESSION_REMINDER: {
+    sound: "notification_reminder.mp3",
+    vibration: [0, 250],
+    channelId: "sessions",
+    priority: "high",
+    ttl: 3600, // 1 hour
+    color: "#7C3AED", // Purple
+    deepLink: "/sessions/{sessionId}"
+  },
+  MEDICAL_ALERT_WARNING: {
+    sound: "notification_medical.mp3",
+    vibration: [0, 300],
+    channelId: "medical_warnings",
+    priority: "high",
+    ttl: 43200, // 12 hours
+    color: "#F59E0B", // Orange
+    deepLink: "/medical/checkins/{checkInId}"
+  },
+  MEDICAL_VACCINATION_DUE: { /* Similar to WARNING */ },
+  MESSAGE_RECEIVED: {
+    sound: "message_tone.mp3",
+    vibration: [0, 200],
+    channelId: "messages",
+    priority: "high",
+    ttl: 604800, // 7 days
+    color: "#10B981", // Green
+    deepLink: "/messages/{conversationId}"
+  },
+  PURCHASE_REQUEST_APPROVED: { /* Similar */ },
+  PURCHASE_REQUEST_REJECTED: { /* Similar */ },
+  INVENTORY_LOW_STOCK: {
+    sound: "notification_warning.mp3",
+    vibration: [0, 250],
+    channelId: "inventory_alerts",
+    priority: "high",
+    ttl: 86400,
+    color: "#F59E0B" // Orange
+  }
+};
+```
+
+**MEDIUM Priority (Badge + Sound):**
+```javascript
+const mediumCategories = {
+  COINS_AWARDED: {
+    sound: "coin_sound.mp3",
+    vibration: [0, 150],
+    channelId: "rewards",
+    priority: "default",
+    ttl: 2592000, // 30 days
+    color: "#F59E0B", // Gold
+    deepLink: "/wallet"
+  },
+  WTF_PIN_ADDED: {
+    sound: "notification_wtf.mp3",
+    vibration: [0, 150],
+    channelId: "wtf",
+    priority: "default",
+    ttl: 604800, // 7 days
+    color: "#8B5CF6", // Purple
+    deepLink: "/wtf"
+  },
+  ACHIEVEMENT_UNLOCKED: { /* Similar to COINS_AWARDED */ },
+  SHOP_ORDER_DELIVERED: {
+    sound: "notification_shop.mp3",
+    vibration: [0, 150],
+    channelId: "shop",
+    priority: "default",
+    ttl: 604800,
+    color: "#10B981", // Green
+    deepLink: "/shop/orders/{orderId}"
+  },
+  TASK_COMPLETED: { /* Similar */ },
+  COURSE_ASSIGNED: { /* Similar */ },
+  COURSE_COMPLETED: { /* Similar */ },
+  /* All other medium-priority categories */
+};
+```
+
+**LOW Priority (Silent Badge):**
+```javascript
+const lowCategories = {
+  ATTENDANCE_MARKED: {
+    sound: null, // Silent
+    vibration: null,
+    channelId: "attendance",
+    priority: "low",
+    ttl: 86400,
+    color: "#6B7280", // Gray
+    onlyUpdateBadge: true
+  },
+  WTF_INTERACTION: { /* Silent */ },
+  COINS_DEDUCTED: { /* Silent */ },
+  COMMUNITY_UPDATE: { /* Silent */ },
+  GENERAL: { /* Silent */ }
+};
+```
+
+#### **12.7. Deep Linking URL Patterns**
+
+**Notification Category → App Screen Mapping:**
+
+| Category | Deep Link Pattern | Screen Destination |
+|----------|------------------|-------------------|
+| TASK_ASSIGNED | `/tasks/{taskId}` | Task Detail Screen |
+| TASK_DEADLINE_APPROACHING | `/tasks/{taskId}` | Task Detail Screen |
+| MEDICAL_ALERT_CRITICAL | `/medical/checkins/{checkInId}` | Medical Check-in Detail |
+| MEDICAL_ALERT_WARNING | `/medical/checkins/{checkInId}` | Medical Check-in Detail |
+| SOS_EMERGENCY | `/sos/alerts/{sosAlertId}` | SOS Alert Response Screen |
+| MESSAGE_RECEIVED | `/messages/{conversationId}` | Conversation Thread |
+| COINS_AWARDED | `/wallet` | Wallet/Transaction History |
+| WTF_PIN_ADDED | `/wtf` | Wall of Fame Screen |
+| ACHIEVEMENT_UNLOCKED | `/achievements` | Achievements Screen |
+| SHOP_ORDER_DELIVERED | `/shop/orders/{orderId}` | Order Detail Screen |
+| SESSION_REMINDER | `/sessions/{sessionId}` | Training Session Detail |
+| COURSE_ASSIGNED | `/courses/{courseId}` | Course Overview |
+| PURCHASE_REQUEST_APPROVED | `/purchase/requests/{requestId}` | Purchase Request Detail |
+| ATTENDANCE_MARKED | `/attendance` | Attendance History |
+
+**Implementation:**
+```javascript
+// React Native deep linking handler
+Linking.addEventListener('url', ({ url }) => {
+  const route = url.replace(/.*?:\/\//g, '');
+  const [path, id] = route.split('/').filter(Boolean);
+
+  switch(path) {
+    case 'tasks':
+      navigation.navigate('TaskDetail', { taskId: id });
+      break;
+    case 'medical':
+      navigation.navigate('MedicalCheckInDetail', { checkInId: id });
+      break;
+    case 'sos':
+      navigation.navigate('SOSAlertResponse', { sosAlertId: id });
+      break;
+    case 'messages':
+      navigation.navigate('Conversation', { conversationId: id });
+      break;
+    // ... etc for all categories
+  }
+});
+```
+
+#### **12.8. Android Notification Channels**
+
+**Required Channels (Android 8.0+):**
+```javascript
+const notificationChannels = [
+  {
+    id: "sos_alerts",
+    name: "Emergency SOS Alerts",
+    importance: "MAX",
+    sound: "emergency_siren.mp3",
+    vibration: true,
+    bypassDnd: true,
+    lockscreenVisibility: "PUBLIC"
+  },
+  {
+    id: "medical_critical",
+    name: "Critical Medical Alerts",
+    importance: "MAX",
+    sound: "medical_alert.mp3",
+    vibration: true,
+    bypassDnd: true
+  },
+  {
+    id: "tasks",
+    name: "Task Notifications",
+    importance: "HIGH",
+    sound: "notification_task.mp3",
+    vibration: true
+  },
+  {
+    id: "messages",
+    name: "Messages",
+    importance: "HIGH",
+    sound: "message_tone.mp3",
+    vibration: true
+  },
+  {
+    id: "rewards",
+    name: "Coins & Achievements",
+    importance: "DEFAULT",
+    sound: "coin_sound.mp3"
+  },
+  {
+    id: "shop",
+    name: "Shop Orders",
+    importance: "DEFAULT",
+    sound: "notification_shop.mp3"
+  },
+  {
+    id: "wtf",
+    name: "Wall of Fame",
+    importance: "DEFAULT"
+  },
+  {
+    id: "attendance",
+    name: "Attendance",
+    importance: "LOW",
+    sound: null
+  },
+  {
+    id: "general",
+    name: "General Notifications",
+    importance: "LOW"
+  }
+];
+```
+
 ---
 
 ## **Section B: Sprint 4 - Emergency & Communication Features**
@@ -1280,6 +1574,243 @@ GET /api/mobile/dashboard/:userId
 - Response types: Acknowledged ("I see it"), Responding ("On my way"), Arrived ("I'm here")
 - Compliance audit logging for all SOS events (timestamp, responses, resolution)
 - SOS history with filtering and export capabilities
+
+**Notification Integration:**
+
+#### **13.4. SOS Notification Architecture [CRITICAL]**
+
+SOS alerts use the notification system with the highest priority (URGENT) and multi-channel delivery to ensure immediate response.
+
+**New Notification Categories:**
+- `SOS_EMERGENCY`: Initial SOS alert triggered
+- `SOS_ESCALATED`: Tier 2 or Tier 3 escalation
+- `SOS_RESOLVED`: Emergency resolved and closed
+
+**Delivery Channels:**
+- **WebSocket** (instant, all tiers)
+- **Push Notification** (mobile, all tiers)
+- **SMS** (Tier 2+, emergency contacts)
+- **WhatsApp** (Tier 2+, optional if client approves)
+
+#### **13.5. SOS Notification Escalation Flow [DETAILED SPECIFICATION]**
+
+**Tier 1 Escalation (0-2 minutes):**
+
+**Recipients:**
+- All Coaches in student's Balagruha
+- Balagruha In-charge for student's Balagruha
+
+**Notification Content:**
+```javascript
+{
+  title: "🚨 SOS ALERT - IMMEDIATE RESPONSE REQUIRED",
+  message: "Student [Name] triggered SOS - Category: [Medical/Safety/Mental Health/Other] - Location: [Building/Room]",
+  category: "SOS_EMERGENCY",
+  priority: "URGENT",
+  metadata: {
+    sosAlertId: "sos_abc123",
+    studentId: "student_xyz",
+    studentName: "Student Name",
+    balagruhaId: "balagruha_123",
+    category: "Medical",
+    location: "Computer Lab",
+    timestamp: "2025-11-04T14:30:00Z",
+    actionUrl: "/sos/alerts/sos_abc123"
+  }
+}
+```
+
+**Delivery:**
+- **WebSocket**: Instant push to connected coaches
+- **Push Notification**:
+  ```javascript
+  {
+    notification: {
+      title: "🚨 SOS EMERGENCY",
+      body: "[Student Name] - Medical Emergency - Computer Lab",
+      sound: "emergency_alert.mp3", // Loud, distinctive sound
+      priority: "max", // Android maximum priority
+      badge: 1
+    },
+    android: {
+      priority: "max",
+      notification: {
+        channelId: "sos_alerts",
+        color: "#DC2626", // Red
+        vibrationPattern: [0, 500, 250, 500] // Strong vibration
+      }
+    },
+    apns: {
+      headers: {
+        "apns-priority": "10",
+        "apns-interruption-level": "critical" // iOS critical alert
+      }
+    }
+  }
+  ```
+
+**UI Behavior:**
+- Mobile app: Full-screen alert overlay (even if app is closed)
+- Vibration: Strong pattern (multiple bursts)
+- Sound: Emergency siren (cannot be silenced by Do Not Disturb)
+- Notification stays on screen until acknowledged
+
+**Acknowledgment Required:**
+At least one Tier 1 recipient must acknowledge within 2 minutes by tapping:
+- "Acknowledged" → Status changes to 'acknowledged'
+- "On My Way" → Status changes to 'responding'
+
+If NO acknowledgment within 2 minutes → **Auto-escalate to Tier 2**
+
+---
+
+**Tier 2 Escalation (2-5 minutes):**
+
+**Trigger:** No acknowledgment from Tier 1 within 2 minutes
+
+**Recipients:**
+- All Admins
+- All Coordinators
+- Amma (senior leadership)
+
+**Notification Content:**
+```javascript
+{
+  title: "⚠️ SOS ESCALATED - NO TIER 1 RESPONSE",
+  message: "Student [Name] SOS (2 min ago) - Category: [Type] - NO ACKNOWLEDGMENT YET",
+  category: "SOS_ESCALATED",
+  priority: "URGENT",
+  metadata: {
+    sosAlertId: "sos_abc123",
+    escalationTier: 2,
+    timeSinceTrigger: 120, // seconds
+    tier1Recipients: ["coach1", "coach2", "incharge1"],
+    noResponseCount: 3
+  }
+}
+```
+
+**Delivery:**
+- **WebSocket + Push**: Same as Tier 1
+- **SMS**: Emergency SMS sent to admin phone numbers
+  ```
+  [ISF EMERGENCY] Student [Name] triggered SOS 2 minutes ago.
+  Category: [Medical/Safety/Mental Health].
+  Location: [Building].
+  Tier 1 did not respond.
+  Respond immediately via ISF mobile app.
+  ```
+- **WhatsApp** (optional): If enabled, send template message
+
+**SMS Provider:** Twilio or AWS SNS
+**Rate Limit:** No limit for SOS emergencies
+**Retry Logic:** Send once per escalation tier (do not retry to prevent spam)
+
+If NO acknowledgment within 3 additional minutes (5 min total) → **Auto-escalate to Tier 3**
+
+---
+
+**Tier 3 Broadcast (5+ minutes):**
+
+**Trigger:** No acknowledgment from Tier 2 within 3 additional minutes (5 min total since trigger)
+
+**Recipients:** ALL STAFF (broadcast to everyone)
+
+**Notification Content:**
+```javascript
+{
+  title: "🔴 CRITICAL - SOS EMERGENCY UNACKNOWLEDGED",
+  message: "Student [Name] SOS (5+ min ago) - ALL STAFF RESPOND IMMEDIATELY",
+  category: "SOS_ESCALATED",
+  priority: "URGENT",
+  metadata: {
+    sosAlertId: "sos_abc123",
+    escalationTier: 3,
+    timeSinceTrigger: 300, // 5+ minutes
+    criticalAlert: true
+  }
+}
+```
+
+**Delivery:**
+- **WebSocket + Push**: All staff members
+- **SMS**: All staff with phone numbers
+- **Desktop Alert**: If desktop app open, show full-screen modal
+- **WhatsApp**: If enabled, broadcast to all staff
+
+**UI Behavior:**
+- Cannot be dismissed until acknowledged
+- Desktop: Full-screen blocking modal
+- Mobile: Lock screen alert with emergency sound
+
+---
+
+#### **13.6. SOS Resolution Notifications**
+
+**When SOS Resolved:**
+
+**Trigger:** Staff member marks SOS as 'resolved' with resolution notes
+
+**Notification to ALL Previous Recipients:**
+```javascript
+{
+  title: "✅ SOS Resolved",
+  message: "Student [Name] emergency resolved by [Responder Name]. Resolution: [Notes]",
+  category: "SOS_RESOLVED",
+  priority: "MEDIUM",
+  metadata: {
+    sosAlertId: "sos_abc123",
+    resolvedBy: "Coach Rajesh",
+    resolvedAt: "2025-11-04T14:38:00Z",
+    resolution: "Student received medical attention, fever checked, doing fine now",
+    responseDuration: "8 minutes"
+  }
+}
+```
+
+**Delivery:**
+- **WebSocket + Push**: All staff who received the original SOS alert
+- **No SMS**: Resolution notifications only via app
+
+**Purpose:**
+- Inform all responders that emergency is handled
+- Prevent duplicate responses
+- Provide closure and resolution details
+
+---
+
+#### **13.7. SOS Notification Delivery Guarantees**
+
+**Reliability Requirements:**
+- **Target Delivery Time**: < 5 seconds (p95)
+- **Success Rate**: 99.9% (at least one recipient receives notification)
+
+**Implementation:**
+1. **Persistent Storage**: All SOS notifications saved to DB before sending
+2. **WebSocket with Fallback**:
+   - Primary: WebSocket instant push
+   - Fallback: If WebSocket fails, retry via polling API
+3. **Push Notification Retry**:
+   - Attempt 1: Immediate
+   - Attempt 2: After 10 seconds (if first fails)
+   - Attempt 3: After 30 seconds (if second fails)
+4. **SMS Guaranteed Delivery**:
+   - Use Twilio/AWS SNS with delivery confirmation
+   - Log delivery status in SOSAlert.notifications array
+5. **Audit Logging**:
+   - Every notification attempt logged with timestamp
+   - Delivery status tracked (sent, delivered, read, failed)
+   - Used for post-incident analysis
+
+**Error Handling:**
+- If FCM token invalid → Remove token, log error, continue to other recipients
+- If SMS fails → Log error, alert system admin, continue workflow
+- If all delivery channels fail → Trigger system-wide alert to technical team
+
+**Monitoring:**
+- Real-time dashboard showing SOS delivery latency
+- Alerts if delivery time > 10 seconds
+- Weekly report of SOS notification performance
 
 ---
 
@@ -1310,6 +1841,186 @@ GET /api/mobile/dashboard/:userId
 - Offline message queuing (messages sent when back online)
 - Unread count badges on tab and conversation list
 - Push notifications for new messages (when app in background)
+
+**Notification Integration:**
+
+#### **14.5. Message Notification Specifications**
+
+**New Notification Category:**
+- `MESSAGE_RECEIVED`: New message in conversation
+
+**Notification Triggers:**
+1. **New Direct Message** - User receives 1-on-1 message
+2. **New Group Message** - User receives message in group conversation
+3. **@Mention** - User is specifically mentioned in group message
+
+#### **14.6. Direct Message Notifications**
+
+**Trigger:** New message sent to user in 1-on-1 conversation
+
+**Notification Content:**
+```javascript
+{
+  title: `New message from ${senderName}`,
+  message: `${messagePreview}`, // First 100 characters
+  category: "MESSAGE_RECEIVED",
+  priority: "HIGH", // Direct messages are high priority
+  metadata: {
+    conversationId: "conv_abc123",
+    messageId: "msg_xyz789",
+    senderId: "user_sender",
+    senderName: "Coach Rajesh",
+    messageType: "text", // or "image", "video", "document"
+    timestamp: "2025-11-04T14:45:00Z",
+    actionUrl: "/messages/conv_abc123"
+  }
+}
+```
+
+**Delivery:**
+- **WebSocket**: If user is online and app is open
+  - Show in-app toast notification
+  - Update conversation list with unread badge
+  - Play message notification sound
+- **Push Notification**: If user is offline or app in background
+  ```javascript
+  {
+    notification: {
+      title: "Coach Rajesh",
+      body: "Hey, can you help with...",
+      sound: "message_tone.mp3",
+      badge: unreadCount,
+      icon: senderProfilePicture
+    },
+    data: {
+      conversationId: "conv_abc123",
+      messageId: "msg_xyz789",
+      type: "direct_message",
+      actionUrl: "/messages/conv_abc123"
+    },
+    android: {
+      priority: "high",
+      notification: {
+        channelId: "messages",
+        color: "#1E40AF" // ISF Blue
+      }
+    }
+  }
+  ```
+
+**Notification Grouping (Android):**
+- Group multiple messages from same sender
+- Show conversation thread in notification
+- "Reply" action for quick response
+
+#### **14.7. Group Message Notifications**
+
+**Trigger:** New message in group conversation (lower priority than direct messages)
+
+**Notification Content:**
+```javascript
+{
+  title: `New message in ${groupName}`,
+  message: `${senderName}: ${messagePreview}`,
+  category: "MESSAGE_RECEIVED",
+  priority: "MEDIUM", // Group messages are medium priority
+  metadata: {
+    conversationId: "conv_group123",
+    messageId: "msg_xyz789",
+    senderId: "user_sender",
+    senderName: "Coach Rajesh",
+    groupName: "Balagruh A Coaches",
+    actionUrl: "/messages/conv_group123"
+  }
+}
+```
+
+**Delivery:**
+- **WebSocket**: Same as direct messages
+- **Push Notification**: Only if:
+  - User is @mentioned in message, OR
+  - User has enabled group notifications for this conversation
+
+**@Mention Handling:**
+If message contains `@username`:
+- Upgrade priority to HIGH
+- Change title to: "You were mentioned in ${groupName}"
+- Message: "${senderName} mentioned you: ${messagePreview}"
+
+#### **14.8. Read Receipt Notifications**
+
+**Trigger:** Recipient reads sender's message
+
+**Notification Type:** WebSocket only (not push notification)
+
+**WebSocket Message:**
+```javascript
+{
+  type: "message_read",
+  data: {
+    messageId: "msg_xyz789",
+    conversationId: "conv_abc123",
+    readBy: "user_recipient",
+    readAt: "2025-11-04T14:50:00Z"
+  }
+}
+```
+
+**UI Update:**
+- Change message status from "delivered" (single checkmark) to "read" (double checkmark)
+- No push notification (silent update)
+
+#### **14.9. Typing Indicator Notifications**
+
+**Trigger:** User starts typing in conversation
+
+**Notification Type:** WebSocket only (real-time, ephemeral)
+
+**WebSocket Message:**
+```javascript
+{
+  type: "typing_indicator",
+  data: {
+    conversationId: "conv_abc123",
+    userId: "user_typer",
+    userName: "Coach Rajesh",
+    isTyping: true // or false when stopped
+  }
+}
+```
+
+**Implementation:**
+- Send "isTyping: true" when user types first character
+- Send "isTyping: false" when user stops typing (3-second debounce)
+- Automatically expire after 10 seconds if no update received
+
+**UI Display:**
+- Show "Coach Rajesh is typing..." below conversation
+- Animated dots indicator
+
+#### **14.10. Message Notification Settings (User Preferences)**
+
+Users can customize notification preferences per conversation:
+
+**Preferences Schema:**
+```javascript
+{
+  conversationId: "conv_abc123",
+  notificationSettings: {
+    enabled: true, // Master toggle
+    pushNotifications: true, // Push when app closed
+    sound: true, // Play sound
+    vibrate: true, // Vibrate device
+    showPreview: true, // Show message preview in notification
+    mentionsOnly: false // (For groups) Only notify on @mentions
+  }
+}
+```
+
+**Quiet Hours:**
+Users can set quiet hours for message notifications:
+- Respect user's global quiet hours (defined in User preferences)
+- Exception: URGENT priority messages (SOS) bypass quiet hours
 
 ---
 
@@ -1369,6 +2080,324 @@ GET /api/mobile/dashboard/:userId
 - SOS incident correlation (automatic linking when SOS triggered)
 - Health report exports for medical professionals (PDF format)
 - Health history with date filtering
+
+---
+
+### **16.5. Student Emotion Check-In System [S4]**
+
+* **Feature ID:** S4-F04-B
+* **Feature Name:** Emotion Check-In & Well-being Monitoring
+* **Module:** Health Management / Student Well-being
+* **Priority:** P1 (High Priority)
+* **Development Timeline:** Week 3 (Days 15-16)
+* **Dependencies:** Notification System, Task Management
+
+---
+
+#### **16.5.1. System Overview**
+
+The Emotion Check-In System provides students with a simple 5-emoji interface to express their emotional state. This early-warning system helps staff identify students who may need emotional support before situations escalate. The system integrates with the notification system to alert staff when students report negative emotions (Sad, Angry, Worried).
+
+**Key Features:**
+- 5-emoji selection interface (Happy, Sad, Angry, Worried, Neutral)
+- Automatic staff notifications for concerning emotions (Sad/Angry/Worried)
+- Escalation logic for repeated negative check-ins
+- Integration with Task Management (auto-create follow-up tasks)
+- Privacy protections and student transparency
+- Emotion history tracking and trend analysis
+
+---
+
+#### **16.5.2. Database Schema**
+
+```javascript
+const EmotionCheckInSchema = new mongoose.Schema({
+  studentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    index: true
+  },
+  emotion: {
+    type: String,
+    required: true,
+    enum: ['HAPPY', 'SAD', 'ANGRY', 'WORRIED', 'NEUTRAL']
+  },
+  timestamp: {
+    type: Date,
+    default: Date.now,
+    index: true
+  },
+  context: {
+    location: String, // e.g., "Computer Lab", "Classroom A"
+    sessionType: String, // e.g., "Learning", "Break Time"
+  },
+  staffNotified: [{
+    staffId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    notifiedAt: Date,
+    acknowledgedAt: Date
+  }],
+  followUp: {
+    taskCreated: Boolean,
+    taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task' },
+    resolved: Boolean,
+    resolvedAt: Date,
+    resolutionNotes: String
+  }
+});
+
+EmotionCheckInSchema.index({ studentId: 1, timestamp: -1 });
+EmotionCheckInSchema.index({ emotion: 1, timestamp: -1 });
+```
+
+---
+
+#### **16.5.3. API Endpoints**
+
+**Create Emotion Check-In (Student Desktop)**
+```http
+POST /api/v1/emotions/check-in
+Authorization: Bearer <student_jwt_token>
+Content-Type: application/json
+
+Request Body:
+{
+  "emotion": "SAD",
+  "location": "Computer Lab"
+}
+
+Response 200:
+{
+  "success": true,
+  "checkIn": {
+    "_id": "emo_123",
+    "emotion": "SAD",
+    "timestamp": "2025-11-04T16:45:00Z"
+  },
+  "message": "Thanks for letting us know. A coach will check in with you soon.",
+  "notificationsSent": {
+    "coach": true,
+    "balagruhaInCharge": true,
+    "admin": true
+  }
+}
+```
+
+**Get Student Emotion History (Staff)**
+```http
+GET /api/v1/emotions/student/:studentId/history?days=7
+Authorization: Bearer <staff_jwt_token>
+
+Response 200:
+{
+  "success": true,
+  "student": {
+    "id": "std_456",
+    "name": "Arjun Kumar"
+  },
+  "emotionHistory": [
+    {
+      "emotion": "SAD",
+      "timestamp": "2025-11-04T16:45:00Z",
+      "location": "Computer Lab"
+    },
+    {
+      "emotion": "WORRIED",
+      "timestamp": "2025-11-03T14:30:00Z",
+      "location": "Classroom A"
+    }
+  ],
+  "statistics": {
+    "happy": 3,
+    "sad": 2,
+    "angry": 0,
+    "worried": 2,
+    "neutral": 1
+  },
+  "concerningCheckIns": 4,
+  "requiresAttention": true
+}
+```
+
+---
+
+#### **16.5.4. Notification Logic**
+
+**For Happy 😊 or Neutral 😐:**
+```javascript
+// No staff notifications sent
+// Log emotion for positive trend tracking
+await EmotionCheckIn.create({
+  studentId,
+  emotion: 'HAPPY',
+  timestamp: new Date()
+});
+
+// Show student confirmation message only
+return {
+  message: "Thanks for checking in! Keep up the positive spirit!",
+  notificationsSent: { staff: false }
+};
+```
+
+**For Sad 😢, Angry 😠, or Worried 😟:**
+```javascript
+// Create emotion check-in record
+const checkIn = await EmotionCheckIn.create({
+  studentId,
+  emotion: 'SAD', // or ANGRY, WORRIED
+  timestamp: new Date()
+});
+
+// Send HIGH priority notifications to staff
+await sendNotification({
+  category: 'EMOTION_SAD', // or EMOTION_ANGRY, EMOTION_WORRIED
+  priority: 'HIGH',
+  recipients: [
+    { userId: student.assignedCoachId, role: 'COACH' },
+    { userId: student.balagruhaInChargeId, role: 'BALAGRUHA_IN_CHARGE' },
+    { userId: adminIds, role: 'ADMIN' }
+  ],
+  title: 'Student Emotion Alert',
+  message: `${student.name} logged "${emotion}" emotion`,
+  metadata: {
+    studentId,
+    emotion,
+    timestamp: checkIn.timestamp,
+    location: checkIn.context.location
+  },
+  actionButton: {
+    text: 'View Student Profile',
+    url: `/students/${studentId}/profile`
+  }
+});
+
+return {
+  message: "Thanks for letting us know. A coach will check in with you soon.",
+  notificationsSent: { coach: true, balagruhaInCharge: true, admin: true }
+};
+```
+
+**Escalation Logic (Multiple Concerning Check-Ins):**
+```javascript
+// Check for 3+ negative emotions in last 7 days
+const recentConcerningEmotions = await EmotionCheckIn.countDocuments({
+  studentId,
+  emotion: { $in: ['SAD', 'ANGRY', 'WORRIED'] },
+  timestamp: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+});
+
+if (recentConcerningEmotions >= 3) {
+  // Additional notification to Amma (senior leadership)
+  await sendNotification({
+    category: 'EMOTION_PATTERN_ALERT',
+    priority: 'HIGH',
+    recipientRole: 'AMMA',
+    title: 'Student Well-being Pattern Alert',
+    message: `${student.name} has logged ${recentConcerningEmotions} concerning emotions in the past 7 days`
+  });
+
+  // Auto-create follow-up task for Coach
+  await Task.create({
+    title: `Follow up on ${student.name}'s emotional well-being`,
+    description: `Student has logged ${recentConcerningEmotions} concerning emotions (sad/angry/worried) in past 7 days. Schedule check-in conversation.`,
+    assignedTo: student.assignedCoachId,
+    deadline: new Date(Date.now() + 2 * 60 * 60 * 1000), // 2 hours
+    priority: 'HIGH',
+    linkedResource: {
+      resourceType: 'EmotionCheckIn',
+      resourceId: checkIn._id
+    }
+  });
+}
+```
+
+---
+
+#### **16.5.5. Privacy & Transparency**
+
+**Privacy Protections:**
+- Only student's assigned staff can view emotion history
+- Emotion data retained for 90 days (auto-deletion)
+- No public display of emotions (private to staff only)
+- No negative consequences for expressing emotions
+
+**Student Transparency:**
+- Clear UI message: "Selecting Sad/Angry/Worried will notify your coach"
+- Students can see their own emotion history in profile
+- System explains this is for support, not punishment
+
+**Compliance:**
+- Emotion data classified as sensitive personal information
+- Access logs maintained for audit trail
+- Only COACH, BALAGRUHA_IN_CHARGE, ADMIN, AMMA roles can access
+
+---
+
+#### **16.5.6. Frontend Implementation**
+
+**Student Desktop UI (Electron):**
+```javascript
+// Emotion selector component
+<EmotionSelector>
+  <EmojiButton emoji="😊" emotion="HAPPY" label="Happy" />
+  <EmojiButton emoji="😢" emotion="SAD" label="Sad" />
+  <EmojiButton emoji="😠" emotion="ANGRY" label="Angry" />
+  <EmojiButton emoji="😟" emotion="WORRIED" label="Worried" />
+  <EmojiButton emoji="😐" emotion="NEUTRAL" label="Neutral" />
+</EmotionSelector>
+
+// Display options:
+// 1. Optional prompt at login
+// 2. Emotion button always visible in sidebar
+// 3. Dismissible prompt (no pressure)
+```
+
+**Staff Mobile/Desktop UI:**
+```javascript
+// When staff receives notification
+<EmotionAlertCard>
+  <Icon>🚨</Icon>
+  <Title>Student Emotion Alert</Title>
+  <Message>Arjun Kumar logged "Sad 😢" emotion</Message>
+  <Timestamp>10:45 AM | Computer Lab</Timestamp>
+  <Actions>
+    <Button>View Student Profile</Button>
+    <Button>Send Message</Button>
+    <Button>Mark as Followed Up</Button>
+  </Actions>
+</EmotionAlertCard>
+```
+
+---
+
+#### **16.5.7. Integration Points**
+
+**With Task Management (Sprint 1):**
+- Auto-create follow-up tasks for repeated negative check-ins
+- Task notifications sent via mobile app (Notification #73-75)
+
+**With Health Tracking:**
+- Emotion data correlated with medical check-ins
+- If student has recent illness + negative emotion, context provided
+
+**With SOS System:**
+- Recent emotion check-ins shown to SOS responders
+- Helps staff understand if emergency related to emotional distress
+
+**With Reporting:**
+- Weekly well-being reports for Admins/Amma
+- Emotion trends across Balagruhas
+- Early intervention opportunity identification
+
+---
+
+#### **16.5.8. Success Metrics**
+
+- Staff acknowledge emotion alerts within 30 minutes (95% target)
+- Staff follow up with students within 2 hours (90% target)
+- Students feel comfortable expressing emotions (survey feedback >8/10)
+- Early intervention prevents escalation (measured by SOS reduction after emotion alerts)
 
 ---
 
@@ -1653,7 +2682,1250 @@ module.exports = new S3Service();
 
 ---
 
-## **25. Non-Functional Requirements (Combined Sprint)**
+## **18.5. Integration with ISF Shop Module (Completed in Sprint 5)**
+
+* **Feature ID:** SPRINT5-SHOP-001
+* **Feature Name:** ISF Shop Virtual Rewards Store
+* **Module:** E-Commerce & Gamification
+* **Priority:** P0 (Critical - Completes ISF Coin Economy)
+* **Sprint Attribution:** [S5] Core Implementation, [S3-4] Mobile Delivery & Notification Integration
+* **Last Updated:** 2025-11-04 16:33:55
+* **Updated By:** Dev Agent (Sprint 5 Integration Documentation)
+
+> **✅ IMPLEMENTATION STATUS: COMPLETED IN SPRINT 5**
+>
+> The ISF Shop Module is fully implemented and deployed. This section documents how Sprint 3-4 features (mobile app, notifications, task management) integrate with the existing Shop system.
+>
+> **For complete technical specifications** (database schemas, API endpoints, atomic transaction implementation, Purchase Manager workflows), please refer to **Sprint 2-5 Combined MPSD** documentation.
+
+---
+
+### **18.5.1. System Overview & Sprint 3-4 Integration Points**
+
+The ISF Shop Module completes the gamification loop where students earn ISF Coins (Sprint 2 LMS) and spend them on physical rewards. Sprint 3-4 contributes the following integration points:
+
+**1. Mobile App Integration (Sprint 3)**
+- Coach delivery management interface (React Native)
+- Mobile delivery dashboard with pending/completed tabs
+- Push notification handling for new orders
+- Access: Available to all 8 staff roles with mobile app access
+
+**2. Notification System Integration (Sprint 4)**
+- 18 New shop-related notification categories
+- Real-time delivery alerts for coaches
+- Purchase request approval notifications for admins
+- Low stock alerts for Purchase Managers
+
+**3. Task Management Integration (Sprint 1)**
+- Auto-create delivery tasks for coaches when students place orders
+- Auto-create low stock monitoring tasks for Purchase Managers
+- Mobile task notifications via Sprint 4 system
+
+**Key Technical Architecture:**
+- **3 User Workflows**: Students (Desktop), Coaches (Mobile), Purchase Managers (Desktop/Web)
+- **Atomic Transactions**: MongoDB transactions for checkout (coin deduction + stock decrement)
+- **3 Core Schemas**: Product, ShopOrder, PurchaseRequest
+- **Real-Time Updates**: WebSocket notifications for instant delivery alerts
+
+---
+
+### **18.5.2. Notification System Integration (Sprint 4)**
+
+**18 New Shop-Related Notification Categories:**
+
+| # | Category | Description | Priority | Recipient Roles |
+|---|----------|-------------|----------|-----------------|
+| #58 | `new_order_pending_delivery` | Coach notified of new shop order ready for delivery | HIGH | Coach |
+| #59 | `order_delivered` | Student notified when coach marks order as delivered | MEDIUM | Student |
+| #60 | `order_cancelled` | Student notified if order is cancelled | HIGH | Student |
+| #61 | `low_stock_alert` | Purchase Manager notified when product stock < threshold | HIGH | Purchase Manager |
+| #62 | `out_of_stock_alert` | Admin notified when product reaches 0 stock | CRITICAL | Admin, Purchase Manager |
+| #63 | `purchase_request_submitted` | Admin notified of new purchase request for approval | HIGH | Admin |
+| #64 | `purchase_request_approved` | Purchase Manager notified of request approval | HIGH | Purchase Manager |
+| #65 | `purchase_request_rejected` | Purchase Manager notified of request rejection with reason | HIGH | Purchase Manager |
+| #66 | `stock_replenished` | Admin notified when Purchase Manager updates stock | MEDIUM | Admin |
+| #67 | `wishlist_item_restocked` | Student notified when wishlisted item is back in stock | LOW | Student |
+| #35-37 | Shop order status updates | Various order lifecycle notifications | MEDIUM-HIGH | Student, Coach |
+| #40-41 | Bulk delivery reminders | Coach notified of pending deliveries batch | MEDIUM | Coach |
+| #7 | Shop coin balance low | Student reminded when coin balance runs low | LOW | Student |
+
+**Technical Implementation:**
+- All notifications use the unified notification system (Section 19)
+- WebSocket real-time delivery for mobile app (<5 seconds)
+- Push notifications for mobile roles (FCM for Android, APNs for iOS)
+- Email fallback for critical alerts (out of stock, purchase request rejections)
+
+---
+
+### **18.5.3. Task Management Integration (Sprint 1)**
+
+**Auto-Created Tasks:**
+
+1. **Shop Order Delivery Tasks** (created during checkout)
+   ```javascript
+   // When student completes checkout (atomic transaction)
+   await Task.create([{
+     title: `Deliver shop order ${orderId} to ${studentName}`,
+     assignedTo: student.assignedCoachId,
+     assignedToRole: 'COACH',
+     deadline: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+     priority: 'MEDIUM',
+     linkedResource: {
+       resourceType: 'ShopOrder',
+       resourceId: orderId
+     },
+     metadata: {
+       orderDetails: { items, totalCoins, deliveryInstructions }
+     }
+   }], { session });
+   // Note: Created within same MongoDB transaction as order + coin deduction + stock decrement
+   ```
+
+
+2. **Low Stock Monitoring Tasks** (when product stock falls below threshold)
+   ```javascript
+   // Triggered when product.stockQuantity < product.lowStockThreshold
+   await Task.create({
+     title: `Replenish low stock - ${productName} (${currentStock} remaining)`,
+     assignedTo: purchaseManagerId,
+     assignedToRole: 'PURCHASE_MANAGER',
+     deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+     priority: 'HIGH',
+     linkedResource: {
+       resourceType: 'Product',
+       resourceId: productId
+     }
+   });
+   ```
+
+**Task Notifications:**
+All shop-related tasks trigger mobile notifications for the 8 roles with mobile app access:
+- Notification #73: Task assigned
+- Notification #74: Task deadline approaching
+- Notification #75: Task overdue
+
+---
+
+### **18.5.4. Key System Features (Already Implemented)**
+
+**Student Shop Experience (Desktop):**
+- Product browsing with cart, checkout, and order history
+- Real-time coin balance validation
+- Atomic checkout transactions (coin deduction + stock decrement)
+
+**Coach Delivery Management (Mobile):**
+- Delivery dashboard with pending/completed tabs
+- One-tap order completion
+- Batch delivery mode for efficiency
+
+**Purchase Manager Procurement (Desktop/Web):**
+- Multi-product purchase request creation (Stories 17-18-19)
+- Supplier quotation attachment support (max 5 files, 10MB each)
+- Stock update workflows after supplier deliveries
+- Complete audit trail for compliance
+
+**Admin Management:**
+- Product catalog management (CRUD)
+- Purchase request approval/rejection workflows
+- Inventory analytics and low-stock alerts
+- Self-approval prevention for security
+
+---
+
+### **18.5.5. Success Metrics**
+
+**Student Experience:**
+- Cart validation prevents insufficient coin checkouts (100% accuracy)
+- Orders delivered within 24-48 hours (95% on-time rate)
+- Zero inventory discrepancies (atomic transactions)
+
+**Coach Mobile Experience:**
+- Delivery notifications received <5 seconds (WebSocket)
+- Mobile interface completion time <2 minutes per order
+- Complete timestamp tracking for all deliveries
+
+**Purchase Manager Workflow:**
+- Multi-product requests save 60% time vs single-product
+- Stock updates complete without errors (atomic MongoDB transactions)
+- Complete audit trail for compliance
+
+**System Performance:**
+- Checkout API response time <500ms
+- Concurrent checkout handling (10+ simultaneous orders)
+- Zero coin balance inconsistencies (transactional integrity)
+
+---
+
+**This section completes the documentation of Sprint 3-4 integration points with the ISF Shop Module (already completed in Sprint 5).**
+
+**For complete Shop Module implementation details**, including:
+- Full database schemas (Product, ShopOrder, PurchaseRequest)
+- Complete API endpoint specifications
+- Atomic transaction implementation code
+- Purchase Manager Stories 17-18-19 detailed workflows
+- Frontend component architecture
+
+**Please refer to Sprint 2-5 Combined MPSD documentation.**
+
+---
+
+## **19. Notification System Architecture [SHARED]**
+* **Feature ID:** SHARED-NOTIFICATION-001
+* **Feature Name:** Unified Notification System
+* **Module:** Notifications & Real-Time Communications
+* **Priority:** P0 (Critical - Cross-Sprint Foundation)
+* **Sprint Attribution:** [S1] Infrastructure Built, [S4] Comprehensive Integration, [S5] Shop Integration
+* **Last Updated:** 2025-11-04 14:23:32 (via `date '+%Y-%m-%d %H:%M:%S'`)
+* **Updated By:** Dev Agent (Documentation Update)
+
+---
+
+### **19.1. System Overview & Infrastructure [Sprint 1 - IMPLEMENTED]**
+
+The ISF Playground notification system provides a comprehensive, real-time notification platform that enables communication across all features and user roles. Built during Sprint 1 as foundational infrastructure, the system supports personal, common, and system-wide notifications with intelligent routing, priority handling, and multi-channel delivery.
+
+**Key Capabilities:**
+* Persistent notification storage with MongoDB
+* Real-time delivery via WebSocket (Socket.io)
+* Push notification support (Sprint 3 - Firebase Cloud Messaging)
+* SMS and WhatsApp integration (Sprint 4 - Optional)
+* Smart unread counting with last-viewed tracking
+* Time-To-Live (TTL) auto-expiration
+* Priority-based notification handling (LOW, MEDIUM, HIGH, URGENT)
+* Category-based notification taxonomy (75 total categories - expanded in Sprint 3-4-5 integration)
+
+**Database Models:**
+
+**Notification Schema:**
+```javascript
+// backend/models/notification.js
+const NotificationSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    index: true
+    // Optional: null for COMMON notifications targeting all users
+  },
+
+  title: {
+    type: String,
+    required: true,
+    maxlength: 200
+  },
+
+  message: {
+    type: String,
+    required: true,
+    maxlength: 1000
+  },
+
+  type: {
+    type: String,
+    enum: ['PERSONAL', 'COMMON', 'ACHIEVEMENT', 'COACH_MESSAGE', 'SYSTEM_UPDATE'],
+    default: 'PERSONAL',
+    index: true
+  },
+
+  category: {
+    type: String,
+    enum: [
+      // Sprint 1 & 5 - Implemented (12 categories)
+      'WTF_PIN_ADDED',
+      'COINS_AWARDED',
+      'ACHIEVEMENT_UNLOCKED',
+      'COACH_MESSAGE',
+      'ISF_SHOP_UPDATE',
+      'SYSTEM_ANNOUNCEMENT',
+      'TASK_ASSIGNED',
+      'ATTENDANCE_REMINDER',
+      'WORKSHOP_ANNOUNCEMENT',
+      'COMMUNITY_UPDATE',
+      'NEW_CONTENT',
+      'GENERAL',
+
+      // Sprint 4 - To Be Implemented (42 new categories)
+      // Task Management (6)
+      'TASK_COMPLETED',
+      'TASK_DEADLINE_APPROACHING',
+      'TASK_OVERDUE',
+      'TASK_COMMENT_ADDED',
+      'TASK_STATUS_CHANGED',
+      'TASK_UPDATED',
+
+      // Medical System (8)
+      'MEDICAL_ALERT_CRITICAL',
+      'MEDICAL_ALERT_WARNING',
+      'MEDICAL_CHECKIN_REMINDER',
+      'MEDICAL_CHECKIN_COMPLETED',
+      'MEDICAL_RECORD_UPDATED',
+      'MEDICAL_VACCINATION_DUE',
+      'MEDICAL_PRESCRIPTION_ADDED',
+      'MEDICAL_STATUS_CHANGE',
+
+      // Course/Learning (5)
+      'COURSE_ASSIGNED',
+      'COURSE_ENROLLED',
+      'COURSE_COMPLETED',
+      'COURSE_MODULE_UNLOCKED',
+      'QUIZ_RESULTS_AVAILABLE',
+
+      // Training Sessions (4)
+      'SESSION_ASSIGNED',
+      'SESSION_REMINDER',
+      'SESSION_CANCELLED',
+      'SESSION_ATTENDANCE_MARKED',
+
+      // Attendance (3)
+      'ATTENDANCE_MARKED',
+      'ATTENDANCE_ABSENT',
+      'ATTENDANCE_SUMMARY',
+
+      // Purchase/Inventory (7)
+      'PURCHASE_REQUEST_SUBMITTED',
+      'PURCHASE_REQUEST_APPROVED',
+      'PURCHASE_REQUEST_REJECTED',
+      'PURCHASE_ORDER_ASSIGNED',
+      'PURCHASE_ORDER_COMPLETED',
+      'INVENTORY_LOW_STOCK',
+      'INVENTORY_OUT_OF_STOCK',
+
+      // Repair/Maintenance (3)
+      'REPAIR_REQUEST_SUBMITTED',
+      'REPAIR_REQUEST_IN_PROGRESS',
+      'REPAIR_REQUEST_COMPLETED',
+
+      // Shop/Coins (4)
+      'SHOP_ORDER_PLACED',
+      'SHOP_ORDER_DELIVERED',
+      'SHOP_PRODUCT_AVAILABLE',
+      'COINS_DEDUCTED',
+
+      // WTF Enhancements (2)
+      'WTF_SUBMISSION_APPROVED',
+      'WTF_INTERACTION',
+
+      // SOS Emergency (Sprint 4) (3)
+      'SOS_EMERGENCY',
+      'SOS_ESCALATED',
+      'SOS_RESOLVED',
+
+      // Messaging (Sprint 4) (3)
+      'MESSAGE_DIRECT',
+      'MESSAGE_GROUP',
+      'MESSAGE_MENTION',
+
+      // NEW: Shop/Purchase Detailed (Sprint 5 Integration) (10)
+      'SHOP_ORDER_APPROVED',
+      'SHOP_ORDER_REJECTED',
+      'ORDER_READY_FOR_DELIVERY',
+      'WISHLIST_ITEM_RESTOCKED',
+      'INSUFFICIENT_COINS',
+      'NEW_ORDER_PENDING_DELIVERY',
+      'MULTIPLE_ORDERS_BATCH',
+      'DELIVERY_COMPLETED',
+      'STOCK_UPDATED',
+      'PURCHASE_REQUEST_CANCELLED',
+
+      // NEW: Emotion Check-In (Sprint 4) (5)
+      'EMOTION_HAPPY',
+      'EMOTION_SAD',
+      'EMOTION_ANGRY',
+      'EMOTION_WORRIED',
+      'EMOTION_NEUTRAL',
+
+      // NEW: Task Management Mobile (Sprint 3-4) (3)
+      'TASK_ASSIGNED_MOBILE',
+      'TASK_DEADLINE_MOBILE',
+      'TASK_OVERDUE_MOBILE'
+    ],
+    required: true,
+    default: 'GENERAL',
+    index: true
+  },
+
+  isRead: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+
+  priority: {
+    type: String,
+    enum: ['LOW', 'MEDIUM', 'HIGH', 'URGENT'],
+    default: 'MEDIUM'
+  },
+
+  metadata: {
+    type: mongoose.Schema.Types.Mixed,
+    // Flexible object for category-specific data
+    // Examples:
+    //   { pinId, contentType, actionUrl } for WTF_PIN_ADDED
+    //   { coinAmount, source, actionUrl } for COINS_AWARDED
+    //   { orderId, orderNumber } for SHOP_ORDER_DELIVERED
+    //   { taskId, deadline, assignedBy } for TASK_ASSIGNED
+    //   { studentId, temperature, checkInId } for MEDICAL_ALERT_CRITICAL
+  },
+
+  expiresAt: {
+    type: Date,
+    // Optional: Notifications auto-delete after this date
+    // Useful for time-sensitive alerts
+  },
+
+  targetAudience: [{
+    type: String
+    // Array of role names or user IDs for COMMON notifications
+    // Examples: ['student'], ['coach', 'admin'], ['balagruha-incharge']
+  }],
+
+  isGlobal: {
+    type: Boolean,
+    default: false
+    // True for system-wide notifications (all users)
+  }
+}, {
+  timestamps: true // createdAt, updatedAt
+});
+
+// Indexes for performance
+NotificationSchema.index({ userId: 1, isRead: 1, createdAt: -1 }); // User queries
+NotificationSchema.index({ type: 1, category: 1, createdAt: -1 }); // Category filtering
+NotificationSchema.index({ isGlobal: 1, createdAt: -1 }); // Global notifications
+NotificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // TTL index
+
+// Virtual for notification age
+NotificationSchema.virtual('age').get(function() {
+  return Date.now() - this.createdAt.getTime();
+});
+```
+
+**UserNotificationView Schema (Optimized Unread Tracking):**
+```javascript
+// backend/models/userNotificationView.js
+const UserNotificationViewSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true,
+    unique: true,
+    index: true
+  },
+
+  lastViewedAt: {
+    type: Date,
+    default: Date.now
+  },
+
+  unreadCount: {
+    type: Number,
+    default: 0,
+    min: 0
+  }
+});
+
+// Method to update last viewed timestamp
+UserNotificationViewSchema.methods.markViewed = async function() {
+  this.lastViewedAt = new Date();
+  this.unreadCount = 0;
+  await this.save();
+};
+
+// Method to calculate unread count efficiently
+UserNotificationViewSchema.methods.calculateUnreadCount = async function() {
+  const Notification = mongoose.model('Notification');
+  const count = await Notification.countDocuments({
+    userId: this.userId,
+    isRead: false,
+    createdAt: { $gt: this.lastViewedAt }
+  });
+  this.unreadCount = count;
+  await this.save();
+  return count;
+};
+```
+
+---
+
+### **19.2. Notification Types & Creation Methods**
+
+The notification system supports three distinct notification types, each with specific use cases and creation methods:
+
+#### **19.2.1. Personal Notifications (User-Specific)**
+
+Personal notifications target a single specific user. These are the most common notification type.
+
+**Use Cases:**
+* Task assigned to a student
+* Coins awarded to a student
+* Shop order delivered
+* Achievement unlocked
+* Medical check-in reminder
+
+**Creation Method:**
+```javascript
+// backend/services/notification.js
+async createPersonal(userId, title, message, category, metadata = {}) {
+  const notification = await Notification.create({
+    userId,
+    title,
+    message,
+    type: 'PERSONAL',
+    category,
+    priority: this.determinePriority(category),
+    metadata,
+    isRead: false
+  });
+
+  // Emit via WebSocket for real-time delivery
+  await socketService.emitToUser(userId, 'notification', notification);
+
+  // Send push notification if user has FCM token
+  await this.sendPushNotification(userId, notification);
+
+  return notification;
+}
+```
+
+**Example:**
+```javascript
+await Notification.createPersonal(
+  studentId,
+  "New Task Assigned",
+  "Complete Art Project submission by tomorrow 5 PM",
+  "TASK_ASSIGNED",
+  {
+    taskId: "task_123",
+    deadline: "2025-11-05T17:00:00Z",
+    assignedBy: "Coach Rajesh",
+    actionUrl: "/tasks/task_123"
+  }
+);
+```
+
+#### **19.2.2. Common Notifications (Role/Group-Based)**
+
+Common notifications target a specific group of users based on role or other criteria.
+
+**Use Cases:**
+* New shop products available (all students)
+* New course published (all coaches)
+* System maintenance announcement (all admins)
+* Balagruha-specific updates (all users in one Balagruha)
+
+**Creation Method:**
+```javascript
+async createCommon(title, message, category, targetAudience = [], metadata = {}) {
+  const notification = await Notification.create({
+    userId: null, // No specific user
+    title,
+    message,
+    type: 'COMMON',
+    category,
+    priority: this.determinePriority(category),
+    metadata,
+    targetAudience, // ['student'], ['coach', 'admin'], etc.
+    isRead: false
+  });
+
+  // Emit to role-based rooms via WebSocket
+  for (const role of targetAudience) {
+    await socketService.emitToRole(role, 'notification', notification);
+  }
+
+  // Send push notifications to all users matching target audience
+  await this.sendRoleBasedPushNotifications(targetAudience, notification);
+
+  return notification;
+}
+```
+
+**Example:**
+```javascript
+await Notification.createCommon(
+  "New Shop Items Available!",
+  "Check out the latest products in the ISF Shop. Limited stock available!",
+  "ISF_SHOP_UPDATE",
+  ['student'], // Target only students
+  {
+    newProductCount: 5,
+    actionUrl: "/shop"
+  }
+);
+```
+
+#### **19.2.3. System-Wide Notifications (Broadcast to All)**
+
+System-wide notifications are sent to ALL users regardless of role.
+
+**Use Cases:**
+* Critical system announcements
+* Emergency maintenance
+* Major feature launches
+* Holiday announcements
+
+**Creation Method:**
+```javascript
+async createSystemWide(title, message, category, metadata = {}) {
+  const notification = await Notification.create({
+    userId: null,
+    title,
+    message,
+    type: 'SYSTEM_UPDATE',
+    category: category || 'SYSTEM_ANNOUNCEMENT',
+    priority: 'HIGH',
+    metadata,
+    isGlobal: true,
+    isRead: false
+  });
+
+  // Emit to all connected users via WebSocket
+  await socketService.broadcastToAll('notification', notification);
+
+  // Send push notification to ALL users with FCM tokens
+  await this.sendBroadcastPushNotifications(notification);
+
+  return notification;
+}
+```
+
+**Example:**
+```javascript
+await Notification.createSystemWide(
+  "System Maintenance Tonight",
+  "ISF Playground will be under maintenance from 11 PM to 2 AM. Please save your work.",
+  "SYSTEM_ANNOUNCEMENT",
+  {
+    maintenanceStart: "2025-11-04T23:00:00Z",
+    maintenanceEnd: "2025-11-05T02:00:00Z",
+    affectedServices: ["shop", "courses"]
+  }
+);
+```
+
+---
+
+### **19.3. Complete Notification Category Reference (54 Categories)**
+
+The table below provides a complete reference of all notification categories in the ISF Playground system, including their status, priority, and target roles.
+
+| # | Category | Description | Default Priority | Sprint | Status | Target Roles |
+|---|----------|-------------|-----------------|--------|--------|--------------|
+| **SPRINT 1 & 5 - IMPLEMENTED (12 categories)** |
+| 1 | `WTF_PIN_ADDED` | Student's work featured on Wall of Fame | MEDIUM | S1 | ✅ Implemented | Student (personal + common broadcast) |
+| 2 | `COINS_AWARDED` | ISF coins earned for tasks/achievements | MEDIUM | S1 | ✅ Implemented | Student |
+| 3 | `ACHIEVEMENT_UNLOCKED` | Student unlocked a new achievement/badge | HIGH | S1 | ✅ Implemented | Student (personal + common broadcast) |
+| 4 | `COACH_MESSAGE` | Direct message from coach to student | HIGH | S1 | ✅ Implemented | Student |
+| 5 | `ISF_SHOP_UPDATE` | New products, shop announcements, order updates | MEDIUM | S5 | ✅ Implemented | Student, Coach, Purchase Manager |
+| 6 | `SYSTEM_ANNOUNCEMENT` | System-wide important announcements | HIGH | S1 | ✅ Implemented | All users |
+| 7 | `TASK_ASSIGNED` | Task assigned to user (infrastructure exists) | HIGH | S1 | ⚠️ Partial (schema only) | Student, Coach, Purchase Mgr, Medical In-charge |
+| 8 | `ATTENDANCE_REMINDER` | Daily attendance not completed | MEDIUM | S1 | ⚠️ Partial (schema only) | Balagruha In-charge |
+| 9 | `WORKSHOP_ANNOUNCEMENT` | Workshop or event announced | MEDIUM | S1 | ⚠️ Partial (schema only) | Student, Coach |
+| 10 | `COMMUNITY_UPDATE` | Community content or updates | LOW | S1 | ⚠️ Partial (schema only) | All users |
+| 11 | `NEW_CONTENT` | New course content available | MEDIUM | S1 | ⚠️ Partial (schema only) | Student |
+| 12 | `GENERAL` | General notifications | LOW | S1 | ✅ Implemented | All users |
+| **SPRINT 4 - TASK MANAGEMENT (6 categories)** |
+| 13 | `TASK_COMPLETED` | Task marked as completed | MEDIUM | S4 | 📋 Planned | Task creator (Coach, Admin) |
+| 14 | `TASK_DEADLINE_APPROACHING` | Task due within 24 hours | HIGH | S4 | 📋 Planned | Task assignee (Student, Staff) |
+| 15 | `TASK_OVERDUE` | Task past deadline | HIGH | S4 | 📋 Planned | Task assignee, Task creator |
+| 16 | `TASK_COMMENT_ADDED` | New comment on task | MEDIUM | S4 | 📋 Planned | Task participants |
+| 17 | `TASK_STATUS_CHANGED` | Task status updated | MEDIUM | S4 | 📋 Planned | Task assignee, Task creator |
+| 18 | `TASK_UPDATED` | Task details modified | LOW | S4 | 📋 Planned | Task assignee |
+| **SPRINT 4 - MEDICAL SYSTEM (8 categories - HIGHEST PRIORITY)** |
+| 19 | `MEDICAL_ALERT_CRITICAL` | Temperature ≥102°F, immediate attention | URGENT | S4 | 📋 Planned | Medical In-charge, Balagruha In-charge, Admin, Amma |
+| 20 | `MEDICAL_ALERT_WARNING` | Temperature 100-102°F, monitor closely | HIGH | S4 | 📋 Planned | Medical In-charge, Balagruha In-charge |
+| 21 | `MEDICAL_CHECKIN_REMINDER` | Daily check-in not completed | MEDIUM | S4 | 📋 Planned | Medical In-charge |
+| 22 | `MEDICAL_CHECKIN_COMPLETED` | Check-in recorded for student | LOW | S4 | 📋 Planned | Balagruha In-charge (summary) |
+| 23 | `MEDICAL_RECORD_UPDATED` | Medical history or prescription added | MEDIUM | S4 | 📋 Planned | Medical In-charge, Balagruha In-charge |
+| 24 | `MEDICAL_VACCINATION_DUE` | Vaccination due in 7 days, 3 days, TODAY | HIGH | S4 | 📋 Planned | Medical In-charge, Student |
+| 25 | `MEDICAL_PRESCRIPTION_ADDED` | New prescription uploaded | MEDIUM | S4 | 📋 Planned | Medical In-charge |
+| 26 | `MEDICAL_STATUS_CHANGE` | Medical case status changed | MEDIUM | S4 | 📋 Planned | Medical In-charge, Balagruha In-charge |
+| **SPRINT 4 - COURSE/LEARNING (5 categories)** |
+| 27 | `COURSE_ASSIGNED` | New course assigned to student | MEDIUM | S4 | 📋 Planned | Student |
+| 28 | `COURSE_ENROLLED` | Student enrolled in course | LOW | S4 | 📋 Planned | Coach, Admin |
+| 29 | `COURSE_COMPLETED` | Course completed with coin rewards | HIGH | S4 | 📋 Planned | Student, Coach |
+| 30 | `COURSE_MODULE_UNLOCKED` | New module available in course | MEDIUM | S4 | 📋 Planned | Student |
+| 31 | `QUIZ_RESULTS_AVAILABLE` | Quiz graded, results ready | MEDIUM | S4 | 📋 Planned | Student |
+| **SPRINT 4 - TRAINING SESSIONS (4 categories)** |
+| 32 | `SESSION_ASSIGNED` | Training session assigned to student | MEDIUM | S4 | 📋 Planned | Student |
+| 33 | `SESSION_REMINDER` | Session starting in 1 hour or 30 minutes | HIGH | S4 | 📋 Planned | Student, Coach |
+| 34 | `SESSION_CANCELLED` | Session cancelled or rescheduled | HIGH | S4 | 📋 Planned | Student |
+| 35 | `SESSION_ATTENDANCE_MARKED` | Attendance recorded for session | LOW | S4 | 📋 Planned | Coach |
+| **SPRINT 4 - ATTENDANCE (3 categories)** |
+| 36 | `ATTENDANCE_MARKED` | Attendance recorded for student | LOW | S4 | 📋 Planned | Student, Balagruha In-charge |
+| 37 | `ATTENDANCE_ABSENT` | Student marked absent | HIGH | S4 | 📋 Planned | Balagruha In-charge, Admin |
+| 38 | `ATTENDANCE_SUMMARY` | Daily attendance summary | LOW | S4 | 📋 Planned | Balagruha In-charge, Admin |
+| **SPRINT 4 - PURCHASE/INVENTORY (7 categories)** |
+| 39 | `PURCHASE_REQUEST_SUBMITTED` | New purchase request created | MEDIUM | S4 | 📋 Planned | Admin, Amma (for approval) |
+| 40 | `PURCHASE_REQUEST_APPROVED` | Purchase request approved | HIGH | S4 | 📋 Planned | Purchase Manager (requester) |
+| 41 | `PURCHASE_REQUEST_REJECTED` | Purchase request rejected | HIGH | S4 | 📋 Planned | Purchase Manager (requester) |
+| 42 | `PURCHASE_ORDER_ASSIGNED` | Purchase order created and assigned | MEDIUM | S4 | 📋 Planned | Purchase Manager |
+| 43 | `PURCHASE_ORDER_COMPLETED` | Purchase order fulfilled | MEDIUM | S4 | 📋 Planned | Purchase Manager, Admin |
+| 44 | `INVENTORY_LOW_STOCK` | Product stock below threshold | HIGH | S4 | 📋 Planned | Purchase Manager, Admin |
+| 45 | `INVENTORY_OUT_OF_STOCK` | Product out of stock | URGENT | S4 | 📋 Planned | Purchase Manager, Admin |
+| **SPRINT 4 - REPAIR/MAINTENANCE (3 categories)** |
+| 46 | `REPAIR_REQUEST_SUBMITTED` | New repair request created | MEDIUM | S4 | 📋 Planned | Admin, Balagruha In-charge |
+| 47 | `REPAIR_REQUEST_IN_PROGRESS` | Repair work started | MEDIUM | S4 | 📋 Planned | Requester |
+| 48 | `REPAIR_REQUEST_COMPLETED` | Repair completed | MEDIUM | S4 | 📋 Planned | Requester, Admin |
+| **SPRINT 4 - SHOP/COINS (4 categories)** |
+| 49 | `SHOP_ORDER_PLACED` | Student placed shop order | MEDIUM | S4 | 📋 Planned | Student |
+| 50 | `SHOP_ORDER_DELIVERED` | Order delivered by coach | HIGH | S5 | ✅ Implemented | Student |
+| 51 | `SHOP_PRODUCT_AVAILABLE` | Product back in stock | MEDIUM | S4 | 📋 Planned | Student |
+| 52 | `COINS_DEDUCTED` | Coins spent on purchase | LOW | S4 | 📋 Planned | Student |
+| **SPRINT 4 - WTF ENHANCEMENTS (2 categories)** |
+| 53 | `WTF_SUBMISSION_APPROVED` | Student's WTF submission approved | MEDIUM | S4 | 📋 Planned | Student |
+| 54 | `WTF_INTERACTION` | Engagement on user's WTF content (likes) | LOW | S4 | 📋 Planned | Student |
+| **SPRINT 4 - SOS EMERGENCY (3 categories)** |
+| 55 | `SOS_EMERGENCY` | Student triggered SOS alert | URGENT | S4 | 📋 Planned | Coach, Balagruha In-charge, Admin |
+| 56 | `SOS_ESCALATED` | SOS escalated to next tier | URGENT | S4 | 📋 Planned | Admin, Amma (Tier 2+) |
+| 57 | `SOS_RESOLVED` | SOS emergency resolved | MEDIUM | S4 | 📋 Planned | All previous recipients |
+
+**Legend:**
+- ✅ **Implemented** - Fully operational with triggers
+- ⚠️ **Partial** - Schema exists, triggers not implemented
+- 📋 **Planned** - Sprint 3-4 requirement, to be implemented
+
+---
+
+### **19.4. Delivery Mechanisms**
+
+The notification system supports multiple delivery channels to ensure users receive important information through their preferred medium.
+
+#### **19.4.1. WebSocket Real-Time Delivery [Sprint 1 - IMPLEMENTED]**
+
+**Purpose:** Instant notification delivery to connected users without polling.
+
+**Technology:** Socket.io with JWT authentication
+
+**How It Works:**
+1. User authenticates and connects to WebSocket server
+2. Server assigns user to personal room (`user:{userId}`) and role rooms (`role:{roleName}`)
+3. When notification created, server emits to appropriate room(s)
+4. Connected clients receive notification instantly via WebSocket event
+5. Client displays notification in UI (badge, toast, notification center)
+
+**Message Format:**
+```javascript
+// Personal notification
+{
+  type: "notification",
+  data: {
+    id: "notif_abc123",
+    title: "New Task Assigned",
+    message: "Complete Art Project submission by tomorrow 5 PM",
+    category: "TASK_ASSIGNED",
+    priority: "HIGH",
+    metadata: {
+      taskId: "task_123",
+      actionUrl: "/tasks/task_123"
+    },
+    timestamp: "2025-11-04T14:23:32Z"
+  }
+}
+
+// Unread count update
+{
+  type: "unread_count_update",
+  data: {
+    unreadCount: 5
+  }
+}
+```
+
+**Advantages:**
+- Instant delivery (< 100ms latency)
+- No battery drain from polling
+- Bidirectional communication
+- Supports typing indicators, presence tracking
+
+**Limitations:**
+- Requires active connection
+- Doesn't work offline
+- Fallback needed for disconnected users
+
+#### **19.4.2. REST API Retrieval [Sprint 1 - IMPLEMENTED]**
+
+**Purpose:** Fetch notification history and catch up on missed notifications.
+
+**Endpoints:**
+```yaml
+GET /api/notifications/user
+  - Get user's notifications (paginated)
+  - Query: limit=20, offset=0, category, unreadOnly=true
+  - Response: { notifications: [...], total: 127, unreadCount: 5 }
+
+GET /api/notifications/unread-count
+  - Get unread count only (fast query)
+  - Response: { unreadCount: 5 }
+
+PUT /api/notifications/:id/read
+  - Mark single notification as read
+  - Response: { success: true }
+
+PUT /api/notifications/mark-all-read
+  - Mark all notifications as read
+  - Response: { success: true, markedCount: 5 }
+
+POST /api/notifications (Admin only)
+  - Create notification manually
+  - Request: { userId, title, message, category, priority, metadata }
+  - Response: { notification: {...} }
+
+DELETE /api/notifications/:id
+  - Delete notification
+  - Response: { success: true }
+```
+
+**Use Cases:**
+- App launch (fetch missed notifications)
+- Notification center pagination
+- Manual notification refresh
+- Catching up after offline period
+
+#### **19.4.3. Mobile Push Notifications [Sprint 3]**
+
+**Purpose:** Deliver notifications to mobile devices even when app is closed.
+
+**Technology:** Firebase Cloud Messaging (FCM) for iOS and Android
+
+**Implementation Requirements:**
+1. Device token registration on app launch
+2. Token storage in User.mobileDevices array
+3. Push notification payload construction
+4. FCM API integration for sending
+5. Deep linking configuration
+
+**Push Notification Payload:**
+```javascript
+{
+  notification: {
+    title: "New Task Assigned",
+    body: "Complete Art Project submission by tomorrow 5 PM",
+    sound: "default", // or "urgent.mp3" for URGENT priority
+    badge: 5, // Unread count
+    icon: "ic_notification"
+  },
+  data: {
+    notificationId: "notif_abc123",
+    category: "TASK_ASSIGNED",
+    priority: "HIGH",
+    actionUrl: "/tasks/task_123",
+    metadata: JSON.stringify({ taskId: "task_123" })
+  },
+  android: {
+    priority: "high", // or "max" for URGENT
+    notification: {
+      channelId: "tasks", // Android notification channel
+      color: "#1E40AF" // ISF Blue
+    }
+  },
+  apns: {
+    headers: {
+      "apns-priority": "10" // or "5" for normal
+    },
+    payload: {
+      aps: {
+        sound: "default",
+        badge: 5
+      }
+    }
+  }
+}
+```
+
+**Priority Mapping:**
+- **URGENT** → Sound: urgent.mp3, Vibration pattern, Full-screen alert, Max priority
+- **HIGH** → Sound: default, Vibration, Banner notification, High priority
+- **MEDIUM** → Sound: default, Badge only, Normal priority
+- **LOW** → Silent, Badge only, Low priority
+
+**Deep Linking:**
+Mobile app opens specific screen based on notification category:
+- `TASK_ASSIGNED` → `/tasks/{taskId}`
+- `MEDICAL_ALERT_CRITICAL` → `/medical/checkins/{checkInId}`
+- `SHOP_ORDER_DELIVERED` → `/shop/orders/{orderId}`
+- `SOS_EMERGENCY` → `/sos/alerts/{sosAlertId}`
+
+#### **19.4.4. SMS Integration [Sprint 4 - SOS Only]**
+
+**Purpose:** Emergency SMS for SOS Tier 2 escalation when push notifications fail.
+
+**Technology:** Twilio or AWS SNS
+
+**Use Cases:**
+- SOS Tier 2 escalation (2-5 minutes after trigger)
+- Critical medical alerts (temperature ≥102°F)
+
+**Message Template:**
+```
+[ISF EMERGENCY] Student [Name] triggered SOS - Category: [Medical/Safety/Mental Health].
+Location: [Building].
+Respond immediately via mobile app.
+```
+
+**Rate Limiting:** Max 3 SMS per recipient per hour (prevent spam)
+
+#### **19.4.5. WhatsApp Integration [Sprint 4 - OPTIONAL/MINIMAL]**
+
+**Purpose:** Optional WhatsApp notifications for critical alerts (client may defer).
+
+**Technology:** Twilio WhatsApp API or 360Dialog
+
+**Status:** OPTIONAL - Client decision pending. If implemented, keep MINIMAL (10 critical types only).
+
+**Recommended WhatsApp Notifications (10 types):**
+1. `MEDICAL_ALERT_CRITICAL` (≥102°F only)
+2. `MEDICAL_VACCINATION_DUE` (due TODAY only)
+3. `TASK_ASSIGNED` (HIGH priority only)
+4. `TASK_OVERDUE` (HIGH priority only)
+5. `SESSION_REMINDER` (30 min before)
+6. `SESSION_CANCELLED` (last-minute only)
+7. `PURCHASE_REQUEST_URGENT` (high-value items for Amma approval)
+8. `SOS_EMERGENCY` (Tier 2+ escalation)
+9. `ATTENDANCE_ABSENT` (3+ consecutive days)
+10. `SYSTEM_ANNOUNCEMENT` (critical only)
+
+**Throttling:**
+```javascript
+whatsappSettings: {
+  enabled: false, // Default OFF - admin can enable
+  maxPerUserPerDay: 5,
+  cooldownMinutes: 60,
+  userOptInRequired: true
+}
+```
+
+**Message Template Example:**
+```
+*ISF Playground Alert*
+[Student Name] has triggered a Medical Emergency.
+Temperature: 103°F
+Staff have been notified.
+Reply STOP to unsubscribe.
+```
+
+---
+
+### **19.5. Implemented Notifications (Sprint 1 & 5 - OPERATIONAL)**
+
+The following notification types are fully implemented and operational:
+
+#### **19.5.1. WTF Pin Notifications [Sprint 1]**
+
+**Trigger:** When admin pins student's work to WTF board
+
+**Location:** `backend/services/wtf.js` (lines 515-530)
+
+**Notifications Created:**
+1. **Personal to Student:**
+   - Title: "WTF Feature!"
+   - Message: "Your [content type] '[title]' has been featured on the WTF board!"
+   - Category: `WTF_PIN_ADDED`
+   - Metadata: `{ pinId, contentType, title, actionUrl: "/wtf" }`
+
+2. **Common to All Students:**
+   - Title: "New WTF Content!"
+   - Message: "New [content type] featured on WTF! Check it out!"
+   - Category: `WTF_PIN_ADDED`
+   - Target Audience: `['student']`
+
+**Code Example:**
+```javascript
+// backend/services/wtf.js
+await notificationService.notifyWtfPinAdded(studentId, {
+  pinId: pin._id,
+  contentType: submission.type,
+  title: submission.title
+});
+```
+
+#### **19.5.2. Coin Award Notifications [Sprint 1]**
+
+**Triggers:**
+- Task completion with coin reward
+- WTF pin creation reward
+- Manual coin award by admin
+
+**Location:** `backend/services/coin.js` (line 97), `backend/services/wtf.js` (line 2817)
+
+**Notification:**
+- Title: "ISF Coins Awarded!"
+- Message: "You've earned [X] ISF coins for: [description]"
+- Category: `COINS_AWARDED`
+- Metadata: `{ coinAmount, coinSource, description, actionUrl: "/wallet" }`
+
+#### **19.5.3. Shop Order Notifications [Sprint 5]**
+
+**Trigger 1:** Student completes purchase
+**Location:** `backend/models/order.js` (lines 305-324)
+
+**Notification to Coaches (Delivery Assignment):**
+- Title: "New Delivery"
+- Message: "[Student Name] ordered [X] item(s) - Order [Order Number]"
+- Category: `ISF_SHOP_UPDATE`
+- Target: Coaches in student's Balagruha
+
+**Trigger 2:** Coach marks order as delivered
+**Location:** `backend/controllers/coachDeliveryController.js` (lines 272-284)
+
+**Notification to Student:**
+- Title: "Order Delivered"
+- Message: "Your order [Order Number] has been delivered by Coach [Name]!"
+- Category: `ISF_SHOP_UPDATE`
+- Metadata: `{ orderId, orderNumber, coachName, actionUrl: "/shop/orders" }`
+
+---
+
+### **19.6. Sprint 3-4 Notification Requirements - Implementation Guide**
+
+The following 42 new notification categories must be implemented in Sprint 3-4. Each category includes trigger conditions, notification content, and target recipients.
+
+#### **19.6.1. Medical Alert Notifications [HIGHEST PRIORITY]**
+
+**Critical Temperature Alert:**
+```javascript
+// Trigger: Temperature ≥ 102°F (39°C)
+// Location: To be added in backend/controllers/medicalCheckInController.js
+
+if (temperature >= 39.0) {
+  await Notification.createPersonal(
+    medicalInChargeId,
+    "🚨 CRITICAL HEALTH ALERT",
+    `Student ${studentName} has temperature ${temperature}°F. Immediate attention required!`,
+    "MEDICAL_ALERT_CRITICAL",
+    {
+      studentId,
+      temperature,
+      checkInId,
+      severity: "critical",
+      actionUrl: `/medical/checkins/${checkInId}`
+    }
+  );
+
+  // Also notify Balagruha In-charge and Admin
+  await Notification.createCommon(
+    "🚨 CRITICAL HEALTH ALERT",
+    `Student ${studentName} has temperature ${temperature}°F`,
+    "MEDICAL_ALERT_CRITICAL",
+    ['balagruha-incharge', 'admin'],
+    { studentId, temperature, checkInId }
+  );
+
+  // Optional: Send SMS (Sprint 4)
+  await smsService.sendEmergency(medicalInCharge.phone, message);
+}
+```
+
+**Warning Temperature Alert:**
+```javascript
+// Trigger: Temperature 100-102°F (37.8-39°C)
+if (temperature >= 37.8 && temperature < 39.0) {
+  await Notification.createPersonal(
+    medicalInChargeId,
+    "⚠️ Health Alert - Monitor Closely",
+    `Student ${studentName} has elevated temperature ${temperature}°F`,
+    "MEDICAL_ALERT_WARNING",
+    { studentId, temperature, checkInId }
+  );
+}
+```
+
+**Medical Check-in Reminder:**
+```javascript
+// Trigger: Daily at 6 PM if check-in not completed
+// Cron job: 0 18 * * *
+const studentsWithoutCheckIn = await findStudentsWithoutTodayCheckIn();
+for (const student of studentsWithoutCheckIn) {
+  await Notification.createPersonal(
+    medicalInChargeId,
+    "Daily Check-in Reminder",
+    `${student.name} has not had a check-in today`,
+    "MEDICAL_CHECKIN_REMINDER",
+    { studentId: student._id }
+  );
+}
+```
+
+#### **19.6.2. Task Management Notifications**
+
+**Task Assignment:**
+```javascript
+// Trigger: When task created/assigned
+await Notification.createPersonal(
+  assigneeId,
+  "New Task Assigned",
+  `${taskType}: ${taskTitle} - Due: ${formattedDeadline}`,
+  "TASK_ASSIGNED",
+  {
+    taskId,
+    taskType,
+    deadline,
+    assignedBy: assignerName,
+    actionUrl: `/tasks/${taskId}`
+  }
+);
+```
+
+**Deadline Approaching:**
+```javascript
+// Trigger: 24 hours before deadline (cron job)
+// Trigger: 1 hour before deadline (cron job)
+await Notification.createPersonal(
+  assigneeId,
+  "Task Deadline Approaching",
+  `"${taskTitle}" is due in ${timeRemaining}`,
+  "TASK_DEADLINE_APPROACHING",
+  { taskId, deadline, actionUrl: `/tasks/${taskId}` }
+);
+```
+
+#### **19.6.3. Training Session Notifications**
+
+**Session Reminder:**
+```javascript
+// Trigger: 1 hour and 30 minutes before session
+await Notification.createPersonal(
+  studentId,
+  "Training Session Soon",
+  `${sessionType} with ${coachName} starts in ${minutes} minutes`,
+  "SESSION_REMINDER",
+  { sessionId, startTime, location, actionUrl: `/sessions/${sessionId}` }
+);
+```
+
+#### **19.6.4. SOS Emergency Notifications [Sprint 4 - See Section 13]**
+
+Detailed SOS notification specs are documented in **Section 13.4-13.7** (SOS Emergency System).
+
+**Key Requirements:**
+- `SOS_EMERGENCY`: URGENT priority, multi-channel delivery (WebSocket + Push + SMS)
+- `SOS_ESCALATED`: Tier 2/3 escalation notifications
+- `SOS_RESOLVED`: Resolution notification to all previous recipients
+
+---
+
+### **19.7. User Role Notification Matrix (Summary)**
+
+Complete notification mappings by role:
+
+| User Role | High Priority Notifications | Medium Priority | Low Priority |
+|-----------|---------------------------|----------------|--------------|
+| **Student** | TASK_ASSIGNED, TASK_DEADLINE_APPROACHING, TASK_OVERDUE, SESSION_REMINDER, MEDICAL_VACCINATION_DUE, COINS_AWARDED, ACHIEVEMENT_UNLOCKED | COURSE_ASSIGNED, WTF_PIN_ADDED, SHOP_ORDER_DELIVERED, ATTENDANCE_MARKED | SHOP_PRODUCT_AVAILABLE, WTF_SUBMISSION_APPROVED, COINS_DEDUCTED |
+| **Coach** | SHOP_ORDER_DELIVERED (delivery assignment), SOS_EMERGENCY | TASK_COMPLETED, SESSION_ATTENDANCE_MARKED, COURSE_ENROLLED | GENERAL |
+| **Balagruha In-charge** | SOS_EMERGENCY, MEDICAL_ALERT_CRITICAL, MEDICAL_ALERT_WARNING, ATTENDANCE_ABSENT | MEDICAL_CHECKIN_REMINDER, ATTENDANCE_SUMMARY, TASK_ASSIGNED | ATTENDANCE_MARKED |
+| **Medical In-charge** | MEDICAL_ALERT_CRITICAL, MEDICAL_ALERT_WARNING, MEDICAL_VACCINATION_DUE | MEDICAL_CHECKIN_REMINDER, MEDICAL_RECORD_UPDATED, TASK_ASSIGNED (medical tasks) | MEDICAL_CHECKIN_COMPLETED |
+| **Purchase Manager** | INVENTORY_OUT_OF_STOCK, INVENTORY_LOW_STOCK, PURCHASE_REQUEST_APPROVED, PURCHASE_REQUEST_REJECTED | PURCHASE_ORDER_ASSIGNED, PURCHASE_REQUEST_SUBMITTED | PURCHASE_ORDER_COMPLETED |
+| **Admin** | SOS_ESCALATED, MEDICAL_ALERT_CRITICAL, INVENTORY_OUT_OF_STOCK | PURCHASE_REQUEST_SUBMITTED (high-value), ATTENDANCE_ABSENT (patterns), REPAIR_REQUEST_SUBMITTED | ATTENDANCE_SUMMARY, SYSTEM_ANNOUNCEMENT |
+| **Sports/Music Coach** | SESSION_REMINDER, TASK_OVERDUE (their tasks) | TASK_COMPLETED, SESSION_ATTENDANCE_MARKED | GENERAL |
+| **Amma** | SOS_ESCALATED (Tier 2+), PURCHASE_REQUEST_SUBMITTED (high-value requiring approval) | MEDICAL_ALERT_CRITICAL (summary), ATTENDANCE_SUMMARY (weekly) | SYSTEM_ANNOUNCEMENT |
+
+*Full detailed matrix available in research audit report*
+
+---
+
+### **19.8. Frontend Integration (Desktop & Mobile)**
+
+**Desktop Notification Bell (Existing):**
+```javascript
+// frontend/src/components/NotificationBell.jsx
+- Bell icon with badge count
+- Click to open notification center drawer
+- Real-time updates via WebSocket
+- Mark as read functionality
+```
+
+**Mobile Notification Center [Sprint 3]:**
+```javascript
+// mobile/src/screens/NotificationScreen.tsx
+- Full-screen notification list
+- Pull-to-refresh
+- Infinite scroll pagination
+- Category filtering
+- Mark all as read
+- Deep linking to notification context
+```
+
+**Real-Time Updates:**
+```javascript
+// WebSocket connection
+socket.on('notification', (notification) => {
+  // Add to local state
+  notificationStore.addNotification(notification);
+
+  // Show toast (if app is open)
+  Toast.show({
+    type: notification.priority === 'URGENT' ? 'error' : 'info',
+    text1: notification.title,
+    text2: notification.message
+  });
+
+  // Update badge count
+  notificationStore.incrementUnreadCount();
+});
+```
+
+---
+
+### **19.9. Implementation Guidelines for Developers**
+
+**When to Create Notifications:**
+1. **User Action Completes** - Task submitted, order placed, check-in recorded
+2. **Status Changes** - Task overdue, order delivered, alert resolved
+3. **Reminders** - Deadline approaching, check-in due, session starting
+4. **Alerts** - Critical health, low stock, SOS emergency
+5. **Achievements** - Coins earned, course completed, WTF featured
+
+**Priority Assignment Rules:**
+- **URGENT**: Life-threatening (medical ≥102°F, SOS), critical system failures, inventory outage
+- **HIGH**: Time-sensitive actions (tasks assigned, deadlines, session reminders, approval results)
+- **MEDIUM**: Standard notifications (coin awards, task completions, general updates)
+- **LOW**: Informational only (attendance marked, general announcements, community updates)
+
+**Notification Content Best Practices:**
+1. **Title**: Action-oriented, max 50 characters
+2. **Message**: Clear context, max 150 characters, include key details
+3. **Metadata**: Always include actionUrl for deep linking
+4. **Category**: Use specific category (not GENERAL unless truly general)
+
+**Code Pattern:**
+```javascript
+// Helper function approach (recommended)
+const notificationService = require('../services/notification');
+
+await notificationService.notifyTaskAssigned(assigneeId, {
+  taskId: task._id,
+  taskTitle: task.title,
+  taskType: task.type,
+  deadline: task.deadline,
+  assignedBy: currentUser.username
+});
+
+// Direct creation (for custom notifications)
+await Notification.createPersonal(
+  userId,
+  title,
+  message,
+  category,
+  metadata
+);
+```
+
+**Testing Notifications:**
+```javascript
+// Manual test via Admin panel or API
+POST /api/notifications
+{
+  "userId": "user_123",
+  "title": "Test Notification",
+  "message": "This is a test",
+  "category": "GENERAL",
+  "priority": "MEDIUM",
+  "metadata": { "test": true }
+}
+```
+
+---
+
+##  **25. Non-Functional Requirements (Combined Sprint)**
 
 ### **25.1. Performance Requirements**
 
@@ -1988,6 +4260,64 @@ module.exports = new S3Service();
    - Should there be quiet hours for non-urgent notifications?
    - **Recommendation:** SOS always enabled, quiet hours for other notifications
 
+### **30.4. Notification System Clarifications (Sprint 3-4):**
+
+1. **Medical Alert Thresholds:**
+   - Confirm temperature thresholds: Warning at 100°F (37.8°C), Critical at 102°F (39°C)?
+   - Should Medical In-charge receive notifications for ALL bal agruhas or only assigned ones?
+   - Should critical medical alerts also go to Admin and Amma immediately?
+   - **Recommendation:** Confirmed thresholds, Medical In-charge for all balagruhas, critical alerts to Admin/Amma
+
+2. **Task Notification Timing:**
+   - Confirm task deadline reminder timing: 24 hours and 1 hour before deadline?
+   - Should task overdue notifications repeat daily or only once?
+   - Should task creators get notifications when tasks are completed?
+   - **Recommendation:** 24h + 1h reminders, daily overdue notifications, completion notifications enabled
+
+3. **Training Session Reminders:**
+   - Confirm session reminder timing: 1 hour and 30 minutes before session?
+   - Should students receive notifications for session cancellations even if far in advance?
+   - **Recommendation:** 1h + 30min reminders, always notify for cancellations
+
+4. **SOS Notification Delivery:**
+   - Confirm SOS escalation timing: Tier 1 (0-2min), Tier 2 (2-5min), Tier 3 (5+min)?
+   - Should SOS alerts include student photo/identification in notification?
+   - Which SMS provider preference: Twilio or AWS SNS?
+   - **Recommendation:** Confirmed timing, include student name only (not photo for privacy), prefer Twilio for reliability
+
+5. **WhatsApp Integration Decision (CRITICAL):**
+   - **PROCEED with WhatsApp integration or DEFER to post-launch?**
+   - If proceeding, confirm WhatsApp Business API account setup status
+   - If proceeding, confirm maximum 5 WhatsApp notifications per user per day acceptable?
+   - **Recommendation:** DEFER WhatsApp to post-launch, focus Sprint 4 on mobile push notifications
+
+6. **Inventory & Purchase Notifications:**
+   - Confirm low stock threshold definition (currently in ShopItem model: `lowStockThreshold` field)
+   - Should inventory alerts go to Purchase Manager only, or also to Admin/Amma?
+   - Should high-value purchase requests (above what amount?) require Amma approval notification?
+   - **Recommendation:** Low stock = 10 units or below, alerts to Purchase Manager + Admin, Amma approval for purchases >₹10,000
+
+7. **Attendance Notification Preferences:**
+   - Should students receive confirmation notification when attendance is marked?
+   - Should Balagruha In-charge receive daily attendance summary at end of day?
+   - Should consecutive absences (how many days?) trigger alert to Admin?
+   - **Recommendation:** Students get confirmation, In-charge gets daily summary, 3+ consecutive absences alert to Admin
+
+8. **Course & Learning Notifications:**
+   - Should students receive notifications for all new course assignments, or only high-priority courses?
+   - Should coaches receive notifications when students complete courses they assigned?
+   - **Recommendation:** All course assignments notify students, course completion notifies assigning coach
+
+9. **Notification Retention:**
+   - How long should notifications be retained in database before auto-deletion?
+   - Should users be able to delete individual notifications, or only mark as read?
+   - **Recommendation:** 90-day retention, users can delete individual notifications
+
+10. **Parent/Guardian Notifications (Future Consideration):**
+    - Are parent/guardian notifications in scope for Sprint 3-4, or future enhancement?
+    - If future, which notifications should parents receive? (Medical alerts, attendance issues, achievements?)
+    - **Recommendation:** DEFER to future sprint, focus on staff-to-staff notifications for Sprint 3-4
+
 ---
 
 ## **31. Success Criteria & Acceptance**
@@ -2012,6 +4342,57 @@ module.exports = new S3Service();
 * WhatsApp integration functional with delivery confirmation
 * Health tracking system capturing all required metrics
 * Abnormal health value alerts triggering correctly
+
+### **31.2.1. Sprint 4 Notification System Success Metrics:**
+
+**Critical Notification Performance:**
+* Medical critical alerts (≥102°F) delivered within 5 seconds (99.9% reliability)
+* SOS Tier 1 notifications delivered within 5 seconds (100% reliability)
+* SOS Tier 2 escalation triggers automatically at 2-minute mark if no acknowledgment
+* SOS Tier 3 escalation triggers automatically at 5-minute mark if no acknowledgment
+* Task deadline reminders sent at correct timing (24h, 1h before)
+* Training session reminders sent at correct timing (1h, 30min before)
+
+**Notification Coverage:**
+* All 75 notification categories implemented and tested
+* All 10 user roles receive appropriate notifications (Students + 8 mobile staff + Purchase Manager desktop)
+* Medical In-charge receives critical health alerts for all balagruhas
+* Balagruha In-charge receives alerts only for their assigned balagruha(s)
+* Purchase Manager receives low stock and out-of-stock alerts
+* Admins receive escalated SOS and critical inventory alerts
+
+**Delivery Channel Performance:**
+* WebSocket notifications delivered within 500ms (p95)
+* Mobile push notifications delivered within 10 seconds (p95)
+* SMS (SOS Tier 2+) delivered within 30 seconds (p95)
+* Notification unread counts update in real-time (< 1 second)
+* Notification center loads within 1 second
+
+**Notification Quality:**
+* No duplicate notifications sent for same event
+* No irrelevant notifications (users only receive notifications for their role)
+* Notification content is clear, actionable, and grammatically correct
+* Deep linking works correctly (tapping notification opens correct app screen)
+* All notifications include actionUrl in metadata for navigation
+
+**User Experience:**
+* Notification bell badge displays correct unread count
+* Mark as read functionality works correctly
+* Mark all as read updates all notifications
+* Notification history paginated correctly
+* Users can delete individual notifications
+
+**Priority & Sound Mapping:**
+* URGENT notifications use emergency sound and full-screen alert
+* HIGH notifications use default sound and banner display
+* MEDIUM notifications use default sound and badge only
+* LOW notifications are silent with badge only
+
+**WhatsApp Integration (if approved):**
+* WhatsApp notifications delivered within 60 seconds (p95)
+* Maximum 5 WhatsApp messages per user per day enforced
+* Users can opt-in/opt-out of WhatsApp notifications
+* WhatsApp delivery confirmation tracked and logged
 
 ### **31.3. Combined Sprint Success Criteria:**
 

@@ -3,6 +3,7 @@
 **Project:** ISF Playground - Combined Sprint 2 & Sprint 5
 **Version:** 3.0 (Unified)
 **Date:** September 16, 2025
+**Last Updated:** 2025-11-04 17:48:38 (via `date '+%Y-%m-%d %H:%M:%S'`) - Added complete Shop Module technical specification
 **Sprint Duration:** 30 Days (Parallel Execution)
 
 ---
@@ -891,6 +892,1499 @@ const InventoryTransaction = {
   timestamp: Date
 };
 ```
+
+---
+
+### **18.5. Shop Module - Complete Technical Specification**
+
+* **Section Type:** Technical Implementation Details
+* **Status:** COMPLETED IN SPRINT 5
+* **Last Updated:** 2025-11-04 (Sprint 5 completion)
+
+> **📋 PURPOSE OF THIS SECTION**
+>
+> This section provides comprehensive technical specifications for the ISF Shop Module, including all database schemas, API endpoints, atomic transaction implementations, and Purchase Manager procurement workflows. This documentation serves as the definitive technical reference for the completed Shop Module implementation.
+
+---
+
+#### **18.5.1. Complete Database Schemas**
+
+**ShopOrder Schema:**
+```javascript
+const ShopOrderSchema = new mongoose.Schema({
+  orderId: {
+    type: String,
+    required: true,
+    unique: true
+  }, // AUTO-GEN: ORD-YYYYMMDD-XXXX
+
+  studentId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+
+  items: [{
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
+    },
+    productName: String, // Snapshot at purchase time
+    quantity: { type: Number, required: true, min: 1 },
+    coinPriceAtPurchase: Number, // Price snapshot
+    subtotal: Number
+  }],
+
+  totalCoins: { type: Number, required: true },
+
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'approved', 'rejected', 'ready_for_delivery', 'delivered', 'cancelled'],
+    default: 'pending'
+  },
+
+  deliveryDetails: {
+    assignedCoachId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    balagruhaId: { type: mongoose.Schema.Types.ObjectId, ref: 'Balagruha' },
+    deliveryInstructions: String,
+    deliveredAt: Date,
+    deliveredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    deliveryNotes: String
+  },
+
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// Indexes for performance
+ShopOrderSchema.index({ studentId: 1, status: 1 });
+ShopOrderSchema.index({ 'deliveryDetails.assignedCoachId': 1, status: 1 });
+ShopOrderSchema.index({ orderId: 1 });
+ShopOrderSchema.index({ createdAt: -1 });
+```
+
+**PurchaseRequest Schema (Purchase Manager Workflow):**
+```javascript
+const PurchaseRequestSchema = new mongoose.Schema({
+  requestId: {
+    type: String,
+    required: true,
+    unique: true
+  }, // AUTO-GEN: PR-YYYYMMDD-XXXX
+
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }, // Purchase Manager
+
+  balagruhaId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Balagruha'
+  }, // Frontend filter only (MVP)
+
+  items: [{
+    productId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+      required: true
+    },
+    productName: String,
+    currentStock: Number, // Snapshot at request time
+    requestedQuantity: { type: Number, required: true, min: 1 },
+    estimatedUnitCost: { type: Number, required: true }, // In currency (₹)
+    estimatedSubtotal: Number
+  }],
+
+  totalEstimatedCost: { type: Number, required: true },
+
+  justification: {
+    type: String,
+    required: true,
+    maxlength: 500
+  }, // Why this purchase is needed
+
+  additionalNotes: String,
+
+  status: {
+    type: String,
+    required: true,
+    enum: ['pending', 'approved', 'rejected', 'completed', 'cancelled'],
+    default: 'pending'
+  },
+
+  approvalDetails: {
+    approvedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    approvedAt: Date,
+    approvalNotes: String,
+    rejectionReason: String
+  },
+
+  completionDetails: {
+    supplierName: String,
+    supplierContact: String,
+    invoiceNumber: String,
+    purchaseDate: Date,
+    actualTotalCost: Number,
+    completedAt: Date,
+    completedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    receiptNotes: String,
+    // Actual quantities/costs per item (for variance tracking)
+    actualItems: [{
+      productId: mongoose.Schema.Types.ObjectId,
+      receivedQuantity: Number,
+      actualUnitCost: Number
+    }]
+  },
+
+  attachments: [{
+    filename: String,
+    originalName: String,
+    s3Url: String,
+    s3Key: String,
+    mimeType: String,
+    fileSize: Number, // in bytes
+    uploadedAt: Date
+  }], // Max 5 files, 10MB each
+
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now }
+});
+
+// Indexes
+PurchaseRequestSchema.index({ createdBy: 1, status: 1 });
+PurchaseRequestSchema.index({ status: 1, createdAt: -1 });
+PurchaseRequestSchema.index({ requestId: 1 });
+```
+
+---
+
+#### **18.5.2. API Endpoints with Full Specifications**
+
+**Student Shopping Endpoints:**
+
+**1. Browse Products**
+```http
+GET /api/v1/shop/products?category=stationery&inStock=true&sort=price_asc&page=1&limit=20
+Authorization: Bearer <student_jwt_token>
+
+Response 200 OK:
+{
+  "success": true,
+  "products": [
+    {
+      "_id": "prod_123abc",
+      "name": "Spiral Notebook - 200 pages",
+      "sku": "NB-200-BLU",
+      "coinPrice": 50,
+      "stockQuantity": 45,
+      "lowStockThreshold": 10,
+      "imageUrl": "https://s3.amazonaws.com/isf-cdn/products/nb-200-blu.jpg",
+      "category": "stationery",
+      "description": "High-quality spiral notebook perfect for students",
+      "isActive": true
+    }
+  ],
+  "pagination": {
+    "currentPage": 1,
+    "totalPages": 3,
+    "totalProducts": 54,
+    "limit": 20
+  },
+  "studentCoinBalance": 250
+}
+```
+
+**2. Checkout (Atomic Transaction)**
+```http
+POST /api/v1/shop/orders/checkout
+Authorization: Bearer <student_jwt_token>
+Content-Type: application/json
+
+Request Body:
+{
+  "items": [
+    { "productId": "prod_123abc", "quantity": 2 },
+    { "productId": "prod_456def", "quantity": 1 }
+  ],
+  "deliveryInstructions": "Please deliver after lunch"
+}
+
+Response 200 OK (Success):
+{
+  "success": true,
+  "order": {
+    "orderId": "ORD-20251104-0042",
+    "studentId": "stu_789ghi",
+    "items": [
+      {
+        "productId": "prod_123abc",
+        "productName": "Spiral Notebook - 200 pages",
+        "quantity": 2,
+        "coinPriceAtPurchase": 50,
+        "subtotal": 100
+      },
+      {
+        "productId": "prod_456def",
+        "productName": "Pen Set - 10 pieces",
+        "quantity": 1,
+        "coinPriceAtPurchase": 30,
+        "subtotal": 30
+      }
+    ],
+    "totalCoins": 130,
+    "status": "pending",
+    "deliveryDetails": {
+      "assignedCoachId": "coach_111",
+      "balagruhaId": "bal_222",
+      "deliveryInstructions": "Please deliver after lunch"
+    },
+    "createdAt": "2025-11-04T10:30:00Z"
+  },
+  "newCoinBalance": 120, // Was 250, now 120
+  "message": "Order placed successfully! Your coach will deliver soon."
+}
+
+Response 400 Bad Request (Insufficient Coins):
+{
+  "success": false,
+  "error": "INSUFFICIENT_COINS",
+  "message": "You need 150 coins but only have 120",
+  "required": 150,
+  "available": 120,
+  "shortfall": 30
+}
+
+Response 400 Bad Request (Out of Stock):
+{
+  "success": false,
+  "error": "PRODUCT_OUT_OF_STOCK",
+  "message": "Product 'Spiral Notebook' is out of stock",
+  "productId": "prod_123abc",
+  "productName": "Spiral Notebook - 200 pages",
+  "requestedQuantity": 2,
+  "availableQuantity": 0
+}
+```
+
+**Checkout Implementation (Atomic Transaction):**
+```javascript
+/**
+ * Process shop checkout with atomic MongoDB transaction
+ * Ensures: coin deduction + stock decrement + order creation + task creation
+ * happen atomically or not at all (complete rollback on any failure)
+ */
+async function processShopCheckout(studentId, items, deliveryInstructions) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // 1. Validate stock availability for all items
+    for (const item of items) {
+      const product = await Product.findById(item.productId).session(session);
+
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
+      }
+
+      if (product.stockQuantity < item.quantity) {
+        throw new Error(
+          `Insufficient stock for ${product.name}. ` +
+          `Requested: ${item.quantity}, Available: ${product.stockQuantity}`
+        );
+      }
+    }
+
+    // 2. Calculate total cost
+    const totalCoins = items.reduce((sum, item) => {
+      return sum + (item.coinPriceAtPurchase * item.quantity);
+    }, 0);
+
+    // 3. Validate student coin balance
+    const student = await User.findById(studentId).session(session);
+
+    if (!student) {
+      throw new Error('Student not found');
+    }
+
+    if (student.coinBalance < totalCoins) {
+      throw new Error(
+        `Insufficient coins. Required: ${totalCoins}, Available: ${student.coinBalance}`
+      );
+    }
+
+    // 4. Deduct coins from student balance (atomic)
+    await User.findByIdAndUpdate(
+      studentId,
+      { $inc: { coinBalance: -totalCoins } },
+      { session, new: true }
+    );
+
+    // 5. Decrement stock quantities for all products (atomic)
+    for (const item of items) {
+      await Product.findByIdAndUpdate(
+        item.productId,
+        { $inc: { stockQuantity: -item.quantity } },
+        { session }
+      );
+    }
+
+    // 6. Generate unique order ID
+    const orderId = `ORD-${moment().format('YYYYMMDD')}-${generateRandomId(4)}`;
+
+    // 7. Create order record
+    const order = await ShopOrder.create([{
+      orderId,
+      studentId,
+      items,
+      totalCoins,
+      status: 'pending',
+      deliveryDetails: {
+        assignedCoachId: student.assignedCoachId,
+        balagruhaId: student.balagruhaId,
+        deliveryInstructions
+      }
+    }], { session });
+
+    // 8. Create delivery task for assigned coach
+    await Task.create([{
+      title: `Deliver shop order ${orderId} to ${student.name}`,
+      description: `Order contains ${items.length} items. Total: ${totalCoins} coins.`,
+      assignedTo: student.assignedCoachId,
+      assignedToRole: 'COACH',
+      deadline: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+      priority: 'MEDIUM',
+      linkedResource: {
+        resourceType: 'ShopOrder',
+        resourceId: order[0]._id
+      },
+      metadata: {
+        orderDetails: {
+          items: items.map(i => ({ name: i.productName, quantity: i.quantity })),
+          totalCoins,
+          deliveryInstructions
+        }
+      }
+    }], { session });
+
+    // 9. Send notifications
+    await sendNotification({
+      category: 'shop_order_placed',
+      recipientId: studentId,
+      priority: 'MEDIUM',
+      message: `Your order ${orderId} has been placed successfully!`,
+      metadata: { orderId, totalCoins }
+    });
+
+    await sendNotification({
+      category: 'new_order_pending_delivery',
+      recipientId: student.assignedCoachId,
+      priority: 'HIGH',
+      message: `New shop order ready for delivery - ${student.name}`,
+      metadata: { orderId, studentName: student.name }
+    });
+
+    // 10. Commit transaction (all or nothing)
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      order: order[0],
+      newCoinBalance: student.coinBalance - totalCoins
+    };
+
+  } catch (error) {
+    // Rollback entire transaction on any error
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+```
+
+---
+
+**Coach Delivery Endpoints (Mobile App):**
+
+**1. Get Pending Deliveries**
+```http
+GET /api/v1/shop/orders/pending-deliveries
+Authorization: Bearer <coach_jwt_token>
+
+Response 200 OK:
+{
+  "success": true,
+  "pendingOrders": [
+    {
+      "orderId": "ORD-20251104-0042",
+      "studentId": "stu_789ghi",
+      "studentName": "Ravi Kumar",
+      "studentPhoto": "https://s3.amazonaws.com/isf-cdn/photos/ravi.jpg",
+      "balagruha": "Balagruha A",
+      "items": [
+        { "productName": "Spiral Notebook - 200 pages", "quantity": 2 },
+        { "productName": "Pen Set - 10 pieces", "quantity": 1 }
+      ],
+      "totalCoins": 130,
+      "orderDate": "2025-11-04T10:30:00Z",
+      "deliveryInstructions": "Please deliver after lunch",
+      "status": "pending"
+    }
+  ],
+  "count": 1
+}
+```
+
+**2. Mark Order as Delivered**
+```http
+POST /api/v1/shop/orders/:orderId/mark-delivered
+Authorization: Bearer <coach_jwt_token>
+Content-Type: application/json
+
+Request Body:
+{
+  "deliveryNotes": "Delivered in good condition. Student confirmed receipt verbally."
+}
+
+Response 200 OK:
+{
+  "success": true,
+  "message": "Order marked as delivered successfully",
+  "order": {
+    "orderId": "ORD-20251104-0042",
+    "status": "delivered",
+    "deliveryDetails": {
+      "deliveredAt": "2025-11-04T14:20:00Z",
+      "deliveredBy": "coach_111",
+      "deliveryNotes": "Delivered in good condition. Student confirmed receipt verbally."
+    }
+  }
+}
+```
+
+---
+
+**Purchase Manager Procurement Endpoints (Desktop/Web):**
+
+**1. Create Multi-Product Purchase Request**
+```http
+POST /api/v2/shop/admin/purchase-requests
+Authorization: Bearer <purchase_manager_jwt_token>
+Content-Type: multipart/form-data
+
+Request Body (FormData):
+{
+  "balagruhaId": "bal_222",
+  "items": [
+    {
+      "productId": "prod_123abc",
+      "requestedQuantity": 50,
+      "estimatedUnitCost": 25
+    },
+    {
+      "productId": "prod_456def",
+      "requestedQuantity": 100,
+      "estimatedUnitCost": 5
+    }
+  ],
+  "justification": "Both items below 10 units. Need restock for increased student demand this month.",
+  "additionalNotes": "Prefer ABC Suppliers. Delivery needed by end of week.",
+  "attachments": [File, File] // Max 5 files, 10MB each
+}
+
+Response 201 Created:
+{
+  "success": true,
+  "purchaseRequest": {
+    "requestId": "PR-20251104-015",
+    "createdBy": "pm_333",
+    "balagruhaId": "bal_222",
+    "items": [
+      {
+        "productId": "prod_123abc",
+        "productName": "Spiral Notebook - 200 pages",
+        "currentStock": 5,
+        "requestedQuantity": 50,
+        "estimatedUnitCost": 25,
+        "estimatedSubtotal": 1250
+      },
+      {
+        "productId": "prod_456def",
+        "productName": "Pen Set - 10 pieces",
+        "currentStock": 2,
+        "requestedQuantity": 100,
+        "estimatedUnitCost": 5,
+        "estimatedSubtotal": 500
+      }
+    ],
+    "totalEstimatedCost": 1750,
+    "justification": "Both items below 10 units. Need restock for increased student demand this month.",
+    "additionalNotes": "Prefer ABC Suppliers. Delivery needed by end of week.",
+    "attachments": [
+      {
+        "filename": "supplier-quote-2025.pdf",
+        "s3Url": "https://s3.amazonaws.com/isf-docs/pr-015-attach-1.pdf",
+        "fileSize": 245678
+      }
+    ],
+    "status": "pending",
+    "createdAt": "2025-11-04T09:15:00Z"
+  },
+  "message": "Purchase request created successfully. Admin has been notified for approval."
+}
+```
+
+**2. Admin Approval/Rejection**
+```http
+POST /api/v2/shop/admin/purchase-requests/:requestId/approve
+Authorization: Bearer <admin_jwt_token>
+Content-Type: application/json
+
+Request Body:
+{
+  "approvalNotes": "Approved. Reasonable quantities and pricing."
+}
+
+Response 200 OK:
+{
+  "success": true,
+  "purchaseRequest": {
+    "requestId": "PR-20251104-015",
+    "status": "approved",
+    "approvalDetails": {
+      "approvedBy": "admin_444",
+      "approvedAt": "2025-11-04T14:00:00Z",
+      "approvalNotes": "Approved. Reasonable quantities and pricing."
+    }
+  },
+  "message": "Purchase request approved. Purchase Manager has been notified."
+}
+```
+
+**3. Update Stock After Supplier Delivery**
+```http
+POST /api/v2/shop/admin/purchase-requests/:requestId/update-stock
+Authorization: Bearer <purchase_manager_jwt_token>
+Content-Type: application/json
+
+Request Body:
+{
+  "supplierName": "ABC Suppliers Pvt Ltd",
+  "supplierContact": "+91-9876543210",
+  "invoiceNumber": "INV-2025-234",
+  "purchaseDate": "2025-11-06",
+  "items": [
+    {
+      "productId": "prod_123abc",
+      "receivedQuantity": 50,  // Full delivery
+      "actualUnitCost": 25     // Matches estimate
+    },
+    {
+      "productId": "prod_456def",
+      "receivedQuantity": 100, // Full delivery
+      "actualUnitCost": 5      // Matches estimate
+    }
+  ],
+  "receiptNotes": "Items received in good condition. No damages. Delivery on schedule."
+}
+
+Response 200 OK:
+{
+  "success": true,
+  "message": "Stock updated successfully for 2 products. Purchase request marked as completed.",
+  "purchaseRequest": {
+    "requestId": "PR-20251104-015",
+    "status": "completed",
+    "completionDetails": {
+      "supplierName": "ABC Suppliers Pvt Ltd",
+      "invoiceNumber": "INV-2025-234",
+      "actualTotalCost": 1750, // Matches estimate
+      "completedAt": "2025-11-06T15:20:00Z",
+      "completedBy": "pm_333"
+    }
+  },
+  "stockUpdates": [
+    {
+      "productId": "prod_123abc",
+      "productName": "Spiral Notebook - 200 pages",
+      "oldStock": 5,
+      "addedQuantity": 50,
+      "newStock": 55
+    },
+    {
+      "productId": "prod_456def",
+      "productName": "Pen Set - 10 pieces",
+      "oldStock": 2,
+      "addedQuantity": 100,
+      "newStock": 102
+    }
+  ],
+  "inventoryTransactions": [
+    "trans_001_pr015",
+    "trans_002_pr015"
+  ]
+}
+```
+
+**Stock Update Implementation (Atomic Transaction):**
+```javascript
+/**
+ * Update stock after supplier delivery with atomic MongoDB transaction
+ * Creates inventory transactions for audit trail
+ */
+async function updateStockFromPurchaseRequest(requestId, updateData) {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // 1. Find and validate purchase request
+    const purchaseRequest = await PurchaseRequest.findOne({ requestId }).session(session);
+
+    if (!purchaseRequest) {
+      throw new Error(`Purchase request ${requestId} not found`);
+    }
+
+    if (purchaseRequest.status !== 'approved') {
+      throw new Error(`Purchase request must be approved before updating stock. Current status: ${purchaseRequest.status}`);
+    }
+
+    // 2. Update stock for each product (atomic)
+    const stockUpdates = [];
+    const transactionIds = [];
+
+    for (const item of updateData.items) {
+      const product = await Product.findById(item.productId).session(session);
+
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
+      }
+
+      const oldStock = product.stockQuantity;
+      const newStock = oldStock + item.receivedQuantity;
+
+      // Increment stock
+      await Product.findByIdAndUpdate(
+        item.productId,
+        {
+          $inc: { stockQuantity: item.receivedQuantity },
+          $set: { updatedAt: new Date() }
+        },
+        { session }
+      );
+
+      // Create inventory transaction for audit
+      const transaction = await InventoryTransaction.create([{
+        productId: item.productId,
+        type: 'purchase_request',
+        quantity: item.receivedQuantity,
+        quantityBefore: oldStock,
+        quantityAfter: newStock,
+        unitCost: item.actualUnitCost,
+        totalCost: item.receivedQuantity * item.actualUnitCost,
+        reference: {
+          type: 'purchase_request',
+          id: purchaseRequest._id,
+          requestId: purchaseRequest.requestId
+        },
+        notes: `Stock replenishment from PR-${requestId}`,
+        performedBy: updateData.performedBy,
+        timestamp: new Date()
+      }], { session });
+
+      stockUpdates.push({
+        productId: item.productId,
+        productName: product.name,
+        oldStock,
+        addedQuantity: item.receivedQuantity,
+        newStock
+      });
+
+      transactionIds.push(transaction[0]._id);
+    }
+
+    // 3. Calculate actual total cost
+    const actualTotalCost = updateData.items.reduce((sum, item) => {
+      return sum + (item.receivedQuantity * item.actualUnitCost);
+    }, 0);
+
+    // 4. Update purchase request to completed
+    await PurchaseRequest.findOneAndUpdate(
+      { requestId },
+      {
+        status: 'completed',
+        completionDetails: {
+          supplierName: updateData.supplierName,
+          supplierContact: updateData.supplierContact,
+          invoiceNumber: updateData.invoiceNumber,
+          purchaseDate: updateData.purchaseDate,
+          actualTotalCost,
+          completedAt: new Date(),
+          completedBy: updateData.performedBy,
+          receiptNotes: updateData.receiptNotes,
+          actualItems: updateData.items,
+          inventoryTransactions: transactionIds
+        },
+        updatedAt: new Date()
+      },
+      { session }
+    );
+
+    // 5. Send notification to Admin
+    await sendNotification({
+      category: 'stock_replenished',
+      recipientRole: 'ADMIN',
+      priority: 'MEDIUM',
+      message: `Stock updated for ${updateData.items.length} products from ${requestId}`,
+      metadata: { requestId, stockUpdates }
+    });
+
+    // 6. Commit transaction
+    await session.commitTransaction();
+
+    return {
+      success: true,
+      stockUpdates,
+      transactionIds,
+      actualTotalCost
+    };
+
+  } catch (error) {
+    // Rollback on error
+    await session.abortTransaction();
+    throw error;
+  } finally {
+    session.endSession();
+  }
+}
+```
+
+---
+
+####18.5.3. Purchase Manager Workflows (Stories 17-24)**
+
+**Story 17: Multi-Product Purchase Request Creation**
+
+**Workflow Overview:**
+1. Purchase Manager identifies low stock items from dashboard
+2. Clicks "+ Create New Request"
+3. Selects Balagruha (frontend filtered to assigned Balagruhas)
+4. Multi-selects products using searchable dropdown
+5. Enters quantities and estimated costs for each item
+6. Adds justification (required, max 500 characters)
+7. Optionally adds notes and attaches supplier quotations (max 5 files, 10MB each)
+8. Reviews grand total
+9. Submits request
+10. System creates request with status "pending"
+11. Admin receives notification for approval
+
+**UI Features:**
+- Multi-select product dropdown with search and stock level indicators
+- Editable table showing: Product Name, SKU, Current Stock, Requested Qty, Est. Unit Cost, Subtotal
+- Real-time grand total calculation
+- Drag-drop file upload zone for quotations
+- Form validation (quantities > 0, costs entered, justification not empty)
+
+**Success Metrics:**
+- Request creation time < 5 minutes
+- Multi-product selection saves 60% time vs single-product requests
+- File attachments successfully uploaded 100% of the time
+
+---
+
+**Story 18: Purchase Request Management Dashboard**
+
+**Dashboard Features:**
+
+**Statistics Cards (Top):**
+- Total Requests: 24
+- Pending Approval: 3 (yellow badge)
+- Approved: 18 (green)
+- Rejected: 2 (red)
+- Completed: 15 (blue)
+- Cancelled: 1 (gray)
+
+**Request List Table:**
+| Request ID | Date | Products | Total Cost | Status | Actions |
+|------------|------|----------|------------|--------|---------|
+| PR-003 | Jan 15 | 3 products | ₹3,500 | Pending | View \| Cancel |
+| PR-002 | Jan 10 | 2 products | ₹1,750 | Approved | Update Stock |
+| PR-001 | Jan 5 | 5 products | ₹8,200 | Completed | View |
+
+**Filter Options:**
+- Status dropdown: All, Pending, Approved, Rejected, Completed, Cancelled
+- Date range: Start/End date pickers
+- Balagruha: Dropdown (filtered to assigned)
+- Search: By product name, request ID, or justification
+
+**View Request Details Modal:**
+- Complete request information
+- Products table with quantities, costs, subtotals
+- Justification and notes
+- Downloadable attachments
+- Approval/rejection details (if processed)
+- Completion details with actual costs (if completed)
+- Complete audit trail with timestamps
+
+---
+
+**Story 19: Stock Update After Supplier Delivery**
+
+**Workflow Overview:**
+1. Purchase Manager receives supplier delivery physically
+2. Verifies received quantities against order
+3. Obtains supplier invoice/receipt
+4. Logs into system, finds approved request in dashboard
+5. Clicks "Update Stock" button
+6. Modal opens: "Update Stock - PR-XXX"
+7. Enters supplier information:
+   - Supplier name
+   - Invoice number
+   - Purchase date
+8. Confirms or adjusts received quantities and actual costs:
+   - Table shows: Product, Requested Qty, Received Qty (editable), Est. Cost, Actual Cost (editable), Subtotal
+   - Allows for partial deliveries (received < requested)
+   - Allows for price variances (actual ≠ estimated)
+9. Reviews stock projection preview:
+   - Shows: Product, Current Stock, Received Qty, New Stock Level
+10. Adds optional receipt notes
+11. Clicks "Update Stock & Complete"
+12. Confirmation dialog: "This will update inventory for X products and mark request as completed. Cannot be undone. Continue?"
+13. System processes atomic transaction:
+    - Increments stock for each product
+    - Creates InventoryTransaction records
+    - Updates request status to "completed"
+    - Records completion timestamp and details
+14. Success: "Stock updated successfully for X products!"
+15. Request moves to "Completed" status
+16. "Update Stock" button disappears (idempotency - can only update once)
+17. Inventory levels reflected immediately across entire system
+
+**Partial Delivery Handling:**
+- PM enters actual received quantity (e.g., 45 instead of 50)
+- System calculates new subtotal based on actual quantities
+- Stock updates with actual quantities only
+- PM can create new request later for remaining items
+
+**Price Variance Tracking:**
+- PM enters actual unit cost if different from estimate
+- System tracks variance for budget analysis
+- Admin can view cost variance reports
+
+**Security Features:**
+- Can only update stock for "approved" requests
+- Once updated, request cannot be modified again (idempotency protection)
+- Complete audit trail with timestamps
+- All changes logged in InventoryTransaction collection
+
+---
+
+**Story 20: Purchase Request Category Classification**
+
+**Feature Overview:**
+Purchase requests can now be categorized into three predefined types to improve organization and budget tracking.
+
+**Categories:**
+1. **New Equipment** - Capital purchases, machinery, furniture, long-term assets
+2. **Consumables (Including medicines)** - Medical supplies, food, toiletries, cleaning supplies, medicines
+3. **Others** - Miscellaneous purchases not fitting above categories
+
+**UI Implementation:**
+- Category dropdown (required field) in Create Purchase Request modal
+- Placement: Between "Balagruha" field and "Products" section
+- Category column in purchase request list (sortable)
+- Category filter dropdown in filter bar
+
+**Backend Schema:**
+```javascript
+category: {
+  type: String,
+  required: true,
+  enum: ['New Equipment', 'Consumables (Including medicines)', 'Others']
+}
+```
+
+**Success Metrics:**
+- 100% of new requests have category assigned
+- Category-based reporting available for budget analysis
+- Filter response time < 200ms
+
+---
+
+**Story 21: STOCK Balagruha-Independent Purchase Requests**
+
+**Feature Overview:**
+Introduces "STOCK" as a special Balagruha option for purchases not tied to specific locations (e.g., "Pee proof pants"). STOCK inventory can be allocated to Balagruhas later.
+
+**Key Behaviors:**
+- **STOCK Visibility**: ALL users can see STOCK requests regardless of their Balagruha assignments
+- **Regular Requests**: Users only see requests for their assigned Balagruhas
+- **Mixed Type Field**: `balagruhaId` accepts either String ('STOCK') or ObjectId (Balagruha reference)
+
+**UI Features:**
+- STOCK appears as first option in Balagruha dropdown (before divider)
+- STOCK badge displayed with icon (📦) and distinct color (blue/purple)
+- STOCK filter option available in request list
+- Tooltip explains: "General inventory - not specific to Balagruha"
+
+**Backend Implementation:**
+```javascript
+balagruhaId: {
+  type: mongoose.Schema.Types.Mixed,  // String or ObjectId
+  required: true,
+  validate: {
+    validator: function(v) {
+      return v === 'STOCK' || mongoose.Types.ObjectId.isValid(v);
+    }
+  }
+}
+
+// Future allocation tracking
+allocatedToBalagruhas: [{
+  balagruhaId: { type: ObjectId, ref: 'Balagruha' },
+  quantity: Number,
+  allocatedAt: Date,
+  allocatedBy: { type: ObjectId, ref: 'User' }
+}]
+```
+
+**Example Use Case:**
+- Purchase Manager creates request for 500 "Pee proof pants" (STOCK)
+- Request visible to ALL Purchase Managers and Admins
+- After fulfillment, Admin can allocate: 200 to Mathrudhama, 300 to Sadashraya (future feature)
+
+**Success Metrics:**
+- STOCK requests visible across all Balagruha-assigned users
+- No permission errors when creating/viewing STOCK requests
+- Allocation field ready for future enhancement
+
+---
+
+**Story 22: Purchase Request Date Filter Bug Fix**
+
+**Bug Description:**
+Date filters (Today, This Week, This Month, This Year) were not working - only "ALL" filter displayed results. Users couldn't filter by time periods.
+
+**Root Causes Identified:**
+1. **Backend**: `endDate` not set to end of day (23:59:59.999), excluding requests created later in the day
+2. **Frontend**: Date range calculation mutated `now` variable and had off-by-one errors in week/month boundaries
+
+**Fix Implementation:**
+
+**Backend (dateHelpers.js):**
+```javascript
+exports.getEndOfDay = (dateString) => {
+  const date = new Date(dateString);
+  date.setHours(23, 59, 59, 999);  // Critical fix
+  return date;
+};
+
+// Controller usage
+if (endDate) {
+  filter.createdAt.$lte = getEndOfDay(endDate);  // Now includes full day
+}
+```
+
+**Frontend (PurchaseManagerView.jsx):**
+```javascript
+const getDateRangeFromFilter = (filterValue) => {
+  const now = new Date();
+  let startDate, endDate;
+
+  switch (filterValue) {
+    case 'today':
+      startDate = new Date(now);  // No mutation
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(now);
+      endDate.setHours(23, 59, 59, 999);
+      break;
+
+    case 'thisWeek':
+      startDate = new Date(now);
+      const dayOfWeek = startDate.getDay();
+      const daysToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+      startDate.setDate(startDate.getDate() + daysToMonday);  // Monday
+      startDate.setHours(0, 0, 0, 0);
+
+      endDate = new Date(startDate);
+      endDate.setDate(endDate.getDate() + 6);  // Sunday
+      endDate.setHours(23, 59, 59, 999);
+      break;
+    // ... other cases
+  }
+
+  return {
+    startDate: startDate.toISOString().split('T')[0],  // YYYY-MM-DD
+    endDate: endDate.toISOString().split('T')[0]
+  };
+};
+```
+
+**Verified Fix:**
+- Today filter: Shows requests from 00:00:00 to 23:59:59 (current date)
+- This Week: Monday 00:00 to Sunday 23:59 (ISO week standard)
+- This Month: 1st 00:00 to last day 23:59 (handles 28/29/30/31 day months)
+- Custom Range: Start date 00:00 to End date 23:59 (inclusive)
+
+**Edge Cases Handled:**
+- Requests created at exactly 00:00:01 (included)
+- Requests created at exactly 23:59:59 (included)
+- Leap year February 29th
+- Month boundaries with varying lengths
+- Week boundaries (Sunday/Monday transition)
+
+**Success Metrics:**
+- All date filters now functional (tested with real data)
+- Zero false positives/negatives in date filtering
+- Filter response time < 300ms
+
+---
+
+**Story 23: Purchase Request Date Column Addition**
+
+**Feature Overview:**
+Adds "Created Date" column to purchase request list for quick visibility of submission dates without opening details.
+
+**Date Format:** dd/mm/yy (e.g., "06/11/25" for November 6, 2025)
+
+**Implementation:**
+
+**Date Formatter Utility (dateFormatter.js):**
+```javascript
+export const formatDate = (date, format = 'dd/mm/yy') => {
+  const dateObj = new Date(date);
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const year = dateObj.getFullYear();
+  const shortYear = String(year).slice(-2);
+
+  switch (format) {
+    case 'dd/mm/yy':
+      return `${day}/${month}/${shortYear}`;
+    case 'dd/mm/yyyy':
+      return `${day}/${month}/${year}`;
+    // ... other formats
+  }
+};
+
+export const formatDateTime = (date) => {
+  // For details view: "06/11/2025 at 14:03"
+  const dateStr = formatDate(date, 'dd/mm/yyyy');
+  const hours = String(dateObj.getHours()).padStart(2, '0');
+  const minutes = String(dateObj.getMinutes()).padStart(2, '0');
+  return `${dateStr} at ${hours}:${minutes}`;
+};
+```
+
+**UI Features:**
+- Column placement: After "Category", before "Total Cost"
+- Column width: 120px (fixed, center-aligned)
+- Sortable: Click header toggles desc → asc → remove sort
+- Tooltip: Hover shows full datetime ("Created on: 06/11/2025 at 14:03:01")
+- Responsive: Hidden on mobile (< 768px), shown in expanded row
+
+**Accessibility:**
+- ARIA label: "Created Date"
+- Screen reader announces: "Created on November 6, 2025"
+
+**Table Example:**
+| Request ID | Balagruha | Status | Category | **Created Date** | Total Cost | Actions |
+|------------|-----------|--------|----------|------------------|------------|---------|
+| PR-005 | Mathrudhama | Pending | Consumables | **06/11/25** | ₹5,000 | View |
+| PR-004 | STOCK | Approved | New Equipment | **05/11/25** | ₹50,000 | Update Stock |
+
+**Success Metrics:**
+- Date column visible on desktop (≥ 768px)
+- Sorting works correctly (newest first by default)
+- Date format consistent across all views
+
+---
+
+**Story 24: Multi-Role Purchase Request Creation with Approval Thresholds**
+
+**Feature Overview:**
+Extends purchase request creation to Coach, Medical Incharge, and Admin roles. Implements intelligent approval workflow based on cost thresholds.
+
+**Roles with Create Access:**
+- Coach
+- Medical Incharge
+- Admin
+- Purchase Manager (existing)
+
+**Approval Thresholds:**
+
+**Small Purchase (Auto-Approved):**
+- Criteria: Max item cost ≤ Rs 1,000 **AND** Total cost ≤ Rs 25,000
+- Initial Status: `pending_fulfillment` (yellow badge)
+- Workflow: Create → PM Fulfillment (skip admin approval)
+- Badge Color: Yellow/Info
+- Example: 50 notebooks at Rs 50 each (Rs 2,500 total)
+
+**Large Purchase (Requires Admin Approval):**
+- Criteria: Max item cost > Rs 1,000 **OR** Total cost > Rs 25,000
+- Initial Status: `pending_approval` (red/orange badge)
+- Workflow: Create → Admin Approval → PM Fulfillment
+- Badge Color: Red/Orange/Warning
+- Example: 5 laptops at Rs 50,000 each (Rs 250,000 total)
+
+**Backend Threshold Calculation:**
+```javascript
+const maxItemCost = Math.max(...items.map(item => item.estimatedUnitCost));
+const totalOrderCost = items.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
+
+const ITEM_THRESHOLD = 1000;   // Rs 1,000 per item
+const ORDER_THRESHOLD = 25000;  // Rs 25,000 total
+
+const isSmallPurchase = (maxItemCost <= ITEM_THRESHOLD) && (totalOrderCost <= ORDER_THRESHOLD);
+const initialStatus = isSmallPurchase ? 'pending_fulfillment' : 'pending_approval';
+
+// Store in database
+thresholdAnalysis: {
+  maxItemCost,
+  totalOrderCost,
+  itemThreshold: ITEM_THRESHOLD,
+  orderThreshold: ORDER_THRESHOLD,
+  requiresApproval: !isSmallPurchase
+}
+```
+
+**Role-Based Visibility:**
+
+**Coach/Medical Incharge:**
+- See: Requests for assigned Balagruhas + STOCK + own created requests
+- Cannot see: Requests for unassigned Balagruhas
+- Create: Only for assigned Balagruhas + STOCK
+
+**Admin:**
+- See: All `pending_approval` requests (for review) + requests for assigned Balagruhas + STOCK
+- Approve/Reject: Large purchases requiring approval
+- Create: For any Balagruha or STOCK
+
+**Purchase Manager:**
+- See: `pending_fulfillment` and `approved` requests for assigned Balagruhas + STOCK
+- Fulfill: Small purchases and admin-approved large purchases
+- Create: For assigned Balagruhas + STOCK (existing functionality)
+
+**Security Enforcement:**
+```javascript
+// Backend validation
+if (req.user.role !== 'admin') {
+  const userBalagruhas = req.user.assignedBalagruhas.map(b => b.toString());
+
+  if (balagruhaId !== 'STOCK' && !userBalagruhas.includes(balagruhaId)) {
+    return res.status(403).json({
+      error: 'You can only create requests for Balagruhas you are assigned to'
+    });
+  }
+}
+```
+
+**UI Implementation:**
+
+**Create Purchase Request Button Location:**
+- Coach: Coach Dashboard → "Create Purchase Request" button
+- Medical Incharge: Medical Dashboard → "Create Purchase Request" button
+- Admin: Admin Purchase Requests Panel → "Create Purchase Request" button
+- Purchase Manager: Purchase Manager View → "New Purchase Request" button (existing)
+
+**Balagruha Dropdown Filtering:**
+- Fetches user's assigned Balagruhas: `GET /api/users/me/balagruhas`
+- Response: `[{ _id: 'STOCK', name: 'STOCK', isStock: true }, ...assignedBalagruhas]`
+- STOCK always included regardless of assignments
+
+**Threshold Analysis Display (Request Details):**
+```
+Approval Threshold Analysis
+─────────────────────────────
+✅ Max Item Cost:       Rs 500  (Threshold: Rs 1,000)
+✅ Total Order Cost:    Rs 15,000  (Threshold: Rs 25,000)
+
+Result: No admin approval required (within threshold)
+```
+
+**Status Badge Colors:**
+| Status | Display Text | Badge Color | MUI Color |
+|--------|--------------|-------------|-----------|
+| pending_approval | Pending Approval | Red/Orange | warning |
+| pending_fulfillment | Pending Fulfillment | Yellow/Blue | info |
+| approved | Approved | Blue | primary |
+| fulfilled | Fulfilled | Green | success |
+| rejected | Rejected | Red | error |
+
+**Example Scenarios:**
+
+**Scenario 1: Small Purchase (Coach)**
+1. Coach (Priya) creates request: 20 pens at Rs 50 each (Rs 1,000 total)
+2. Backend calculates: Max Rs 50 ≤ Rs 1,000 ✅, Total Rs 1,000 ≤ Rs 25,000 ✅
+3. Status set to: `pending_fulfillment`
+4. Purchase Manager (Ravi) sees request immediately in fulfillment queue
+5. PM updates stock after supplier delivery → Status: `fulfilled`
+
+**Scenario 2: Large Purchase (Medical Incharge)**
+1. Medical (Dr. Sharma) creates request: 10 laptops at Rs 50,000 each (Rs 500,000 total)
+2. Backend calculates: Max Rs 50,000 > Rs 1,000 ❌, Total Rs 500,000 > Rs 25,000 ❌
+3. Status set to: `pending_approval`
+4. Admin sees request in approval queue
+5. Admin reviews and approves → Status: `approved`
+6. Purchase Manager sees request in fulfillment queue
+7. PM updates stock → Status: `fulfilled`
+
+**Success Metrics:**
+- All four roles can create requests successfully
+- Threshold calculation 100% accurate
+- Security: Zero requests created for unassigned Balagruhas
+- Small purchases bypass approval (60% faster procurement)
+- Admin approval queue only contains large purchases (reduced workload)
+
+---
+
+**Story 25: Inline Product Addition for Purchase Requests**
+
+**Feature Overview:**
+Addresses a critical workflow gap where users cannot create purchase requests for products that don't exist in the catalog yet. Enables users to add new products inline while creating requests, eliminating workflow interruption and multi-step processes.
+
+**Problem Solved:**
+- **Before:** User needs to buy "Pee proof Pants" (not in catalog) → Must contact Admin → Admin logs in and adds product → User returns later to create request
+- **After:** User clicks "+ Add New Product" → Fills inline form → Product available immediately → Request created in one workflow
+
+**Roles with Access:**
+- Coach
+- Medical Incharge
+- Admin
+- Purchase Manager
+
+**Pending Product Lifecycle:**
+
+**Stage 1: Creation (Inline Form)**
+- User clicks "+ Add New Product" button in Create Purchase Request modal
+- Inline form appears with fields:
+  - Product Name (required, max 100 chars)
+  - Category (required): Consumables, Stationery, Hygiene, Equipment, Others
+  - Unit (required): pieces, packets, boxes, kg, liters, meters, units
+  - SKU (optional): Auto-generated format `NEW-{TIMESTAMP}` or manual override
+  - Description (optional, max 200 chars)
+- Form validation: Required fields, SKU uniqueness, character limits
+- Click "Add to Request" → Product created with pending flags
+
+**Stage 2: Pending State (Before Fulfillment)**
+- Backend creates ShopItem with special flags:
+```javascript
+{
+  name: "Pee proof Pants",
+  sku: "NEW-1699264824",  // Auto-generated or manual
+  category: "Consumables",
+  unit: "pieces",
+  description: "Water-resistant undergarment for children",
+  isPendingProduct: true,   // ⭐ Pending flag
+  isActive: false,           // Not visible in shop/inventory yet
+  stock: 0,
+  lowStockThreshold: 0,
+  balagruhaId: null,         // Assigned later on activation
+  createdBy: ObjectId(userId),
+  createdInRequest: ObjectId(purchaseRequestId)
+}
+```
+- Product appears in selected products table with "New Product" badge (orange/yellow)
+- Other users can select this pending product for their requests (visible in dropdown with "Pending" badge)
+- Admin can view pending products in Inventory Management with "Show Pending Products" filter
+
+**Stage 3: Activation (On Fulfillment)**
+- When Purchase Manager fulfills request, backend checks for pending products:
+```javascript
+for (const item of request.items) {
+  if (item.isPendingProduct) {
+    // Activate pending product
+    await ShopItem.findByIdAndUpdate(item.productId, {
+      isPendingProduct: false,
+      isActive: true,
+      stock: item.receivedQuantity,  // Set stock (not increment)
+      lowStockThreshold: getDefaultThreshold(product.category),
+      balagruhaId: request.balagruhaId === 'STOCK' ? null : request.balagruhaId
+    });
+  } else {
+    // Existing product: increment stock
+    await ShopItem.findByIdAndUpdate(item.productId, {
+      $inc: { stock: item.receivedQuantity }
+    });
+  }
+}
+```
+- Activated product now visible in Shop Inventory and available for purchase
+- Product available for selection in future purchase requests (without "Pending" badge)
+
+**Category-Based Low Stock Thresholds:**
+| Category | Default Threshold |
+|----------|-------------------|
+| Consumables | 20 |
+| Stationery | 15 |
+| Hygiene | 25 |
+| Equipment | 5 |
+| Others | 10 |
+
+**UI Features:**
+
+**Create Purchase Request Modal:**
+- "+ Add New Product" button placement: Above product checkbox list, next to "Show all products" toggle
+- Button styling: Outlined button with "+" icon
+- Inline form (not modal) appears on click with dashed border background
+- "New Product" badge displayed on form header (warning color)
+- Cancel button clears form and closes inline section
+- "Add to Request" validates and adds product
+
+**Selected Products Table:**
+- Pending products show "New Product" chip/badge (orange/warning color)
+- Badge persists through request creation and submission
+- Pending products can be removed from selection (product not deleted, remains pending)
+
+**Inventory Management (Admin View):**
+- "Show Pending Products" toggle/filter
+- Pending products table columns:
+  - Product Name with "Pending" badge
+  - SKU
+  - Category
+  - Unit
+  - Stock (0)
+  - Created By (user name)
+  - Created in Request (link to purchase request)
+- Admin can manually activate or delete pending products
+
+**Product Selection Dropdown (All Views):**
+- Pending products visible in product selection with "Pending Product" badge
+- Tooltip: "This product is pending approval. It will be activated when the first purchase is fulfilled."
+- Filter option: "Include Pending Products" (default: ON)
+
+**Edge Cases Handled:**
+
+**1. Rejected Request:**
+- Pending product remains in pending state (not deleted)
+- Available for future requests
+- Admin can manually delete if truly not needed
+
+**2. Duplicate Product Names:**
+- Two users can create "Pee proof Pants" with different SKUs
+- Both allowed (differentiated by SKU)
+- SKU uniqueness enforced
+
+**3. Multiple Pending Products in Same Request:**
+- Request can contain mix of existing and pending products
+- Example: 2 existing + 3 new = 5 products total
+- All pending products activated on fulfillment
+
+**4. Concurrent SKU Creation:**
+- Backend validates SKU uniqueness before insertion
+- Second user with duplicate SKU receives error: "SKU already exists"
+
+**5. Partial Fulfillment:**
+- Only received quantities activate pending products
+- Example: Requested 100, received 80 → Stock set to 80
+
+**Example Workflow:**
+
+**Scenario: Coach Creates Request for New Product**
+
+1. **Coach (Priya) - Tuesday 10:00 AM**
+   - Opens Create Purchase Request modal
+   - Selects Balagruha: "Mathrudhama"
+   - Searches for "Pee proof Pants" → Not found
+   - Clicks "+ Add New Product"
+   - Fills form:
+     - Name: "Pee proof Pants"
+     - Category: Consumables
+     - Unit: pieces
+     - SKU: (empty - auto-generated)
+     - Description: "Water-resistant undergarment"
+   - Clicks "Add to Request"
+   - Product appears in selection with "New Product" badge
+   - SKU auto-generated: "NEW-1699267200"
+   - Adds 2 existing products (Paracetamol, Bandages)
+   - Enters quantities, costs, justification
+   - Submits request
+
+2. **Backend Processing**
+   - Creates ShopItem: `{ isPendingProduct: true, isActive: false, stock: 0 }`
+   - Calculates threshold: Total Rs 8,000 (small purchase)
+   - Creates PurchaseRequest: `{ status: 'pending_fulfillment', items: [existing, existing, pending] }`
+   - Links pending product: `createdInRequest: PR-025`
+
+3. **Medical Incharge (Dr. Sharma) - Tuesday 2:00 PM**
+   - Opens Create Purchase Request modal for "Sadashraya"
+   - Searches products → Sees "Pee proof Pants" with "Pending Product" badge
+   - Hovers over badge → Tooltip: "Pending approval, will activate on first purchase"
+   - Selects it for own request
+   - Submits request PR-026
+
+4. **Purchase Manager (Ravi) - Wednesday 10:00 AM**
+   - Receives supplier delivery for PR-025 (Coach's request)
+   - Clicks "Update Stock" for PR-025
+   - Enters supplier details, confirms received quantities
+   - Clicks "Update Stock & Complete"
+   - Backend activates "Pee proof Pants":
+     - `isPendingProduct: false`
+     - `isActive: true`
+     - `stock: 100` (received quantity)
+     - `lowStockThreshold: 20` (Consumables default)
+     - `balagruhaId: Mathrudhama ObjectId`
+
+5. **Wednesday 10:05 AM - Now Active**
+   - "Pee proof Pants" now visible in Shop Inventory
+   - Available for purchase by students
+   - Dr. Sharma's pending request PR-026 still valid (will increment stock when fulfilled)
+   - Future requests can select "Pee proof Pants" without "Pending" badge
+
+**Backend Implementation:**
+
+**New ShopItem Fields:**
+```javascript
+const shopItemSchema = new mongoose.Schema({
+  // ... existing fields ...
+
+  isPendingProduct: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  },
+
+  createdInRequest: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PurchaseRequest',
+    default: null
+  }
+}, { timestamps: true });
+```
+
+**New API Endpoints:**
+- `POST /api/products/pending` - Create pending product (returns product ID)
+- `GET /api/products?includePending=true` - Fetch all products including pending
+- `GET /api/products?status=pending` - Fetch only pending products
+
+**Security Considerations:**
+- Only authenticated users with purchase request creation permission can add pending products
+- SKU uniqueness enforced to prevent conflicts
+- Pending products not visible in Shop (student-facing) until activated
+- Audit trail: `createdBy` field tracks who added product
+- Backend validates Balagruha assignment on request creation
+
+**Integration with Story 21 (STOCK):**
+- STOCK requests can include pending products
+- On activation, pending products in STOCK requests get `balagruhaId: null`
+- STOCK products remain unassigned to specific Balagruha
+- Future allocation tracked via `allocatedToBalagruhas` field
+
+**Success Metrics:**
+- Inline product addition reduces workflow time by 80% (2 minutes vs 10+ minutes)
+- 100% of pending products activated on first fulfillment
+- Zero duplicate SKU errors after validation
+- Users can add new products without Admin intervention
+- Pending products visible and selectable by all authorized users
+
+---
 
 ### **19. Coin Distribution Reports [S5]**
 
@@ -1900,4 +3394,4 @@ Features developed in this combined sprint will enable:
 
 **Total Pages: 96**
 **Word Count: ~24,000**
-**Last Updated: September 16, 2025**
+**Last Updated: November 6, 2025 - 19:28:44 (Added Story 25: Inline Product Addition to Section 18.5.3)**
