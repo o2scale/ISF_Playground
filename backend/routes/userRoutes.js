@@ -7,7 +7,7 @@ const {
   deleteUser,
 } = require("../controllers/userController");
 const { authenticate, authorize } = require("../middleware/auth");
-const User = require("../models/User");
+const User = require("../models/user");
 
 const router = express.Router();
 

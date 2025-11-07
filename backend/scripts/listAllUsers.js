@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const User = require('../models/User');
+const User = require('../models/user');
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/isf_playground';
 
