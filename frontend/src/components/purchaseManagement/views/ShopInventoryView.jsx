@@ -576,7 +576,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             >
               <option value="all">All Status</option>
               <option value="pending_approval">Pending Approval</option>
+              <option value="pending_fulfillment">Pending Fulfillment</option>
               <option value="approved">Approved</option>
+              <option value="fulfilled">Fulfilled</option>
               <option value="rejected">Rejected</option>
               <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>

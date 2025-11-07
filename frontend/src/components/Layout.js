@@ -86,7 +86,7 @@ const Layout = () => {
       id: 9,
       name: "Purchases",
       link: "/purchase",
-      roles: ["admin", "purchase-manager"],
+      roles: ["admin", "purchase-manager", "coach", "medical-incharge"], // Sprint5-Story-24: Multi-role access
     },
     {
       id: 10,
