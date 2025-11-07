@@ -154,6 +154,12 @@ userSchema.methods.resetLoginAttempts = async function () {
   });
 };
 
+// Sprint5-Story-24: Check if user can create purchase requests
+userSchema.methods.canCreatePurchaseRequest = function () {
+  const allowedRoles = ['coach', 'medical_incharge', 'admin', 'purchase_manager'];
+  return allowedRoles.includes(this.role.toLowerCase());
+};
+
 const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 module.exports = User;

@@ -131,12 +131,36 @@ const purchaseRequestSchema = new mongoose.Schema(
       index: true
     },
 
-    // Status Management
+    // Status Management (Sprint5-Story-24: Multi-role purchase requests)
     status: {
       type: String,
-      enum: ['pending_approval', 'approved', 'rejected', 'completed', 'cancelled'],
+      enum: ['pending_approval', 'pending_fulfillment', 'approved', 'fulfilled', 'rejected', 'completed', 'cancelled'],
       default: 'pending_approval',
       index: true
+    },
+
+    // Sprint5-Story-24: Threshold analysis for automatic approval routing
+    thresholdAnalysis: {
+      maxItemCost: {
+        type: Number,
+        required: false
+      },
+      totalOrderCost: {
+        type: Number,
+        required: false
+      },
+      itemThreshold: {
+        type: Number,
+        default: 1000  // Rs 1,000 per item threshold
+      },
+      orderThreshold: {
+        type: Number,
+        default: 25000  // Rs 25,000 total order threshold
+      },
+      requiresApproval: {
+        type: Boolean,
+        default: true
+      }
     },
 
     // Approval/Rejection

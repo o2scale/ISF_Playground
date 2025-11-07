@@ -1,0 +1,812 @@
+# Quality Gate: Sprint 5 - Story 25
+# Inline Product Addition for Purchase Requests
+# Created: 2025-11-06 19:25:08
+# Status: Ready for Testing
+
+story:
+  id: sprint5-story-25
+  title: "Inline Product Addition for Purchase Requests"
+  description: "Users can add new products to catalog while creating purchase requests without workflow interruption"
+  priority: P0_CRITICAL
+  sprint: Sprint 5
+
+environment:
+  frontend_url: "http://localhost:3000"
+  backend_url: "http://localhost:5001"
+  database: "MongoDB - isfplayground"
+
+test_users:
+  purchase_manager:
+    username: "ravi@iskonwb.org"
+    password: "password"
+    role: "purchase-manager"
+    assigned_balagruhas: ["Sadashraya Charitable Trust"]
+
+  coach:
+    username: "priya@iskonwb.org"
+    password: "password"
+    role: "coach"
+    assigned_balagruhas: ["Mathrudhama"]
+
+  medical_incharge:
+    username: "medical@iskonwb.org"
+    password: "password"
+    role: "medical-incharge"
+    assigned_balagruhas: ["Mathrudhama"]
+
+  admin:
+    username: "tony.loui.thomas@gmail.com"
+    password: "5322148"
+    role: "admin"
+
+test_data:
+  new_products:
+    - name: "Pee proof Pants"
+      category: "Consumables"
+      unit: "pieces"
+      description: "Water-resistant undergarment for children"
+
+    - name: "Anti-bacterial Wipes"
+      category: "Hygiene"
+      unit: "packets"
+      sku: "ABW-2025"
+      description: "For general sanitation"
+
+    - name: "Special Notebooks"
+      category: "Stationery"
+      unit: "pieces"
+
+  existing_products:
+    - name: "Paracetamol Tablet"
+      sku: "MED-001"
+      category: "Consumables (Including medicines)"
+
+acceptance_criteria:
+  - id: AC1
+    description: "+ Add New Product button in product selection area"
+    test_cases: [TC-S25-001, TC-S25-002, TC-S25-003]
+
+  - id: AC2
+    description: "Inline product addition form"
+    test_cases: [TC-S25-004, TC-S25-005, TC-S25-006, TC-S25-007, TC-S25-008]
+
+  - id: AC3
+    description: "Add product to request selection"
+    test_cases: [TC-S25-009, TC-S25-010, TC-S25-011, TC-S25-012]
+
+  - id: AC4
+    description: "Backend - Pending product creation"
+    test_cases: [TC-S25-013, TC-S25-014, TC-S25-015]
+
+  - id: AC5
+    description: "Purchase request links to pending products"
+    test_cases: [TC-S25-016, TC-S25-017]
+
+  - id: AC6
+    description: "Product activation on fulfillment"
+    test_cases: [TC-S25-018, TC-S25-019, TC-S25-020, TC-S25-021]
+
+  - id: AC7
+    description: "Pending product display in Inventory Management"
+    test_cases: [TC-S25-022, TC-S25-023]
+
+  - id: AC8
+    description: "Pending products in product selection"
+    test_cases: [TC-S25-024, TC-S25-025]
+
+test_cases:
+  # AC1: "+ Add New Product" Button
+  - id: TC-S25-001
+    title: "+ Add New Product button visible in product selection section"
+    priority: P0
+    preconditions:
+      - "Logged in as any role with purchase request creation access"
+      - "Create Purchase Request modal open"
+      - "Balagruha selected"
+    steps:
+      - action: "Locate product selection section"
+        expected: "Product selection area visible"
+      - action: "Find '+ Add New Product' button"
+        expected: "Button visible above product checkbox list"
+      - action: "Verify button placement next to 'Show all products' toggle"
+        expected: "Button positioned correctly"
+      - action: "Verify button has '+' icon"
+        expected: "Plus icon visible"
+    expected_result: "+ Add New Product button visible and correctly positioned"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-002
+    title: "+ Add New Product button available to all authorized roles"
+    priority: P0
+    preconditions:
+      - "Test users: Coach, Medical Incharge, Purchase Manager, Admin"
+    steps:
+      - action: "Login as Coach, open Create Purchase Request modal"
+        expected: "'+ Add New Product' button visible"
+      - action: "Login as Medical Incharge, open modal"
+        expected: "'+ Add New Product' button visible"
+      - action: "Login as Purchase Manager, open modal"
+        expected: "'+ Add New Product' button visible"
+      - action: "Login as Admin, open modal"
+        expected: "'+ Add New Product' button visible"
+    expected_result: "Button available to all roles with request creation access"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-003
+    title: "Clicking button opens inline form"
+    priority: P0
+    preconditions:
+      - "Create Purchase Request modal open"
+    steps:
+      - action: "Click '+ Add New Product' button"
+        expected: "Inline form appears below button"
+      - action: "Verify form is inline (not a separate modal)"
+        expected: "Form embedded in page"
+      - action: "Verify create modal does NOT close"
+        expected: "Modal remains open"
+      - action: "Click button again"
+        expected: "Form toggles closed"
+    expected_result: "Button toggles inline form without navigating away"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC2: Inline Product Addition Form
+  - id: TC-S25-004
+    title: "Inline form displays all required fields"
+    priority: P0
+    preconditions:
+      - "Inline form open"
+    steps:
+      - action: "Verify 'Product Name' field (required)"
+        expected: "Text input with asterisk (*)"
+      - action: "Verify 'Category' dropdown (required)"
+        expected: "Dropdown with asterisk (*)"
+      - action: "Verify 'Unit' dropdown (required)"
+        expected: "Dropdown with asterisk (*)"
+      - action: "Verify 'SKU' field (optional)"
+        expected: "Text input, placeholder: 'Auto-generated if empty'"
+      - action: "Verify 'Description' field (optional)"
+        expected: "Textarea, max 200 chars"
+      - action: "Verify 'New Product' badge displayed"
+        expected: "Badge visible next to form title"
+    expected_result: "All form fields present with correct labels and validation indicators"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-005
+    title: "Category dropdown shows all valid categories"
+    priority: P0
+    preconditions:
+      - "Inline form open"
+    steps:
+      - action: "Click Category dropdown"
+        expected: "Dropdown opens"
+      - action: "Verify options: Consumables, Stationery, Hygiene, Equipment, Others"
+        expected: "All 5 categories present"
+    expected_result: "Category dropdown has all valid product categories"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-006
+    title: "Unit dropdown shows all valid units"
+    priority: P0
+    preconditions:
+      - "Inline form open"
+    steps:
+      - action: "Click Unit dropdown"
+        expected: "Dropdown opens"
+      - action: "Verify options include: pieces, packets, boxes, kg, liters, meters, units"
+        expected: "All standard units present"
+    expected_result: "Unit dropdown has comprehensive unit options"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-007
+    title: "Form validation - required fields"
+    priority: P0
+    preconditions:
+      - "Inline form open"
+    steps:
+      - action: "Leave all fields empty"
+        expected: "Fields empty"
+      - action: "Click 'Add to Request' button"
+        expected: "Validation errors shown"
+      - action: "Verify error: 'Product name is required'"
+        expected: "Name error displayed"
+      - action: "Verify error: 'Category is required'"
+        expected: "Category error displayed"
+      - action: "Verify error: 'Unit is required'"
+        expected: "Unit error displayed"
+      - action: "Verify product NOT added to request"
+        expected: "Validation prevents submission"
+    expected_result: "Required field validation prevents submission"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-008
+    title: "SKU auto-generation and manual override"
+    priority: P0
+    preconditions:
+      - "Inline form open"
+    steps:
+      - action: "Fill required fields, leave SKU empty"
+        expected: "Name: 'Test Product A', Category: 'Consumables', Unit: 'pieces'"
+      - action: "Click 'Add to Request'"
+        expected: "Product added"
+      - action: "Check product SKU in selected products table"
+        expected: "SKU format: NEW-{TIMESTAMP} (e.g., NEW-1699264824)"
+      - action: "Open form again, fill fields with manual SKU: 'CUSTOM-001'"
+        expected: "SKU manually entered"
+      - action: "Click 'Add to Request'"
+        expected: "Product added"
+      - action: "Check product SKU"
+        expected: "SKU is 'CUSTOM-001' (manual override works)"
+    expected_result: "Auto-generated SKU used when empty, manual SKU when provided"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC3: Add Product to Request Selection
+  - id: TC-S25-009
+    title: "Successfully add new product to selected products"
+    priority: P0
+    preconditions:
+      - "Inline form open"
+    steps:
+      - action: "Fill form - Name: 'Pee proof Pants', Category: 'Consumables', Unit: 'pieces'"
+        expected: "Form filled"
+      - action: "Click 'Add to Request'"
+        expected: "Success action triggered"
+      - action: "Verify product appears in 'Selected Products' table"
+        expected: "'Pee proof Pants' row visible"
+      - action: "Verify 'New Product' badge next to product name"
+        expected: "Badge displayed (warning/orange color)"
+      - action: "Verify inline form closes/hides"
+        expected: "Form hidden after successful add"
+      - action: "Verify success toast: 'New product added to request'"
+        expected: "Toast notification shown"
+    expected_result: "New product added to selection with visual indicator"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-010
+    title: "Add multiple new products in same request"
+    priority: P0
+    preconditions:
+      - "Create Purchase Request modal open"
+    steps:
+      - action: "Add new product 'Pee proof Pants'"
+        expected: "Product 1 added"
+      - action: "Click '+ Add New Product' again"
+        expected: "Form opens"
+      - action: "Add new product 'Anti-bacterial Wipes'"
+        expected: "Product 2 added"
+      - action: "Verify both products in selected products table"
+        expected: "2 products with 'New Product' badges"
+    expected_result: "Multiple new products can be added in single request"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-011
+    title: "New product can be removed from selection"
+    priority: P0
+    preconditions:
+      - "New product added to selected products"
+    steps:
+      - action: "Locate new product 'Pee proof Pants' in table"
+        expected: "Product visible"
+      - action: "Click remove/delete icon for product"
+        expected: "Product removed from table"
+      - action: "Verify product removed from UI"
+        expected: "Product no longer in selected list"
+      - action: "Submit request without that product"
+        expected: "Request created successfully"
+      - action: "Check backend - verify product still exists in pending state"
+        expected: "Product NOT deleted (remains pending for future use)"
+    expected_result: "New product removable from selection but not deleted from database"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "IMPORTANT: Pending product persists even if removed from request"
+
+  - id: TC-S25-012
+    title: "Cancel button clears form and closes inline form"
+    priority: P1
+    preconditions:
+      - "Inline form open with data entered"
+    steps:
+      - action: "Partial fill form - Name: 'Test'"
+        expected: "Form partially filled"
+      - action: "Click 'Cancel' button"
+        expected: "Cancel action triggered"
+      - action: "Verify form closes"
+        expected: "Form hidden"
+      - action: "Click '+ Add New Product' again"
+        expected: "Form reopens"
+      - action: "Verify form is empty (previous data cleared)"
+        expected: "All fields reset"
+    expected_result: "Cancel clears and closes form"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC4: Backend - Pending Product Creation
+  - id: TC-S25-013
+    title: "Backend creates pending product with correct flags"
+    priority: P0
+    preconditions:
+      - "Access to backend API and database"
+    steps:
+      - action: "POST /api/products/pending with {name: 'Pee proof Pants', category: 'Consumables', unit: 'pieces'}"
+        expected: "201 status"
+      - action: "Check response - verify isPendingProduct: true"
+        expected: "Flag set to true"
+      - action: "Check response - verify isActive: false"
+        expected: "Flag set to false"
+      - action: "Check response - verify stock: 0"
+        expected: "Stock is 0"
+      - action: "Check response - verify createdBy: userId"
+        expected: "User ID populated"
+      - action: "Query database for created product"
+        expected: "Product exists with correct flags"
+    expected_result: "Backend creates pending product with isPendingProduct=true, isActive=false"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-014
+    title: "Backend rejects duplicate SKU"
+    priority: P0
+    preconditions:
+      - "Existing product with SKU 'MED-001'"
+    steps:
+      - action: "POST /api/products/pending with SKU 'MED-001'"
+        expected: "Request sent"
+      - action: "Verify 400 status code"
+        expected: "Bad request"
+      - action: "Verify error message: 'SKU already exists. Please use a different SKU.'"
+        expected: "Clear error message"
+      - action: "Verify product NOT created in database"
+        expected: "No duplicate SKU product"
+    expected_result: "SKU uniqueness validation prevents duplicates"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-015
+    title: "Backend validates required fields"
+    priority: P0
+    preconditions:
+      - "Access to backend API"
+    steps:
+      - action: "POST /api/products/pending with missing name"
+        expected: "400 status"
+      - action: "Verify error: 'Name, category, and unit are required'"
+        expected: "Error message shown"
+      - action: "POST with missing category"
+        expected: "400 status"
+      - action: "POST with missing unit"
+        expected: "400 status"
+    expected_result: "Backend validates required fields (name, category, unit)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC5: Purchase Request Links to Pending Products
+  - id: TC-S25-016
+    title: "Purchase request items array includes isPendingProduct flag"
+    priority: P0
+    preconditions:
+      - "Pending product created"
+      - "Purchase request created with pending product"
+    steps:
+      - action: "Create request with 1 existing + 1 pending product"
+        expected: "Request created"
+      - action: "Query request from database"
+        expected: "Request retrieved"
+      - action: "Check items[0] (existing product) - verify isPendingProduct: false"
+        expected: "Flag is false"
+      - action: "Check items[1] (pending product) - verify isPendingProduct: true"
+        expected: "Flag is true"
+    expected_result: "Request items array correctly flags pending products"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-017
+    title: "Pending product linked to originating request"
+    priority: P0
+    preconditions:
+      - "Pending product created in request context"
+    steps:
+      - action: "Create purchase request with new product 'Pee proof Pants'"
+        expected: "Request created"
+      - action: "Get request ID from response"
+        expected: "Request ID obtained"
+      - action: "Query ShopItem for 'Pee proof Pants'"
+        expected: "Product retrieved"
+      - action: "Verify product.createdInRequest equals request ID"
+        expected: "Link established"
+    expected_result: "Pending product's createdInRequest field links to originating request"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC6: Product Activation on Fulfillment
+  - id: TC-S25-018
+    title: "Pending product activated when request fulfilled"
+    priority: P0
+    preconditions:
+      - "STOCK purchase request with pending product in 'approved' status"
+    steps:
+      - action: "Create STOCK request with pending product 'Pee proof Pants', quantity 100"
+        expected: "Request created"
+      - action: "Admin approves request"
+        expected: "Status: approved"
+      - action: "Purchase Manager fulfills - POST /api/purchaseRequests/{id}/complete with receivedQuantities: [100]"
+        expected: "Request fulfilled"
+      - action: "Query product 'Pee proof Pants' from database"
+        expected: "Product retrieved"
+      - action: "Verify isPendingProduct: false"
+        expected: "Flag changed to false"
+      - action: "Verify isActive: true"
+        expected: "Product now active"
+      - action: "Verify stock: 100"
+        expected: "Stock set to received quantity"
+      - action: "Verify lowStockThreshold > 0"
+        expected: "Threshold set (e.g., 20 for Consumables)"
+      - action: "Verify balagruhaId: null (for STOCK)"
+        expected: "Balagruha not assigned"
+    expected_result: "Pending product fully activated with correct stock and thresholds"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CRITICAL TEST: Validates core activation logic"
+
+  - id: TC-S25-019
+    title: "Multiple pending products activated in same fulfillment"
+    priority: P0
+    preconditions:
+      - "Request with 2 pending products"
+    steps:
+      - action: "Create request with 'Pee proof Pants' (qty 100) + 'Anti-bacterial Wipes' (qty 50)"
+        expected: "Request created"
+      - action: "Approve and fulfill request"
+        expected: "Request fulfilled"
+      - action: "Verify both products activated (isPendingProduct: false, isActive: true)"
+        expected: "Both active"
+      - action: "Verify stock set correctly: Pants=100, Wipes=50"
+        expected: "Stock values correct"
+    expected_result: "All pending products in request activated on fulfillment"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-020
+    title: "Balagruha-specific request sets balagruhaId on activation"
+    priority: P0
+    preconditions:
+      - "Balagruha 'Mathrudhama' request with pending product"
+    steps:
+      - action: "Create request for 'Mathrudhama' with pending product"
+        expected: "Request created"
+      - action: "Approve and fulfill request"
+        expected: "Request fulfilled"
+      - action: "Query product, verify balagruhaId equals 'Mathrudhama' ObjectId"
+        expected: "Balagruha assigned"
+    expected_result: "Pending product assigned to request's Balagruha on activation"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-021
+    title: "Existing products in same request handled correctly"
+    priority: P0
+    preconditions:
+      - "Request with 1 existing + 1 pending product"
+    steps:
+      - action: "Create request: Existing 'Paracetamol' (stock 50) + Pending 'Pee proof Pants'"
+        expected: "Request created"
+      - action: "Fulfill request with receivedQuantities: [100, 100]"
+        expected: "Request fulfilled"
+      - action: "Verify Paracetamol stock incremented by 100 (now 150)"
+        expected: "Stock += 100"
+      - action: "Verify Pee proof Pants activated with stock 100 (set, not incremented)"
+        expected: "Stock = 100"
+    expected_result: "Existing products incremented, pending products set (activation vs update)"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: "CRITICAL: Tests dual logic for existing vs pending products"
+
+  # AC7: Pending Product Display in Inventory Management
+  - id: TC-S25-022
+    title: "Admin can view pending products in Inventory Management"
+    priority: P0
+    preconditions:
+      - "Logged in as Admin"
+      - "Pending product 'Pee proof Pants' exists"
+    steps:
+      - action: "Navigate to Inventory Management page"
+        expected: "Page loads"
+      - action: "Enable 'Show Pending Products' filter/toggle"
+        expected: "Filter enabled"
+      - action: "Verify 'Pee proof Pants' appears in table"
+        expected: "Product visible"
+      - action: "Verify 'Pending' badge displayed (orange/yellow)"
+        expected: "Badge shown"
+      - action: "Verify Stock column shows 0"
+        expected: "Stock is 0"
+      - action: "Verify Created by shows user name"
+        expected: "Creator displayed"
+      - action: "Verify Created in request shows link to purchase request"
+        expected: "Link to request visible"
+    expected_result: "Pending products displayed with all metadata in Inventory Management"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-023
+    title: "Pending products hidden by default, shown with filter"
+    priority: P1
+    preconditions:
+      - "Admin in Inventory Management"
+      - "Mix of active and pending products"
+    steps:
+      - action: "Load page with 'Show Pending Products' OFF"
+        expected: "Default state"
+      - action: "Verify only active products shown"
+        expected: "Pending products hidden"
+      - action: "Toggle 'Show Pending Products' ON"
+        expected: "Filter enabled"
+      - action: "Verify pending products now visible"
+        expected: "Pending products appear"
+    expected_result: "Pending products filterable in Inventory Management"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  # AC8: Pending Products in Product Selection
+  - id: TC-S25-024
+    title: "Pending products appear in product selection dropdown"
+    priority: P0
+    preconditions:
+      - "Pending product 'Pee proof Pants' exists (not yet activated)"
+      - "Different user creating new request"
+    steps:
+      - action: "Open Create Purchase Request modal (different user)"
+        expected: "Modal opens"
+      - action: "Locate product selection area"
+        expected: "Product list visible"
+      - action: "Search or scroll to find 'Pee proof Pants'"
+        expected: "Pending product visible in list"
+      - action: "Verify 'Pending Product' badge displayed"
+        expected: "Badge shown (orange/yellow)"
+      - action: "Hover over product or info icon"
+        expected: "Tooltip appears"
+      - action: "Verify tooltip text: 'This product is pending approval. It will be activated when the first purchase is fulfilled.'"
+        expected: "Explanatory tooltip shown"
+    expected_result: "Pending products selectable in product dropdown with explanatory badge"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+  - id: TC-S25-025
+    title: "Users can select pending products for their requests"
+    priority: P0
+    preconditions:
+      - "Pending product exists"
+      - "User creating new request"
+    steps:
+      - action: "Open Create Purchase Request modal"
+        expected: "Modal opens"
+      - action: "Select pending product 'Pee proof Pants' from product list"
+        expected: "Product selected"
+      - action: "Verify product added to selected products with 'Pending Product' badge"
+        expected: "Product in selection table"
+      - action: "Complete request form and submit"
+        expected: "Request created successfully"
+      - action: "Verify request includes pending product in items array"
+        expected: "Pending product linked to request"
+    expected_result: "Users can create requests with pending products created by others"
+    actual_result: ""
+    status: NOT_TESTED
+    notes: ""
+
+regression_tests:
+  - id: REG-S25-001
+    title: "Existing product selection still works correctly"
+    description: "Inline product addition doesn't break existing product selection flow"
+    steps:
+      - "Open Create Purchase Request modal"
+      - "Select ONLY existing products (no new products)"
+      - "Complete and submit request"
+      - "Verify request created successfully"
+    expected: "Existing product workflow unaffected"
+    status: NOT_TESTED
+
+  - id: REG-S25-002
+    title: "Stories 17-19 workflows work with pending products"
+    description: "Pending products integrate with approval and fulfillment workflows"
+    steps:
+      - "Create request with mix of existing and pending products"
+      - "Admin approves request (Story 18)"
+      - "PM fulfills request (Story 19)"
+      - "Verify stock updates and audit trail correct for both product types"
+    expected: "Pending products compatible with existing workflows"
+    status: NOT_TESTED
+
+  - id: REG-S25-003
+    title: "Story 21 STOCK requests work with pending products"
+    description: "STOCK purchases can include pending products"
+    steps:
+      - "Create STOCK request with pending product"
+      - "Fulfill request"
+      - "Verify pending product activated with balagruhaId: null"
+      - "Verify product visible to all users"
+    expected: "STOCK + pending products work together"
+    status: NOT_TESTED
+
+  - id: REG-S25-004
+    title: "Story 24 multi-role access works with inline product addition"
+    description: "All roles can add pending products"
+    steps:
+      - "Test inline product addition as Coach"
+      - "Test inline product addition as Medical Incharge"
+      - "Test inline product addition as Purchase Manager"
+      - "Test inline product addition as Admin"
+    expected: "All roles can add pending products"
+    status: NOT_TESTED
+
+edge_cases:
+  - scenario: "Rejected request with pending product"
+    test: "Create request with pending product → Admin rejects → Verify product remains pending (not deleted)"
+    status: NOT_TESTED
+
+  - scenario: "User creates duplicate product name (different SKU)"
+    test: "Add 'Pee proof Pants' with auto-SKU → Different user adds 'Pee proof Pants' with different auto-SKU → Both should succeed (different SKUs)"
+    status: NOT_TESTED
+
+  - scenario: "Pending product in multiple simultaneous requests"
+    test: "User A creates pending product → User B selects it for their request before User A submits → Both requests link to same pending product"
+    status: NOT_TESTED
+
+  - scenario: "Large description (200 char limit)"
+    test: "Enter 201 characters in description field → Verify truncation or validation"
+    status: NOT_TESTED
+
+  - scenario: "Special characters in product name and SKU"
+    test: "Enter product name with emojis, SKU with special chars → Verify handled correctly"
+    status: NOT_TESTED
+
+  - scenario: "Concurrent product creation with same SKU"
+    test: "Two users simultaneously create pending products with same manual SKU → Verify one succeeds, one gets duplicate error"
+    status: NOT_TESTED
+
+security_tests:
+  - scenario: "Unauthorized user cannot create pending products"
+    test: "Logout → POST /api/products/pending → Verify 401 Unauthorized"
+    status: NOT_TESTED
+
+  - scenario: "Student role cannot access inline product addition"
+    test: "Login as Student → Verify '+ Add New Product' button NOT visible"
+    status: NOT_TESTED
+
+  - scenario: "SQL injection in product name"
+    test: "Enter malicious SQL in product name → Verify sanitized/escaped"
+    status: NOT_TESTED
+
+  - scenario: "XSS in product description"
+    test: "Enter <script>alert('XSS')</script> in description → Verify escaped on display"
+    status: NOT_TESTED
+
+gate_criteria:
+  must_pass:
+    - TC-S25-001  # Button visible
+    - TC-S25-002  # All roles can access
+    - TC-S25-003  # Button opens inline form
+    - TC-S25-004  # Form fields present
+    - TC-S25-007  # Required field validation
+    - TC-S25-008  # SKU auto-generation
+    - TC-S25-009  # Add product to selection
+    - TC-S25-010  # Multiple products
+    - TC-S25-013  # Backend pending creation
+    - TC-S25-014  # Duplicate SKU rejection
+    - TC-S25-015  # Backend validation
+    - TC-S25-016  # isPendingProduct flag
+    - TC-S25-018  # Product activation (CRITICAL)
+    - TC-S25-021  # Existing vs pending logic
+    - TC-S25-022  # Admin view pending products
+    - TC-S25-024  # Pending in selection
+    - TC-S25-025  # Users can select pending
+    - REG-S25-001 # Existing flow works
+    - REG-S25-002 # Approval/fulfillment workflow
+    - REG-S25-003 # STOCK integration
+
+  nice_to_pass:
+    - TC-S25-005  # Category dropdown
+    - TC-S25-006  # Unit dropdown
+    - TC-S25-011  # Remove from selection
+    - TC-S25-012  # Cancel button
+    - TC-S25-017  # createdInRequest link
+    - TC-S25-019  # Multiple activations
+    - TC-S25-020  # Balagruha assignment
+    - TC-S25-023  # Pending filter
+    - REG-S25-004 # Multi-role access
+
+notes: |
+  CRITICAL TESTS:
+  - TC-S25-018: Core activation logic - MUST PASS
+  - TC-S25-021: Dual logic for existing vs pending - MUST PASS
+  - TC-S25-014: SKU uniqueness - prevents data integrity issues
+
+  IMPLEMENTATION NOTES:
+  - This story addresses critical workflow gap identified during Story 21 implementation
+  - Real-world example: Users couldn't request "Pee proof Pants" because it wasn't in catalog
+  - Solution: Inline product addition without workflow interruption
+
+  TEST STRATEGY:
+  - Focus on full lifecycle: Create pending → Request → Approve → Fulfill → Activate
+  - Test dual logic: Existing products (increment stock) vs Pending products (set stock)
+  - Validate STOCK integration (balagruhaId: null on activation)
+  - Security: Only authorized roles can add pending products
+
+  EDGE CASES TO WATCH:
+  - Rejected requests leave pending products in pending state (by design)
+  - Multiple users can select same pending product for their requests
+  - SKU uniqueness enforced across all products (active and pending)
+
+  DEPENDENCIES:
+  - Story 17: Multi-product selection
+  - Story 19: Fulfillment workflow
+  - Story 21: STOCK purchases
+
+# ========================================
+# GATE RESULTS
+# ========================================
+
+gate_result:
+  status: NOT_TESTED
+  decision: PENDING
+  tested_by: ""
+  tested_date: ""
+  quality_score: null
+  blocker_count: null
+
+  summary: ""
+
+  critical_bugs: []
+
+  test_execution_summary:
+    total_test_cases: 25
+    executed: 0
+    passed: 0
+    failed: 0
+    blocked: 0
+    not_tested: 25
+
+  acceptance_criteria_results: []
+
+  gate_criteria_check:
+    must_pass_tests: 20
+    must_pass_passed: 0
+    must_pass_failed: 0
+    must_pass_blocked: 0
+    result: PENDING
+
+  evidence:
+    screenshots: []
+    test_method: ""
+    browser: ""
+
+  recommendations: []
+
+  code_quality_notes: ""

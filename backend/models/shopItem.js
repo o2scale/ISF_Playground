@@ -111,6 +111,31 @@ const shopItemSchema = new mongoose.Schema(
       type: Map,
       of: String,
       default: {}
+    },
+    // Sprint5-Story-25: Pending Product Support
+    isPendingProduct: {
+      type: Boolean,
+      default: false,
+      index: true  // For efficient querying of pending products
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false
+    },
+    createdInRequest: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'PurchaseRequest',
+      default: null,
+      required: false
+    },
+    unit: {
+      type: String,
+      required: false,  // Made optional for backward compatibility
+      enum: {
+        values: ['pieces', 'packets', 'boxes', 'kg', 'liters', 'meters', 'units', 'grams', 'ml', 'sets', 'pairs', 'dozen'],
+        message: '{VALUE} is not a valid unit'
+      }
     }
   },
   {
@@ -126,6 +151,7 @@ shopItemSchema.index({ price: 1 });
 shopItemSchema.index({ stock: 1 });
 shopItemSchema.index({ name: 'text', description: 'text' }); // Text search
 shopItemSchema.index({ createdAt: -1 });
+shopItemSchema.index({ isPendingProduct: 1, isActive: 1 }); // Sprint5-Story-25: Pending products
 
 // Virtual: inStock
 shopItemSchema.virtual('inStock').get(function() {
