@@ -1976,3 +1976,14 @@ export const getAllShopItems = async () => {
     throw error;
   }
 };
+
+// Sprint5-Story-25: Create pending product (inline product addition)
+export const createPendingProduct = async (productData) => {
+  try {
+    const response = await api.post('/api/v2/shop/admin/products/pending', productData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating pending product:", error);
+    throw error;
+  }
+};

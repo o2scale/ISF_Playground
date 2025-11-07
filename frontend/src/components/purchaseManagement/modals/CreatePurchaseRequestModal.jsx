@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
   createPurchaseRequest,
   getLowStockProducts,
-  getAllShopItems
+  getAllShopItems,
+  createPendingProduct  // Sprint5-Story-25
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import '../PurchaseManagement.css';
@@ -39,6 +40,17 @@ export default function CreatePurchaseRequestModal({
   const [fetchingProducts, setFetchingProducts] = useState(false);
   const [productDropdownOpen, setProductDropdownOpen] = useState(false);
   const [productSearchQuery, setProductSearchQuery] = useState('');
+
+  // Sprint5-Story-25: Inline product addition state
+  const [showAddProductForm, setShowAddProductForm] = useState(false);
+  const [newProductForm, setNewProductForm] = useState({
+    name: '',
+    category: 'Consumables',
+    unit: 'pieces',
+    sku: '',
+    description: ''
+  });
+  const [newProductErrors, setNewProductErrors] = useState({});
 
   // ============================================================================
   // FILE PREVIEW COMPONENT (Copied from MachineRepairsView.jsx)
@@ -177,7 +189,8 @@ export default function CreatePurchaseRequestModal({
           productName: product.name,
           productSKU: product.sku,
           requestedQuantity: 1,  // Default quantity
-          estimatedUnitCost: 0   // User must fill in
+          estimatedUnitCost: 0,  // User must fill in
+          isPendingProduct: product.isPendingProduct || false  // Sprint5-Story-25: Track if pending
         }]
       }));
     }
@@ -239,6 +252,98 @@ export default function CreatePurchaseRequestModal({
       ...prev,
       attachments: prev.attachments.filter((_, i) => i !== index)
     }));
+  };
+
+  // ============================================================================
+  // Sprint5-Story-25: INLINE PRODUCT ADDITION HANDLERS
+  // ============================================================================
+
+  const handleAddNewProduct = async () => {
+    // Reset errors
+    setNewProductErrors({});
+
+    // Validation
+    const errors = {};
+    if (!newProductForm.name.trim()) {
+      errors.name = 'Product name is required';
+    }
+    if (!newProductForm.category) {
+      errors.category = 'Category is required';
+    }
+    if (!newProductForm.unit) {
+      errors.unit = 'Unit is required';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setNewProductErrors(errors);
+      return;
+    }
+
+    try {
+      // Call API to create pending product
+      const response = await createPendingProduct({
+        name: newProductForm.name.trim(),
+        category: newProductForm.category,
+        unit: newProductForm.unit,
+        sku: newProductForm.sku.trim() || undefined,
+        description: newProductForm.description.trim() || undefined
+      });
+
+      if (response.success && response.product) {
+        const newProduct = response.product;
+
+        // Add to products list (for immediate display)
+        setProducts(prev => [newProduct, ...prev]);
+
+        // Auto-select the new product
+        const newSelected = new Set(selectedProducts);
+        newSelected.add(newProduct._id);
+        setSelectedProducts(newSelected);
+
+        // Add to formData items with isPendingProduct flag
+        setFormData(prev => ({
+          ...prev,
+          items: [...prev.items, {
+            productId: newProduct._id,
+            productName: newProduct.name,
+            productSKU: newProduct.sku,
+            requestedQuantity: 1,
+            estimatedUnitCost: 0,
+            isPendingProduct: true  // Mark as pending
+          }]
+        }));
+
+        // Reset form and hide
+        setNewProductForm({
+          name: '',
+          category: 'Consumables',
+          unit: 'pieces',
+          sku: '',
+          description: ''
+        });
+        setShowAddProductForm(false);
+
+        alert('New product created successfully! Please fill in quantity and estimated cost.');
+      } else {
+        alert('Failed to create product. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error creating pending product:', error);
+      const errorMsg = error.response?.data?.error || error.message || 'Failed to create product';
+      alert(`Error: ${errorMsg}`);
+    }
+  };
+
+  const handleCancelAddProduct = () => {
+    setNewProductForm({
+      name: '',
+      category: 'Consumables',
+      unit: 'pieces',
+      sku: '',
+      description: ''
+    });
+    setNewProductErrors({});
+    setShowAddProductForm(false);
   };
 
   // ============================================================================
@@ -430,6 +535,168 @@ export default function CreatePurchaseRequestModal({
                 Select Products <span className="required">*</span>
               </label>
 
+              {/* Sprint5-Story-25: Add New Product Button */}
+              {formData.balagruhaId && !showAddProductForm && (
+                <button
+                  type="button"
+                  className="btn-add-product"
+                  onClick={() => setShowAddProductForm(true)}
+                  style={{
+                    marginBottom: '10px',
+                    padding: '8px 16px',
+                    backgroundColor: '#28a745',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  + Add New Product
+                </button>
+              )}
+
+              {/* Sprint5-Story-25: Inline Product Addition Form */}
+              {showAddProductForm && (
+                <div className="inline-product-form" style={{
+                  border: '2px solid #007bff',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  marginBottom: '16px',
+                  backgroundColor: '#f8f9fa'
+                }}>
+                  <h4 style={{ marginTop: 0, marginBottom: '16px', color: '#007bff' }}>
+                    Add New Product
+                  </h4>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Product Name <span style={{ color: 'red' }}>*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newProductForm.name}
+                      onChange={(e) => setNewProductForm(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Enter product name"
+                    />
+                    {newProductErrors.name && (
+                      <small style={{ color: 'red' }}>{newProductErrors.name}</small>
+                    )}
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Category <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={newProductForm.category}
+                        onChange={(e) => setNewProductForm(prev => ({ ...prev, category: e.target.value }))}
+                      >
+                        <option value="stationery">Stationery</option>
+                        <option value="sports">Sports</option>
+                        <option value="books">Books</option>
+                        <option value="uniforms">Uniforms</option>
+                        <option value="digital">Digital</option>
+                        <option value="other">Other</option>
+                      </select>
+                      {newProductErrors.category && (
+                        <small style={{ color: 'red' }}>{newProductErrors.category}</small>
+                      )}
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Unit <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={newProductForm.unit}
+                        onChange={(e) => setNewProductForm(prev => ({ ...prev, unit: e.target.value }))}
+                      >
+                        <option value="pieces">Pieces</option>
+                        <option value="packets">Packets</option>
+                        <option value="boxes">Boxes</option>
+                        <option value="kg">Kilograms (kg)</option>
+                        <option value="liters">Liters</option>
+                        <option value="meters">Meters</option>
+                        <option value="units">Units</option>
+                        <option value="grams">Grams</option>
+                        <option value="ml">Milliliters (ml)</option>
+                        <option value="sets">Sets</option>
+                        <option value="pairs">Pairs</option>
+                        <option value="dozen">Dozen</option>
+                      </select>
+                      {newProductErrors.unit && (
+                        <small style={{ color: 'red' }}>{newProductErrors.unit}</small>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      SKU (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={newProductForm.sku}
+                      onChange={(e) => setNewProductForm(prev => ({ ...prev, sku: e.target.value }))}
+                      placeholder="Leave blank for auto-generation"
+                    />
+                    <small style={{ color: '#6c757d' }}>
+                      If left blank, SKU will be auto-generated (NEW-{Date.now()})
+                    </small>
+                  </div>
+
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Description (Optional)
+                    </label>
+                    <textarea
+                      className="form-control"
+                      value={newProductForm.description}
+                      onChange={(e) => setNewProductForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Enter product description"
+                      rows="2"
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={handleAddNewProduct}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#007bff',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Create & Add Product
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleCancelAddProduct}
+                      style={{
+                        padding: '8px 16px',
+                        backgroundColor: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Toggle: Show All Products */}
               <div className="product-filter">
                 <label className="checkbox-label">
@@ -489,7 +756,23 @@ export default function CreatePurchaseRequestModal({
                                 onChange={() => handleProductToggle(product)}
                               />
                               <span className="product-details">
-                                <span className="product-name">{product.name}</span>
+                                <span className="product-name">
+                                  {product.name}
+                                  {/* Sprint5-Story-25: Badge for pending products */}
+                                  {product.isPendingProduct && (
+                                    <span style={{
+                                      marginLeft: '6px',
+                                      padding: '1px 6px',
+                                      backgroundColor: '#ff9800',
+                                      color: 'white',
+                                      borderRadius: '3px',
+                                      fontSize: '10px',
+                                      fontWeight: 'bold'
+                                    }}>
+                                      NEW
+                                    </span>
+                                  )}
+                                </span>
                                 <span className="product-meta">
                                   {product.sku} · Stock: {product.stock}/{product.lowStockThreshold}
                                   {getStockBadge(product)}
@@ -553,7 +836,23 @@ export default function CreatePurchaseRequestModal({
                     <tbody>
                       {formData.items.map((item, index) => (
                         <tr key={item.productId}>
-                          <td>{item.productName}</td>
+                          <td>
+                            {item.productName}
+                            {/* Sprint5-Story-25: Badge for pending products */}
+                            {item.isPendingProduct && (
+                              <span style={{
+                                marginLeft: '8px',
+                                padding: '2px 8px',
+                                backgroundColor: '#ff9800',
+                                color: 'white',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 'bold'
+                              }}>
+                                NEW PRODUCT
+                              </span>
+                            )}
+                          </td>
                           <td className="sku-cell">{item.productSKU}</td>
                           <td>
                             <input
