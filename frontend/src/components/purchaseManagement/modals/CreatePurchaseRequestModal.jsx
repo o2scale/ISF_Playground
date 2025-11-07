@@ -45,7 +45,7 @@ export default function CreatePurchaseRequestModal({
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     name: '',
-    category: 'Consumables',
+    category: 'stationery',
     unit: 'pieces',
     sku: '',
     description: ''

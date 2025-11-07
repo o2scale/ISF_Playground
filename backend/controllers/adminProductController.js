@@ -371,7 +371,7 @@ async function createPendingProduct(req, res) {
       sku: generatedSKU,
       category,
       unit,
-      description: description || '',
+      description: description || 'Pending product - details to be added',
       isPendingProduct: true,
       isActive: false,
       stock: 0,

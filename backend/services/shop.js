@@ -25,7 +25,13 @@ class ShopService {
       } = pagination;
 
       // Build query
-      const query = { isActive: true };
+      // Sprint5-Story-25 (AC8): Include both active products AND pending products
+      const query = {
+        $or: [
+          { isActive: true },
+          { isPendingProduct: true }
+        ]
+      };
 
       // Category filter
       if (category) {
@@ -44,9 +50,17 @@ class ShopService {
         if (maxPrice !== undefined) query.price.$lte = Number(maxPrice);
       }
 
-      // Stock filter
+      // Stock filter - Sprint5-Story-25: Don't filter out pending products by stock
       if (inStock === true || inStock === 'true') {
-        query.stock = { $gt: 0 };
+        // Pending products should always appear regardless of stock level
+        // Only apply stock filter to non-pending products
+        query.$and = query.$and || [];
+        query.$and.push({
+          $or: [
+            { isPendingProduct: true },      // Pending products: include regardless of stock
+            { stock: { $gt: 0 } }            // Regular products: only if stock > 0
+          ]
+        });
       }
 
       const skip = (page - 1) * limit;
