@@ -1,6 +1,6 @@
 /**
- * Sprint5-Story-24: Multi-Role Purchase Request Access Middleware
- * Allows Coach, Medical Incharge, Admin, and Purchase Manager to access purchase requests
+ * Sprint5-Story-24 + S24-BUG-005: Multi-Role Purchase Request Access Middleware
+ * Allows ALL roles EXCEPT students to access purchase requests
  * without requiring specific "Purchase Management" permissions
  */
 
@@ -16,16 +16,17 @@ const checkPurchaseRequestAccess = () => {
 
       const userRole = req.user.role.toLowerCase();
 
-      // Sprint5-Story-24: Allow these roles to access purchase requests
-      const allowedRoles = ['coach', 'medical_incharge', 'medical-incharge', 'admin', 'purchase_manager', 'purchase-manager'];
+      // S24-BUG-005: Block only students from accessing purchase requests
+      const blockedRoles = ['student'];
 
-      if (!allowedRoles.includes(userRole)) {
+      if (blockedRoles.includes(userRole)) {
         return res.status(403).json({
           success: false,
-          error: "Access denied. Only Coach, Medical Incharge, Admin, and Purchase Manager can access purchase requests."
+          error: "Access denied. Students cannot access purchase requests."
         });
       }
 
+      // All other roles are allowed
       next();
     } catch (error) {
       console.error("Error in checkPurchaseRequestAccess middleware:", error);

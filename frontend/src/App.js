@@ -133,10 +133,11 @@ const App = () => {
                 {/* Course, Repair, and Purchase Management Routes */}
                 <Route path="/course" element={<CourseManagement />} />
                 <Route path="/repair" element={<RepairManagement />} />
+                {/* Sprint5-Story-24 + S24-BUG-005: Purchase Management accessible to all roles except students */}
                 <Route
                   path="/purchase"
                   element={
-                    <ProtectedRoute module="Purchase Management" action="Read">
+                    <ProtectedRoute>
                       <PurchaseManagement />
                     </ProtectedRoute>
                   }

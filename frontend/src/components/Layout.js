@@ -86,7 +86,8 @@ const Layout = () => {
       id: 9,
       name: "Purchases",
       link: "/purchase",
-      roles: ["admin", "purchase-manager", "coach", "medical-incharge"], // Sprint5-Story-24: Multi-role access
+      // Sprint5-Story-24 + S24-BUG-005: All roles except students can access Purchase Management
+      roles: ["admin", "purchase-manager", "coach", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
     },
     {
       id: 10,
