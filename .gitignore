@@ -141,3 +141,6 @@ dist
 
 # wtf final main
 /wtf-final-main
+
+# Credentials file (contains test user credentials)
+creds
