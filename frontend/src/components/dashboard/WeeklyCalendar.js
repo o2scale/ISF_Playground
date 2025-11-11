@@ -255,10 +255,37 @@ const WeeklyCalendar = ({
         }
     ]);
 
-    // Sprint6-Story-1-AC1: Month/Year selector state
+    // Sprint6-Story-1-AC1: Month/Year selector state + Week navigation
     const today = new Date();
     const [selectedMonth, setSelectedMonth] = useState(today.getMonth()); // 0-11
     const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+    const [weekOffset, setWeekOffset] = useState(0); // Track which week of the month (0-based)
+
+    // Helper: Calculate number of weeks in a given month
+    const getWeeksInMonth = (month, year) => {
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+        const daysInMonth = lastDay.getDate();
+        const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday
+        // Calculate weeks needed to cover all days
+        return Math.ceil((daysInMonth + firstDayOfWeek) / 7);
+    };
+
+    // Sprint6-Story-1-AC1: Initialize to CURRENT WEEK on mount
+    useEffect(() => {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+        const dayOfMonth = today.getDate();
+        const firstDayOfWeek = firstDayOfMonth.getDay(); // 0 = Sunday
+        // Calculate which week of the month today falls in (0-based)
+        const currentWeekOffset = Math.floor((dayOfMonth + firstDayOfWeek - 1) / 7);
+
+        setSelectedMonth(currentMonth);
+        setSelectedYear(currentYear);
+        setWeekOffset(currentWeekOffset);
+    }, []); // Run once on mount
 
     useEffect(() => {
         if (users) {
@@ -314,8 +341,9 @@ const WeeklyCalendar = ({
     const handleMonthYearChange = (month, year) => {
         setSelectedMonth(month);
         setSelectedYear(year);
+        setWeekOffset(0); // Reset to Week 1 when month/year changes
 
-        // Calculate week offset from today to the first day of selected month
+        // Calculate week offset from today to the first week of selected month
         const targetDate = new Date(year, month, 1); // First day of selected month
         const todayDate = new Date();
 
@@ -330,6 +358,69 @@ const WeeklyCalendar = ({
         const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000));
 
         setCurrentWeekOffset(diffWeeks);
+    };
+
+    // Sprint6-Story-1-AC1: Navigate to previous week
+    const handlePreviousWeek = () => {
+        if (weekOffset > 0) {
+            // Move to previous week within same month
+            setWeekOffset(weekOffset - 1);
+            setCurrentWeekOffset(currentWeekOffset - 1);
+        } else {
+            // Cross to previous month
+            const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
+            const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+            const weeksInPrevMonth = getWeeksInMonth(prevMonth, prevYear);
+
+            setSelectedMonth(prevMonth);
+            setSelectedYear(prevYear);
+            setWeekOffset(weeksInPrevMonth - 1);
+            setCurrentWeekOffset(currentWeekOffset - 1);
+        }
+    };
+
+    // Sprint6-Story-1-AC1: Navigate to next week
+    const handleNextWeek = () => {
+        const weeksInCurrentMonth = getWeeksInMonth(selectedMonth, selectedYear);
+
+        if (weekOffset < weeksInCurrentMonth - 1) {
+            // Move to next week within same month
+            setWeekOffset(weekOffset + 1);
+            setCurrentWeekOffset(currentWeekOffset + 1);
+        } else {
+            // Cross to next month
+            const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1;
+            const nextYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear;
+
+            setSelectedMonth(nextMonth);
+            setSelectedYear(nextYear);
+            setWeekOffset(0);
+            setCurrentWeekOffset(currentWeekOffset + 1);
+        }
+    };
+
+    // Sprint6-Story-1-AC1: Jump to current week (Today button)
+    const handleToday = () => {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+        const dayOfMonth = today.getDate();
+        const firstDayOfWeek = firstDayOfMonth.getDay();
+        const currentWeekOffset = Math.floor((dayOfMonth + firstDayOfWeek - 1) / 7);
+
+        setSelectedMonth(currentMonth);
+        setSelectedYear(currentYear);
+        setWeekOffset(currentWeekOffset);
+
+        // Calculate global week offset from today
+        const todayDate = new Date();
+        const currentDay = todayDate.getDay();
+        const diffToMonday = (currentDay + 6) % 7;
+        const currentMonday = new Date(todayDate);
+        currentMonday.setDate(todayDate.getDate() - diffToMonday);
+
+        setCurrentWeekOffset(0); // Reset to current week
     };
 
     const fetchBalagruhaByCoach = async (id) => {
@@ -539,7 +630,7 @@ const WeeklyCalendar = ({
             <div className="full-calendar">
                 <h3>Weekly Calendar</h3>
 
-                {/* Calendar Header - Sprint6-Story-1-AC1: Month/Year selector */}
+                {/* Calendar Header - Sprint6-Story-1-AC1: Month/Year selector + Week navigation */}
                 <div className="calendar-header">
                     <div className="calendar-nav-selectors">
                         <select
@@ -571,6 +662,23 @@ const WeeklyCalendar = ({
                             })}
                         </select>
                     </div>
+
+                    {/* Sprint6-Story-1-AC1: Week navigation controls */}
+                    <div className="calendar-week-controls">
+                        <button onClick={handlePreviousWeek} className="week-nav-btn" title="Previous Week">
+                            ◀
+                        </button>
+                        <span className="week-indicator">
+                            Week {weekOffset + 1} of {getWeeksInMonth(selectedMonth, selectedYear)}
+                        </span>
+                        <button onClick={handleNextWeek} className="week-nav-btn" title="Next Week">
+                            ▶
+                        </button>
+                        <button onClick={handleToday} className="today-btn" title="Jump to Current Week">
+                            📅 Today
+                        </button>
+                    </div>
+
                     <div className="calendar-week-display">{getWeekRangeText()}</div>
                 </div>
 
