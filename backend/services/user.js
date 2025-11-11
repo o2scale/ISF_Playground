@@ -10,6 +10,10 @@ const canvas = require("canvas");
 const faceapi = require("face-api.js");
 const { default: mongoose } = require("mongoose");
 const { getAllBalagruhaIds } = require("../data-access/balagruha");
+const { uploadFileToS3 } = require("./aws/s3");
+const { getUploadedFilesFullPath } = require("../utils/helper");
+const { cleanupLocalFile } = require("../utils/fileCleanup");
+const { isRequestFromLocalhost } = require("../utils/helper");
 
 const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
@@ -308,34 +312,67 @@ exports.updateUserDetailsById = async (userId, payload) => {
 
     // Process facial data if uploaded
     if (updateData.facialData) {
-      // Process facial data here or let data access layer handle it
       let descriptorArray = null;
-      if (updateData.facialData) {
-        let imagePath = updateData.facialData.path;
-        const img = await canvas.loadImage(
-          path.join(process.cwd(), "uploads", path.basename(imagePath))
-        );
-        const detection = await faceapi
-          .detectSingleFace(img)
-          .withFaceLandmarks()
-          .withFaceDescriptor();
+      let facialDataUrl = null;
+      let isOfflineReq = updateData.isOfflineReq || false;
 
-        if (!detection) {
-          return {
-            success: false,
-            data: {},
-            message: "Failed to detect face. Try uploading clear image ",
-            error: "No face detected",
-          };
+      let imagePath = updateData.facialData.path;
+      let fileName = updateData.facialData.filename;
+
+      // Upload photo to S3 first (before face detection) for display purposes
+      if (!isOfflineReq) {
+        try {
+          const s3Result = await uploadFileToS3(
+            imagePath,
+            process.env.AWS_S3_BUCKET_NAME_USER_PHOTOS || process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (s3Result.success) {
+            facialDataUrl = s3Result.url;
+          }
+        } catch (s3Error) {
+          console.error("Error uploading facial photo to S3:", s3Error);
+          // Continue with face detection even if S3 upload fails
         }
-
-        descriptorArray = Array.from(detection.descriptor);
+      } else {
+        // For offline requests, use local file path
+        facialDataUrl = getUploadedFilesFullPath(fileName);
       }
+
+      // Now extract face descriptor for facial recognition
+      const img = await canvas.loadImage(
+        path.join(process.cwd(), "uploads", path.basename(imagePath))
+      );
+      const detection = await faceapi
+        .detectSingleFace(img)
+        .withFaceLandmarks()
+        .withFaceDescriptor();
+
+      if (!detection) {
+        return {
+          success: false,
+          data: {},
+          message: "Failed to detect face. Try uploading clear image ",
+          error: "No face detected",
+        };
+      }
+
+      descriptorArray = Array.from(detection.descriptor);
+
+      // Clean up local file after successful S3 upload
+      if (!isOfflineReq && facialDataUrl) {
+        cleanupLocalFile(imagePath, fileName);
+      }
+
+      // Store both face descriptor AND photo URL
       if (descriptorArray) {
         updateData.facialData = {
           faceDescriptor: descriptorArray,
           createdAt: new Date(),
         };
+      }
+      if (facialDataUrl) {
+        updateData.facialDataUrl = facialDataUrl;
       }
     }
 

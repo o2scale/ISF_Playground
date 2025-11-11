@@ -3631,9 +3631,9 @@ const TaskManagement = () => {
     try {
       const response = await coachBasedUsers();
       console.log("usdsdsds", response);
-      // Filter out students from the list
-      const filteredUsers = (response || []).filter(user => user.role !== 'student');
-      setCoachUsers(filteredUsers);
+      // Sprint6-Story-1-AC8: Include ALL users (including students) for task assignment
+      // Coaches need to assign tasks to students and other users from their balagruhas
+      setCoachUsers(response || []);
     } catch (error) {
       console.error("Error fetching users:", error);
     }

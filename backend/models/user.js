@@ -101,6 +101,10 @@ const userSchema = new mongoose.Schema(
       faceDescriptor: Array, // Store face descriptor array
       createdAt: { type: Date, default: Date.now },
     },
+    facialDataUrl: {
+      type: String, // S3 URL or local path to the actual photo for display
+      required: false,
+    },
   },
   { timestamps: true }
 );

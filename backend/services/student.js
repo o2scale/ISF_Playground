@@ -241,13 +241,40 @@ class Student {
       }
 
       let descriptorArray = null;
+      let facialDataUrl = null;
+
       if (payload.facialData) {
         let imagePath = payload.facialData.path;
+        let fileName = payload.facialData.filename;
+        let originalname = payload.facialData.originalname;
+
         let imagefilepath = path.join(
           process.cwd(),
           "uploads",
           path.basename(imagePath)
         );
+
+        // Upload photo to S3 first (before face detection) for display purposes
+        if (!isOfflineReq) {
+          try {
+            const s3Result = await uploadFileToS3(
+              imagePath,
+              process.env.AWS_S3_BUCKET_NAME_USER_PHOTOS || process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS, // Fallback to medical bucket if user photos bucket not configured
+              fileName
+            );
+            if (s3Result.success) {
+              facialDataUrl = s3Result.url;
+            }
+          } catch (s3Error) {
+            console.error("Error uploading facial photo to S3:", s3Error);
+            // Continue with face detection even if S3 upload fails
+          }
+        } else {
+          // For offline requests, use local file path
+          facialDataUrl = getUploadedFilesFullPath(fileName);
+        }
+
+        // Now extract face descriptor for facial recognition
         const img = await canvas.loadImage(
           path.join(process.cwd(), "uploads", path.basename(imagePath))
         );
@@ -266,12 +293,22 @@ class Student {
         }
 
         descriptorArray = Array.from(detection.descriptor);
+
+        // Clean up local file after successful S3 upload
+        if (!isOfflineReq && facialDataUrl) {
+          cleanupLocalFile(imagePath, fileName);
+        }
       }
+
+      // Store both face descriptor AND photo URL
       if (descriptorArray) {
         payload.facialData = {
           faceDescriptor: descriptorArray,
           createdAt: new Date(),
         };
+      }
+      if (facialDataUrl) {
+        payload.facialDataUrl = facialDataUrl;
       }
 
       let assignedMachinesList = [];
