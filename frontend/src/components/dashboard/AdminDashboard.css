@@ -592,9 +592,10 @@
     background-color: #fff9f5;
 }
 
-/* Calendar Styles */
+/* Calendar Styles - Sprint6-Story-1: Ensure full width usage */
 .full-calendar {
     flex: 1;
+    width: 100%;
     overflow: hidden;
     display: flex;
     flex-direction: column;

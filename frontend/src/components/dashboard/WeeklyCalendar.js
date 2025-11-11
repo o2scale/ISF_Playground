@@ -574,68 +574,7 @@ const WeeklyCalendar = ({
                     <div className="calendar-week-display">{getWeekRangeText()}</div>
                 </div>
 
-                {/* <div className='calender-container'>
-                   <div>
-                    <div className="calendar-day-header">
-                        <h3>Time</h3>
-                    </div>
-                    <div className="">
-                        Sprint6-Story-1-AC2: Extended to 9 PM (15 hours total)
-                        {Array.from({ length: 15 }, (_, i) => {
-                            const hour = i + 7; // Starting from 7 AM to 9 PM
-                            return (
-                                <p style={{marginTop: "100px"}} key={hour}>
-                                    {`${hour.toString().padStart(2, '0')}:00`}
-                                </p>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div className="calendar-grid">
-                    {calendarDays.map((day, index) => (
-                        <div
-                            key={`header-${index}`}
-                            className={`calendar-day-header ${day.isToday ? 'today' : ''}`}
-                        >
-                            {day.date.toLocaleDateString('en-US', { weekday: 'short' })}
-                            <div className="day-date">
-                                {day.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                            </div>
-                        </div>
-                    ))}
-
-                    {calendarDays.map((day, index) => (
-                        <div key={`cell-${index}`} className="calendar-day-cell">
-                            {day.events.length === 0 ? (
-                                <div className="no-events">No events</div>
-                            ) : (
-                                day.events.map(event => (
-                                    <div
-                                        key={event.id}
-                                        className="calendar-event"
-                                        style={{ backgroundColor: getEventColor(event.type) }}
-                                        onClick={() => onEventClick(event)}
-                                    >
-                                        <div className="event-title">{event.title}</div>
-                                        <div className="event-time">{event.time}</div>
-                                        <div
-                                            className="event-status-indicator"
-                                            style={{
-                                                backgroundColor: event.status === "Confirmed" ? "#4caf50" :
-                                                    event.status === "Pending" ? "#ff9800" :
-                                                        event.status === "Completed" ? "#8a7bff" : "#f44336"
-                                            }}
-                                        ></div>
-                                    </div>
-                                ))
-                            )}
-                        </div>
-                    ))}
-                </div>
-                </div> */}
-
-                    <div className="calendar-container">
+                <div className="calendar-container">
                         {/* Time Column */}
                         <div className="time-column">
                             <div className="calendar-day-header" style={{ marginBottom: "50px" }}>
@@ -676,7 +615,8 @@ const WeeklyCalendar = ({
                             <div className="calendar-row calendar-body-row">
                                 {calendarDays.map((day, index) => (
                                     <div key={`cell-${index}`} className="calendar-day-cell">
-                                        {Array.from({ length: 12 }, (_, i) => {
+                                        {/* Sprint6-Story-1-AC2: Extended to 15 hours (7 AM - 9 PM) */}
+                                        {Array.from({ length: 15 }, (_, i) => {
                                             // const slotEvents = day.events.filter(ev => {
                                             //     // console.log(ev, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
                                             //     const eventHour = new Date(ev.schedules[0].startTime).getHours();

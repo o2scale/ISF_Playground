@@ -51,9 +51,11 @@
     gap: 20px;
 }
 
+/* Sprint6-Story-1: Ensure calendar uses full width */
 .calendar-container {
     display: flex;
     align-items: flex-start;
+    width: 100%;
 }
 
 /* Time Column */
