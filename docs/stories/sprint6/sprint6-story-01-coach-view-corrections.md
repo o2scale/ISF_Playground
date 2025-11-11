@@ -839,18 +839,423 @@ E2E test scenarios will be written by Dev Agent in markdown format in:
 
 ---
 
-## QA Results
+## QA Testing - End-to-End Test Cases
 
 **QA Agent:** [QA Agent Name]
-**Tested:** [Date/Time]
+**Started:** [Date/Time]
+**Completed:** [Date/Time]
 **Status:** [PASS/FAIL/CONCERNS]
+**Last Updated:** 2025-11-11 14:43:58
 
-### Acceptance Criteria Validation
-- [ ] AC1: Month/Year selector ✅/❌
-- [ ] AC2: Schedule time to 9 PM ✅/❌
-- [ ] AC3: Dashboard cards cleanup & counts ✅/❌
-- [ ] AC4: Photo capture fix ✅/❌
-- [ ] AC8: Task assignment dropdown fix ✅/❌
+---
+
+### Test Environment Setup
+
+**Prerequisites:**
+- Backend server running on `http://localhost:5000`
+- Frontend server running on `http://localhost:3000`
+- Database connection established
+- Test credentials available:
+  - **Coach Account:** coachjoe / Coach@2024
+  - **Admin Account:** admintest / Admin@2024
+
+**Test Data Requirements:**
+- At least one Balagruha with assigned students
+- At least one student profile created
+- At least one task created
+
+---
+
+### 🧪 Test Case 1: AC1 - Month/Year Selector Navigation
+
+**Test ID:** S6-S1-TC-001
+**Priority:** High
+**Type:** Functional
+
+**Preconditions:**
+- [ ] Logged in as coach (coachjoe / Coach@2024)
+- [ ] Navigated to Dashboard
+- [ ] Selected "Daily Schedule" card to open Weekly Calendar
+
+**Test Steps:**
+1. [ ] **STEP 1:** Verify Month/Year selectors are visible
+   - **Expected:** Two dropdown selectors displayed at top of calendar (Month and Year)
+   - **Actual:** __________
+
+2. [ ] **STEP 2:** Click on Month dropdown
+   - **Expected:** Dropdown shows all 12 months (January - December)
+   - **Actual:** __________
+
+3. [ ] **STEP 3:** Click on Year dropdown
+   - **Expected:** Dropdown shows 5 years (current year ± 2 years)
+   - **Actual:** __________
+
+4. [ ] **STEP 4:** Select a different month (e.g., January if currently November)
+   - **Expected:** Calendar navigates to first week of selected month
+   - **Actual:** __________
+
+5. [ ] **STEP 5:** Verify week range text updates
+   - **Expected:** Week range text shows correct dates for selected month
+   - **Actual:** __________
+
+6. [ ] **STEP 6:** Select a different year (e.g., 2024 if currently 2025)
+   - **Expected:** Calendar navigates to first week of selected month in new year
+   - **Actual:** __________
+
+7. [ ] **STEP 7:** Verify no arrow buttons present
+   - **Expected:** Old arrow navigation buttons (< >) are completely removed
+   - **Actual:** __________
+
+**Expected Results:**
+- ✅ Month and Year dropdown selectors display correctly
+- ✅ All months (Jan-Dec) available in Month dropdown
+- ✅ 5-year range available in Year dropdown
+- ✅ Calendar navigates to correct week when month/year changed
+- ✅ Week range text updates correctly
+- ✅ No arrow buttons visible
+
+**Test Result:** [ ] PASS / [ ] FAIL
+**Notes/Issues:** _______________________________________________
+
+---
+
+### 🧪 Test Case 2: AC2 - Schedule Time Extension to 9 PM
+
+**Test ID:** S6-S1-TC-002
+**Priority:** High
+**Type:** Functional + Visual
+
+**Preconditions:**
+- [ ] Logged in as coach
+- [ ] Opened Weekly Calendar
+
+**Test Steps:**
+1. [ ] **STEP 1:** Verify time column starts at 07:00
+   - **Expected:** First time slot shows "07:00"
+   - **Actual:** __________
+
+2. [ ] **STEP 2:** Scroll down to verify all time slots present
+   - **Expected:** Time slots from 07:00 to 21:00 (15 hours total) visible
+   - **Actual:** __________
+
+3. [ ] **STEP 3:** Verify last time slot is 21:00 (9 PM)
+   - **Expected:** Last time slot shows "21:00"
+   - **Actual:** __________
+
+4. [ ] **STEP 4:** Verify grid cells align with all time slots
+   - **Expected:** Grid cells extend from 07:00 to 21:00 for all days
+   - **Actual:** __________
+
+5. [ ] **STEP 5:** Check times 19:00, 20:00, 21:00 specifically
+   - **Expected:** All three time slots have corresponding grid cells showing "No events" or events
+   - **Actual:** __________
+
+6. [ ] **STEP 6:** Verify no stray characters at page bottom
+   - **Expected:** No visible "}" or other characters below 21:00
+   - **Actual:** __________
+
+7. [ ] **STEP 7:** Attempt to create schedule at 20:00 (8 PM)
+   - **Expected:** Can successfully create schedule in 20:00 time slot
+   - **Actual:** __________
+
+**Expected Results:**
+- ✅ Time column shows 07:00 - 21:00 (15 hours)
+- ✅ Grid cells extend through all 15 hours
+- ✅ Times 19:00, 20:00, 21:00 have functional grid cells
+- ✅ No visual artifacts or stray characters
+- ✅ Can create schedules in evening time slots (19:00-21:00)
+
+**Test Result:** [ ] PASS / [ ] FAIL
+**Notes/Issues:** _______________________________________________
+
+---
+
+### 🧪 Test Case 3: AC3 - Dashboard Cards Cleanup
+
+**Test ID:** S6-S1-TC-003
+**Priority:** Medium
+**Type:** Functional + Visual
+
+**Preconditions:**
+- [ ] Logged in as coach
+- [ ] On Coach Dashboard main view
+
+**Test Steps:**
+1. [ ] **STEP 1:** Count visible dashboard cards
+   - **Expected:** Exactly 5 cards visible
+   - **Actual:** __________
+
+2. [ ] **STEP 2:** Verify card 1 - "Daily Schedule"
+   - **Expected:** Card present with count showing number of schedules
+   - **Actual:** __________
+
+3. [ ] **STEP 3:** Verify card 2 - "Task Tracker"
+   - **Expected:** Card present with count showing number of tasks
+   - **Actual:** __________
+
+4. [ ] **STEP 4:** Verify card 3 - "Medical"
+   - **Expected:** Card present with count = 0 (or actual count if API available)
+   - **Actual:** __________
+
+5. [ ] **STEP 5:** Verify card 4 - "Purchase"
+   - **Expected:** Card present with count = 0 (or actual count if API available)
+   - **Actual:** __________
+
+6. [ ] **STEP 6:** Verify card 5 - "ISF Shop"
+   - **Expected:** Card present with count = 0 (or actual count if API available)
+   - **Actual:** __________
+
+7. [ ] **STEP 7:** Verify removed cards are NOT present
+   - **Expected:** No cards for: Syllabus Tracker, Slow Learners, Repairs, Suggestion, Activities, Events
+   - **Actual:** __________
+
+8. [ ] **STEP 8:** Click "Daily Schedule" card
+   - **Expected:** Card count updates correctly when schedules created/deleted
+   - **Actual:** __________
+
+**Expected Results:**
+- ✅ Only 5 cards displayed (Daily Schedule, Task Tracker, Medical, Purchase, ISF Shop)
+- ✅ 6 unused cards removed (Syllabus, Slow Learners, Repairs, Suggestion, Activities, Events)
+- ✅ Daily Schedule shows count = number of schedules
+- ✅ Task Tracker shows count = number of tasks
+- ✅ Medical, Purchase, ISF Shop show count = 0 (placeholder for future)
+
+**Test Result:** [ ] PASS / [ ] FAIL
+**Notes/Issues:** _______________________________________________
+
+---
+
+### 🧪 Test Case 4: AC4 - Photo Capture Persistence Bug Fix
+
+**Test ID:** S6-S1-TC-004
+**Priority:** Critical
+**Type:** Functional + Data Persistence
+
+**Preconditions:**
+- [ ] Logged in as admin or coach with user management permissions
+- [ ] Navigate to User Management
+- [ ] Have webcam/camera access enabled in browser
+
+**Test Steps:**
+
+**Part A: New User Creation with Photo**
+1. [ ] **STEP 1:** Click "Add New User" or "Register Student"
+   - **Expected:** User registration form opens
+   - **Actual:** __________
+
+2. [ ] **STEP 2:** Fill in required fields (name, email, role, etc.)
+   - **Expected:** Form accepts input
+   - **Actual:** __________
+
+3. [ ] **STEP 3:** Click "Capture Photo" button
+   - **Expected:** Webcam activates, live video preview shown
+   - **Actual:** __________
+
+4. [ ] **STEP 4:** Capture photo via webcam
+   - **Expected:** Photo captured, preview displayed
+   - **Actual:** __________
+
+5. [ ] **STEP 5:** Submit/Save user profile
+   - **Expected:** User created successfully, confirmation message shown
+   - **Actual:** __________
+
+6. [ ] **STEP 6:** Navigate away from user profile
+   - **Expected:** Can navigate to different page/section
+   - **Actual:** __________
+
+7. [ ] **STEP 7:** Return to user management, find created user
+   - **Expected:** User appears in list
+   - **Actual:** __________
+
+8. [ ] **STEP 8:** View user profile details
+   - **Expected:** **CRITICAL:** Captured photo is displayed (not blank/broken image)
+   - **Actual:** __________
+
+9. [ ] **STEP 9:** Verify photo URL/path in browser dev tools (inspect element)
+   - **Expected:** Photo has valid S3 URL or local path stored in `facialDataUrl` field
+   - **Actual:** __________
+
+**Part B: Existing User Photo Update**
+10. [ ] **STEP 10:** Select existing user without photo
+    - **Expected:** User profile opens
+    - **Actual:** __________
+
+11. [ ] **STEP 11:** Capture new photo via webcam
+    - **Expected:** Photo captured successfully
+    - **Actual:** __________
+
+12. [ ] **STEP 12:** Save updated profile
+    - **Expected:** Profile updated successfully
+    - **Actual:** __________
+
+13. [ ] **STEP 13:** Refresh page or navigate away and return
+    - **Expected:** **CRITICAL:** Updated photo persists and displays correctly
+    - **Actual:** __________
+
+**Part C: Database Verification (Technical)**
+14. [ ] **STEP 14:** Check backend logs for S3 upload confirmation
+    - **Expected:** Logs show successful file upload to S3 or local storage
+    - **Actual:** __________
+
+15. [ ] **STEP 15:** Verify database record has both fields populated:
+    - **Expected:** `facialData.faceDescriptor` (array) AND `facialDataUrl` (string) both present
+    - **Actual:** __________
+
+**Expected Results:**
+- ✅ Webcam photo capture works correctly
+- ✅ **CRITICAL:** Photos persist after save and page refresh
+- ✅ Photos display correctly when viewing user profile
+- ✅ Backend stores both face descriptor AND photo URL
+- ✅ S3 upload succeeds (or local file saved for offline)
+- ✅ No broken images or blank photo areas
+
+**Test Result:** [ ] PASS / [ ] FAIL
+**Notes/Issues:** _______________________________________________
+
+---
+
+### 🧪 Test Case 5: AC8 - Task Assignment Dropdown Bug Fix
+
+**Test ID:** S6-S1-TC-005
+**Priority:** Critical
+**Type:** Functional + Regression
+
+**Preconditions:**
+- [ ] Logged in as coach
+- [ ] Navigate to Task Tracker
+- [ ] At least one student exists in assigned Balagruha
+
+**Test Steps:**
+
+**Part A: Create New Task with Student Assignment**
+1. [ ] **STEP 1:** Click "Add Task" or "Create Task" button
+   - **Expected:** Task creation modal/form opens
+   - **Actual:** __________
+
+2. [ ] **STEP 2:** Fill in task name/description
+   - **Expected:** Form accepts input
+   - **Actual:** __________
+
+3. [ ] **STEP 3:** Click on "Assign To" dropdown
+   - **Expected:** Dropdown opens showing list of users
+   - **Actual:** __________
+
+4. [ ] **STEP 4:** Verify students ARE visible in dropdown
+   - **Expected:** **CRITICAL:** Students from coach's Balagruha(s) appear in dropdown
+   - **Actual:** __________
+
+5. [ ] **STEP 5:** Verify dropdown is NOT empty
+   - **Expected:** **CRITICAL:** Dropdown contains users (students + coaches + other roles)
+   - **Actual:** __________
+
+6. [ ] **STEP 6:** Select a student from dropdown
+   - **Expected:** Student selected successfully
+   - **Actual:** __________
+
+7. [ ] **STEP 7:** Complete task creation and save
+   - **Expected:** Task created successfully
+   - **Actual:** __________
+
+8. [ ] **STEP 8:** View created task details
+   - **Expected:** Task shows assigned student correctly
+   - **Actual:** __________
+
+**Part B: Edit Existing Task Assignment**
+9. [ ] **STEP 9:** Open existing task for editing
+   - **Expected:** Task edit form opens
+   - **Actual:** __________
+
+10. [ ] **STEP 10:** Open "Assign To" dropdown
+    - **Expected:** Dropdown shows all available users including students
+    - **Actual:** __________
+
+11. [ ] **STEP 11:** Change assignment to different student
+    - **Expected:** Can successfully reassign task to student
+    - **Actual:** __________
+
+12. [ ] **STEP 12:** Save updated task
+    - **Expected:** Task assignment updated successfully
+    - **Actual:** __________
+
+**Part C: Verify User List Scope**
+13. [ ] **STEP 13:** Count users in "Assign To" dropdown
+    - **Expected:** All users from coach's assigned Balagruha(s) visible
+    - **Actual:** __________
+
+14. [ ] **STEP 14:** Verify different user roles in dropdown
+    - **Expected:** Students, coaches, and other staff from Balagruha(s) all visible
+    - **Actual:** __________
+
+**Expected Results:**
+- ✅ **CRITICAL:** Task assignment dropdown is NOT empty
+- ✅ **CRITICAL:** Students appear in dropdown (no longer filtered out)
+- ✅ All users from coach's Balagruha(s) visible
+- ✅ Can successfully assign tasks to students
+- ✅ Can reassign tasks to different users
+- ✅ Task assignments persist correctly
+
+**Test Result:** [ ] PASS / [ ] FAIL
+**Notes/Issues:** _______________________________________________
+
+---
+
+### 🧪 Test Case 6: Full-Width Calendar Display (UI Enhancement)
+
+**Test ID:** S6-S1-TC-006
+**Priority:** Medium
+**Type:** Visual/UI
+
+**Preconditions:**
+- [ ] Logged in as coach
+- [ ] Opened Weekly Calendar
+
+**Test Steps:**
+1. [ ] **STEP 1:** Observe calendar width on full screen
+   - **Expected:** Calendar extends to full available width (no significant white space on sides)
+   - **Actual:** __________
+
+2. [ ] **STEP 2:** Resize browser window to different widths
+   - **Expected:** Calendar adjusts responsively to use available width
+   - **Actual:** __________
+
+3. [ ] **STEP 3:** Compare calendar width to dashboard cards above
+   - **Expected:** Calendar width matches dashboard container width
+   - **Actual:** __________
+
+4. [ ] **STEP 4:** Check for centered/constrained layout
+   - **Expected:** Calendar uses flex: 1 and width: 100% (not artificially constrained)
+   - **Actual:** __________
+
+**Expected Results:**
+- ✅ Calendar uses full available screen width
+- ✅ No excessive white space on left/right sides
+- ✅ Responsive layout adjusts to window size
+- ✅ Professional full-width appearance
+
+**Test Result:** [ ] PASS / [ ] FAIL
+**Notes/Issues:** _______________________________________________
+
+---
+
+### 📊 Overall QA Summary
+
+**Total Test Cases:** 6
+**Passed:** _____ / 6
+**Failed:** _____ / 6
+**Blocked:** _____ / 6
+
+**Critical Bugs Found:** _____
+**Major Bugs Found:** _____
+**Minor Bugs Found:** _____
+
+**Overall Status:** [ ] READY FOR PRODUCTION / [ ] NEEDS FIXES / [ ] BLOCKED
+
+**QA Sign-off:** _________________ Date: _________
+
+**Next Steps:**
+- [ ] All tests passed → Mark story as DONE, merge to main
+- [ ] Bugs found → Create bug tickets, assign to Dev Agent for fixes
+- [ ] Blocked → Document blockers, escalate to Orchestrator
 
 ---
 
