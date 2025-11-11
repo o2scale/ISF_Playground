@@ -212,19 +212,13 @@ function CoachDashboard() {
         }));
     };
 
-    // Coach menus
+    // Coach menus - Sprint6-Story-1-AC3: Removed 6 unused cards, kept 5 active ones
     const coachMenus = [
-        { id: 1, name: "Daily Schedule", count: tasks.length },
-        { id: 2, name: "Task Tracker" },
-        { id: 3, name: "Medical" },
-        { id: 4, name: "Syllabus Tracker" },
-        { id: 5, name: "Slow Learners" },
-        { id: 6, name: "Repairs" },
-        { id: 7, name: "Purchase" },
-        { id: 8, name: "ISF Shop" },
-        { id: 9, name: "Suggestion" },
-        { id: 10, name: "Activities" },
-        { id: 11, name: "Events" },
+        { id: 1, name: "Daily Schedule", count: schedules?.length || 0 },
+        { id: 2, name: "Task Tracker", count: tasks.length },
+        { id: 3, name: "Medical", count: 0 }, // TODO: Add medical count when API is available
+        { id: 7, name: "Purchase", count: 0 }, // TODO: Add purchase count when API is available
+        { id: 8, name: "ISF Shop", count: 0 }, // TODO: Add shop count when API is available
     ];
 
     // Top menus

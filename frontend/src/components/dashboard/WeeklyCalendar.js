@@ -420,8 +420,9 @@ const WeeklyCalendar = ({
         }
     }
 
-    const hours = Array.from({ length: 12 }, (_, i) => {
-        const hour = i + 8; // 8 AM to 8 PM
+    // Sprint6-Story-1-AC2: Extended schedule hours from 7 AM to 9 PM
+    const hours = Array.from({ length: 15 }, (_, i) => {
+        const hour = i + 7; // 7 AM to 9 PM (15 hours)
         return `${hour.toString().padStart(2, '0')}:00`;
     });
 
@@ -534,8 +535,9 @@ const WeeklyCalendar = ({
                         <h3>Time</h3>
                     </div>
                     <div className="">
-                        {Array.from({ length: 12 }, (_, i) => {
-                            const hour = i + 7; // Starting from 7 AM
+                        {/* Sprint6-Story-1-AC2: Extended to 9 PM (15 hours total) */}
+                        {Array.from({ length: 15 }, (_, i) => {
+                            const hour = i + 7; // Starting from 7 AM to 9 PM
                             return (
                                 <p style={{marginTop: "100px"}} key={hour}>
                                     {`${hour.toString().padStart(2, '0')}:00`}
@@ -595,7 +597,8 @@ const WeeklyCalendar = ({
                                 <h3>Time</h3>
                             </div>
                             <div className="time-slots">
-                                {Array.from({ length: 12 }, (_, i) => {
+                                {/* Sprint6-Story-1-AC2: Extended to 9 PM (15 hours total) */}
+                                {Array.from({ length: 15 }, (_, i) => {
                                     const hour = i + 7;
                                     return (
                                         <div className="time-slot" key={hour}>
