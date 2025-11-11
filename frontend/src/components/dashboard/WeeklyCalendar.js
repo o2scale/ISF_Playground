@@ -360,7 +360,7 @@ const WeeklyCalendar = ({
         setCurrentWeekOffset(diffWeeks);
     };
 
-    // Sprint6-Story-1-AC1: Navigate to previous week
+    // Sprint6-Story-1-AC1: Navigate to previous week (FIXED: Year boundary handling)
     const handlePreviousWeek = () => {
         if (weekOffset > 0) {
             // Move to previous week within same month
@@ -368,10 +368,21 @@ const WeeklyCalendar = ({
             setCurrentWeekOffset(currentWeekOffset - 1);
         } else {
             // Cross to previous month
-            const prevMonth = selectedMonth === 0 ? 11 : selectedMonth - 1;
-            const prevYear = selectedMonth === 0 ? selectedYear - 1 : selectedYear;
+            let prevMonth, prevYear;
+
+            if (selectedMonth === 0) {
+                // Crossing from January to December - DECREMENT YEAR
+                prevMonth = 11;
+                prevYear = selectedYear - 1;
+            } else {
+                // Same year, just previous month
+                prevMonth = selectedMonth - 1;
+                prevYear = selectedYear;
+            }
+
             const weeksInPrevMonth = getWeeksInMonth(prevMonth, prevYear);
 
+            // Update all state together
             setSelectedMonth(prevMonth);
             setSelectedYear(prevYear);
             setWeekOffset(weeksInPrevMonth - 1);
@@ -379,7 +390,7 @@ const WeeklyCalendar = ({
         }
     };
 
-    // Sprint6-Story-1-AC1: Navigate to next week
+    // Sprint6-Story-1-AC1: Navigate to next week (FIXED: Year boundary handling)
     const handleNextWeek = () => {
         const weeksInCurrentMonth = getWeeksInMonth(selectedMonth, selectedYear);
 
@@ -389,9 +400,19 @@ const WeeklyCalendar = ({
             setCurrentWeekOffset(currentWeekOffset + 1);
         } else {
             // Cross to next month
-            const nextMonth = selectedMonth === 11 ? 0 : selectedMonth + 1;
-            const nextYear = selectedMonth === 11 ? selectedYear + 1 : selectedYear;
+            let nextMonth, nextYear;
 
+            if (selectedMonth === 11) {
+                // Crossing from December to January - INCREMENT YEAR
+                nextMonth = 0;
+                nextYear = selectedYear + 1;
+            } else {
+                // Same year, just next month
+                nextMonth = selectedMonth + 1;
+                nextYear = selectedYear;
+            }
+
+            // Update all state together
             setSelectedMonth(nextMonth);
             setSelectedYear(nextYear);
             setWeekOffset(0);
@@ -656,8 +677,9 @@ const WeeklyCalendar = ({
                             onChange={(e) => handleMonthYearChange(selectedMonth, parseInt(e.target.value))}
                             className="calendar-year-selector"
                         >
-                            {Array.from({ length: 5 }, (_, i) => {
-                                const year = new Date().getFullYear() - 2 + i;
+                            {/* Sprint6-Story-1-AC1: Expanded year range to support navigation */}
+                            {Array.from({ length: 11 }, (_, i) => {
+                                const year = new Date().getFullYear() - 5 + i;
                                 return <option key={year} value={year}>{year}</option>;
                             })}
                         </select>
