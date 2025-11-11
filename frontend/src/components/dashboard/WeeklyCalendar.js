@@ -255,6 +255,11 @@ const WeeklyCalendar = ({
         }
     ]);
 
+    // Sprint6-Story-1-AC1: Month/Year selector state
+    const today = new Date();
+    const [selectedMonth, setSelectedMonth] = useState(today.getMonth()); // 0-11
+    const [selectedYear, setSelectedYear] = useState(today.getFullYear());
+
     useEffect(() => {
         if (users) {
             const filteredUser = users.filter(user => user.role !== 'student' && user.role !== 'admin')
@@ -303,6 +308,28 @@ const WeeklyCalendar = ({
         } else {
             return `${firstMonth} ${firstDay.getDate()} - ${lastMonth} ${lastDay.getDate()}, ${firstDay.getFullYear()}`;
         }
+    };
+
+    // Sprint6-Story-1-AC1: Handle month/year change and calculate week offset
+    const handleMonthYearChange = (month, year) => {
+        setSelectedMonth(month);
+        setSelectedYear(year);
+
+        // Calculate week offset from today to the first day of selected month
+        const targetDate = new Date(year, month, 1); // First day of selected month
+        const todayDate = new Date();
+
+        // Get Monday of current week
+        const currentDay = todayDate.getDay();
+        const diffToMonday = (currentDay + 6) % 7;
+        const currentMonday = new Date(todayDate);
+        currentMonday.setDate(todayDate.getDate() - diffToMonday);
+
+        // Calculate difference in weeks
+        const diffTime = targetDate.getTime() - currentMonday.getTime();
+        const diffWeeks = Math.floor(diffTime / (7 * 24 * 60 * 60 * 1000));
+
+        setCurrentWeekOffset(diffWeeks);
     };
 
     const fetchBalagruhaByCoach = async (id) => {
@@ -512,21 +539,39 @@ const WeeklyCalendar = ({
             <div className="full-calendar">
                 <h3>Weekly Calendar</h3>
 
-                {/* Calendar Header */}
+                {/* Calendar Header - Sprint6-Story-1-AC1: Month/Year selector */}
                 <div className="calendar-header">
-                    <button
-                        onClick={() => setCurrentWeekOffset(currentWeekOffset - 1)}
-                        className="calendar-nav-btn"
-                    >
-                        &lt;
-                    </button>
-                    <div>{getWeekRangeText()}</div>
-                    <button
-                        onClick={() => setCurrentWeekOffset(currentWeekOffset + 1)}
-                        className="calendar-nav-btn"
-                    >
-                        &gt;
-                    </button>
+                    <div className="calendar-nav-selectors">
+                        <select
+                            value={selectedMonth}
+                            onChange={(e) => handleMonthYearChange(parseInt(e.target.value), selectedYear)}
+                            className="calendar-month-selector"
+                        >
+                            <option value={0}>January</option>
+                            <option value={1}>February</option>
+                            <option value={2}>March</option>
+                            <option value={3}>April</option>
+                            <option value={4}>May</option>
+                            <option value={5}>June</option>
+                            <option value={6}>July</option>
+                            <option value={7}>August</option>
+                            <option value={8}>September</option>
+                            <option value={9}>October</option>
+                            <option value={10}>November</option>
+                            <option value={11}>December</option>
+                        </select>
+                        <select
+                            value={selectedYear}
+                            onChange={(e) => handleMonthYearChange(selectedMonth, parseInt(e.target.value))}
+                            className="calendar-year-selector"
+                        >
+                            {Array.from({ length: 5 }, (_, i) => {
+                                const year = new Date().getFullYear() - 2 + i;
+                                return <option key={year} value={year}>{year}</option>;
+                            })}
+                        </select>
+                    </div>
+                    <div className="calendar-week-display">{getWeekRangeText()}</div>
                 </div>
 
                 {/* <div className='calender-container'>
@@ -535,7 +580,7 @@ const WeeklyCalendar = ({
                         <h3>Time</h3>
                     </div>
                     <div className="">
-                        {/* Sprint6-Story-1-AC2: Extended to 9 PM (15 hours total) */}
+                        Sprint6-Story-1-AC2: Extended to 9 PM (15 hours total)
                         {Array.from({ length: 15 }, (_, i) => {
                             const hour = i + 7; // Starting from 7 AM to 9 PM
                             return (
@@ -588,7 +633,7 @@ const WeeklyCalendar = ({
                         </div>
                     ))}
                 </div>
-                </div> */
+                </div> */}
 
                     <div className="calendar-container">
                         {/* Time Column */}
