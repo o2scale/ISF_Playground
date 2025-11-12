@@ -1,0 +1,442 @@
+# Quality Gate - Sprint 6 Story 1: AC1 Regression Re-Test (Week Navigation Fix)
+# Generated: 2025-11-11 18:17:28
+# QA Agent: Quinn (Test Architect)
+# Test Method: Playwright MCP E2E Testing
+# Test Type: Regression Re-Test
+
+story_id: Sprint6-Story-01-AC1-Regression
+story_title: Coach View Corrections - AC1 Week Navigation Regression Fix
+parent_story: Sprint6-Story-01
+regression_trigger: Client UAT Bug S6-S1-UAT-BUG-001 (Week navigation lost after arrow removal)
+qa_agent: Quinn
+test_date: 2025-11-11
+test_time: 18:17:28
+decision: FAIL
+
+# Test Environment
+environment:
+  frontend_url: http://localhost:3000
+  backend_url: http://localhost:5001
+  frontend_status: 200 OK
+  backend_status: 200 OK
+  browser: Chromium (Playwright MCP)
+  test_user: coach@gmail.com
+  test_duration_minutes: 45
+
+# Quick Verification Results (Pre-Test Smoke Checks)
+quick_verification:
+  total_checks: 6
+  checks_passed: 6
+  checks_failed: 0
+  status: PASS
+  checks:
+    - id: QUICK-001
+      description: Month dropdown visible and populated
+      result: PASS
+    - id: QUICK-002
+      description: Year dropdown visible and populated
+      result: PASS
+    - id: QUICK-003
+      description: Week navigation arrows present (Previous ◀, Next ▶)
+      result: PASS
+    - id: QUICK-004
+      description: Week indicator showing "Week X of Y" format
+      result: PASS
+    - id: QUICK-005
+      description: Today button present with calendar emoji
+      result: PASS
+    - id: QUICK-006
+      description: Cross-month navigation functional
+      result: PASS
+
+# Core Test Cases Results
+core_test_cases:
+  total_cases: 10
+  cases_passed: 9
+  cases_failed: 1
+  coverage_percentage: 100
+
+  tc_ac1_week_001:
+    name: Week Navigation Within Selected Month
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Selected January 2025 from dropdowns
+      - Navigated forward through all 5 weeks (1→2→3→4→5)
+      - Week indicator updated correctly at each step
+      - Navigated backward to Week 1 (5→4→3→2→1)
+      - Month/Year dropdowns remained on January 2025 throughout
+    evidence:
+      - screenshot: AC1-WEEK-001-january-2025-week-1.png
+      - screenshot: AC1-WEEK-001-week-5.png
+      - screenshot: AC1-WEEK-001-back-to-week-1.png
+
+  tc_ac1_week_002:
+    name: Cross-Month Navigation (Forward)
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Started at January 2025, Week 5 (last week)
+      - Clicked Next arrow
+      - Successfully transitioned to February 2025, Week 1
+      - Month dropdown auto-updated to "February"
+      - Week indicator correctly shows "Week 1 of 5"
+    evidence:
+      - screenshot: AC1-WEEK-002-january-week-5-before-transition.png
+      - screenshot: AC1-WEEK-002-transitioned-to-february.png
+
+  tc_ac1_week_003:
+    name: Cross-Month Navigation (Backward)
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Started at February 2025, Week 1
+      - Clicked Previous arrow
+      - Successfully transitioned to January 2025, Week 5
+      - Month dropdown auto-updated to "January"
+      - Week indicator correctly shows "Week 5 of 5"
+    evidence:
+      - screenshot: AC1-WEEK-003-transitioned-back-to-january.png
+
+  tc_ac1_week_004:
+    name: Today Button from Past Month
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Started at October 2025, Week 1 (past month)
+      - Clicked Today button
+      - Successfully jumped to November 2025, Week 3 (current week: 2025-11-11)
+      - Month dropdown auto-updated to "November"
+      - Week indicator shows "Week 3 of 6"
+    evidence:
+      - screenshot: AC1-WEEK-004-october-2025-selected.png
+      - screenshot: AC1-WEEK-004-today-button-clicked.png
+
+  tc_ac1_week_005:
+    name: Today Button from Future Month
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Started at December 2025, Week 1 (future month)
+      - Clicked Today button
+      - Successfully jumped back to November 2025, Week 3 (current week)
+      - Month dropdown auto-updated to "November"
+      - Week indicator shows "Week 3 of 6"
+    evidence:
+      - screenshot: AC1-WEEK-005-december-2025-selected.png
+      - screenshot: AC1-WEEK-005-today-button-from-future.png
+
+  tc_ac1_week_006:
+    name: Week Indicator Accuracy
+    priority: P1 (High)
+    status: PASS
+    findings:
+      - Verified week counts for different months
+      - February 2025: Week 1 of 5 ✓
+      - March 2025: Week 1 of 6 ✓
+      - April 2025: Week 1 of 5 ✓
+      - Week counts correctly calculated based on month structure
+    evidence:
+      - screenshot: AC1-WEEK-006-february-2025.png
+      - screenshot: AC1-WEEK-006-march-2025.png
+
+  tc_ac1_week_007:
+    name: Arrow Button Boundary Testing
+    priority: P1 (High)
+    status: PASS
+    findings:
+      - Backward boundary: January 2025 Week 1 → Previous → December 2024 Week 5 ✓
+      - Forward boundary: January 2025 Week 5 → Next → February 2025 Week 1 ✓
+      - Month and year dropdowns auto-updated correctly
+      - No disabled state on arrows at boundaries (cross-month navigation works)
+    evidence:
+      - screenshot: AC1-WEEK-007-prev-from-january-week-1.png
+      - screenshot: AC1-WEEK-007-next-from-january-last-week.png
+
+  tc_ac1_week_008:
+    name: Year Transition Testing
+    priority: P0 (Critical)
+    status: FAIL
+    critical_bug: true
+    bug_id: S6-S1-RETEST-BUG-001
+    findings:
+      - Started at December 2025, Week 5 (last week of year)
+      - Clicked Next arrow to cross year boundary
+      - **EXPECTED**: January 2026, Week 1
+      - **ACTUAL**: January 2025, Week 1 (went BACKWARD 12 months!)
+      - Year dropdown shows "2025" (incorrect - should be "2026")
+      - Calendar dates show "Dec 30, Dec 31, Jan 1, Jan 2..." (2025-2026 boundary)
+      - **CONFIRMATION**: Clicking Previous from January 2025 goes to December 2024
+      - Year dropdown has 2026 option available but not auto-selected
+    root_cause: Year boundary navigation logic not incrementing year when crossing December → January
+    impact: CRITICAL - Users cannot navigate forward across year boundaries with arrow buttons
+    evidence:
+      - screenshot: AC1-WEEK-008-december-last-week.png
+      - screenshot: AC1-WEEK-008-transitioned-to-2026.png (shows bug)
+      - screenshot: AC1-WEEK-008-BUG-backward-from-january.png (confirmation)
+
+  tc_ac1_week_009:
+    name: UI Element Consistency
+    priority: P2 (Medium)
+    status: PASS
+    findings:
+      - Week indicator present and showing "Week 3 of 6" ✓
+      - Previous arrow button: "◀" ✓
+      - Next arrow button: "▶" ✓
+      - Today button: "📅 Today" ✓
+      - Month dropdown: Present and functional ✓
+      - Year dropdown: Present and functional ✓
+      - All elements properly styled and visible
+    evidence:
+      - screenshot: AC1-WEEK-009-ui-elements-check.png
+
+  tc_ac1_week_010:
+    name: Multiple Rapid Navigation Actions
+    priority: P1 (High)
+    status: PASS
+    findings:
+      - Started at Week 3 of 6
+      - Rapid navigation sequence: Next 3x, Previous 2x
+      - Final state: Week 4 of 6 (correct calculation: 3+3-2=4) ✓
+      - No UI freezing or lag observed
+      - Week indicator updated correctly after each click
+      - Calendar rendering remained stable
+    evidence:
+      - screenshot: AC1-WEEK-010-rapid-navigation-test.png
+
+# Regression Test Cases Results
+regression_tests:
+  total_cases: 2
+  cases_passed: 2
+  cases_failed: 0
+  status: PASS
+
+  reg_ac1_001:
+    name: Month/Year Dropdowns Still Functional
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Month dropdown: Changed from November to June ✓
+      - Year dropdown: Changed from 2025 to 2024 ✓
+      - Week indicator updated from "Week 4 of 6" to "Week 1 of 6" ✓
+      - Calendar refreshed to show June 2024 ✓
+      - Original dropdown functionality NOT broken by week navigation fix
+    evidence:
+      - screenshot: REG-AC1-001-month-dropdown-june.png
+      - screenshot: REG-AC1-001-year-dropdown-2024.png
+
+  reg_ac1_002:
+    name: Schedule Time Range Still 07:00-21:00
+    priority: P0 (Critical)
+    status: PASS
+    findings:
+      - Time range displays 07:00 to 21:00 ✓
+      - Total hours displayed: 15 (correct count) ✓
+      - Schedule grid rendering properly ✓
+      - AC2 (time extension to 9 PM) remains functional after week navigation fix ✓
+      - No visual artifacts or missing time slots
+    evidence:
+      - screenshot: REG-AC1-002-schedule-time-range.png
+      - verification: Time labels include all hours from 07:00 to 21:00
+
+# Test Coverage Summary
+test_coverage:
+  total_test_cases: 12
+  quick_verification_checks: 6
+  core_test_cases: 10
+  regression_test_cases: 2
+  test_cases_passed: 17
+  test_cases_failed: 1
+  coverage_percentage: 100
+  critical_bugs_found: 1
+  critical_bugs_fixed: 0
+
+# Critical Bug Details
+critical_bugs:
+  - id: S6-S1-RETEST-BUG-001
+    severity: CRITICAL
+    priority: P0
+    title: Year Boundary Navigation Failure (Dec 2025 → Jan 2025 instead of Jan 2026)
+    description: |
+      When navigating forward from the last week of December 2025 using the Next arrow,
+      the calendar incorrectly transitions to January 2025 instead of January 2026.
+      The year dropdown remains at "2025" and does not increment to "2026".
+
+    steps_to_reproduce:
+      - Navigate to December 2025
+      - Click Next arrow 4 times to reach Week 5 (last week of December)
+      - Click Next arrow one more time to cross year boundary
+      - Observe calendar shows January 2025 instead of January 2026
+
+    expected_behavior: Calendar should show January 2026, Week 1 with year dropdown at "2026"
+    actual_behavior: Calendar shows January 2025, Week 1 with year dropdown at "2025"
+
+    impact: |
+      BLOCKING: Users cannot navigate forward across year boundaries using week arrows.
+      This breaks the fundamental week navigation functionality when crossing years.
+
+      Workaround: Users can manually select year from dropdown, but this defeats the
+      purpose of the convenient arrow navigation feature.
+
+    root_cause_hypothesis: |
+      Week navigation logic likely calculates next/previous week correctly but fails
+      to update the year state variable when crossing year boundaries. The month
+      auto-update works (wraps from 11→0) but year increment logic is missing.
+
+    code_location_hint: |
+      Likely in CoachDashboard component or related calendar utility functions
+      handling week navigation state management (handleWeekChange or similar).
+
+    test_case: TC-AC1-WEEK-008
+    found_in: AC1 Regression Re-Test
+    found_by: Quinn (Test Architect)
+    found_date: 2025-11-11
+
+# Issues & Concerns
+issues:
+  critical:
+    - id: S6-S1-RETEST-BUG-001
+      severity: critical
+      title: Year boundary navigation failure
+      description: See critical_bugs section above
+      status: NEW
+      blocking: true
+
+  non_critical: []
+
+# Regression Testing Assessment
+regression_assessment:
+  original_ac1_functionality: INTACT (month/year dropdowns still work)
+  original_ac2_functionality: INTACT (time range 07:00-21:00 preserved)
+  new_week_navigation_features:
+    week_arrows: WORKING (except year boundaries)
+    week_indicator: WORKING
+    today_button: WORKING
+    cross_month_navigation: WORKING (within same year)
+    cross_year_navigation: BROKEN (critical bug)
+
+  overall_regression_status: PARTIAL REGRESSION
+  conclusion: |
+    Week navigation fix successfully implemented and working for most scenarios.
+    However, critical year boundary bug makes feature incomplete and blocks release.
+
+# Performance Observations
+performance:
+  page_load_time: Not measured (manual observation: acceptable)
+  calendar_rendering: Fast, no lag observed
+  arrow_click_responsiveness: Instant, no delay
+  rapid_navigation_stability: Stable, no freezing (tested 5 rapid clicks)
+  overall_rating: Good
+
+# Security Observations
+security:
+  authentication: Working (coach role login successful)
+  authorization: Not fully tested
+  data_isolation: Not fully tested
+  concerns: None identified
+
+# Quality Gate Decision
+gate_decision:
+  status: FAIL
+  rationale: |
+    AC1 regression fix successfully implemented week navigation arrows, week indicator,
+    and Today button functionality. 11 out of 12 test cases PASSED including all
+    regression tests confirming no breaking changes to existing functionality.
+
+    HOWEVER: Critical bug found in year boundary navigation (TC-AC1-WEEK-008 FAIL).
+    When navigating forward from December 2025 Week 5, the calendar incorrectly shows
+    January 2025 instead of January 2026. This is a BLOCKING bug that breaks core
+    week navigation functionality.
+
+    Original AC1 and AC2 functionality remains intact (dropdowns work, time range
+    preserved). Week navigation works perfectly within the same year but fails at
+    year boundaries.
+
+    **Decision: FAIL - Story cannot be approved for UAT/production until year
+    boundary navigation bug is fixed.**
+
+  approval_date: 2025-11-11
+  approved_by: Quinn (Test Architect)
+  ready_for_uat: false
+  ready_for_production: false
+  requires_dev_fix: true
+
+# Recommendations
+recommendations:
+  immediate:
+    - CRITICAL: Fix year boundary navigation bug (S6-S1-RETEST-BUG-001)
+    - Dev should investigate handleWeekChange or similar week navigation logic
+    - Add year increment/decrement logic when month wraps from December→January or January→December
+    - Re-run TC-AC1-WEEK-008 after fix
+    - Verify backward year boundary (January 2025 Week 1 → Previous → December 2024 Week 5)
+
+  before_next_qa:
+    - Ensure year dropdown value updates when crossing year boundaries
+    - Test multiple year transitions (2024→2025, 2025→2026, 2026→2027)
+    - Test backward year transitions (2026→2025, 2025→2024)
+    - Consider edge case: leap years (February week counts)
+
+  future_sprint:
+    - Add automated unit tests for year boundary navigation logic
+    - Add E2E test coverage for year transitions in Playwright test suite
+    - Document week calculation algorithm for future reference
+
+# Dev Handoff Notes
+dev_handoff:
+  bug_id: S6-S1-RETEST-BUG-001
+  severity: CRITICAL
+  blocking: true
+
+  issue_summary: |
+    Week arrow navigation fails at year boundaries. December 2025 Week 5 → Next
+    goes to January 2025 instead of January 2026.
+
+  expected_fix_time: 15-30 minutes (simple state management fix)
+
+  suggested_fix_approach: |
+    1. Locate week navigation handler (likely handleWeekChange or handleNextWeek)
+    2. Add year increment logic when month wraps from 11 (Dec) to 0 (Jan)
+    3. Add year decrement logic when month wraps from 0 (Jan) to 11 (Dec)
+    4. Ensure year state variable updates along with month state
+    5. Example logic:
+       ```
+       if (newMonth === 0 && currentMonth === 11) {
+         setYear(year + 1);
+       } else if (newMonth === 11 && currentMonth === 0) {
+         setYear(year - 1);
+       }
+       ```
+
+  test_verification_required:
+    - TC-AC1-WEEK-008: Year Transition Testing (currently FAILING)
+    - Manual test: December 2025 Week 5 → Next → should show January 2026
+    - Manual test: January 2025 Week 1 → Previous → should show December 2024
+
+  qa_retest_scope:
+    - Full re-run of TC-AC1-WEEK-008
+    - Quick verification of TC-AC1-WEEK-001 through TC-AC1-WEEK-007 (smoke test)
+    - Regression tests REG-AC1-001 and REG-AC1-002 (ensure no new breaks)
+
+# Sign-Off
+qa_signoff:
+  name: Quinn
+  role: Test Architect & Quality Advisor
+  decision: FAIL
+  ready_for_uat: false
+  ready_for_production: false
+  requires_dev_fix: true
+  timestamp: 2025-11-11 18:17:28
+  signature: |
+    Comprehensive AC1 regression re-test completed via Playwright MCP.
+
+    ✅ Week navigation fix successfully implemented for most scenarios
+    ✅ Week arrows, week indicator, and Today button functional
+    ✅ Cross-month navigation working within same year
+    ✅ No regressions to original AC1/AC2 functionality
+
+    ❌ CRITICAL BUG: Year boundary navigation broken
+    ❌ December 2025 → January 2025 instead of January 2026
+
+    **GATE DECISION: FAIL**
+    Story BLOCKED from UAT/production until year boundary bug fixed.
+    Expected fix time: 15-30 minutes. Full QA re-test required after fix.
