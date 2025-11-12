@@ -23,17 +23,22 @@ const {
 class MedicalCheckIns {
   constructor(obj) {
     this.studentId = obj.studentId || null;
-    this.temperature = obj.temperature || 0;
+    // Sprint6-Story-3-AC1: Temperature is optional, use null for empty values
+    this.temperature = obj.temperature && obj.temperature !== "" ? Number(obj.temperature) : null;
     this.date = obj.date || null;
-    this.healthStatus = obj.healthStatus || "Normal";
+    // Sprint6-Story-3-BugFix: Ensure healthStatus is lowercase to match enum validation
+    this.healthStatus = obj.healthStatus ? obj.healthStatus.toLowerCase() : "normal";
     this.notes = obj.notes || "";
     this.attachments = obj.attachments || [];
     this.createdBy = obj.createdBy || null;
     // New fields
     this.symptoms = obj.symptoms || [];
     this.customSymptom = obj.customSymptom || "";
+    // Sprint6-Story-3: Support both old and new formats
     this.doctorVisit = obj.doctorVisit || null;
     this.followUp = obj.followUp || null;
+    this.doctorVisits = obj.doctorVisits || [];
+    this.followUps = obj.followUps || [];
   }
 
   toJSON() {
@@ -47,8 +52,11 @@ class MedicalCheckIns {
       createdBy: this.createdBy,
       symptoms: this.symptoms,
       customSymptom: this.customSymptom,
+      // Sprint6-Story-3: Support both old and new formats
       doctorVisit: this.doctorVisit,
       followUp: this.followUp,
+      doctorVisits: this.doctorVisits,
+      followUps: this.followUps,
     };
   }
 
@@ -65,13 +73,17 @@ class MedicalCheckIns {
         customSymptom,
         doctorVisit,
         followUp,
+        // Sprint6-Story-3-AC5-AC6: New array fields
+        doctorVisits,
+        followUps,
       } = payload;
 
-      if (!studentId || !temperature || !date || !createdBy) {
+      // Sprint6-Story-3-AC1: Temperature is optional
+      if (!studentId || !date || !createdBy) {
         return {
           success: false,
           data: {},
-          message: "All required fields must be provided.",
+          message: "Student ID, date, and creator are required.",
         };
       }
       if (
@@ -183,14 +195,102 @@ class MedicalCheckIns {
         }
       }
 
-      // Prepare doctorVisit object with processed files
+      // Sprint6-Story-3-AC7: Process follow-up description files
+      let processedFollowUpDescriptions = [];
+      if (fileGroups?.followUpDescriptions && fileGroups.followUpDescriptions.length > 0) {
+        for (let i = 0; i < fileGroups.followUpDescriptions.length; i++) {
+          let file = fileGroups.followUpDescriptions[i];
+          let fileName = file.replace("uploads/", "");
+          let result = await uploadFileToS3(
+            file,
+            process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (result.success) {
+            let descriptionObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              fileSize: result.size,
+              uploadedBy: createdBy,
+            };
+            processedFollowUpDescriptions.push(descriptionObj);
+          } else {
+            return {
+              success: false,
+              data: {},
+              message: "Failed to upload follow-up description files.",
+            };
+          }
+        }
+      }
+
+      // Sprint6-Story-3-AC7: Process follow-up test result files
+      let processedFollowUpTestResults = [];
+      if (fileGroups?.followUpTestResults && fileGroups.followUpTestResults.length > 0) {
+        for (let i = 0; i < fileGroups.followUpTestResults.length; i++) {
+          let file = fileGroups.followUpTestResults[i];
+          let fileName = file.replace("uploads/", "");
+          let result = await uploadFileToS3(
+            file,
+            process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            fileName
+          );
+          if (result.success) {
+            let testResultObj = {
+              fileName: fileName,
+              fileUrl: result.url,
+              fileType: result.contentType,
+              fileSize: result.size,
+              uploadedBy: createdBy,
+            };
+            processedFollowUpTestResults.push(testResultObj);
+          } else {
+            return {
+              success: false,
+              data: {},
+              message: "Failed to upload follow-up test result files.",
+            };
+          }
+        }
+      }
+
+      // Sprint6-Story-3-AC5: Handle both old and new doctor visit formats
       let doctorVisitData = null;
-      if (doctorVisit) {
+      let doctorVisitsData = [];
+
+      if (doctorVisits && Array.isArray(doctorVisits) && doctorVisits.length > 0) {
+        // New format: multiple visits
+        // BugFix: Don't add ALL files to ALL visits - files should be added per-visit during edit
+        doctorVisitsData = doctorVisits.map(visit => ({
+          ...visit,
+          prescriptionFiles: visit.prescriptionFiles || [],
+          testResultFiles: visit.testResultFiles || [],
+        }));
+      } else if (doctorVisit) {
+        // Old format: single visit (backward compatibility)
         doctorVisitData = {
           ...doctorVisit,
           prescriptionFiles: processedPrescriptions,
           testResultFiles: processedTestResults,
         };
+      }
+
+      // Sprint6-Story-3-AC6-AC7: Handle both old and new follow-up formats
+      let followUpData = null;
+      let followUpsData = [];
+
+      if (followUps && Array.isArray(followUps) && followUps.length > 0) {
+        // New format: multiple follow-ups with file uploads
+        // BugFix: Don't add ALL files to ALL follow-ups - files should be added per-follow-up during edit
+        followUpsData = followUps.map(followUp => ({
+          ...followUp,
+          descriptionFiles: followUp.descriptionFiles || [],
+          testResultFiles: followUp.testResultFiles || [],
+        }));
+      } else if (followUp) {
+        // Old format: single follow-up (backward compatibility)
+        followUpData = followUp;
       }
 
       const medicalCheckIn = new MedicalCheckIns({
@@ -203,8 +303,11 @@ class MedicalCheckIns {
         createdBy,
         symptoms: symptoms || [],
         customSymptom: customSymptom || "",
+        // Sprint6-Story-3: Support both old and new formats
         doctorVisit: doctorVisitData,
-        followUp: followUp || null,
+        followUp: followUpData,
+        doctorVisits: doctorVisitsData,
+        followUps: followUpsData,
       });
 
       const result = await createMedicalCheckIn(medicalCheckIn);

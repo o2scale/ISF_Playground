@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import DoctorNameDropdown from "./DoctorNameDropdown";
 import "./DoctorVisitsSection.css";
 
 const DoctorVisitsSection = ({ doctorVisit, onChange }) => {
@@ -60,11 +61,10 @@ const DoctorVisitsSection = ({ doctorVisit, onChange }) => {
         <div className="section-content">
           <div className="form-group">
             <label>Doctor Name</label>
-            <input
-              type="text"
+            <DoctorNameDropdown
               value={doctorVisit.doctorName || ""}
-              onChange={(e) => handleChange("doctorName", e.target.value)}
-              placeholder="Enter doctor's name"
+              onChange={(value) => handleChange("doctorName", value)}
+              placeholder="Search or add doctor name"
             />
           </div>
 

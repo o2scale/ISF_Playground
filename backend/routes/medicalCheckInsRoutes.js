@@ -12,6 +12,8 @@ router.post(
     { name: "attachments", maxCount: 5 },
     { name: "prescriptions", maxCount: 5 },
     { name: "testResults", maxCount: 5 },
+    { name: "followUpDescriptions", maxCount: 5 },
+    { name: "followUpTestResults", maxCount: 5 },
   ]),
   medicalCheckInsController.createMedicalCheckIn
 );
@@ -56,6 +58,8 @@ router.put(
     { name: "attachments", maxCount: 5 },
     { name: "prescriptions", maxCount: 5 },
     { name: "testResults", maxCount: 5 },
+    { name: "followUpDescriptions", maxCount: 5 },
+    { name: "followUpTestResults", maxCount: 5 },
   ]),
   medicalCheckInsController.addOrUpdateAttachments
 );

@@ -7,7 +7,7 @@
   min-width: 350px;
   max-width: 450px;
   z-index: 9999;
-  pointer-events: none;
+  pointer-events: auto;
   animation: fadeIn 0.2s ease-in-out;
 }
 

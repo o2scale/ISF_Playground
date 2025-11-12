@@ -8,6 +8,8 @@ import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMe
 import showToast from '../../utils/toast';
 import DateRangeSelector from "../shop/DateRangeSelector";
 import StudentDetailsTooltip from "./StudentDetailsTooltip";
+import DoctorVisitsTooltip from "./DoctorVisitsTooltip";
+import FollowUpsTooltip from "./FollowUpsTooltip";
 
 const MedicInchargeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -26,6 +28,10 @@ const MedicInchargeDashboard = () => {
   const [selectedStatusFilters, setSelectedStatusFilters] = useState(['normal', 'important', 'critical']);
   const [hoveredStudent, setHoveredStudent] = useState(null);
   const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [hoveredDoctorVisits, setHoveredDoctorVisits] = useState(null);
+  const [doctorVisitsTooltipPosition, setDoctorVisitsTooltipPosition] = useState({ x: 0, y: 0 });
+  const [hoveredFollowUps, setHoveredFollowUps] = useState(null);
+  const [followUpsTooltipPosition, setFollowUpsTooltipPosition] = useState({ x: 0, y: 0 });
   const [checkIns, setCheckIns] = useState([
     // {
     //   id: "HC001",
@@ -210,7 +216,7 @@ const MedicInchargeDashboard = () => {
     try {
       if (editMode && checkInId) {
         // Update existing check-in
-        // Use dot notation for nested doctor visit fields to prevent overwriting other fields
+        // Sprint6-Story-3-BugFix: Support both old and new formats
         const updateData = {
           studentId: formData.studentId,
           temperature: formData.temperature,
@@ -219,19 +225,50 @@ const MedicInchargeDashboard = () => {
           notes: formData.notes,
           symptoms: formData.symptoms,
           customSymptom: formData.customSymptom,
-          // Use dot notation for doctor visit to avoid replacing the entire object
-          "doctorVisit.doctorName": formData.doctorVisit.doctorName,
-          "doctorVisit.hospitalName": formData.doctorVisit.hospitalName,
-          "doctorVisit.visitDate": formData.doctorVisit.visitDate,
-          "doctorVisit.testDetails": formData.doctorVisit.testDetails,
-          "doctorVisit.conclusion": formData.doctorVisit.conclusion,
-          // Use dot notation for follow-up to avoid replacing the entire object
-          "followUp.followUpDate": formData.followUp.followUpDate,
-          "followUp.hospital": formData.followUp.hospital,
-          "followUp.doctor": formData.followUp.doctor,
-          "followUp.assignedCoaches": formData.followUp.assignedCoaches,
-          "followUp.status": formData.followUp.status,
         };
+
+        // Sprint6-Story-3: Handle NEW array format (doctorVisits/followUps)
+        if (formData.doctorVisits && formData.doctorVisits.length > 0) {
+          // Send doctorVisits array (without files, files sent separately)
+          const doctorVisitsData = formData.doctorVisits.map(visit => ({
+            doctorName: visit.doctorName,
+            hospitalName: visit.hospitalName,
+            visitDate: visit.visitDate,
+            testDetails: visit.testDetails,
+            conclusion: visit.conclusion,
+          }));
+          updateData.doctorVisits = doctorVisitsData;
+        }
+
+        if (formData.followUps && formData.followUps.length > 0) {
+          // Send followUps array (without files, files sent separately)
+          const followUpsData = formData.followUps.map(followUp => ({
+            followUpDate: followUp.followUpDate,
+            hospital: followUp.hospital,
+            doctor: followUp.doctor,
+            assignedCoaches: followUp.assignedCoaches,
+            status: followUp.status,
+            notes: followUp.notes,
+          }));
+          updateData.followUps = followUpsData;
+        }
+
+        // Backward compatibility: Handle OLD single object format
+        if (formData.doctorVisit && typeof formData.doctorVisit === 'object') {
+          updateData["doctorVisit.doctorName"] = formData.doctorVisit.doctorName;
+          updateData["doctorVisit.hospitalName"] = formData.doctorVisit.hospitalName;
+          updateData["doctorVisit.visitDate"] = formData.doctorVisit.visitDate;
+          updateData["doctorVisit.testDetails"] = formData.doctorVisit.testDetails;
+          updateData["doctorVisit.conclusion"] = formData.doctorVisit.conclusion;
+        }
+
+        if (formData.followUp && typeof formData.followUp === 'object') {
+          updateData["followUp.followUpDate"] = formData.followUp.followUpDate;
+          updateData["followUp.hospital"] = formData.followUp.hospital;
+          updateData["followUp.doctor"] = formData.followUp.doctor;
+          updateData["followUp.assignedCoaches"] = formData.followUp.assignedCoaches;
+          updateData["followUp.status"] = formData.followUp.status;
+        }
 
         const response = await updateMedicalCheckin(checkInId, updateData);
         if(response.success) {
@@ -249,8 +286,26 @@ const MedicInchargeDashboard = () => {
           // Check if there are new attachments (File objects, not existing DB attachments with fileUrl)
           const newImages = formData.uploadedImages.filter(file => file instanceof File);
           const newPdfs = formData.uploadedPdfs.filter(file => file instanceof File);
-          const newPrescriptions = formData.doctorVisit.prescriptionFiles?.filter(file => file instanceof File) || [];
-          const newTestResults = formData.doctorVisit.testResultFiles?.filter(file => file instanceof File) || [];
+
+          // Sprint6-Story-3-BugFix: Collect prescription/test files from NEW array format
+          let newPrescriptions = [];
+          let newTestResults = [];
+
+          if (formData.doctorVisits && Array.isArray(formData.doctorVisits)) {
+            // NEW format: collect files from all doctor visits
+            formData.doctorVisits.forEach(visit => {
+              if (visit.prescriptionFiles) {
+                newPrescriptions.push(...visit.prescriptionFiles.filter(file => file instanceof File));
+              }
+              if (visit.testResultFiles) {
+                newTestResults.push(...visit.testResultFiles.filter(file => file instanceof File));
+              }
+            });
+          } else if (formData.doctorVisit && typeof formData.doctorVisit === 'object') {
+            // OLD format: backward compatibility
+            newPrescriptions = formData.doctorVisit.prescriptionFiles?.filter(file => file instanceof File) || [];
+            newTestResults = formData.doctorVisit.testResultFiles?.filter(file => file instanceof File) || [];
+          }
           const hasNewAttachments = newImages.length > 0 || newPdfs.length > 0 || newPrescriptions.length > 0 || newTestResults.length > 0;
 
           if (hasNewAttachments) {
@@ -282,7 +337,9 @@ const MedicInchargeDashboard = () => {
           }
           await fetchMedicalData();
         } else {
-          showToast("Failed to update medical check-in", "error");
+          // Sprint6-Story-3-AC4: Show specific error message from backend
+          const errorMessage = response.message || "Failed to update medical check-in";
+          showToast(errorMessage, "error");
         }
       } else {
         // Create new check-in
@@ -293,20 +350,35 @@ const MedicInchargeDashboard = () => {
         formDataToSend.append("healthStatus", formData.healthStatus);
         formDataToSend.append("notes", formData.notes);
 
-        // NEW FIELDS
-        formDataToSend.append("symptoms", JSON.stringify(formData.symptoms));
+        // NEW FIELDS (Sprint6-Story-3: Arrays for multiple visits/followups)
+        // Sprint6-Story-3-BugFix: Send symptoms as array items, not JSON string
+        if (formData.symptoms && Array.isArray(formData.symptoms)) {
+          formData.symptoms.forEach((symptom) => {
+            formDataToSend.append("symptoms[]", symptom);
+          });
+        }
         formDataToSend.append("customSymptom", formData.customSymptom);
-        formDataToSend.append(
-          "doctorVisit",
-          JSON.stringify({
-            doctorName: formData.doctorVisit.doctorName,
-            hospitalName: formData.doctorVisit.hospitalName,
-            visitDate: formData.doctorVisit.visitDate,
-            testDetails: formData.doctorVisit.testDetails,
-            conclusion: formData.doctorVisit.conclusion,
-          })
-        );
-        formDataToSend.append("followUp", JSON.stringify(formData.followUp));
+
+        // Send doctorVisits array (without files, files sent separately)
+        const doctorVisitsData = (formData.doctorVisits || []).map(visit => ({
+          doctorName: visit.doctorName,
+          hospitalName: visit.hospitalName,
+          visitDate: visit.visitDate,
+          testDetails: visit.testDetails,
+          conclusion: visit.conclusion,
+        }));
+        formDataToSend.append("doctorVisits", JSON.stringify(doctorVisitsData));
+
+        // Send followUps array (without files, files sent separately)
+        const followUpsData = (formData.followUps || []).map(followUp => ({
+          followUpDate: followUp.followUpDate,
+          hospital: followUp.hospital,
+          doctor: followUp.doctor,
+          assignedCoaches: followUp.assignedCoaches,
+          status: followUp.status,
+          notes: followUp.notes,
+        }));
+        formDataToSend.append("followUps", JSON.stringify(followUpsData));
 
         // Append general attachments
         formData.uploadedImages.forEach((file) => {
@@ -320,18 +392,40 @@ const MedicInchargeDashboard = () => {
           }
         });
 
-        // Append prescription files
-        formData.doctorVisit.prescriptionFiles.forEach((file) => {
-          if (file instanceof File) {
-            formDataToSend.append("prescriptions", file);
-          }
+        // Append prescription files from all doctor visits
+        (formData.doctorVisits || []).forEach((visit) => {
+          (visit.prescriptionFiles || []).forEach((file) => {
+            if (file instanceof File) {
+              formDataToSend.append("prescriptions", file);
+            }
+          });
         });
 
-        // Append test result files
-        formData.doctorVisit.testResultFiles.forEach((file) => {
-          if (file instanceof File) {
-            formDataToSend.append("testResults", file);
-          }
+        // Append test result files from all doctor visits
+        (formData.doctorVisits || []).forEach((visit) => {
+          (visit.testResultFiles || []).forEach((file) => {
+            if (file instanceof File) {
+              formDataToSend.append("testResults", file);
+            }
+          });
+        });
+
+        // Append description files from all follow-ups
+        (formData.followUps || []).forEach((followUp) => {
+          (followUp.descriptionFiles || []).forEach((file) => {
+            if (file instanceof File) {
+              formDataToSend.append("followUpDescriptions", file);
+            }
+          });
+        });
+
+        // Append test result files from all follow-ups
+        (formData.followUps || []).forEach((followUp) => {
+          (followUp.testResultFiles || []).forEach((file) => {
+            if (file instanceof File) {
+              formDataToSend.append("followUpTestResults", file);
+            }
+          });
         });
 
         const response = await createMedicalCheckin(formDataToSend);
@@ -339,13 +433,17 @@ const MedicInchargeDashboard = () => {
           showToast("Medical Check-in created successfully", "success");
           await fetchMedicalData();
         } else {
-          showToast("Failed to create medical check-in", "error");
+          // Sprint6-Story-3-AC4: Show specific error message from backend
+          const errorMessage = response.message || "Failed to create medical check-in";
+          showToast(errorMessage, "error");
         }
       }
       setEditMode(false);
     } catch (error) {
       console.error("Error submitting check-in:", error);
-      showToast("Error submitting medical check-in", "error");
+      // Sprint6-Story-3-AC4: Show specific error message if available
+      const errorMessage = error.response?.data?.message || error.message || "Error submitting medical check-in";
+      showToast(errorMessage, "error");
     }
   };
 
@@ -756,38 +854,86 @@ const MedicInchargeDashboard = () => {
                         <th>Date</th>
                         <th>Symptoms</th>
                         <th>Dr Visits</th>
-                        <th>Tests</th>
-                        <th>Prescription</th>
-                        <th>Conclusion</th>
+                        <th>Follow-ups</th>
                       </tr>
                     </thead>
                     <tbody style={{textAlign: "center"}}>
                       {recentHealthCheckins
-                        .filter(c => selectedStatusFilters.includes(c.healthStatus))
+                        .filter(c => {
+                          // Filter by health status
+                          if (!selectedStatusFilters.includes(c.healthStatus)) {
+                            return false;
+                          }
+                          // Filter by balagruha
+                          if (selectedBalagruha !== 'all' && c?.balagruhaIds[0] !== selectedBalagruha) {
+                            return false;
+                          }
+                          return true;
+                        })
                         .map((checkin, index) => {
                           const formatSymptoms = () => {
                             if (!checkin.symptoms || checkin.symptoms.length === 0) return '-';
                             return checkin.symptoms.filter(s => s).join(', ');
                           };
 
-                          const formatFileDisplay = (files) => {
-                            if (!files || files.length === 0) return '-';
-                            const firstName = files[0].fileName;
-                            const remaining = files.length - 1;
-                            if (remaining > 0) {
-                              return `${firstName.length > 15 ? firstName.substring(0, 15) + '...' : firstName} (+${remaining})`;
+                          // Get latest doctor visit (NEW array format or OLD single format)
+                          const getLatestDoctorVisit = () => {
+                            if (checkin.doctorVisits && checkin.doctorVisits.length > 0) {
+                              const latest = checkin.doctorVisits[checkin.doctorVisits.length - 1];
+                              return latest.doctorName || latest.hospitalName || '-';
+                            } else if (checkin.doctorVisit?.doctorName) {
+                              return checkin.doctorVisit.doctorName;
                             }
-                            return firstName.length > 20 ? firstName.substring(0, 20) + '...' : firstName;
+                            return '-';
+                          };
+
+                          // Get latest follow-up (NEW array format or OLD single format)
+                          const getLatestFollowUp = () => {
+                            if (checkin.followUps && checkin.followUps.length > 0) {
+                              const latest = checkin.followUps[checkin.followUps.length - 1];
+                              return latest.doctor || latest.hospital || '-';
+                            } else if (checkin.followUp?.doctor) {
+                              return checkin.followUp.doctor;
+                            } else if (checkin.followUp?.hospital) {
+                              return checkin.followUp.hospital;
+                            }
+                            return '-';
                           };
 
                           const handleMouseEnter = (e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
-                            setTooltipPosition({ x: rect.right + 10, y: rect.top });
+                            // Smart positioning: if too close to right edge, show on left
+                            const spaceOnRight = window.innerWidth - rect.right;
+                            const tooltipWidth = 450;
+                            const x = spaceOnRight > tooltipWidth ? rect.right + 10 : rect.left - tooltipWidth - 10;
+                            setTooltipPosition({ x, y: rect.top });
                             setHoveredStudent(checkin);
                           };
 
-                          const handleMouseLeave = () => {
-                            setHoveredStudent(null);
+                          // Handle mouse enter for doctor visits tooltip
+                          const handleDoctorVisitsMouseEnter = (e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            // Position tooltip to the RIGHT of the column
+                            setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: rect.top });
+                            const allDoctorVisits = checkin.doctorVisits && checkin.doctorVisits.length > 0
+                              ? checkin.doctorVisits
+                              : checkin.doctorVisit && checkin.doctorVisit.doctorName
+                                ? [checkin.doctorVisit]
+                                : [];
+                            setHoveredDoctorVisits(allDoctorVisits);
+                          };
+
+                          // Handle mouse enter for follow-ups tooltip
+                          const handleFollowUpsMouseEnter = (e) => {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            // Position tooltip to the LEFT
+                            setFollowUpsTooltipPosition({ x: rect.left - 380, y: rect.top });
+                            const allFollowUps = checkin.followUps && checkin.followUps.length > 0
+                              ? checkin.followUps
+                              : checkin.followUp && checkin.followUp.followUpDate
+                                ? [checkin.followUp]
+                                : [];
+                            setHoveredFollowUps(allFollowUps);
                           };
 
                           return (
@@ -798,7 +944,7 @@ const MedicInchargeDashboard = () => {
                               <td>{index + 1}</td>
                               <td
                                 onMouseEnter={handleMouseEnter}
-                                onMouseLeave={handleMouseLeave}
+                                onMouseLeave={() => setHoveredStudent(null)}
                                 style={{ cursor: 'pointer', fontWeight: 600, color: '#6366f1' }}
                               >
                                 {checkin.userName}
@@ -809,21 +955,19 @@ const MedicInchargeDashboard = () => {
                                   year: 'numeric'
                               })}</td>
                               <td>{formatSymptoms()}</td>
-                              <td>{checkin.doctorVisit?.doctorName || '-'}</td>
-                              <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {checkin.doctorVisit?.testDetails ?
-                                  (checkin.doctorVisit.testDetails.length > 30 ?
-                                    checkin.doctorVisit.testDetails.substring(0, 30) + '...' :
-                                    checkin.doctorVisit.testDetails)
-                                  : '-'}
+                              <td
+                                className="truncate"
+                                onMouseEnter={handleDoctorVisitsMouseEnter}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                {getLatestDoctorVisit()}
                               </td>
-                              <td>{formatFileDisplay(checkin.doctorVisit?.prescriptionFiles)}</td>
-                              <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {checkin.doctorVisit?.conclusion ?
-                                  (checkin.doctorVisit.conclusion.length > 30 ?
-                                    checkin.doctorVisit.conclusion.substring(0, 30) + '...' :
-                                    checkin.doctorVisit.conclusion)
-                                  : '-'}
+                              <td
+                                className="truncate"
+                                onMouseEnter={handleFollowUpsMouseEnter}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                {getLatestFollowUp()}
                               </td>
                             </tr>
                           );
@@ -834,6 +978,20 @@ const MedicInchargeDashboard = () => {
                     <StudentDetailsTooltip
                       checkIn={hoveredStudent}
                       position={tooltipPosition}
+                    />
+                  )}
+                  {hoveredDoctorVisits && hoveredDoctorVisits.length > 0 && (
+                    <DoctorVisitsTooltip
+                      doctorVisits={hoveredDoctorVisits}
+                      position={doctorVisitsTooltipPosition}
+                      onMouseLeave={() => setHoveredDoctorVisits(null)}
+                    />
+                  )}
+                  {hoveredFollowUps && hoveredFollowUps.length > 0 && (
+                    <FollowUpsTooltip
+                      followUps={hoveredFollowUps}
+                      position={followUpsTooltipPosition}
+                      onMouseLeave={() => setHoveredFollowUps(null)}
                     />
                   )}
                 </div>
@@ -882,9 +1040,7 @@ const MedicInchargeDashboard = () => {
                       <th>Date</th>
                       <th>Symptoms</th>
                       <th>Dr Visits</th>
-                      <th>Tests</th>
-                      <th>Prescription</th>
-                      <th>Conclusion</th>
+                      <th>Follow-ups</th>
                       <th>Actions</th>
                     </tr>
                   </thead>
@@ -911,21 +1067,65 @@ const MedicInchargeDashboard = () => {
                         return symptoms;
                       };
 
-                      // Format file display
-                      const formatFileDisplay = (files) => {
-                        if (!files || files.length === 0) return '-';
-                        const firstName = files[0].fileName || 'File';
-                        const remaining = files.length - 1;
-                        return remaining > 0
-                          ? `${firstName.substring(0, 15)}... (+${remaining})`
-                          : firstName.substring(0, 20);
+                      // Get latest doctor visit (NEW array format or OLD single format)
+                      const getLatestDoctorVisit = () => {
+                        if (checkin.doctorVisits && checkin.doctorVisits.length > 0) {
+                          // Return the most recent doctor visit
+                          const latest = checkin.doctorVisits[checkin.doctorVisits.length - 1];
+                          return latest.doctorName || latest.hospitalName || '-';
+                        } else if (checkin.doctorVisit?.doctorName) {
+                          return checkin.doctorVisit.doctorName;
+                        }
+                        return '-';
                       };
 
-                      // Handle mouse enter for tooltip
+                      // Get latest follow-up (NEW array format or OLD single format)
+                      // Show doctor name instead of date
+                      const getLatestFollowUp = () => {
+                        if (checkin.followUps && checkin.followUps.length > 0) {
+                          // Return the most recent follow-up doctor name
+                          const latest = checkin.followUps[checkin.followUps.length - 1];
+                          return latest.doctor || latest.hospital || '-';
+                        } else if (checkin.followUp?.doctor) {
+                          return checkin.followUp.doctor;
+                        } else if (checkin.followUp?.hospital) {
+                          return checkin.followUp.hospital;
+                        }
+                        return '-';
+                      };
+
+                      // Handle mouse enter for student name tooltip
                       const handleMouseEnter = (e) => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setTooltipPosition({ x: rect.right + 10, y: rect.top });
                         setHoveredStudent(checkin);
+                      };
+
+                      // Handle mouse enter for doctor visits tooltip
+                      const handleDoctorVisitsMouseEnter = (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: rect.top });
+                        // Get all doctor visits (NEW array or OLD single format)
+                        const allDoctorVisits = checkin.doctorVisits && checkin.doctorVisits.length > 0
+                          ? checkin.doctorVisits
+                          : checkin.doctorVisit && checkin.doctorVisit.doctorName
+                            ? [checkin.doctorVisit]
+                            : [];
+                        setHoveredDoctorVisits(allDoctorVisits);
+                      };
+
+                      // Handle mouse enter for follow-ups tooltip
+                      const handleFollowUpsMouseEnter = (e) => {
+                        const rect = e.currentTarget.getBoundingClientRect();
+                        // Position tooltip to the LEFT of the column
+                        setFollowUpsTooltipPosition({ x: rect.left - 380, y: rect.top });
+                        // Get all follow-ups (NEW array or OLD single format)
+                        const allFollowUps = checkin.followUps && checkin.followUps.length > 0
+                          ? checkin.followUps
+                          : checkin.followUp && checkin.followUp.followUpDate
+                            ? [checkin.followUp]
+                            : [];
+                        setHoveredFollowUps(allFollowUps);
                       };
 
                       return (
@@ -949,21 +1149,19 @@ const MedicInchargeDashboard = () => {
                             })}
                           </td>
                           <td className="truncate">{formatSymptoms()}</td>
-                          <td className="truncate">
-                            {checkin.doctorVisit?.doctorName || '-'}
+                          <td
+                            className="truncate"
+                            onMouseEnter={handleDoctorVisitsMouseEnter}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {getLatestDoctorVisit()}
                           </td>
-                          <td className="truncate">
-                            {checkin.doctorVisit?.testDetails
-                              ? checkin.doctorVisit.testDetails.substring(0, 30) + '...'
-                              : '-'}
-                          </td>
-                          <td className="file-display">
-                            {formatFileDisplay(checkin.doctorVisit?.prescriptionFiles)}
-                          </td>
-                          <td className="truncate">
-                            {checkin.doctorVisit?.conclusion
-                              ? checkin.doctorVisit.conclusion.substring(0, 30) + '...'
-                              : '-'}
+                          <td
+                            className="truncate"
+                            onMouseEnter={handleFollowUpsMouseEnter}
+                            style={{ cursor: 'pointer' }}
+                          >
+                            {getLatestFollowUp()}
                           </td>
                           <td>
                             <button
@@ -986,6 +1184,20 @@ const MedicInchargeDashboard = () => {
                 </table>
                 {hoveredStudent && (
                   <StudentDetailsTooltip checkIn={hoveredStudent} position={tooltipPosition} />
+                )}
+                {hoveredDoctorVisits && hoveredDoctorVisits.length > 0 && (
+                  <DoctorVisitsTooltip
+                    doctorVisits={hoveredDoctorVisits}
+                    position={doctorVisitsTooltipPosition}
+                    onMouseLeave={() => setHoveredDoctorVisits(null)}
+                  />
+                )}
+                {hoveredFollowUps && hoveredFollowUps.length > 0 && (
+                  <FollowUpsTooltip
+                    followUps={hoveredFollowUps}
+                    position={followUpsTooltipPosition}
+                    onMouseLeave={() => setHoveredFollowUps(null)}
+                  />
                 )}
               </div>
               {/* <div className="medic-checkin-details-panel">

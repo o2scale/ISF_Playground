@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import "./CheckInModal.css";
 import { getAnyUserBasedonRoleandBalagruha } from "../../api";
 import SymptomsSelector from "./SymptomsSelector";
-import DoctorVisitsSection from "./DoctorVisitsSection";
-import FollowUpSection from "./FollowUpSection";
+import MultipleDoctorVisitsSection from "./MultipleDoctorVisitsSection";
+import MultipleFollowUpsSection from "./MultipleFollowUpsSection";
 
 const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, editMode }) => {
   const [formData, setFormData] = useState({
@@ -16,25 +16,11 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
     notes: "",
     uploadedImages: [],
     uploadedPdfs: [],
-    // NEW FIELDS
+    // NEW FIELDS (Sprint6-Story-3: Arrays for multiple visits/followups)
     symptoms: [],
     customSymptom: "",
-    doctorVisit: {
-      doctorName: "",
-      hospitalName: "",
-      visitDate: "",
-      prescriptionFiles: [],
-      testDetails: "",
-      testResultFiles: [],
-      conclusion: "",
-    },
-    followUp: {
-      followUpDate: "",
-      hospital: "",
-      doctor: "",
-      assignedCoaches: [],
-      status: "",
-    },
+    doctorVisits: [],
+    followUps: [],
   });
   const [selectedBalagruha, setSelectedBalagruha] = useState("");
   const [selectedStudent, setSelectedStudent] = useState("");
@@ -69,25 +55,36 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         notes: studentData.notes,
         uploadedImages: images,
         uploadedPdfs: pdfs,
-        // NEW FIELDS
+        // NEW FIELDS (Sprint6-Story-3: Handle both old and new formats)
         symptoms: studentData.symptoms || [],
         customSymptom: studentData.customSymptom || "",
-        doctorVisit: studentData.doctorVisit || {
-          doctorName: "",
-          hospitalName: "",
-          visitDate: "",
-          prescriptionFiles: [],
-          testDetails: "",
-          testResultFiles: [],
-          conclusion: "",
-        },
-        followUp: studentData.followUp || {
-          followUpDate: "",
-          hospital: "",
-          doctor: "",
-          assignedCoaches: [],
-          status: "",
-        },
+        // Convert old single doctorVisit to new doctorVisits array
+        // BugFix: Convert visitDate from Date object to "YYYY-MM-DD" string for input field
+        doctorVisits: studentData.doctorVisits && studentData.doctorVisits.length > 0
+          ? studentData.doctorVisits.map(dv => ({
+              ...dv,
+              visitDate: dv.visitDate ? new Date(dv.visitDate).toISOString().split('T')[0] : "",
+            }))
+          : studentData.doctorVisit && (studentData.doctorVisit.doctorName || studentData.doctorVisit.hospitalName)
+            ? [{
+                ...studentData.doctorVisit,
+                visitDate: studentData.doctorVisit.visitDate ? new Date(studentData.doctorVisit.visitDate).toISOString().split('T')[0] : ""
+              }]
+            : [],
+        // Convert old single followUp to new followUps array
+        // BugFix: Convert followUpDate from Date object to "YYYY-MM-DD" string for input field
+        followUps: studentData.followUps && studentData.followUps.length > 0
+          ? studentData.followUps.map(fu => ({
+              ...fu,
+              followUpDate: fu.followUpDate ? new Date(fu.followUpDate).toISOString().split('T')[0] : "",
+              // Also convert visitDate for doctor visits if present
+            }))
+          : studentData.followUp && studentData.followUp.followUpDate
+            ? [{
+                ...studentData.followUp,
+                followUpDate: new Date(studentData.followUp.followUpDate).toISOString().split('T')[0]
+              }]
+            : [],
       })
       // setSelectedStudent(studentData.balagruhaIds[0]);
       // setSelectedStudent(studentData.studentId)
@@ -104,22 +101,8 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         uploadedPdfs: [],
         symptoms: [],
         customSymptom: "",
-        doctorVisit: {
-          doctorName: "",
-          hospitalName: "",
-          visitDate: "",
-          prescriptionFiles: [],
-          testDetails: "",
-          testResultFiles: [],
-          conclusion: "",
-        },
-        followUp: {
-          followUpDate: "",
-          hospital: "",
-          doctor: "",
-          assignedCoaches: [],
-          status: "",
-        },
+        doctorVisits: [],
+        followUps: [],
       })
       setSelectedBalagruha("");
       setSelectedStudent("");
@@ -156,22 +139,8 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       uploadedPdfs: [],
       symptoms: [],
       customSymptom: "",
-      doctorVisit: {
-        doctorName: "",
-        hospitalName: "",
-        visitDate: "",
-        prescriptionFiles: [],
-        testDetails: "",
-        testResultFiles: [],
-        conclusion: "",
-      },
-      followUp: {
-        followUpDate: "",
-        hospital: "",
-        doctor: "",
-        assignedCoaches: [],
-        status: "",
-      },
+      doctorVisits: [],
+      followUps: [],
     });
     setRemovedAttachmentIds([]);
   };
@@ -317,8 +286,8 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               onChange={(e) =>
                 setFormData({ ...formData, temperature: e.target.value })
               }
+              placeholder="Optional - Enter if measured"
               autoComplete="off"
-              required
             />
           </div>
 
@@ -368,17 +337,17 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
             </select>
           </div>
 
-          {/* NEW: Doctor Visits Section */}
-          <DoctorVisitsSection
-            doctorVisit={formData.doctorVisit}
-            onChange={(doctorVisit) => setFormData({ ...formData, doctorVisit })}
+          {/* NEW: Multiple Doctor Visits Section (Sprint6-Story-3-AC5) */}
+          <MultipleDoctorVisitsSection
+            doctorVisits={formData.doctorVisits}
+            onChange={(doctorVisits) => setFormData({ ...formData, doctorVisits })}
           />
 
-          {/* NEW: Follow-up Section */}
-          <FollowUpSection
-            followUp={formData.followUp}
+          {/* NEW: Multiple Follow-ups Section (Sprint6-Story-3-AC6-AC7) */}
+          <MultipleFollowUpsSection
+            followUps={formData.followUps}
             balagruhaId={selectedBalagruha}
-            onChange={(followUp) => setFormData({ ...formData, followUp })}
+            onChange={(followUps) => setFormData({ ...formData, followUps })}
           />
 
           <div className="form-group">

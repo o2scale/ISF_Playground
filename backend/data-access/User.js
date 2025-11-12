@@ -646,13 +646,22 @@ exports.getUserObjectById = async ({ userId }) => {
 exports.getUsersByRoleAndBalagruhaId = async ({ role, balagruhaId }) => {
   let query = {};
   if (role && role != ":role") {
-    query.role = role;
+    // Sprint6-Story-3-AC3: When fetching coaches, include all coach types (coach, sports-coach, music-coach)
+    if (role === "coach") {
+      query.role = { $in: ["coach", "sports-coach", "music-coach"] };
+    } else {
+      query.role = role;
+    }
   }
   if (balagruhaId) {
     query.balagruhaIds = {
       $in: [mongoose.Types.ObjectId.createFromHexString(balagruhaId)],
     };
   }
+
+  // Sprint6-Story-3-AC3: Debug logging for coaches query
+  console.log('[AC3 DEBUG] getUsersByRoleAndBalagruhaId query:', JSON.stringify(query));
+  console.log('[AC3 DEBUG] role:', role, 'balagruhaId:', balagruhaId);
 
   return await User.find(query)
     .select(
@@ -689,6 +698,13 @@ exports.getUsersByRoleAndBalagruhaId = async ({ role, balagruhaId }) => {
           return item;
         });
       }
+
+      // Sprint6-Story-3-AC3: Debug logging for results
+      console.log('[AC3 DEBUG] Number of users found:', result?.length || 0);
+      if (result && result.length > 0) {
+        console.log('[AC3 DEBUG] Users:', result.map(u => ({ name: u.name, role: u.role, balagruhaIds: u.balagruhaIds })));
+      }
+
       return {
         success: true,
         data: result,

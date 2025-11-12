@@ -22,13 +22,37 @@ exports.createMedicalCheckIn = async (req, res) => {
       notes,
       symptoms,
       customSymptom,
-      doctorVisit,
-      followUp,
+      doctorVisit,  // Old format (backward compatibility)
+      followUp,     // Old format (backward compatibility)
+      doctorVisits: doctorVisitsRaw, // New format (Sprint6-Story-3-AC5)
+      followUps: followUpsRaw,    // New format (Sprint6-Story-3-AC6)
     } = req.body;
+
+    // Sprint6-Story-3-BugFix: Parse JSON strings from FormData
+    let doctorVisits = [];
+    let followUps = [];
+
+    if (doctorVisitsRaw) {
+      try {
+        doctorVisits = typeof doctorVisitsRaw === 'string' ? JSON.parse(doctorVisitsRaw) : doctorVisitsRaw;
+      } catch (e) {
+        logger.error({ error: e.message }, "Failed to parse doctorVisits");
+      }
+    }
+
+    if (followUpsRaw) {
+      try {
+        followUps = typeof followUpsRaw === 'string' ? JSON.parse(followUpsRaw) : followUpsRaw;
+      } catch (e) {
+        logger.error({ error: e.message }, "Failed to parse followUps");
+      }
+    }
 
     let attachmentFiles = [];
     let prescriptionFiles = [];
     let testResultFiles = [];
+    let followUpDescriptionFiles = [];
+    let followUpTestResultFiles = [];
 
     if (req.files) {
       if (req.files.attachments) {
@@ -39,6 +63,12 @@ exports.createMedicalCheckIn = async (req, res) => {
       }
       if (req.files.testResults) {
         testResultFiles = req.files.testResults.map((file) => file.path);
+      }
+      if (req.files.followUpDescriptions) {
+        followUpDescriptionFiles = req.files.followUpDescriptions.map((file) => file.path);
+      }
+      if (req.files.followUpTestResults) {
+        followUpTestResultFiles = req.files.followUpTestResults.map((file) => file.path);
       }
     }
 
@@ -52,13 +82,17 @@ exports.createMedicalCheckIn = async (req, res) => {
         createdBy,
         symptoms,
         customSymptom,
-        doctorVisit,
-        followUp,
+        doctorVisit,  // Old format
+        followUp,     // Old format
+        doctorVisits, // New format
+        followUps,    // New format
       },
       {
         attachments: attachmentFiles,
         prescriptions: prescriptionFiles,
         testResults: testResultFiles,
+        followUpDescriptions: followUpDescriptionFiles,
+        followUpTestResults: followUpTestResultFiles,
       }
     );
 

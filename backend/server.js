@@ -24,6 +24,7 @@ const { swaggerUi, swaggerDocs } = require("./swagger");
 const scheduleRoutes = require("./routes/scheduleRoutes");
 const medicalCheckInsRoutes = require("./routes/medicalCheckInsRoutes");
 const medicalRecordsRoutes = require("./routes/medicalRecordsRoutes");
+const doctorRoutes = require("./routes/doctorRoutes"); // Sprint6-Story-3-AC2: Doctor API
 const offlineRequestQueueRoutes = require("./routes/offlineRequestQueue");
 const courseRoutes = require("./routes/courseRoutes");
 const notificationRoutes = require("./routes/notificationRoutes");
@@ -81,6 +82,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 app.use("/api/schedules", scheduleRoutes);
 app.use("/api/medical-check-ins", medicalCheckInsRoutes);
 app.use("/api/medical-records", medicalRecordsRoutes);
+app.use("/api/doctors", doctorRoutes); // Sprint6-Story-3-AC2: Doctor API
 app.use("/api/offline-requests", offlineRequestQueueRoutes);
 app.use("/api/v1/courses", courseRoutes);
 app.use("/api/notifications", notificationRoutes);

@@ -738,6 +738,40 @@ export const deleteMedicalCheckinAttachment = async (checkInId, attachmentId) =>
   }
 };
 
+// ==================== DOCTOR API FUNCTIONS (Sprint6-Story-3-AC2) ====================
+
+export const getAllDoctors = async () => {
+  try {
+    const response = await api.get("/api/doctors");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching doctors:", error);
+    throw error;
+  }
+};
+
+export const createDoctor = async (name) => {
+  try {
+    const response = await api.post("/api/doctors", { name });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating doctor:", error);
+    throw error;
+  }
+};
+
+export const searchDoctors = async (searchTerm) => {
+  try {
+    const response = await api.get(`/api/doctors/search?q=${searchTerm}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error searching doctors:", error);
+    throw error;
+  }
+};
+
+// ====================================================================================
+
 export const createMood = async (data) => {
   try {
     const response = await api.post("/api/v1/mood-tracker", data);
