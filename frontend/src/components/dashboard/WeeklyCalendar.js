@@ -288,9 +288,10 @@ const WeeklyCalendar = ({
     }, []); // Run once on mount
 
     useEffect(() => {
+        // S6-S1-PROD-BUG-001: Backend now handles filtering, no need to filter on frontend
+        // Users list already contains only assignable users (no students, no admins)
         if (users) {
-            const filteredUser = users.filter(user => user.role !== 'student' && user.role !== 'admin')
-            setUsersList(filteredUser)
+            setUsersList(users)
         }
     }, [users]);
 

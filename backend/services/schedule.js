@@ -10,22 +10,121 @@ const {
   getOverlappingScheduleOtherThanGivenSchedule,
   updateScheduleStatus,
 } = require("../data-access/schedule");
+const { getUserObjectById } = require("../data-access/user");
 const { logger } = require("../config/pino-config");
 const { UserTypes } = require("../constants/users");
 const { format } = require("date-fns");
+const User = require("../models/user");
 
 class Schedule {
   static async createScheduleNew(payload) {
     try {
       logger.info("Creating new schedules");
-      if (payload.userRole != UserTypes.ADMIN) {
+
+      // S6-S1-PROD-BUG-001: Allow both ADMIN and COACH roles to create schedules
+      const isAdmin = payload.userRole === UserTypes.ADMIN;
+      const isCoach = payload.userRole === UserTypes.COACH ||
+                      payload.userRole === 'sports-coach' ||
+                      payload.userRole === 'music-coach';
+
+      if (!isAdmin && !isCoach) {
         return {
           success: false,
           message: "You are not authorized to create a schedule",
           data: null,
         };
       }
-      const { balagruhaIds, assignedTo, schedules } = payload;
+
+      const { balagruhaIds, assignedTo, schedules, createdBy } = payload;
+
+      // S6-S1-PROD-BUG-001: Additional validation for COACH role
+      if (isCoach) {
+        // Get coach's assigned Balagruhas
+        const coachResult = await getUserObjectById({ userId: createdBy });
+        if (!coachResult.success || !coachResult.data) {
+          return {
+            success: false,
+            message: "Coach user not found",
+            data: null,
+          };
+        }
+
+        const coach = coachResult.data;
+        const coachBalagruhaIds = coach.balagruhaIds.map(id => id.toString());
+
+        // Validate that all balagruhaIds are in coach's assigned Balagruhas
+        for (const balagruhaId of balagruhaIds) {
+          if (!coachBalagruhaIds.includes(balagruhaId.toString())) {
+            return {
+              success: false,
+              message: `You are not authorized to create schedules for Balagruha ${balagruhaId}. You can only assign schedules for your assigned Balagruhas.`,
+              data: null,
+            };
+          }
+        }
+
+        // Validate that assignedTo users are not students and are in coach's assigned Balagruhas
+        for (const userId of assignedTo) {
+          const userResult = await getUserObjectById({ userId });
+          if (!userResult.success || !userResult.data) {
+            return {
+              success: false,
+              message: `Assigned user ${userId} not found`,
+              data: null,
+            };
+          }
+
+          const assignedUser = userResult.data;
+
+          // Check if user is a student (coaches cannot assign to students)
+          if (assignedUser.role === 'student') {
+            return {
+              success: false,
+              message: `Cannot assign schedule to students`,
+              data: null,
+            };
+          }
+
+          // Check if assignedUser has any Balagruha that matches coach's Balagruhas
+          const assignedUserBalagruhaIds = assignedUser.balagruhaIds.map(id => id.toString());
+          const hasCommonBalagruha = assignedUserBalagruhaIds.some(id =>
+            coachBalagruhaIds.includes(id)
+          );
+
+          if (!hasCommonBalagruha) {
+            return {
+              success: false,
+              message: `You can only assign schedules to users in your assigned Balagruhas`,
+              data: null,
+            };
+          }
+        }
+      }
+
+      // S6-S1-PROD-BUG-001: Validate that assignedTo users are not students (for both ADMIN and COACH)
+      if (isAdmin) {
+        for (const userId of assignedTo) {
+          const userResult = await getUserObjectById({ userId });
+          if (!userResult.success || !userResult.data) {
+            return {
+              success: false,
+              message: `Assigned user ${userId} not found`,
+              data: null,
+            };
+          }
+
+          const assignedUser = userResult.data;
+
+          // Check if user is a student (admins also cannot assign to students)
+          if (assignedUser.role === 'student') {
+            return {
+              success: false,
+              message: `Cannot assign schedule to students`,
+              data: null,
+            };
+          }
+        }
+      }
       const overlappingSchedules = [];
       for (const balagruhaId of balagruhaIds) {
         for (const schedule of schedules) {

@@ -113,6 +113,13 @@ export const deleteUsers = async (id) => {
   return response.data;
 };
 
+// S6-S1-PROD-BUG-001: Fetch assignable users for schedule creation
+// Returns filtered users based on logged-in user's role and Balagruha assignments
+export const getAssignableUsersForSchedule = async () => {
+  const response = await api.get("/api/users/assignable-for-schedule");
+  return response.data;
+};
+
 export const createTask = async (data) => {
   const response = await api.post(`/api/tasks`, data, { headers });
   return response.data;

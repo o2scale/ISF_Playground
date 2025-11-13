@@ -5,6 +5,7 @@ const {
   createUser,
   updateUser,
   deleteUser,
+  getAssignableUsersForSchedule,
 } = require("../controllers/userController");
 const { authenticate, authorize } = require("../middleware/auth");
 const User = require("../models/user");
@@ -243,6 +244,15 @@ router.get('/me/balagruhas', authenticate, async (req, res) => {
     });
   }
 });
+
+// Sprint6-Story-1-BUG-001: Get assignable users for schedule creation
+// Returns filtered users based on logged-in user's role and Balagruha assignments
+router.get(
+  '/assignable-for-schedule',
+  authenticate,
+  authorize("Daily Schedule", "Read"),
+  getAssignableUsersForSchedule
+);
 
 router.get(
   "/:_id",

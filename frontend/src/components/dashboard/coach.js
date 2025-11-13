@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import './coach-styles.css';
 import WeeklyCalendar from './WeeklyCalendar';
-import { getBalagruha, getTasks, updateTask, fetchUsers, getTaskBytaskId, getBalagruhaById, getSchedulesCoach } from '../../api'
+import { getBalagruha, getTasks, updateTask, fetchUsers, getTaskBytaskId, getBalagruhaById, getSchedulesCoach, getAssignableUsersForSchedule } from '../../api'
 import { TaskDetailsModal } from '../TaskManagement/taskmanagement';
 
 function CoachDashboard() {
@@ -92,21 +92,24 @@ function CoachDashboard() {
 
     const getUsersList = async () => {
         try {
-            const response = await fetchUsers();
-            console.log('Users details:', response);
+            // S6-S1-PROD-BUG-001: Use new API that returns filtered users based on role and Balagruha
+            const response = await getAssignableUsersForSchedule();
+            console.log('Assignable users for schedule:', response);
 
-            // Set all users
-            setUsers(response || []);
+            // The backend already filters users, so we use the data directly
+            const assignableUsers = response?.data || [];
+            setUsers(assignableUsers);
 
-            // Filter coaches
-            const coachUsers = (response || []).filter(user => user.role === "coach");
+            // Filter coaches from assignable users
+            const coachUsers = assignableUsers.filter(user =>
+                user.role === "coach" || user.role === "sports-coach" || user.role === "music-coach"
+            );
             setCoaches(coachUsers);
 
-            // Filter students
-            const studentUsers = (response || []).filter(user => user.role === "student");
-            setStudents(studentUsers);
+            // Students are not included in assignable users (as per requirements)
+            setStudents([]);
         } catch (error) {
-            console.error('Error fetching users:', error);
+            console.error('Error fetching assignable users:', error);
         }
     };
 

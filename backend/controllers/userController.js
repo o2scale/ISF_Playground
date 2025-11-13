@@ -1038,3 +1038,128 @@ exports.getUserListByAssignedBalagruhaByRole = async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 };
+
+// API for fetching assignable users for schedule creation (S6-S1-PROD-BUG-001 fix)
+// Admin can assign to any coach/staff (NOT students)
+// Coach can only assign to coaches/staff in their assigned Balagruhas (NOT students)
+exports.getAssignableUsersForSchedule = async (req, res) => {
+  try {
+    const userRole = req.user.role;
+    const userId = req.user._id;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userRole,
+        userId,
+      },
+      `Request received for fetching assignable users for schedule`
+    );
+
+    // Admin can assign to any coaches/staff (no students, no admins)
+    if (userRole === UserTypes.ADMIN) {
+      const users = await User.find({
+        role: {
+          $in: ['coach', 'sports-coach', 'music-coach']
+        }
+      })
+        .select('name email role balagruhaIds')
+        .populate('balagruhaIds')
+        .lean();
+
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+        },
+        `Admin fetched ${users.length} assignable users`
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: users
+      });
+    }
+
+    // Coach can only assign to users in their assigned Balagruhas (no students, no admins)
+    if (userRole === UserTypes.COACH || userRole === 'sports-coach' || userRole === 'music-coach') {
+      // Get coach's assigned Balagruhas
+      const coach = await User.findById(userId).select('balagruhaIds').lean();
+
+      if (!coach || !coach.balagruhaIds || coach.balagruhaIds.length === 0) {
+        logger.info(
+          {
+            clientIP: req.socket.remoteAddress,
+            method: req.method,
+            api: req.originalUrl,
+            userId,
+          },
+          `Coach has no assigned Balagruhas`
+        );
+        return res.status(200).json({
+          success: true,
+          data: []
+        });
+      }
+
+      // Find users in coach's assigned Balagruhas
+      const users = await User.find({
+        balagruhaIds: { $in: coach.balagruhaIds },
+        role: {
+          $nin: ['student', 'admin']  // Exclude students and admins
+        }
+      })
+        .select('name email role balagruhaIds')
+        .populate('balagruhaIds')
+        .lean();
+
+      logger.info(
+        {
+          clientIP: req.socket.remoteAddress,
+          method: req.method,
+          api: req.originalUrl,
+          balagruhaCount: coach.balagruhaIds.length,
+        },
+        `Coach fetched ${users.length} assignable users from their Balagruhas`
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: users
+      });
+    }
+
+    // Unauthorized role
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        userRole,
+      },
+      `Unauthorized role attempted to fetch assignable users`
+    );
+
+    return res.status(403).json({
+      success: false,
+      message: "Unauthorized to fetch assignable users"
+    });
+  } catch (error) {
+    errorLogger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        error: error.message,
+      },
+      `Error fetching assignable users for schedule: ${error.message}`
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error"
+    });
+  }
+};
