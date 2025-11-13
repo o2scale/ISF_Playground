@@ -362,9 +362,12 @@ exports.updateMedicalCheckIn = async (req, res) => {
       notes,
       symptoms,
       customSymptom,
-      doctorVisit,
-      followUp,
+      doctorVisit,        // Old format (backward compatibility)
+      followUp,           // Old format (backward compatibility)
+      doctorVisits: doctorVisitsRaw,  // New format (Sprint6-Story-3-AC5)
+      followUps: followUpsRaw,         // New format (Sprint6-Story-3-AC6)
     } = req.body;
+
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -374,6 +377,27 @@ exports.updateMedicalCheckIn = async (req, res) => {
       },
       `Request received to update medical check-in with ID: ${checkInId}`
     );
+
+    // Sprint6-Story-3-BugFix: Parse JSON strings for array fields (if needed)
+    let doctorVisits = [];
+    let followUps = [];
+
+    if (doctorVisitsRaw) {
+      try {
+        doctorVisits = typeof doctorVisitsRaw === 'string' ? JSON.parse(doctorVisitsRaw) : doctorVisitsRaw;
+      } catch (e) {
+        logger.error({ error: e.message }, "Failed to parse doctorVisits during update");
+      }
+    }
+
+    if (followUpsRaw) {
+      try {
+        followUps = typeof followUpsRaw === 'string' ? JSON.parse(followUpsRaw) : followUpsRaw;
+      } catch (e) {
+        logger.error({ error: e.message }, "Failed to parse followUps during update");
+      }
+    }
+
     const updateData = {};
     if (studentId) updateData.studentId = studentId;
     if (temperature) updateData.temperature = temperature;
@@ -381,9 +405,19 @@ exports.updateMedicalCheckIn = async (req, res) => {
     if (healthStatus) updateData.healthStatus = healthStatus;
     if (notes !== undefined) updateData.notes = notes;
 
-    // New fields
+    // Sprint6-Story-3: Update symptoms
     if (symptoms !== undefined) updateData.symptoms = symptoms;
     if (customSymptom !== undefined) updateData.customSymptom = customSymptom;
+
+    // Sprint6-Story-3-BugFix: Support NEW array formats
+    if (doctorVisits && Array.isArray(doctorVisits) && doctorVisits.length > 0) {
+      updateData.doctorVisits = doctorVisits;
+    }
+    if (followUps && Array.isArray(followUps) && followUps.length > 0) {
+      updateData.followUps = followUps;
+    }
+
+    // Backward compatibility: Support OLD single object formats
     if (doctorVisit !== undefined) updateData.doctorVisit = doctorVisit;
     if (followUp !== undefined) updateData.followUp = followUp;
 

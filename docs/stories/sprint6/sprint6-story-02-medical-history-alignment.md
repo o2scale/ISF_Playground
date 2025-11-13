@@ -979,6 +979,139 @@ E2E test scenarios will be written by Dev Agent in markdown format in:
 
 ---
 
+## 🎯 CLIENT CLARIFICATION & CORE DECISIONS
+
+**Date:** 2025-11-13 13:46:53
+**Status:** ✅ Requirements Clarified - Ready for Development
+
+### Critical Scope Change: REPLACEMENT vs ALIGNMENT
+
+**Original Understanding:**
+- "Align" medical history fields between Coach and Medical Incharge forms
+- Keep both forms, make them consistent
+- Shared component approach
+
+**✅ ACTUAL CLIENT REQUIREMENT (Clarified 2025-11-13):**
+
+> **"We are going to completely remove that medical history form and instead of medical history data, we are going to show the check-in form that we have created inside for the medical in charge and place it there inside and associate that to that particular user."**
+
+### Core Decisions:
+
+#### 1. **REMOVE Medical History Completely** ❌
+- ❌ **Delete entire Medical History section** from User form (UserForm.js lines 1371-1717)
+- ❌ **Remove medicalHistory field** from User model (backend)
+- ❌ **Delete all existing medical history data** (no migration needed)
+- Scope: Medical History was only for students, not other user roles
+
+#### 2. **REPLACE with Check-in Form** ✅
+- ✅ Add the **same check-in form** (that Medical Incharge uses) into Users tab
+- ✅ **Anyone editing a student** in Users tab (Admin, Coach, etc.) can create check-ins
+- ✅ Check-ins stored in **MedicalCheckIn model** (linked to studentId)
+- ✅ Check-in form includes:
+  - Temperature, Date/Time, Health Status (normal/important/critical)
+  - Symptoms (multi-select: cough_cold, fever, stomach_ache, headache, injury, other + custom)
+  - Doctor Visits (multiple):
+    - Doctor Name, Hospital, Visit Date
+    - Prescription Files, Test Details, Test Result Files
+    - Doctor's Conclusion
+  - Follow-ups (multiple):
+    - Follow-up Date, Hospital, Doctor Name
+    - Assigned Coaches (multi-select from balagruha)
+    - Status (active/completed/inactive)
+    - Description Files, Test Result Files, Notes
+  - General: Notes, Images (5MB max), PDFs (10MB max)
+
+#### 3. **Display All Check-ins** 📋
+- ✅ Show **ALL check-ins** for that student in Users tab
+- ✅ Sort by date (**newest first**)
+- ✅ Display format: List view with expandable details
+- ✅ Allow viewing, editing, and creating check-ins from Users tab
+
+### Updated Acceptance Criteria:
+
+| Original AC | Updated Requirement |
+|-------------|---------------------|
+| AC1: Field comparison | ✅ COMPLETED - Comparison doc created |
+| AC2: Alignment strategy | ✅ REPLACED → Removal & Replacement strategy |
+| AC3: Coach form updated | ✅ REPLACED → Remove medical history, add check-in form |
+| AC4: Medical Incharge functional | ✅ UNCHANGED → Medical Incharge form stays as-is |
+| AC5: Data integrity | ✅ SIMPLIFIED → Remove old data, no migration needed |
+| AC6: Validation rules | ✅ SIMPLIFIED → Use existing check-in validation |
+| AC7: Role permissions | ✅ UNCHANGED → Enforce permissions on check-in creation |
+| AC8: Cross-role visibility | ✅ CORE REQUIREMENT → Display check-ins in Users tab |
+
+### Simplified Implementation Phases:
+
+**This is now a REPLACEMENT project, not an alignment project.**
+
+| Phase | Description | Status |
+|-------|-------------|--------|
+| **Phase 1** | Investigation & Documentation | ✅ COMPLETED |
+| **Phase 2** | Remove Medical History from User Form | ⏳ NEXT |
+| **Phase 3** | Add Check-in Form to Users Tab | ⏳ PENDING |
+| **Phase 4** | Display Check-ins List in User View | ⏳ PENDING |
+| **Phase 5** | Backend Integration & Cleanup | ⏳ PENDING |
+| **Phase 6** | Testing & E2E Scenarios | ⏳ PENDING |
+
+---
+
+## Implementation Progress
+
+### PHASE 1: Investigation & Documentation ✅ COMPLETED
+**Date:** 2025-11-13 13:22:48
+
+#### Completed Tasks:
+1. ✅ Read and analyzed Coach "Add User" form (UserForm.js - 1745 lines)
+2. ✅ Read and analyzed Medical Incharge "Health Check-in" form (CheckInModal.js + child components)
+3. ✅ Documented Coach medical history fields (12 fields)
+4. ✅ Documented Medical Incharge check-in fields (11 basic + 7 doctor visit + 8 follow-up fields)
+5. ✅ Created comprehensive field comparison document
+
+#### Deliverable:
+📄 **Document Created:** `docs/stories/sprint6/medical-history-field-comparison.md`
+
+**Document Contents (13 sections):**
+1. Executive Summary - Key findings and overlap analysis
+2. Coach "Add User" Form - Complete field list (12 fields)
+3. Medical Incharge "Health Check-in" Form - Complete field list (26 fields total)
+4. Field Overlap Analysis - Overlapping fields, unique fields per form
+5. Data Model Comparison - User model vs MedicalCheckIn model structures
+6. Gap Analysis - What each form is missing
+7. Alignment Strategy Recommendations - Detailed Option C implementation plan
+8. Visual Mockup - Unified Medical History View design
+9. Acceptance Criteria Mapping - Implementation plan per AC
+10. Next Steps - Immediate actions and post-approval tasks
+11. Questions for Client - 5 critical questions for decision-making
+12. Risk Assessment - Identified risks and mitigation strategies
+13. File References - All files investigated and to be created
+
+#### Key Findings:
+- **Coach Form:** 12 fields focused on long-term medical history (conditions, status tracking)
+- **Medical Incharge Form:** 26 fields focused on acute health monitoring (symptoms, vitals, check-ins)
+- **Overlap:** 8 fields with similar purpose (doctor, hospital, prescriptions, dates)
+- **Unique to Coach:** 5 fields (condition name, case ID, condition status)
+- **Unique to Medical Incharge:** 11 fields (temperature, time, health alerts, symptoms, follow-up assignments)
+- **Recommended Strategy:** Option C (Shared Component with Role-Specific Context)
+
+#### Files Investigated:
+- ✅ `frontend/src/components/usermanagement/UserForm.js` (1745 lines)
+- ✅ `frontend/src/components/dashboard/CheckInModal.js` (502 lines)
+- ✅ `frontend/src/components/dashboard/MultipleDoctorVisitsSection.js` (269 lines)
+- ✅ `frontend/src/components/dashboard/MultipleFollowUpsSection.js` (333 lines)
+- ✅ `frontend/src/components/dashboard/SymptomsSelector.js` (61 lines)
+
+#### Next Phase:
+🔄 **Phase 1 (Continued):** Present alignment strategy to client for approval
+
+**Questions for Client:**
+1. Should Coach be able to record symptoms when adding historical medical conditions?
+2. Should Coach form have full follow-up scheduling with coach assignment?
+3. Should recent check-ins display in User Medical History tab? (How many days?)
+4. Should Medical Incharge be able to label check-ins with condition names?
+5. Should severe check-ins be linkable to official medical cases (case ID)?
+
+---
+
 ## QA Results
 
 **QA Agent:** [QA Agent Name]
@@ -986,14 +1119,14 @@ E2E test scenarios will be written by Dev Agent in markdown format in:
 **Status:** [PASS/FAIL/CONCERNS]
 
 ### Acceptance Criteria Validation
-- [ ] AC1: Field comparison documented ✅/❌
-- [ ] AC2: Alignment strategy defined and approved ✅/❌
-- [ ] AC3: Coach medical history form updated ✅/❌
-- [ ] AC4: Medical Incharge form functional ✅/❌
-- [ ] AC5: Data integrity maintained ✅/❌
-- [ ] AC6: Validation rules consistent ✅/❌
-- [ ] AC7: Role permissions enforced ✅/❌
-- [ ] AC8: Cross-role data visibility working ✅/❌
+- [x] AC1: Field comparison documented ✅ (2025-11-13 13:22:48)
+- [ ] AC2: Alignment strategy defined and approved 🔄 (Awaiting client approval)
+- [ ] AC3: Coach medical history form updated ⏳
+- [ ] AC4: Medical Incharge form functional ⏳
+- [ ] AC5: Data integrity maintained ⏳
+- [ ] AC6: Validation rules consistent ⏳
+- [ ] AC7: Role permissions enforced ⏳
+- [ ] AC8: Cross-role data visibility working ⏳
 
 ---
 
@@ -1002,10 +1135,12 @@ E2E test scenarios will be written by Dev Agent in markdown format in:
 | Date | Time | Change | Updated By |
 |------|------|--------|------------|
 | 2025-11-11 | 13:56:31 | Sprint 6 Story 2 created (migrated from Story 26 AC5) | Orchestrator Agent |
+| 2025-11-13 | 13:22:48 | ✅ Phase 1 Investigation COMPLETED: Created comprehensive field comparison document (13 sections, 26+ fields documented) | Dev Agent (Claude) |
+| 2025-11-13 | 13:46:53 | 🎯 **CRITICAL SCOPE CHANGE:** Client clarified requirements - REPLACEMENT not alignment. Remove medical history completely, replace with check-in form in Users tab. Display all check-ins (newest first). Simplified phases from 7 to 6. | Dev Agent (Claude) |
 
 ---
 
-**Story Status:** Draft → Investigation → Strategy Approval → In Progress → Code Review → QA Testing → Done
+**Story Status:** Draft → Investigation (Phase 1 Complete) → **Requirements Clarified - Ready for Development** (CURRENT) → In Progress → Code Review → QA Testing → Done
 
-**Last Updated:** 2025-11-11 13:56:31 (via `date '+%Y-%m-%d %H:%M:%S'`)
-**Updated By:** Orchestrator Agent - Sprint 6 Story 2 initial creation
+**Last Updated:** 2025-11-13 13:46:53 (via `date '+%Y-%m-%d %H:%M:%S'`)
+**Updated By:** Dev Agent (Claude) - Client requirements clarified, scope changed to REPLACEMENT strategy, ready to start Phase 2 implementation

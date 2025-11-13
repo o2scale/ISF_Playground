@@ -770,6 +770,37 @@ export const searchDoctors = async (searchTerm) => {
   }
 };
 
+// Sprint6-Story-3-BugFix-006: Hospital API functions
+export const getAllHospitals = async () => {
+  try {
+    const response = await api.get("/api/hospitals");
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching hospitals:", error);
+    throw error;
+  }
+};
+
+export const createHospital = async (name) => {
+  try {
+    const response = await api.post("/api/hospitals", { name });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating hospital:", error);
+    throw error;
+  }
+};
+
+export const searchHospitals = async (searchTerm) => {
+  try {
+    const response = await api.get(`/api/hospitals/search?q=${searchTerm}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error searching hospitals:", error);
+    throw error;
+  }
+};
+
 // ====================================================================================
 
 export const createMood = async (data) => {

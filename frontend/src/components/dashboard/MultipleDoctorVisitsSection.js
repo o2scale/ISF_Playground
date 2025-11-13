@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import DoctorNameDropdown from "./DoctorNameDropdown";
+import HospitalNameDropdown from "./HospitalNameDropdown";
 import "./DoctorVisitsSection.css";
 
 // Sprint6-Story-3-AC5: Component for managing multiple doctor visits
@@ -112,13 +113,12 @@ const MultipleDoctorVisitsSection = ({ doctorVisits, onChange }) => {
 
               <div className="form-group">
                 <label>Hospital Name</label>
-                <input
-                  type="text"
+                <HospitalNameDropdown
                   value={visit.hospitalName || ""}
-                  onChange={(e) =>
-                    updateDoctorVisit(visitIndex, "hospitalName", e.target.value)
+                  onChange={(value) =>
+                    updateDoctorVisit(visitIndex, "hospitalName", value)
                   }
-                  placeholder="Enter hospital name"
+                  placeholder="Search or add hospital name"
                 />
               </div>
 

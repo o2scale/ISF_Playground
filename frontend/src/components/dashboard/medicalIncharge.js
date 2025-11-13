@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./MedicInchargeDashboard.css";
 import { useAuth } from "../../contexts/AuthContext";
 import CheckInModal from "./CheckInModal";
+import ViewCheckInModal from "./ViewCheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
 import UserManagement from "../usermanagement/usermanagement";
 import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, deleteMedicalCheckinAttachment, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
@@ -16,6 +17,8 @@ const MedicInchargeDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { logout } = useAuth();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
+  const [viewData, setViewData] = useState(null);
   const [balagruhaData, setBalagruhaData] = useState([]);
   const [search, setSearch] = useState();
   const [medicalStatus, setMedicalStatus] = useState('all');
@@ -210,6 +213,23 @@ const MedicInchargeDashboard = () => {
   const handleCloseModal = () => {
     setEditMode(false);
     setIsModalOpen(false);
+  };
+
+  const handleOpenViewModal = (checkin) => {
+    setViewData(checkin);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setIsViewModalOpen(false);
+    setViewData(null);
+  };
+
+  const handleEditFromView = (checkin) => {
+    // Close view modal
+    setIsViewModalOpen(false);
+    // Open edit modal
+    handleOpenModal(checkin, true);
   };
 
   const handleSubmitCheckIn = async(formData, checkInId = null, removedAttachmentIds = []) => {
@@ -1166,13 +1186,22 @@ const MedicInchargeDashboard = () => {
                           <td>
                             <button
                               className="medic-icon-button"
+                              onClick={() => handleOpenViewModal(checkin)}
+                              title="View Details"
+                            >
+                              👁️
+                            </button>
+                            <button
+                              className="medic-icon-button"
                               onClick={() => handleOpenModal(checkin, true)}
+                              title="Edit Check-in"
                             >
                               📝
                             </button>
                             <button
                               className="medic-icon-button"
                               onClick={() => handleDeleteCheckIn(checkin._id)}
+                              title="Delete Check-in"
                             >
                               🗑️
                             </button>
@@ -1766,6 +1795,12 @@ const MedicInchargeDashboard = () => {
             studentData={editData}
             balagruhas={balagruhaData}
             editMode={editMode}
+          />
+          <ViewCheckInModal
+            isOpen={isViewModalOpen}
+            onClose={handleCloseViewModal}
+            checkInData={viewData}
+            onEdit={handleEditFromView}
           />
         </div>
       </div>

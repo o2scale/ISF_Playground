@@ -1,11 +1,12 @@
 # Sprint 6 Story 3 - Medical Check-in Fixes & Enhancements - E2E Test Scenarios
 
 **Story:** Sprint 6 Story 3 - Medical Check-in Bug Fixes & Enhancements
-**Acceptance Criteria:** AC1-AC7 (All)
+**Acceptance Criteria:** AC1-AC7 (All) + UAT Bug Fixes (BUG-001 through BUG-006) + View Button Enhancement
 **Test Type:** E2E (Playwright MCP)
 **Created:** 2025-11-12 00:22:46
+**Updated:** 2025-11-13 16:36:01 (Added View Button Enhancement Test Cases)
 **Status:** Ready for QA Execution
-**Priority:** 🔴 HIGH (4 Critical Bugs + 3 Important Enhancements)
+**Priority:** 🔴 CRITICAL (4 Original Bugs + 3 Enhancements + 6 UAT Blockers + 1 Client Enhancement)
 
 ---
 
@@ -1360,6 +1361,553 @@
 
 ---
 
+## UAT Bug Fixes (Post-Story 3 Deployment)
+
+**Bug Report Date:** 2025-11-13
+**Bugs Fixed:** 6 critical issues reported during UAT testing
+**Fix Status:** All fixes implemented and ready for QA verification
+
+### **Overview of UAT Bugs:**
+- **BUG-001:** Second follow-up not displaying in edit mode
+- **BUG-002:** Files not persisting sometimes
+- **BUG-003:** Adding doctor visit overrides previous visits instead of adding
+- **BUG-004:** Follow-ups not being updated correctly
+- **BUG-005:** Doctor name dropdown missing in Follow-up section
+- **BUG-006:** Hospital name needs dropdown/suggestion feature
+
+---
+
+### **TC-UAT-BUG001-001: Second Follow-up Displays in Edit Mode**
+**Priority:** P0 (Critical - UAT Blocker)
+**Description:** Verify all follow-ups display correctly when editing check-in
+**Related Bug:** BUG-001 - Second follow-up not showing in edit
+
+**Preconditions:**
+- Medical Incharge logged in
+- Check-in exists with 2+ follow-ups already saved
+
+**Steps:**
+1. Create new check-in with 3 follow-ups:
+   - Follow-up 1: Date 2025-01-15, Hospital "City Hospital", 2 coaches assigned
+   - Follow-up 2: Date 2025-01-22, Hospital "General Hospital", 1 coach assigned
+   - Follow-up 3: Date 2025-01-29, Hospital "Specialist Clinic", 3 coaches assigned
+2. **Verify all 3 follow-ups saved successfully**
+3. Close modal/navigate away from check-in
+4. Find the check-in in list
+5. Click "Edit" on the check-in
+6. **Verify Follow-up 1 displays with correct data (Date, Hospital, Coaches)**
+7. **Verify Follow-up 2 displays with correct data (Date, Hospital, Coaches)**
+8. **Verify Follow-up 3 displays with correct data (Date, Hospital, Coaches)**
+9. **Verify header shows "Follow-ups (3)"**
+10. **Verify no data loss or corruption**
+11. Make minor edit to Follow-up 2 (change hospital name)
+12. Submit form
+13. Re-open check-in in edit mode
+14. **Verify Follow-up 2 changes persisted**
+15. **Verify all 3 follow-ups still intact**
+
+**Expected Results:**
+- ✅ All 3 follow-ups display in edit mode
+- ✅ All follow-up data accurate (dates, hospitals, coaches)
+- ✅ No follow-ups missing or hidden
+- ✅ Can edit any follow-up and changes persist
+- ✅ Follow-up count accurate in header
+- ✅ No console errors
+
+**Root Cause Fixed:**
+Backend controller now accepts `followUps[]` array format instead of only single `followUp` object
+
+**Screenshots Required:**
+- `UAT-BUG001-001-three-followups-created.png`
+- `UAT-BUG001-001-edit-mode-all-followups-visible.png`
+- `UAT-BUG001-001-followup2-edited-persisted.png`
+
+---
+
+### **TC-UAT-BUG002-001: Files Persist Correctly on Edit**
+**Priority:** P0 (Critical - UAT Blocker)
+**Description:** Verify uploaded files persist correctly when editing check-in
+**Related Bug:** BUG-002 - Files not persisting sometimes
+
+**Preconditions:**
+- Medical Incharge logged in
+- Test files available: prescription.pdf, lab-results.jpg, xray.jpg
+
+**Steps:**
+1. Create new check-in
+2. Add Doctor Visit 1:
+   - Upload prescription file: "prescription.pdf" (3MB)
+   - Upload test result file: "lab-results.jpg" (4MB)
+3. **Verify both files appear in Visit 1 file lists**
+4. Add Doctor Visit 2:
+   - Upload test result file: "xray.jpg" (3MB)
+5. **Verify file appears in Visit 2 file list**
+6. Add Follow-up 1:
+   - Upload description file: "followup-notes.pdf" (2MB)
+7. **Verify file appears in Follow-up 1 description files**
+8. Submit form
+9. **Verify success message**
+10. Close modal
+11. Find check-in in list, click "Edit"
+12. **Verify Visit 1 shows both files (prescription.pdf, lab-results.jpg)**
+13. **Verify Visit 2 shows file (xray.jpg)**
+14. **Verify Follow-up 1 shows file (followup-notes.pdf)**
+15. **Verify all files are clickable/downloadable**
+16. Add new file to Visit 1: "additional-prescription.jpg"
+17. Submit form
+18. Re-open in edit mode
+19. **Verify all files persisted (4 files total for visits + 1 for follow-up)**
+20. **Verify no files lost or corrupted**
+
+**Expected Results:**
+- ✅ All uploaded files persist on first save
+- ✅ Files visible in edit mode
+- ✅ Files downloadable/viewable
+- ✅ New files can be added without losing existing files
+- ✅ Files categorized correctly (prescription vs test results vs follow-up files)
+- ✅ No file data loss
+
+**Root Cause Fixed:**
+Backend controller now correctly processes FormData with array formats for doctorVisits and followUps, preserving file attachments
+
+**Screenshots Required:**
+- `UAT-BUG002-001-files-uploaded-initial.png`
+- `UAT-BUG002-001-edit-mode-files-intact.png`
+- `UAT-BUG002-001-additional-file-added.png`
+- `UAT-BUG002-001-all-files-persisted.png`
+
+---
+
+### **TC-UAT-BUG003-001: Adding Doctor Visit Does Not Override Previous Visits**
+**Priority:** P0 (Critical - UAT Blocker)
+**Description:** Verify adding new doctor visit appends instead of overriding existing visits
+**Related Bug:** BUG-003 - Adding doctor visit overrides previous visits
+
+**Preconditions:**
+- Medical Incharge logged in
+- Medical check-in form open
+
+**Steps:**
+1. Create new check-in with basic info
+2. Fill Doctor Visit 1:
+   - Doctor Name: "Dr. Sharma"
+   - Hospital: "City Hospital"
+   - Visit Date: 2025-01-10
+   - Prescription file: "prescription1.pdf"
+   - Conclusion: "Patient stable, continue medication"
+3. **Verify Visit 1 data entered**
+4. Click "+ Add Another Doctor Visit"
+5. Fill Doctor Visit 2:
+   - Doctor Name: "Dr. Patel"
+   - Hospital: "General Hospital"
+   - Visit Date: 2025-01-15
+   - Test Result file: "xray2.jpg"
+   - Conclusion: "X-ray shows improvement"
+6. **Verify Visit 1 STILL shows Dr. Sharma data (NOT overridden)**
+7. **Verify Visit 2 shows Dr. Patel data**
+8. **Verify header shows "Doctor Visits (2)"**
+9. Click "+ Add Another Doctor Visit"
+10. Fill Doctor Visit 3:
+    - Doctor Name: "Dr. Kumar"
+    - Hospital: "Specialist Clinic"
+    - Visit Date: 2025-01-20
+11. **Verify Visit 1 STILL shows Dr. Sharma**
+12. **Verify Visit 2 STILL shows Dr. Patel**
+13. **Verify Visit 3 shows Dr. Kumar**
+14. **Verify header shows "Doctor Visits (3)"**
+15. Submit form
+16. **Verify success message**
+17. View created check-in
+18. **Verify all 3 visits saved correctly with distinct data**
+19. Open in edit mode
+20. **Verify all 3 visits still intact and editable**
+
+**Expected Results:**
+- ✅ Adding Visit 2 does NOT override Visit 1
+- ✅ Adding Visit 3 does NOT override Visit 1 or Visit 2
+- ✅ Each visit maintains independent data
+- ✅ All visits submitted as array
+- ✅ All visits persisted correctly in database
+- ✅ All visits editable after save
+- ✅ No data loss or overriding behavior
+
+**Root Cause Fixed:**
+Backend controller updated to accept `doctorVisits[]` array instead of single `doctorVisit` object. Controller now properly handles array format sent by frontend.
+
+**Code Fix Location:** backend/controllers/medicalCheckInsController.js:354-473
+
+**Screenshots Required:**
+- `UAT-BUG003-001-visit1-filled.png`
+- `UAT-BUG003-001-visit2-added-visit1-intact.png`
+- `UAT-BUG003-001-visit3-added-all-intact.png`
+- `UAT-BUG003-001-all-three-visits-saved.png`
+
+---
+
+### **TC-UAT-BUG004-001: Follow-ups Update Correctly**
+**Priority:** P0 (Critical - UAT Blocker)
+**Description:** Verify follow-up data updates correctly and persists
+**Related Bug:** BUG-004 - Follow-ups not being updated
+
+**Preconditions:**
+- Medical Incharge logged in
+- Check-in exists with 2 follow-ups
+
+**Steps:**
+1. Create new check-in
+2. Add Follow-up 1:
+   - Date: 2025-01-15
+   - Hospital: "City Hospital"
+   - Doctor: "Dr. Sharma"
+   - Assign 2 coaches
+   - Status: "Active"
+   - Notes: "Initial follow-up for checkup"
+3. Add Follow-up 2:
+   - Date: 2025-01-22
+   - Hospital: "General Hospital"
+   - Doctor: "Dr. Patel"
+   - Assign 1 coach
+   - Status: "Active"
+   - Notes: "Second follow-up for test results"
+4. **Verify both follow-ups show in form**
+5. Submit form
+6. **Verify success message**
+7. View check-in
+8. **Verify both follow-ups saved with correct data**
+9. Click "Edit" on check-in
+10. Modify Follow-up 1:
+    - Change Hospital to "Updated City Hospital"
+    - Change Status to "Completed"
+    - Add notes: "Updated - patient recovered"
+11. **Verify Follow-up 2 data unchanged**
+12. Submit form
+13. View check-in
+14. **Verify Follow-up 1 changes persisted:**
+    - Hospital: "Updated City Hospital"
+    - Status: "Completed"
+    - Notes: "Updated - patient recovered"
+15. **Verify Follow-up 2 still has original data**
+16. Edit check-in again
+17. Modify Follow-up 2:
+    - Change Hospital to "Updated General Hospital"
+    - Assign different coach
+18. Submit form
+19. **Verify Follow-up 2 updates persisted**
+20. **Verify Follow-up 1 retains previous changes**
+
+**Expected Results:**
+- ✅ Follow-up 1 changes save correctly
+- ✅ Follow-up 2 changes save correctly
+- ✅ Updates to one follow-up don't affect other follow-ups
+- ✅ All follow-up data persists correctly
+- ✅ Can edit follow-ups multiple times
+- ✅ No data loss on updates
+
+**Root Cause Fixed:**
+Backend controller now accepts `followUps[]` array format and correctly updates all follow-ups in database
+
+**Screenshots Required:**
+- `UAT-BUG004-001-two-followups-created.png`
+- `UAT-BUG004-001-followup1-edited.png`
+- `UAT-BUG004-001-followup1-changes-persisted.png`
+- `UAT-BUG004-001-followup2-edited.png`
+- `UAT-BUG004-001-both-followups-updated.png`
+
+---
+
+### **TC-UAT-BUG005-001: Doctor Name Dropdown in Follow-up Section**
+**Priority:** P0 (Critical - UX Consistency)
+**Description:** Verify doctor name dropdown appears and works in Follow-up section
+**Related Bug:** BUG-005 - Doctor name not suggested in follow-up section
+
+**Preconditions:**
+- Medical Incharge logged in
+- Database has 2 existing doctors: "Dr. Sharma", "Dr. Patel"
+
+**Steps:**
+1. Navigate to Medical Check-in form
+2. Expand "Doctor Visits" section
+3. **Verify Doctor Name field has DROPDOWN (CreatableSelect component)**
+4. **Verify can search and select from existing doctors**
+5. Expand "Follow-ups" section
+6. Add Follow-up
+7. **Verify Doctor Name field has DROPDOWN (same as Doctor Visits)**
+8. Click Doctor Name dropdown in Follow-up
+9. **Verify dropdown opens showing existing doctors**
+10. Type "Sh" in search
+11. **Verify "Dr. Sharma" appears in filtered results**
+12. Select "Dr. Sharma"
+13. **Verify "Dr. Sharma" populates in field**
+14. Add another Follow-up
+15. In Follow-up 2, type new doctor name "Dr. Newdoc"
+16. **Verify "Add 'Dr. Newdoc'" option appears**
+17. Click "Add 'Dr. Newdoc'"
+18. **Verify "Dr. Newdoc" populates in field**
+19. **Verify "Dr. Newdoc" added to database**
+20. Submit form
+21. Create new check-in
+22. In Follow-up section, search "Newdoc"
+23. **Verify "Dr. Newdoc" appears in searchable list**
+
+**Expected Results:**
+- ✅ Doctor name dropdown visible in Follow-up section
+- ✅ Dropdown identical to Doctor Visits dropdown (same UX)
+- ✅ Can search existing doctors
+- ✅ Can add new doctors
+- ✅ New doctors immediately searchable
+- ✅ Case-insensitive search works
+- ✅ Dropdown has clear/reset functionality
+
+**Implementation Fix:**
+Added DoctorNameDropdown component to MultipleFollowUpsSection.js (lines 3, 159-166)
+
+**Code Location:** frontend/src/components/dashboard/MultipleFollowUpsSection.js:3,159-166
+
+**Screenshots Required:**
+- `UAT-BUG005-001-followup-doctor-dropdown.png`
+- `UAT-BUG005-001-doctor-search-working.png`
+- `UAT-BUG005-001-add-new-doctor.png`
+- `UAT-BUG005-001-new-doctor-searchable.png`
+
+---
+
+### **TC-UAT-BUG006-001: Hospital Name Dropdown in Doctor Visits**
+**Priority:** P0 (Critical - UX Enhancement)
+**Description:** Verify hospital name dropdown appears and works in Doctor Visits section
+**Related Bug:** BUG-006 - Hospital name should have dropdown/suggestion feature
+
+**Preconditions:**
+- Medical Incharge logged in
+- Database has 2 existing hospitals: "City Hospital", "General Hospital"
+
+**Steps:**
+1. Navigate to Medical Check-in form
+2. Expand "Doctor Visits" section
+3. **Verify Hospital Name field has DROPDOWN (CreatableSelect component)**
+4. Click Hospital Name dropdown
+5. **Verify dropdown opens showing existing hospitals**
+6. **Verify "City Hospital" in list**
+7. **Verify "General Hospital" in list**
+8. Type "Cit" in search
+9. **Verify "City Hospital" appears in filtered results**
+10. Select "City Hospital"
+11. **Verify "City Hospital" populates in field**
+12. Add Doctor Visit 2
+13. In Visit 2, type new hospital "Metro Medical Center"
+14. **Verify "Add 'Metro Medical Center'" option appears**
+15. Click "Add 'Metro Medical Center'"
+16. **Verify "Metro Medical Center" populates in field**
+17. **Verify hospital added to database**
+18. Submit form
+19. Create new check-in
+20. Add Doctor Visit
+21. Search "Metro" in Hospital dropdown
+22. **Verify "Metro Medical Center" appears in searchable list**
+23. **Verify case-insensitive search works**
+
+**Expected Results:**
+- ✅ Hospital name dropdown visible in Doctor Visits
+- ✅ Dropdown shows existing hospitals
+- ✅ Can search hospitals (case-insensitive)
+- ✅ Can add new hospitals
+- ✅ New hospitals immediately searchable
+- ✅ Same UX as Doctor Name dropdown
+- ✅ Clear/reset functionality works
+
+**Implementation Fix:**
+- Created HospitalNameDropdown component (frontend/src/components/dashboard/HospitalNameDropdown.js)
+- Integrated into MultipleDoctorVisitsSection.js
+- Created backend Hospital API (model, data-access, service, controller, routes)
+
+**Backend Files Created:**
+- backend/models/hospital.js
+- backend/data-access/hospital.js
+- backend/services/hospital.js
+- backend/controllers/hospitalController.js
+- backend/routes/hospitalRoutes.js
+
+**Frontend Integration:**
+- frontend/src/components/dashboard/HospitalNameDropdown.js
+- frontend/src/components/dashboard/MultipleDoctorVisitsSection.js:3,116-122
+
+**Screenshots Required:**
+- `UAT-BUG006-001-hospital-dropdown-visits.png`
+- `UAT-BUG006-001-hospital-search-working.png`
+- `UAT-BUG006-001-add-new-hospital.png`
+- `UAT-BUG006-001-new-hospital-searchable.png`
+
+---
+
+### **TC-UAT-BUG006-002: Hospital Name Dropdown in Follow-ups**
+**Priority:** P0 (Critical - UX Consistency)
+**Description:** Verify hospital name dropdown appears and works in Follow-ups section
+**Related Bug:** BUG-006 - Hospital name should have dropdown in follow-ups too
+
+**Preconditions:**
+- Medical Incharge logged in
+- Hospital "City Hospital" exists in database (created in previous test)
+
+**Steps:**
+1. Navigate to Medical Check-in form
+2. Expand "Follow-ups" section
+3. Add Follow-up
+4. **Verify Hospital/Location field has DROPDOWN (CreatableSelect component)**
+5. Click Hospital dropdown
+6. **Verify dropdown opens showing existing hospitals**
+7. **Verify "City Hospital" in list**
+8. **Verify "Metro Medical Center" in list (from previous test)**
+9. Type "metro" (lowercase) in search
+10. **Verify "Metro Medical Center" appears (case-insensitive)**
+11. Select "Metro Medical Center"
+12. **Verify hospital populates in field**
+13. Add Follow-up 2
+14. In Follow-up 2, type new hospital "Children's Hospital"
+15. **Verify "Add 'Children's Hospital'" option appears**
+16. Click add option
+17. **Verify "Children's Hospital" populates**
+18. Submit form
+19. Create new check-in
+20. In Doctor Visits, search "Children's"
+21. **Verify "Children's Hospital" appears (cross-accessible)**
+22. In Follow-ups, search "Children's"
+23. **Verify "Children's Hospital" appears (same data source)**
+
+**Expected Results:**
+- ✅ Hospital name dropdown visible in Follow-ups
+- ✅ Dropdown shows existing hospitals
+- ✅ Can search hospitals (case-insensitive)
+- ✅ Can add new hospitals
+- ✅ Hospitals shared between Doctor Visits and Follow-ups
+- ✅ Same UX as Doctor Visits dropdown
+- ✅ Clear/reset functionality works
+
+**Implementation Fix:**
+Integrated HospitalNameDropdown into MultipleFollowUpsSection.js
+
+**Code Location:** frontend/src/components/dashboard/MultipleFollowUpsSection.js:4,148-154
+
+**Screenshots Required:**
+- `UAT-BUG006-002-hospital-dropdown-followup.png`
+- `UAT-BUG006-002-hospital-search-followup.png`
+- `UAT-BUG006-002-add-hospital-followup.png`
+- `UAT-BUG006-002-hospital-cross-accessible.png`
+
+---
+
+### **TC-UAT-BUG006-003: No Duplicate Hospitals Created**
+**Priority:** P1 (High - Data Integrity)
+**Description:** Verify system prevents duplicate hospital entries (case-insensitive)
+**Related Bug:** BUG-006 - Hospital dropdown implementation
+
+**Preconditions:**
+- Medical Incharge logged in
+- Hospital "City Hospital" exists in database
+
+**Steps:**
+1. Navigate to Doctor Visits section
+2. Click Hospital dropdown
+3. Type "city hospital" (different case)
+4. **Verify dropdown shows existing "City Hospital"**
+5. **Verify NO "Add 'city hospital'" option (duplicate detection)**
+6. Type "CITY HOSPITAL" (all caps)
+7. **Verify dropdown shows existing "City Hospital"**
+8. **Verify NO add option (case-insensitive match)**
+9. Type "City Hospital 2" (different name)
+10. **Verify "Add 'City Hospital 2'" option appears**
+11. Add "City Hospital 2"
+12. Submit form
+13. Check database directly (or via API)
+14. **Verify only ONE "City Hospital" entry exists (no duplicates)**
+15. **Verify "City Hospital 2" is separate entry**
+
+**Expected Results:**
+- ✅ Case-insensitive duplicate detection works
+- ✅ Existing hospitals shown instead of creating duplicates
+- ✅ Different hospital names allowed
+- ✅ Database maintains unique hospitals
+- ✅ No duplicate entries created
+
+**Backend Duplicate Check:**
+backend/data-access/hospital.js uses case-insensitive regex for duplicate detection:
+```javascript
+const existingHospital = await Hospital.findOne({
+  name: { $regex: new RegExp(`^${name}$`, "i") },
+});
+```
+
+**Screenshots Required:**
+- `UAT-BUG006-003-no-duplicate-option.png`
+- `UAT-BUG006-003-case-insensitive-match.png`
+
+---
+
+### **TC-UAT-INTEGRATION-001: Complete Check-in with All Bug Fixes**
+**Priority:** P0 (Critical - End-to-End Integration)
+**Description:** Verify all bug fixes work together in single check-in workflow
+**Related Bugs:** BUG-001 through BUG-006
+
+**Preconditions:**
+- Medical Incharge logged in
+- Clean database state for test
+- Test files available
+
+**Steps:**
+1. Create new check-in with basic info
+2. **Add 3 Doctor Visits (BUG-003 fix):**
+   - Visit 1: Dr. Sharma (from dropdown - BUG-006), City Hospital (from dropdown - BUG-006), prescription.pdf
+   - Visit 2: Dr. Patel (from dropdown), General Hospital (from dropdown), xray.jpg
+   - Visit 3: New Doctor "Dr. Kumar" (add new - BUG-005), New Hospital "Metro Medical" (add new - BUG-006), lab-results.pdf
+3. **Verify all 3 visits visible and independent (BUG-003)**
+4. **Add 3 Follow-ups (BUG-004 fix):**
+   - Follow-up 1: Date 2025-01-15, Dr. Sharma (dropdown - BUG-005), City Hospital (dropdown - BUG-006), 2 coaches, followup1-notes.pdf (BUG-002)
+   - Follow-up 2: Date 2025-01-22, Dr. Patel (dropdown - BUG-005), General Hospital (dropdown - BUG-006), 1 coach, followup2-xray.jpg (BUG-002)
+   - Follow-up 3: Date 2025-01-29, New Doctor "Dr. Singh" (add new - BUG-005), Metro Medical (dropdown - BUG-006), 3 coaches, followup3-tests.pdf (BUG-002)
+5. **Verify all 3 follow-ups visible and independent (BUG-004)**
+6. **Verify all files attached correctly (BUG-002)**
+7. Submit form
+8. **Verify success message**
+9. Close modal
+10. Find check-in in list, click "Edit"
+11. **Verify all 3 doctor visits display (BUG-003)**
+12. **Verify all 3 follow-ups display (BUG-001, BUG-004)**
+13. **Verify all files persisted correctly (BUG-002):**
+    - Visit 1: prescription.pdf
+    - Visit 2: xray.jpg
+    - Visit 3: lab-results.pdf
+    - Follow-up 1: followup1-notes.pdf
+    - Follow-up 2: followup2-xray.jpg
+    - Follow-up 3: followup3-tests.pdf
+14. **Verify doctor dropdowns work in visits (BUG-005)**
+15. **Verify doctor dropdowns work in follow-ups (BUG-005)**
+16. **Verify hospital dropdowns work in visits (BUG-006)**
+17. **Verify hospital dropdowns work in follow-ups (BUG-006)**
+18. Edit Follow-up 2: Change hospital to "Updated Hospital"
+19. Edit Visit 2: Change doctor to "Dr. Updated"
+20. Submit form
+21. Re-open in edit mode
+22. **Verify Follow-up 2 changes persisted (BUG-004)**
+23. **Verify Visit 2 changes persisted (BUG-003)**
+24. **Verify all other data intact (BUG-001, BUG-002)**
+
+**Expected Results:**
+- ✅ All 6 bug fixes working correctly
+- ✅ Multiple doctor visits save and edit correctly (BUG-003)
+- ✅ Multiple follow-ups save and edit correctly (BUG-001, BUG-004)
+- ✅ All files persist correctly (BUG-002)
+- ✅ Doctor dropdowns work everywhere (BUG-005)
+- ✅ Hospital dropdowns work everywhere (BUG-006)
+- ✅ No regressions or new issues
+- ✅ Complete workflow seamless
+
+**Screenshots Required:**
+- `UAT-INTEGRATION-001-complete-form-filled.png`
+- `UAT-INTEGRATION-001-edit-mode-all-data-intact.png`
+- `UAT-INTEGRATION-001-files-persisted.png`
+- `UAT-INTEGRATION-001-dropdowns-working.png`
+- `UAT-INTEGRATION-001-updates-persisted.png`
+
+---
+
 ## Regression Test Cases
 
 ### **REG-S3-001: Existing Check-ins Display Correctly**
@@ -1528,7 +2076,7 @@ db.medicalCheckIns.find({ doctorVisits: { $exists: true } }).count()
 
 ## Summary of Test Coverage
 
-**Total Test Cases:** 39
+**Total Test Cases:** 48 (39 Original + 9 UAT Bug Fixes)
 
 **By Acceptance Criteria:**
 - AC1 (Temperature Optional): 4 test cases
@@ -1538,20 +2086,30 @@ db.medicalCheckIns.find({ doctorVisits: { $exists: true } }).count()
 - AC5 (Multiple Visits): 7 test cases
 - AC6 (Multiple Follow-ups): 7 test cases
 - AC7 (Follow-up Files): 6 test cases
+- **UAT Bug Fixes: 9 test cases** ⭐ NEW
+  - BUG-001 (Second Follow-up Display): 1 test case
+  - BUG-002 (File Persistence): 1 test case
+  - BUG-003 (Doctor Visits Override): 1 test case
+  - BUG-004 (Follow-ups Update): 1 test case
+  - BUG-005 (Doctor Dropdown in Follow-up): 1 test case
+  - BUG-006 (Hospital Dropdown): 3 test cases (Visits, Follow-ups, Duplicates)
+  - Integration Test: 1 test case (All bugs combined)
 - Regression Tests: 5 test cases
 
 **Priority Breakdown:**
-- P0 (Critical): 21 test cases - Must pass for story completion
-- P1 (High): 15 test cases - Important for user experience
+- P0 (Critical): 29 test cases (21 Original + 8 UAT) - Must pass for deployment
+- P1 (High): 16 test cases (15 Original + 1 UAT) - Important for user experience
 - P2 (Medium): 3 test cases - Nice-to-have features
 
 **Coverage:**
 - ✅ All 4 critical bugs (AC1-AC4)
 - ✅ All 3 enhancements (AC5-AC7)
+- ✅ **All 6 UAT blocker bugs (BUG-001 through BUG-006)** ⭐ NEW
 - ✅ Edge cases (file size limits, validation errors)
 - ✅ Regression tests (no existing functionality broken)
 - ✅ Data migration verification
 - ✅ Backward compatibility testing
+- ✅ **End-to-end integration test (all bugs together)** ⭐ NEW
 
 **Test Data Requirements:**
 - Minimum 5 students across 2 Balagruhas
@@ -1766,23 +2324,584 @@ xray-result.jpg - 4MB image
 
 ## Final Checklist Before QA Sign-off
 
-- [ ] All 21 P0 test cases passed
+**Original Story 3 (AC1-AC7):**
+- [ ] All 21 P0 test cases passed (AC1-AC7)
 - [ ] Max 1 P1 test case failed (with workaround documented)
 - [ ] All 5 regression test cases passed
 - [ ] No critical console errors
 - [ ] Data migration verified successful
 - [ ] File uploads working for all file types
-- [ ] Doctor dropdown functioning correctly
-- [ ] Multiple visits and follow-ups saving correctly
+- [ ] Doctor dropdown functioning correctly (AC2)
+- [ ] Multiple visits and follow-ups saving correctly (AC5-AC6)
 - [ ] Backward compatibility verified
-- [ ] Screenshots captured for all test cases
+
+**UAT Bug Fixes (BUG-001 through BUG-006):** ⭐ NEW
+- [ ] All 8 P0 UAT bug fix test cases passed
+- [ ] BUG-001: Second follow-up displays in edit mode
+- [ ] BUG-002: Files persist correctly on edit/update
+- [ ] BUG-003: Doctor visits append (not override)
+- [ ] BUG-004: Follow-ups update correctly
+- [ ] BUG-005: Doctor dropdown works in Follow-ups
+- [ ] BUG-006: Hospital dropdown works in Visits & Follow-ups
+- [ ] Integration test passed (all bugs working together)
+- [ ] No duplicate hospitals created (case-insensitive check)
+
+**Final Sign-off:**
+- [ ] Screenshots captured for all test cases (54 total)
 - [ ] Database verification completed
 - [ ] QA report written with findings
+- [ ] **ALL P0 test cases passed (33 total)** - CRITICAL FOR DEPLOYMENT
+
+---
+
+## View Button Enhancement Test Cases
+
+**Enhancement:** View Button for Medical Check-in Listing
+**Requested:** 2025-11-13 (Post-UAT Client Request)
+**Priority:** High
+**Component:** ViewCheckInModal + Medical Incharge Dashboard
+
+### Test Case: TC-VIEW-001 - View Button Visibility and Placement
+
+**Test ID:** TC-VIEW-001
+**Test Name:** View Button Visibility and Placement in Actions Column
+**Priority:** P0 (Critical)
+**Category:** View Button - UI/UX
+**Prerequisites:**
+- At least 1 medical check-in exists in the database
+- User is on the "Check Ins" tab
+
+**Test Steps:**
+1. Navigate to Medical Incharge Dashboard
+2. Click on "Check Ins" tab
+3. Locate the Actions column in the medical check-ins table
+4. Verify the presence and order of action buttons
+
+**Expected Results:**
+- ✅ Actions column shows 3 buttons for each check-in row:
+  - **1st button:** 👁️ (View button)
+  - **2nd button:** 📝 (Edit button)
+  - **3rd button:** 🗑️ (Delete button)
+- ✅ View button has tooltip "View Details" on hover
+- ✅ Edit button has tooltip "Edit Check-in" on hover
+- ✅ Delete button has tooltip "Delete Check-in" on hover
+- ✅ All buttons are clearly visible and properly aligned
+- ✅ Button styling is consistent with existing UI
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-button-actions-column-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-002 - View Modal Opens with Complete Data (Single Doctor Visit)
+
+**Test ID:** TC-VIEW-002
+**Test Name:** View Modal Displays Complete Check-in Data (Single Doctor Visit)
+**Priority:** P0 (Critical)
+**Category:** View Button - Modal Display
+**Prerequisites:**
+- Medical check-in exists with:
+  - Basic info (student, date, temperature, health status)
+  - Symptoms selected
+  - Notes entered
+  - 1 doctor visit with prescription and test result files
+  - NO follow-ups
+  - General attachments (1 image, 1 PDF)
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Find the test check-in in the listing
+3. Click the 👁️ **View** button
+4. Review all displayed information in the modal
+
+**Expected Results:**
+- ✅ ViewCheckInModal opens successfully
+- ✅ Modal title: "Medical Check-in Details"
+- ✅ **Basic Information Section** displays:
+  - Student Name: Correct
+  - Date & Time: Formatted as "12 Nov, 2025 02:30 PM"
+  - Temperature: Shows value with °C OR "Not measured"
+  - Health Status: Color-coded badge (Normal=green, Important=yellow, Critical=red)
+- ✅ **Symptoms Section** displays:
+  - All selected symptoms with proper labels
+  - Custom symptom (if present)
+- ✅ **Notes Section** displays:
+  - Full notes text (no truncation)
+  - Preserves line breaks
+- ✅ **Doctor Visits Section** displays:
+  - Header: "Doctor Visits (1)"
+  - Visit 1 card with:
+    - Doctor Name
+    - Hospital Name
+    - Visit Date (formatted: "12 Nov, 2025")
+    - Test Details
+    - Conclusion
+    - Prescription Files: Clickable links with 📄 icon
+    - Test Result Files: Clickable links with 📋 icon
+- ✅ **General Attachments Section** displays:
+  - Images: Thumbnail (100x100px), clickable to open full size
+  - PDFs: Clickable links with file names
+- ✅ Modal is scrollable if content exceeds viewport height
+- ✅ Modal width: 900px, max-height: 90vh
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-single-doctor-visit-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-003 - View Modal with Multiple Doctor Visits
+
+**Test ID:** TC-VIEW-003
+**Test Name:** View Modal Displays Multiple Doctor Visits Correctly
+**Priority:** P0 (Critical)
+**Category:** View Button - Multiple Doctor Visits
+**Prerequisites:**
+- Medical check-in exists with:
+  - 3 doctor visits (each with different doctor names, hospitals, dates)
+  - Each visit has prescription and test result files
+  - NO follow-ups
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Find the check-in with 3 doctor visits
+3. Click the 👁️ **View** button
+4. Scroll to the "Doctor Visits" section
+5. Verify all 3 visits are displayed
+
+**Expected Results:**
+- ✅ ViewCheckInModal opens successfully
+- ✅ **Doctor Visits Section** shows:
+  - Header: "Doctor Visits (3)"
+  - **Visit 1** card with complete details
+  - **Visit 2** card with complete details
+  - **Visit 3** card with complete details
+- ✅ Each visit card displays:
+  - Visit number (Visit 1, Visit 2, Visit 3)
+  - Doctor Name (different for each)
+  - Hospital Name (different for each)
+  - Visit Date (formatted correctly)
+  - Test Details
+  - Conclusion
+  - Prescription Files (clickable)
+  - Test Result Files (clickable)
+- ✅ Visits are displayed in sequential order (1, 2, 3)
+- ✅ All file attachments are clickable and open in new tab
+- ✅ No truncation of any information
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-multiple-doctor-visits-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-004 - View Modal with Multiple Follow-ups
+
+**Test ID:** TC-VIEW-004
+**Test Name:** View Modal Displays Multiple Follow-ups Correctly
+**Priority:** P0 (Critical)
+**Category:** View Button - Multiple Follow-ups
+**Prerequisites:**
+- Medical check-in exists with:
+  - NO doctor visits
+  - 3 follow-ups (each with different dates, doctors, hospitals)
+  - Each follow-up has status (Completed, Scheduled, Pending)
+  - Each follow-up has assigned coaches
+  - Each follow-up has description and test result files
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Find the check-in with 3 follow-ups
+3. Click the 👁️ **View** button
+4. Scroll to the "Follow-ups" section
+5. Verify all 3 follow-ups are displayed
+
+**Expected Results:**
+- ✅ ViewCheckInModal opens successfully
+- ✅ **Follow-ups Section** shows:
+  - Header: "Follow-ups (3)"
+  - **Follow-up 1** card with complete details
+  - **Follow-up 2** card with complete details
+  - **Follow-up 3** card with complete details
+- ✅ Each follow-up card displays:
+  - Follow-up number (Follow-up 1, Follow-up 2, Follow-up 3)
+  - Follow-up Date (formatted: "12 Nov, 2025")
+  - Hospital/Location
+  - Doctor Name
+  - Status badge (color-coded: Completed=green, Scheduled=blue, Pending=yellow)
+  - Assigned Coaches (comma-separated names)
+  - Notes (full text, preserves line breaks)
+  - Description Files (clickable links with 📎 icon)
+  - Test Result Files (clickable links with 📋 icon)
+- ✅ Follow-ups are displayed in sequential order (1, 2, 3)
+- ✅ All file attachments are clickable and open in new tab
+- ✅ No truncation of any information
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-multiple-followups-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-005 - View Modal with Both Doctor Visits and Follow-ups
+
+**Test ID:** TC-VIEW-005
+**Test Name:** View Modal Displays Complex Check-in (Multiple Visits + Follow-ups)
+**Priority:** P0 (Critical)
+**Category:** View Button - Complete Integration
+**Prerequisites:**
+- Medical check-in exists with:
+  - Basic info complete
+  - Symptoms selected
+  - Notes entered
+  - 2 doctor visits (each with files)
+  - 2 follow-ups (each with files and assigned coaches)
+  - General attachments (2 images, 1 PDF)
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Find the complex check-in
+3. Click the 👁️ **View** button
+4. Scroll through all sections
+5. Verify all data is displayed correctly
+
+**Expected Results:**
+- ✅ ViewCheckInModal opens successfully
+- ✅ All sections are visible and properly formatted:
+  - **Basic Information** ✅
+  - **Symptoms** ✅
+  - **Notes** ✅
+  - **Doctor Visits (2)** ✅
+  - **Follow-ups (2)** ✅
+  - **General Attachments** ✅
+- ✅ Modal is scrollable
+- ✅ No UI overlap or layout issues
+- ✅ All file attachments are clickable
+- ✅ Color-coded badges display correctly
+- ✅ Date formatting is consistent throughout
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-complex-checkin-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-006 - Edit Button Transition from View to Edit Mode
+
+**Test ID:** TC-VIEW-006
+**Test Name:** Edit Button in View Modal Opens Edit Modal Correctly
+**Priority:** P0 (Critical)
+**Category:** View Button - Edit Transition
+**Prerequisites:**
+- Medical check-in exists with complete data
+- User has permission to edit check-ins
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Click the 👁️ **View** button on a check-in
+3. Review the data in ViewCheckInModal
+4. Locate the **"📝 Edit Check-in"** button in the modal footer (left side)
+5. Click the **"📝 Edit Check-in"** button
+6. Verify the edit modal opens
+
+**Expected Results:**
+- ✅ ViewCheckInModal displays correctly with all data
+- ✅ **"📝 Edit Check-in"** button is visible in modal footer (left side)
+- ✅ Button styling: Blue background (#4f46e5), white text
+- ✅ Clicking **"📝 Edit Check-in"** button:
+  - Closes ViewCheckInModal
+  - Opens CheckInModal (edit mode)
+  - Pre-fills all fields with check-in data:
+    - Balagruha selected
+    - Student selected
+    - Temperature filled
+    - Date and Time filled
+    - Health Status selected
+    - Symptoms selected
+    - Notes filled
+    - Doctor visits populated (all visits)
+    - Follow-ups populated (all follow-ups)
+    - Existing attachments shown
+- ✅ User can now edit any field
+- ✅ All existing data is preserved and editable
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-to-edit-transition-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-007 - Close Button Dismisses View Modal
+
+**Test ID:** TC-VIEW-007
+**Test Name:** Close Button Dismisses View Modal and Returns to Listing
+**Priority:** P1 (Important)
+**Category:** View Button - Modal Dismissal
+**Prerequisites:**
+- Medical check-in exists
+- ViewCheckInModal is open
+
+**Test Steps:**
+1. Open ViewCheckInModal by clicking 👁️ **View** button
+2. Locate the **"Close"** button in modal footer (right side)
+3. Click the **"Close"** button
+4. Verify modal closes
+
+**Expected Results:**
+- ✅ **"Close"** button is visible in modal footer (right side)
+- ✅ Button styling: Secondary style (gray/white)
+- ✅ Clicking **"Close"** button:
+  - Closes ViewCheckInModal
+  - Returns to medical check-ins listing page
+  - No changes made to check-in data
+  - Listing table remains visible with same filters applied
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-close-button-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-008 - View Modal Handles Empty Optional Fields
+
+**Test ID:** TC-VIEW-008
+**Test Name:** View Modal Displays Correctly with Minimal Data
+**Priority:** P1 (Important)
+**Category:** View Button - Edge Cases
+**Prerequisites:**
+- Medical check-in exists with:
+  - Basic info (student, date, health status=Normal)
+  - NO temperature entered
+  - NO symptoms selected
+  - NO notes entered
+  - NO doctor visits
+  - NO follow-ups
+  - NO attachments
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Find the minimal check-in
+3. Click the 👁️ **View** button
+4. Review displayed information
+
+**Expected Results:**
+- ✅ ViewCheckInModal opens successfully
+- ✅ **Basic Information Section** displays:
+  - Student Name: ✅
+  - Date & Time: ✅
+  - Temperature: Shows **"Not measured"**
+  - Health Status: Shows **"NORMAL"** badge (green)
+- ✅ **Symptoms Section** displays:
+  - Shows **"None"**
+- ✅ **Notes Section** NOT displayed (hidden if no notes)
+- ✅ **Doctor Visits Section** NOT displayed (hidden if no visits)
+- ✅ **Follow-ups Section** NOT displayed (hidden if no follow-ups)
+- ✅ **General Attachments Section** NOT displayed (hidden if no attachments)
+- ✅ No "undefined" or "null" text displayed anywhere
+- ✅ No UI layout issues with empty sections
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-minimal-data-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-009 - View Modal File Attachments Are Clickable
+
+**Test ID:** TC-VIEW-009
+**Test Name:** All File Attachments in View Modal Open Correctly
+**Priority:** P0 (Critical)
+**Category:** View Button - File Attachments
+**Prerequisites:**
+- Medical check-in exists with:
+  - Doctor visit with 1 prescription file and 1 test result file
+  - Follow-up with 1 description file and 1 test result file
+  - General attachments: 1 image, 1 PDF
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Click the 👁️ **View** button
+3. Locate **Doctor Visits** section
+4. Click on prescription file link
+5. Click on test result file link (doctor visit)
+6. Locate **Follow-ups** section
+7. Click on description file link
+8. Click on test result file link (follow-up)
+9. Locate **General Attachments** section
+10. Click on image thumbnail
+11. Click on PDF document link
+
+**Expected Results:**
+- ✅ All file links are displayed with appropriate icons:
+  - Prescription: 📄 icon, blue background
+  - Test Results: 📋 icon, yellow background
+  - Description Files: 📎 icon, blue background
+  - General PDFs: 📄 icon, blue background
+- ✅ All file links are clickable (cursor changes to pointer on hover)
+- ✅ Clicking any file link:
+  - Opens file in **new browser tab** (`target="_blank"`)
+  - Does NOT close the ViewCheckInModal
+  - File displays correctly (image/PDF viewer)
+- ✅ Image thumbnails are clickable and open full-size image in new tab
+- ✅ All file URLs are valid and accessible
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-file-attachments-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-010 - View Modal Closes When Clicking Outside (Overlay)
+
+**Test ID:** TC-VIEW-010
+**Test Name:** Clicking Modal Overlay Closes View Modal
+**Priority:** P2 (Nice to Have)
+**Category:** View Button - UX
+**Prerequisites:**
+- ViewCheckInModal is open
+
+**Test Steps:**
+1. Open ViewCheckInModal by clicking 👁️ **View** button
+2. Click on the dark overlay area (outside the modal content)
+3. Verify modal closes
+
+**Expected Results:**
+- ✅ Clicking on the dark overlay (background) closes the modal
+- ✅ Returns to medical check-ins listing
+- ✅ No data changes made
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-modal-overlay-click-[timestamp].png`
+
+---
+
+### Test Case: TC-VIEW-011 - View Button Integration with Listing Filters
+
+**Test ID:** TC-VIEW-011
+**Test Name:** View Button Works After Applying Filters and Date Ranges
+**Priority:** P1 (Important)
+**Category:** View Button - Integration
+**Prerequisites:**
+- Multiple check-ins exist across different:
+  - Dates
+  - Health statuses (Normal, Important, Critical)
+  - Balagruhas
+
+**Test Steps:**
+1. Navigate to "Check Ins" tab
+2. Apply date range filter (e.g., "This Week")
+3. Apply health status filter (e.g., "Important")
+4. Apply Balagruha filter (e.g., select specific Balagruha)
+5. Apply search filter (e.g., search for student name)
+6. Verify filtered results display
+7. Click 👁️ **View** button on one of the filtered results
+8. Verify ViewCheckInModal opens with correct data
+
+**Expected Results:**
+- ✅ All filters work correctly (date, status, Balagruha, search)
+- ✅ Table shows filtered results only
+- ✅ 👁️ **View** button is present for all filtered results
+- ✅ Clicking 👁️ **View** opens modal with **correct** check-in data
+- ✅ Modal displays data matching the selected row
+- ✅ After closing modal, filters remain applied
+- ✅ User returns to the same filtered view
+
+**Actual Results:**
+*[To be filled by QA]*
+
+**Status:** ⏳ Pending
+**Executed By:**
+**Execution Date:**
+**Screenshot:** `view-button-with-filters-[timestamp].png`
+
+---
+
+## View Button Test Summary
+
+**Total View Button Test Cases:** 11
+**Priority Breakdown:**
+- P0 (Critical): 6 test cases
+- P1 (Important): 4 test cases
+- P2 (Nice to Have): 1 test case
+
+**Feature Coverage:**
+- ✅ View button UI/UX (visibility, placement, tooltips)
+- ✅ Modal display with complete data (single doctor visit)
+- ✅ Modal display with multiple doctor visits
+- ✅ Modal display with multiple follow-ups
+- ✅ Modal display with both visits and follow-ups (complex case)
+- ✅ Edit button transition (view → edit)
+- ✅ Close button functionality
+- ✅ Empty/minimal data handling
+- ✅ File attachment clickability
+- ✅ Modal overlay dismissal
+- ✅ Integration with existing filters
+
+**Pass Criteria:**
+- All 6 P0 test cases must pass
+- No UI/UX layout issues
+- All file attachments must be accessible
+- Edit transition must work seamlessly
+- Backward compatibility with OLD format check-ins
+
+---
+
+## Complete Test Execution Checklist (Updated)
+
+- [ ] All 54 test cases executed
+- [ ] Screenshots captured for all test cases (54 total)
+- [ ] Database verification completed
+- [ ] QA report written with findings
+- [ ] **ALL P0 test cases passed (33 total)** - CRITICAL FOR DEPLOYMENT
 
 ---
 
 **End of E2E Test Scenarios Document**
 
 **Created:** 2025-11-12 00:22:46
-**Total Test Cases:** 39
+**Updated:** 2025-11-13 16:36:01 (Added View Button Enhancement Test Cases)
+**Total Test Cases:** 54 (39 Original + 9 UAT Bug Fixes + 6 View Button Enhancement)
 **Status:** Ready for QA Execution
+**Coverage:** AC1-AC7, BUG-001 through BUG-006, View Button Enhancement

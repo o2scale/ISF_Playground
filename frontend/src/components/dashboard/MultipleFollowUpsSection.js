@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { getAnyUserBasedonRoleandBalagruha } from "../../api";
+import DoctorNameDropdown from "./DoctorNameDropdown";
+import HospitalNameDropdown from "./HospitalNameDropdown";
 import "./FollowUpSection.css";
 
 // Sprint6-Story-3-AC6-AC7: Component for managing multiple follow-ups with file uploads
@@ -143,25 +145,23 @@ const MultipleFollowUpsSection = ({ followUps, balagruhaId, onChange }) => {
 
               <div className="form-group">
                 <label>Hospital/Location</label>
-                <input
-                  type="text"
+                <HospitalNameDropdown
                   value={followUp.hospital || ""}
-                  onChange={(e) =>
-                    updateFollowUp(followUpIndex, "hospital", e.target.value)
+                  onChange={(value) =>
+                    updateFollowUp(followUpIndex, "hospital", value)
                   }
-                  placeholder="Enter hospital or location"
+                  placeholder="Search or add hospital name"
                 />
               </div>
 
               <div className="form-group">
                 <label>Doctor Name</label>
-                <input
-                  type="text"
+                <DoctorNameDropdown
                   value={followUp.doctor || ""}
-                  onChange={(e) =>
-                    updateFollowUp(followUpIndex, "doctor", e.target.value)
+                  onChange={(value) =>
+                    updateFollowUp(followUpIndex, "doctor", value)
                   }
-                  placeholder="Enter doctor's name"
+                  placeholder="Search or add doctor name"
                 />
               </div>
 
