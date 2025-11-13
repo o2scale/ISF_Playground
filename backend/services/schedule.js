@@ -10,7 +10,7 @@ const {
   getOverlappingScheduleOtherThanGivenSchedule,
   updateScheduleStatus,
 } = require("../data-access/schedule");
-const { getUserObjectById } = require("../data-access/user");
+const { getUserObjectById } = require("../data-access/User");
 const { logger } = require("../config/pino-config");
 const { UserTypes } = require("../constants/users");
 const { format } = require("date-fns");
