@@ -487,13 +487,19 @@ exports.getUserListByAssignedBalagruhaByRole = async ({ role, userId }) => {
         if (balagruhaIds.length === 0) {
           return [];
         } else {
-          // get the users by balagruhaIds
+          // S6-S4-BUG-001: Fetch all users EXCEPT students for task assignment
+          // Tasks are for staff/coach accountability, not student assignments
+          // Get users from assigned balagruhas (passing null for role gets all users)
           let result = await UserDataAccess.getUsersByRoleAndBalagruhaIdList({
-            role: UserTypes.STUDENT,
+            role: null,
             balagruhaId: balagruhaIds,
           });
           if (result.success && result.data) {
-            return result.data || [];
+            // Filter out students from the result
+            const nonStudentUsers = (result.data || []).filter(
+              user => user.role !== UserTypes.STUDENT && user.role !== 'student'
+            );
+            return nonStudentUsers;
           } else {
             return [];
           }

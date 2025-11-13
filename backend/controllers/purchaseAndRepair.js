@@ -276,6 +276,18 @@ const repairRequestController = {
       const query = {};
       if (status) query.status = status;
 
+      // S6-S4-BUG-002: Filter purchase orders by user role
+      // Only admin and purchase-manager can see all orders
+      // Regular users see only their own orders
+      const userRole = req.user.role;
+      const userId = req.user._id;
+
+      if (userRole !== 'admin' && userRole !== 'purchase-manager') {
+        // Regular users: filter by createdBy
+        query.createdBy = userId;
+      }
+      // Admin and purchase-manager: no filter (see all)
+
       const options = {
         skip: (parseInt(page) - 1) * parseInt(limit),
         limit: parseInt(limit),

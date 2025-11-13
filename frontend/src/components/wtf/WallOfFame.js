@@ -27,7 +27,8 @@ import {
 } from "../../contexts/WtfBackgroundContext";
 
 import CategoryButtons from "./CategoryButtons";
-import CoursesSection from "./CoursesSection";
+// S6-S4-BUG-003: Removed CoursesSection import - courses not required in WTF navigation
+// import CoursesSection from "./CoursesSection";
 import "./WtfDashboard.css";
 import CreateNewPinModal from "./CreateNewPinModal";
 import ImageViewer from "./modals/ImageViewer";
@@ -1993,7 +1994,8 @@ Check console for detailed results.`);
           isSidebarCollapsed ? "w-16" : "w-64"
         } bg-white border-r flex-shrink-0 transition-all duration-300`}
       >
-        <CoursesSection isCollapsed={isSidebarCollapsed} />
+        {/* S6-S4-BUG-003: Removed CoursesSection - courses not required in WTF navigation */}
+        {/* <CoursesSection isCollapsed={isSidebarCollapsed} /> */}
       </div>
 
       {/* Main content area */}
