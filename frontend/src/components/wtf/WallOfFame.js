@@ -1988,15 +1988,17 @@ Check console for detailed results.`);
       style={getPreviewBackgroundStyle()}
       data-wtf-section="true"
     >
-      {/* Left Sidebar */}
+      {/* Left Sidebar - CLIENT REQUEST: Temporarily hidden until further notice */}
+      {/* Client wants ability to restore this later, so commenting out instead of deleting */}
+      {/*
       <div
         className={`${
           isSidebarCollapsed ? "w-16" : "w-64"
         } bg-white border-r flex-shrink-0 transition-all duration-300`}
       >
-        {/* S6-S4-BUG-003: Removed CoursesSection - courses not required in WTF navigation */}
-        {/* <CoursesSection isCollapsed={isSidebarCollapsed} /> */}
+        <CoursesSection isCollapsed={isSidebarCollapsed} />
       </div>
+      */}
 
       {/* Main content area */}
       <div className="flex-1 relative wtf-content">
@@ -2455,7 +2457,9 @@ Check console for detailed results.`);
         <div className="flex flex-col h-screen w-full">
           {/* Fixed Header */}
           <div className="p-6 space-y-6 bg-white flex-shrink-0">
-            {/* Categories header retained with specific buttons hidden */}
+            {/* Categories Section - CLIENT REQUEST: Temporarily hidden until further notice */}
+            {/* Client wants ability to restore this later, so commenting out instead of deleting */}
+            {/*
             <div className="flex items-center gap-6">
               <div className="flex-1">
                 <CategoryButtons
@@ -2465,6 +2469,7 @@ Check console for detailed results.`);
                 />
               </div>
             </div>
+            */}
 
             {/* Moved type filter bar into the former Levels section and placed action buttons here */}
             <div className="flex flex-wrap items-center gap-2">

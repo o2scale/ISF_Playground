@@ -94,22 +94,27 @@ THEN they should see ALL purchase requests from all users
 
 ---
 
-### AC3: WTF Navigation Cleanup (MEDIUM PRIORITY)
+### AC3: WTF Navigation & UI Cleanup (MEDIUM PRIORITY)
 
 **Current Behavior:**
-- The WTF (Work Time Flow) left navigation menu shows a "Courses" menu item
-- This menu item is not required and clutters the navigation
+- The WTF (Work Time Flow) page has a left navigation sidebar (including "Courses" menu)
+- The WTF page displays Categories section (Medical, Life Skills, Spoken Eng, Comp Apps, Art Therapy, Sports)
+- These UI elements are not required at this time and clutter the page
 
-**Expected Behavior:**
-- The "Courses" menu item should be removed from the WTF left navigation
-- Only relevant WTF features should appear in the navigation
+**Expected Behavior (CLIENT REQUEST):**
+- The entire left sidebar should be removed from functionality for the time being
+- The Categories section should be removed from functionality for the time being
+- Code should be preserved (commented out) for easy restoration if client requests later
+- Clean WTF page without unnecessary navigation elements
 
 **Acceptance Test:**
 ```
 GIVEN any user is logged in
 WHEN they navigate to the WTF section
-THEN the left navigation menu should NOT show "Courses"
-AND only relevant WTF features should be visible
+THEN the left navigation sidebar should NOT be visible (entire sidebar hidden)
+AND the Categories section (Medical, Life Skills, etc.) should NOT be visible
+AND the page should render cleanly without console errors
+AND code should be commented (not deleted) for easy restoration
 ```
 
 ---
@@ -305,61 +310,72 @@ if (userRole !== 'admin' && userRole !== 'purchase-manager') {
 ## ✅ Bug 3: Implementation Complete
 
 **Implementation Date:** 2025-11-13 18:13:48
+**Last Updated:** 2025-11-13 (Latest changes per client request)
 **Status:** ✅ FIXED & DEPLOYED
 
 ### Root Cause Found
 
 **Investigation Complete:** 2025-11-13 18:12:30
-**Root Cause:** `frontend/src/components/wtf/WallOfFame.js:30,1996`
+**Root Cause:** `frontend/src/components/wtf/WallOfFame.js:30,1996,2463`
 
-The `CoursesSection` component was imported and rendered in the left sidebar navigation of the WTF (Wall of Fame) section.
+The WTF page had unnecessary UI elements that needed to be removed from functionality:
+1. **Left sidebar navigation** (including CoursesSection component)
+2. **Categories section** (Medical, Life Skills, Spoken Eng, Comp Apps, Art Therapy, Sports)
 
-**Flow:**
-1. Line 30: Imported `CoursesSection` component
-2. Line 1996: Rendered `<CoursesSection isCollapsed={isSidebarCollapsed} />` in left sidebar
-3. Result: "Courses" menu item appeared in WTF navigation
+**Client Request:** Remove these elements from functionality for the time being, but keep code intact for easy restoration if requested later.
 
 ### Changes Made
 
-**File Modified:** `frontend/src/components/wtf/WallOfFame.js` (lines 30-31, 1997-1998)
+**File Modified:** `frontend/src/components/wtf/WallOfFame.js` (lines 30-31, 1991-2001, 2460-2472)
 
-**Before (WITH COURSES):**
+**Change 1: Entire Left Sidebar Removed from Functionality**
 ```javascript
-// Line 30
-import CoursesSection from "./CoursesSection";
-
-// Lines 1996
-<CoursesSection isCollapsed={isSidebarCollapsed} />
+// Lines 1991-2001 - CLIENT REQUEST: Temporarily hidden until further notice
+{/* Left Sidebar - CLIENT REQUEST: Temporarily hidden until further notice */}
+{/* Client wants ability to restore this later, so commenting out instead of deleting */}
+{/*
+<div className={`${isSidebarCollapsed ? "w-16" : "w-64"} bg-white border-r flex-shrink-0 transition-all duration-300`}>
+  <CoursesSection isCollapsed={isSidebarCollapsed} />
+</div>
+*/}
 ```
 
-**After (COURSES REMOVED):**
+**Change 2: Categories Section (Medical, Life Skills, etc.) Removed from Functionality**
 ```javascript
-// Lines 30-31
-// S6-S4-BUG-003: Removed CoursesSection import - courses not required in WTF navigation
-// import CoursesSection from "./CoursesSection";
-
-// Lines 1997-1998
-{/* S6-S4-BUG-003: Removed CoursesSection - courses not required in WTF navigation */}
-{/* <CoursesSection isCollapsed={isSidebarCollapsed} /> */}
+// Lines 2460-2472 - CLIENT REQUEST: Temporarily hidden until further notice
+{/* Categories Section - CLIENT REQUEST: Temporarily hidden until further notice */}
+{/* Client wants ability to restore this later, so commenting out instead of deleting */}
+{/*
+<div className="flex items-center gap-6">
+  <div className="flex-1">
+    <CategoryButtons
+      onCategoryChange={(category) => setSelectedCategory(category)}
+      selectedCategory={selectedCategory.name}
+      hiddenNames={["All", "Mann Ki Baat", "Op Ed", "ISF Updates"]}
+    />
+  </div>
+</div>
+*/}
 ```
 
 ### Solution Explanation
 
-1. **Commented out import:** Prevents CoursesSection component from being loaded
-2. **Commented out render:** Removes the courses menu from the sidebar
-3. **Left sidebar now empty:** Clean navigation without courses clutter
-4. **Frontend change only:** No backend changes required
+1. **Left sidebar removed from functionality:** Entire navigation sidebar including courses hidden
+2. **Categories section removed from functionality:** Medical, Life Skills, and all category buttons hidden
+3. **Code preserved for restoration:** All code commented out (not deleted) per client request
+4. **Easy restoration:** Client can uncomment code blocks to restore features if needed
+5. **Frontend change only:** No backend changes required
 
 ### Files Changed: 1 file
 
 | File | Lines Changed | Type |
 |------|---------------|------|
-| `frontend/src/components/wtf/WallOfFame.js` | 30-31, 1997-1998 (4 lines) | Frontend Component |
+| `frontend/src/components/wtf/WallOfFame.js` | 30-31, 1991-2001, 2460-2472 (~24 lines) | Frontend Component |
 
 ### Testing Status
 
 - ⏳ Pending user verification
-- ⏳ Pending visual inspection of WTF navigation
+- ⏳ Pending visual inspection of WTF navigation (sidebar + categories hidden)
 
 ---
 
@@ -375,10 +391,11 @@ import CoursesSection from "./CoursesSection";
 - **Lines:** 279-289
 - **Type:** Backend Controller
 
-### Bug 3: WTF Courses Navigation ✅
+### Bug 3: WTF Navigation & UI Cleanup ✅
 - **File:** `frontend/src/components/wtf/WallOfFame.js`
-- **Lines:** 30-31, 1997-1998
+- **Lines:** 30-31, 1991-2001, 2460-2472
 - **Type:** Frontend Component
+- **Changes:** Left sidebar + Categories section removed from functionality (code preserved for restoration)
 
 ### Total Changes
 

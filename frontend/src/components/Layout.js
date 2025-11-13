@@ -320,7 +320,9 @@ const Layout = () => {
         localStorage.getItem("role") === "student" ||
         localStorage.getItem("role") === "purchase-manager") && (
         <div className="header">
-          {/* Hamburger Menu Icon - Only show on WTF route */}
+          {/* Hamburger Menu Icon - CLIENT REQUEST: Hidden since WTF sidebar removed from functionality */}
+          {/* Client wants ability to restore this later, so commenting out instead of deleting */}
+          {/*
           {isWTFRoute && (
             <div
               className="hamburger-row"
@@ -341,6 +343,7 @@ const Layout = () => {
               </button>
             </div>
           )}
+          */}
 
           <div className="user-info" style={{ flexDirection: "row" }}>
             <h2>Hi {localStorage?.getItem("name")}</h2>
