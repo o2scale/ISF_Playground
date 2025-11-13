@@ -5,10 +5,14 @@ import {
   getMachines,
   updateUsers,
   getBalagruhaListbyUserID,
+  getMedicalCheckInsByStudentId,
+  createMedicalCheckin,
+  updateMedicalCheckin,
 } from "../../api";
 import "./UserForm.css";
 import { Modal } from "./modal";
 import FaceCapture from "./FaceCapture";
+import CheckInForm from "../dashboard/CheckInForm";
 
 const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
   console.log("usdsds", user);
@@ -34,24 +38,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     guardianContact2: "",
     assignedMachines: [],
     nextActionDate: "",
-    medicalHistory: [
-      {
-        name: "",
-        description: "",
-        date: "",
-        caseId: "",
-        doctorsName: "",
-        hospitalName: "",
-        currentStatus: {
-          status: "",
-          notes: "",
-          date: "",
-        },
-        prescriptions: [],
-        otherAttachments: [],
-        _id: "",
-      },
-    ],
+    // medicalHistory removed - Sprint6-Story-02: Replaced with Check-in Form
   });
 
   const [errors, setErrors] = useState({});
@@ -61,12 +48,19 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
   const [prevBalagruhaIds, setPrevBalagruhaIds] = useState([]);
   const [files, setFiles] = useState({
     facialData: null,
-    medicalHistoryFiles: {},
+    // medicalHistoryFiles removed - Sprint6-Story-02
   });
   const [previews, setPreviews] = useState({
     facialData: null,
-    medicalHistoryFiles: {},
+    // medicalHistoryFiles removed - Sprint6-Story-02
   });
+
+  // Sprint6-Story-02-Phase4: Medical Check-ins state (inline form)
+  const [checkIns, setCheckIns] = useState([]);
+  const [showCheckInForm, setShowCheckInForm] = useState(false);
+  const [editingCheckIn, setEditingCheckIn] = useState(null);
+  const [formMode, setFormMode] = useState('create'); // 'create' or 'edit'
+  const [isLoadingCheckIns, setIsLoadingCheckIns] = useState(false);
 
   const fileInputRefs = {
     facialData: useRef(null),
@@ -109,43 +103,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
         assignedMachines: user.assignedMachines || [],
         guardianName2: user.guardianName2 || "",
         guardianContact2: user.guardianContact2 || "",
-        // Ensure medical history has the correct structure
-        medicalHistory:
-          user.medicalHistory && user.medicalHistory.length > 0
-            ? user.medicalHistory.map((history) => ({
-                name: history.name || "",
-                description: history.description || "",
-                date: history.date || "",
-                caseId: history.caseId || "",
-                doctorsName: history.doctorsName || "",
-                hospitalName: history.hospitalName || "",
-                currentStatus: {
-                  status: history.currentStatus?.status || "",
-                  notes: history.currentStatus?.notes || "",
-                  date: history.currentStatus?.date || "",
-                },
-                prescriptions: history.prescriptions || [],
-                otherAttachments: history.otherAttachments || [],
-                _id: history._id,
-              }))
-            : [
-                {
-                  name: "",
-                  description: "",
-                  date: "",
-                  caseId: "",
-                  doctorsName: "",
-                  hospitalName: "",
-                  currentStatus: {
-                    status: "",
-                    notes: "",
-                    date: "",
-                  },
-                  prescriptions: [],
-                  otherAttachments: [],
-                  _id: "",
-                },
-              ],
+        // medicalHistory removed - Sprint6-Story-02: Replaced with Check-in Form
       });
 
       // Set facial data preview if available
@@ -182,6 +140,34 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     }
     fetchBalagruhaOptions();
     getMachinesData();
+  }, [mode, user]);
+
+  // Sprint6-Story-02: Fetch check-ins when editing a student
+  useEffect(() => {
+    const fetchCheckIns = async () => {
+      if (mode === "edit" && user && user.role === "student" && user._id) {
+        setIsLoadingCheckIns(true);
+        try {
+          const response = await getMedicalCheckInsByStudentId(user._id);
+          console.log('UserForm - check-ins response:', response); // Debug log
+          if (response.success) {
+            // Sprint6-Story-02-Phase4-BUG: response.data contains medicalCheckIns array
+            const checkInsData = response.data.medicalCheckIns || response.data;
+            console.log('UserForm - check-ins data:', checkInsData); // Debug log
+            // Sort by date, newest first
+            const sortedCheckIns = checkInsData.sort((a, b) =>
+              new Date(b.date) - new Date(a.date)
+            );
+            setCheckIns(sortedCheckIns);
+          }
+        } catch (error) {
+          console.error("Error fetching check-ins:", error);
+        } finally {
+          setIsLoadingCheckIns(false);
+        }
+      }
+    };
+    fetchCheckIns();
   }, [mode, user]);
 
   useEffect(() => {
@@ -222,158 +208,9 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     }
   };
 
-  const handleAddMedicalHistory = () => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: [
-        ...prev.medicalHistory,
-        {
-          name: "",
-          description: "",
-          date: "",
-          caseId: "",
-          doctorsName: "",
-          hospitalName: "",
-          currentStatus: {
-            status: "",
-            notes: "",
-            date: "",
-          },
-          prescriptions: [],
-          otherAttachments: [],
-          _id: "",
-        },
-      ],
-    }));
-  };
-
-  const handleRemoveMedicalHistory = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.filter((_, i) => i !== index),
-    }));
-
-    // Also remove any files associated with this medical history entry
-    setFiles((prev) => {
-      const updatedMedicalHistoryFiles = { ...prev.medicalHistoryFiles };
-      delete updatedMedicalHistoryFiles[index];
-
-      // Reindex the remaining entries
-      const reindexedFiles = {};
-      Object.keys(updatedMedicalHistoryFiles)
-        .sort((a, b) => parseInt(a) - parseInt(b))
-        .forEach((oldIndex, newIndex) => {
-          if (parseInt(oldIndex) > index) {
-            reindexedFiles[newIndex] = updatedMedicalHistoryFiles[oldIndex];
-          } else {
-            reindexedFiles[newIndex] = updatedMedicalHistoryFiles[oldIndex];
-          }
-        });
-
-      return {
-        ...prev,
-        medicalHistoryFiles: reindexedFiles,
-      };
-    });
-
-    // Also remove any previews
-    setPreviews((prev) => {
-      const updatedPreviews = { ...prev.medicalHistoryFiles };
-      delete updatedPreviews[index];
-
-      // Reindex the remaining entries
-      const reindexedPreviews = {};
-      Object.keys(updatedPreviews)
-        .sort((a, b) => parseInt(a) - parseInt(b))
-        .forEach((oldIndex, newIndex) => {
-          if (parseInt(oldIndex) > index) {
-            reindexedPreviews[newIndex] = updatedPreviews[oldIndex];
-          } else {
-            reindexedPreviews[newIndex] = updatedPreviews[oldIndex];
-          }
-        });
-
-      return {
-        ...prev,
-        medicalHistoryFiles: reindexedPreviews,
-      };
-    });
-  };
-
-  const handleMedicalHistoryChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.map((item, i) => {
-        if (i === index) {
-          return { ...item, [field]: value };
-        }
-        return item;
-      }),
-    }));
-  };
-
-  const handleMedicalHistoryNestedChange = (
-    index,
-    nestedField,
-    field,
-    value
-  ) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.map((item, i) => {
-        if (i === index) {
-          return {
-            ...item,
-            [nestedField]: {
-              ...item[nestedField],
-              [field]: value,
-            },
-          };
-        }
-        return item;
-      }),
-    }));
-  };
-
-  const handleMedicalHistoryFileChange = (index, field, files) => {
-    const fileArray = Array.from(files);
-    setFiles((prev) => ({
-      ...prev,
-      medicalHistoryFiles: {
-        ...prev.medicalHistoryFiles,
-        [index]: {
-          ...prev.medicalHistoryFiles[index],
-          [field]: fileArray,
-        },
-      },
-    }));
-
-    // Generate previews for image files
-    const imagePreviews = fileArray
-      .filter((file) => file.type.startsWith("image/"))
-      .map((file) => {
-        const reader = new FileReader();
-        return new Promise((resolve) => {
-          reader.onloadend = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-      });
-
-    if (imagePreviews.length > 0) {
-      Promise.all(imagePreviews).then((results) => {
-        setPreviews((prev) => ({
-          ...prev,
-          medicalHistoryFiles: {
-            ...prev.medicalHistoryFiles,
-            [index]: {
-              ...prev.medicalHistoryFiles[index],
-              [field]: results,
-            },
-          },
-        }));
-      });
-    }
-  };
+  // Medical history handlers removed - Sprint6-Story-02: Replaced with Check-in Form
+  // handleAddMedicalHistory, handleRemoveMedicalHistory, handleMedicalHistoryChange,
+  // handleMedicalHistoryNestedChange, handleMedicalHistoryFileChange all removed
   useEffect(() => {
     const handleClickOutside = (event) => {
       // For machine dropdown
@@ -535,22 +372,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     }
   };
 
-  const handleRemoveMedicalHistoryFile = (historyIndex, field, fileIndex) => {
-    setFiles((prev) => {
-      const newFiles = [...prev.medicalHistoryFiles[historyIndex][field]];
-      newFiles.splice(fileIndex, 1);
-      return {
-        ...prev,
-        medicalHistoryFiles: {
-          ...prev.medicalHistoryFiles,
-          [historyIndex]: {
-            ...prev.medicalHistoryFiles[historyIndex],
-            [field]: newFiles,
-          },
-        },
-      };
-    });
-  };
+  // handleRemoveMedicalHistoryFile removed - Sprint6-Story-02
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -621,90 +443,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           formDataToSend.append("facialData", files.facialData);
         }
 
-        // If medical history is empty, send a clear flag
-        if (formData.medicalHistory.length === 0) {
-          formDataToSend.append("clearMedicalHistory", "true");
-        }
-        
-        // Add medical history fields individually
-        formData.medicalHistory.forEach((history, index) => {
-          // Add basic fields
-          formDataToSend.append(`medicalHistory[${index}].name`, history.name);
-          formDataToSend.append(
-            `medicalHistory[${index}].description`,
-            history.description
-          );
-          formDataToSend.append(`medicalHistory[${index}].date`, history.date);
-          formDataToSend.append(
-            `medicalHistory[${index}].caseId`,
-            history.caseId
-          );
-          formDataToSend.append(
-            `medicalHistory[${index}].doctorsName`,
-            history.doctorsName
-          );
-          formDataToSend.append(
-            `medicalHistory[${index}].hospitalName`,
-            history.hospitalName
-          );
-
-          // Add nested currentStatus fields
-          formDataToSend.append(
-            `medicalHistory[${index}].currentStatus.status`,
-            history.currentStatus.status
-          );
-          formDataToSend.append(
-            `medicalHistory[${index}].currentStatus.notes`,
-            history.currentStatus.notes
-          );
-          formDataToSend.append(
-            `medicalHistory[${index}].currentStatus.date`,
-            history.currentStatus.date
-          );
-
-          formDataToSend.append(`medicalHistory[${index}]._id`, history._id);
-
-          // Add files if available
-          if (files.medicalHistoryFiles[index]?.prescriptions) {
-            files.medicalHistoryFiles[index].prescriptions.forEach((file) => {
-              formDataToSend.append(
-                `medicalHistory[${index}].prescriptions`,
-                file
-              );
-            });
-          }
-
-          if (files.medicalHistoryFiles[index]?.otherAttachments) {
-            files.medicalHistoryFiles[index].otherAttachments.forEach(
-              (file) => {
-                formDataToSend.append(
-                  `medicalHistory[${index}].otherAttachments`,
-                  file
-                );
-              }
-            );
-          }
-
-          // If in edit mode and we have existing files that weren't changed, include their IDs
-          if (mode === "edit" && user?.medicalHistory?.[index]) {
-            // For prescriptions that weren't changed
-            // if (user.medicalHistory[index].prescriptions?.length > 0 &&
-            //     (!files.medicalHistoryFiles[index]?.prescriptions ||
-            //         files.medicalHistoryFiles[index]?.prescriptions.length === 0)) {
-            //     user.medicalHistory[index].prescriptions.forEach(prescriptionId => {
-            //         formDataToSend.append(`medicalHistory[${index}].existingPrescriptions`, prescriptionId);
-            //     });
-            // }
-            // // For other attachments that weren't changed
-            // if (user.medicalHistory[index].otherAttachments?.length > 0 &&
-            //     (!files.medicalHistoryFiles[index]?.otherAttachments ||
-            //         files.medicalHistoryFiles[index]?.otherAttachments.length === 0)) {
-            //     user.medicalHistory[index].otherAttachments.forEach(attachmentId => {
-            //         formDataToSend.append(`medicalHistory[${index}].existingOtherAttachments`, attachmentId);
-            //     });
-            // }
-          }
-        });
+        // Medical history processing removed - Sprint6-Story-02: Replaced with Check-in Form
       }
 
       // Log the FormData entries for debugging
@@ -740,6 +479,58 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
       faceCaptureRef.current.stopCamera(); // Ensures camera is stopped
     }
     setIsOpen(false);
+  };
+
+  // Sprint6-Story-02: Check-in modal handlers
+  // Sprint6-Story-02-Phase4: Inline form handlers
+  const handleCreateCheckIn = () => {
+    setFormMode('create');
+    setEditingCheckIn(null);
+    setShowCheckInForm(true);
+  };
+
+  const handleEditCheckIn = (checkIn) => {
+    setFormMode('edit');
+    setEditingCheckIn(checkIn);
+    setShowCheckInForm(true);
+  };
+
+  const handleCheckInSave = async (checkInData) => {
+    try {
+      let response;
+      if (formMode === 'create') {
+        response = await createMedicalCheckin(checkInData);
+      } else {
+        response = await updateMedicalCheckin(editingCheckIn._id, checkInData);
+      }
+
+      if (response.success) {
+        // Refresh check-ins list
+        const updatedCheckIns = await getMedicalCheckInsByStudentId(user._id);
+        if (updatedCheckIns.success) {
+          // Sprint6-Story-02-Phase4-BUG: response.data contains medicalCheckIns array
+          const checkInsData = updatedCheckIns.data.medicalCheckIns || updatedCheckIns.data;
+          const sortedCheckIns = checkInsData.sort((a, b) =>
+            new Date(b.date) - new Date(a.date)
+          );
+          setCheckIns(sortedCheckIns);
+        }
+        setShowCheckInForm(false);
+        setEditingCheckIn(null);
+      }
+    } catch (error) {
+      console.error(`Error ${formMode === 'create' ? 'creating' : 'updating'} check-in:`, error);
+    }
+  };
+
+  const handleCheckInCancel = () => {
+    setShowCheckInForm(false);
+    setEditingCheckIn(null);
+  };
+
+  const formatCheckInDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   return (
@@ -1368,351 +1159,107 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           </div>
         )}
 
-        {/* Medical History Section */}
-        {formData.role === "student" && (
-          <div className="form-section medical-history-section">
+        {/* Medical History Section - REMOVED per Sprint6-Story-02 */}
+        {/* Medical history functionality has been replaced with Check-in Form */}
+
+        {/* Sprint6-Story-02-Phase4: Medical Check-ins Section (Inline Form) */}
+        {mode === "edit" && formData.role === "student" && (
+          <div className="form-section medical-checkins-section">
             <div className="section-header">
-              <h3>Medical History</h3>
-              <button
-                type="button"
-                className="add-medical-btn"
-                onClick={handleAddMedicalHistory}
-              >
-                + Add Medical History
-              </button>
+              <h3>Medical Check-ins</h3>
+              {!showCheckInForm && (
+                <button
+                  type="button"
+                  className="add-medical-btn"
+                  onClick={handleCreateCheckIn}
+                >
+                  + Create New Check-in
+                </button>
+              )}
             </div>
 
-            {formData.medicalHistory.map((history, index) => (
-              <div key={index} className="medical-history-item">
-                <div className="medical-history-header">
-                  <h4>Medical Record #{index + 1}</h4>
-                  <button
-                    type="button"
-                    className="remove-medical-btn"
-                    onClick={() => handleRemoveMedicalHistory(index)}
-                  >
-                    ✕
-                  </button>
-                </div>
+            {/* Inline Check-in Form */}
+            {showCheckInForm && (
+              <CheckInForm
+                studentData={{
+                  studentId: user._id,
+                  userName: user.name,
+                  balagruhaIds: user.balagruhaIds || [],
+                }}
+                checkInData={editingCheckIn}
+                mode={formMode}
+                onSave={handleCheckInSave}
+                onCancel={handleCheckInCancel}
+                balagruhas={balagruhaOptions}
+              />
+            )}
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Name</label>
-                    <input
-                      type="text"
-                      value={history.name}
-                      onChange={(e) =>
-                        handleMedicalHistoryChange(
-                          index,
-                          "name",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Enter medical condition name"
-                      name={`medicalHistory[${index}].name`}
-                    />
+            {/* Check-ins List */}
+            {!showCheckInForm && (
+              <>
+                {isLoadingCheckIns ? (
+                  <div style={{ padding: "20px", textAlign: "center" }}>
+                    Loading check-ins...
                   </div>
-
-                  <div className="form-group">
-                    <label>Date</label>
-                    <input
-                      type="date"
-                      value={formatDateForInput(history.date)}
-                      onChange={(e) =>
-                        handleMedicalHistoryChange(
-                          index,
-                          "date",
-                          e.target.value
-                        )
-                      }
-                      name={`medicalHistory[${index}].date`}
-                    />
+                ) : checkIns.length === 0 ? (
+                  <div style={{ padding: "20px", textAlign: "center", color: "#666" }}>
+                    No medical check-ins found for this student.
                   </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Description</label>
-                  <textarea
-                    value={history.description}
-                    onChange={(e) =>
-                      handleMedicalHistoryChange(
-                        index,
-                        "description",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Enter detailed description"
-                    rows="3"
-                    name={`medicalHistory[${index}].description`}
-                  />
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Case ID</label>
-                    <input
-                      type="text"
-                      value={history.caseId}
-                      onChange={(e) =>
-                        handleMedicalHistoryChange(
-                          index,
-                          "caseId",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Enter case ID"
-                      name={`medicalHistory[${index}].caseId`}
-                    />
-                  </div>
-
-                  <div className="form-group">
-                    <label>Doctor's Name</label>
-                    <input
-                      type="text"
-                      value={history.doctorsName}
-                      onChange={(e) =>
-                        handleMedicalHistoryChange(
-                          index,
-                          "doctorsName",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Enter doctor's name"
-                      name={`medicalHistory[${index}].doctorsName`}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-group">
-                  <label>Hospital Name</label>
-                  <input
-                    type="text"
-                    value={history.hospitalName}
-                    onChange={(e) =>
-                      handleMedicalHistoryChange(
-                        index,
-                        "hospitalName",
-                        e.target.value
-                      )
-                    }
-                    placeholder="Enter hospital name"
-                    name={`medicalHistory[${index}].hospitalName`}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label htmlFor="nextActionDate">Next Action Date</label>
-                  <input
-                    type="date"
-                    id="nextActionDate"
-                    name="nextActionDate"
-                    value={formatDateForInput(formData.nextActionDate)}
-                    onChange={handleInputChange}
-                    className={errors.nextActionDate ? "error" : ""}
-                    placeholder="Next Action Date"
-                  />
-                  {errors.guardianName1 && (
-                    <span className="error-message">
-                      {errors.guardianName1}
-                    </span>
-                  )}
-                </div>
-
-                <div className="form-section">
-                  <h4>Current Status</h4>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Status</label>
-                      <select
-                        value={history.currentStatus.status}
-                        onChange={(e) =>
-                          handleMedicalHistoryNestedChange(
-                            index,
-                            "currentStatus",
-                            "status",
-                            e.target.value
-                          )
-                        }
-                        name={`medicalHistory[${index}].currentStatus.status`}
-                      >
-                        <option value="">Select Status</option>
-                        <option value="active">Active</option>
-                        <option value="resolved">Resolved</option>
-                        <option value="ongoing">Ongoing Treatment</option>
-                        <option value="monitoring">Under Monitoring</option>
-                        <option value="stable">Stable</option>
-                        <option value="managed">Managed</option>
-                      </select>
-                    </div>
-
-                    <div className="form-group">
-                      <label>Status Date</label>
-                      <input
-                        type="date"
-                        value={formatDateForInput(history.currentStatus.date)}
-                        onChange={(e) =>
-                          handleMedicalHistoryNestedChange(
-                            index,
-                            "currentStatus",
-                            "date",
-                            e.target.value
-                          )
-                        }
-                        name={`medicalHistory[${index}].currentStatus.date`}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="form-group">
-                    <label>Notes</label>
-                    <textarea
-                      value={history.currentStatus.notes}
-                      onChange={(e) =>
-                        handleMedicalHistoryNestedChange(
-                          index,
-                          "currentStatus",
-                          "notes",
-                          e.target.value
-                        )
-                      }
-                      placeholder="Enter status notes"
-                      rows="2"
-                      name={`medicalHistory[${index}].currentStatus.notes`}
-                    />
-                  </div>
-                </div>
-
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Prescriptions</label>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={(e) =>
-                        handleMedicalHistoryFileChange(
-                          index,
-                          "prescriptions",
-                          e.target.files
-                        )
-                      }
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      name={`medicalHistory[${index}].prescriptions`}
-                      style={{ display: "block" }}
-                    />
-                    <div className="file-list">
-                      {/* Show new files selected */}
-                      {files.medicalHistoryFiles[index]?.prescriptions?.map(
-                        (file, fileIndex) => (
-                          <div key={`new-${fileIndex}`} className="file-item">
-                            <span>{file.name}</span>
+                ) : (
+                  <div className="checkins-list">
+                    {checkIns.map((checkIn, index) => (
+                      <div key={checkIn._id || index} className="checkin-item">
+                        <div className="checkin-header">
+                          <span className="checkin-date">
+                            {formatCheckInDate(checkIn.date)}
+                          </span>
+                          <div className="checkin-header-actions">
+                            <span className={`health-status ${checkIn.healthStatus}`}>
+                              {checkIn.healthStatus}
+                            </span>
                             <button
                               type="button"
-                              onClick={() =>
-                                handleRemoveMedicalHistoryFile(
-                                  index,
-                                  "prescriptions",
-                                  fileIndex
-                                )
-                              }
+                              className="edit-checkin-btn"
+                              onClick={() => handleEditCheckIn(checkIn)}
+                              title="Edit check-in"
                             >
-                              ✕
+                              ✏️ Edit
                             </button>
                           </div>
-                        )
-                      )}
-
-                      {/* Show existing files from edit mode */}
-                      {mode === "edit" &&
-                        history.prescriptions?.map((file, fileIndex) => (
-                          <div
-                            key={`existing-${fileIndex}`}
-                            className="file-item existing"
-                          >
-                            <span>{file.name}</span>
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="view-btn"
-                            >
-                              View
-                            </a>
-                          </div>
-                        ))}
-                    </div>
+                        </div>
+                        <div className="checkin-details">
+                          {checkIn.temperature && (
+                            <p><strong>Temperature:</strong> {checkIn.temperature}°F</p>
+                          )}
+                          {checkIn.symptoms && checkIn.symptoms.length > 0 && (
+                            <p><strong>Symptoms:</strong> {checkIn.symptoms.join(', ')}</p>
+                          )}
+                          {checkIn.notes && (
+                            <p><strong>Notes:</strong> {checkIn.notes}</p>
+                          )}
+                          {/* Sprint6-Story-02-Phase4-DEBUG: Log check-in data */}
+                          {console.log('CheckIn details:', {
+                            id: checkIn._id,
+                            hasDoctorVisits: !!checkIn.doctorVisits,
+                            doctorVisitsLength: checkIn.doctorVisits?.length,
+                            doctorVisitsData: checkIn.doctorVisits,
+                            hasFollowUps: !!checkIn.followUps,
+                            followUpsLength: checkIn.followUps?.length,
+                            followUpsData: checkIn.followUps,
+                          })}
+                          {checkIn.doctorVisits && checkIn.doctorVisits.length > 0 && (
+                            <p><strong>Doctor Visits:</strong> {checkIn.doctorVisits.length}</p>
+                          )}
+                          {checkIn.followUps && checkIn.followUps.length > 0 && (
+                            <p><strong>Follow-ups:</strong> {checkIn.followUps.length}</p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-
-                  <div className="form-group">
-                    <label>Other Attachments</label>
-                    <input
-                      type="file"
-                      multiple
-                      onChange={(e) =>
-                        handleMedicalHistoryFileChange(
-                          index,
-                          "otherAttachments",
-                          e.target.files
-                        )
-                      }
-                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      name={`medicalHistory[${index}].otherAttachments`}
-                      style={{ display: "block" }}
-                    />
-                    <div className="file-list">
-                      {/* Show new files selected */}
-                      {files.medicalHistoryFiles[index]?.otherAttachments?.map(
-                        (file, fileIndex) => (
-                          <div key={`new-${fileIndex}`} className="file-item">
-                            <span>{file.name}</span>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const newFiles = [
-                                  ...files.medicalHistoryFiles[index]
-                                    .otherAttachments,
-                                ];
-                                newFiles.splice(fileIndex, 1);
-                                setFiles((prev) => ({
-                                  ...prev,
-                                  medicalHistoryFiles: {
-                                    ...prev.medicalHistoryFiles,
-                                    [index]: {
-                                      ...prev.medicalHistoryFiles[index],
-                                      otherAttachments: newFiles,
-                                    },
-                                  },
-                                }));
-                              }}
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        )
-                      )}
-
-                      {/* Show existing files from edit mode */}
-                      {mode === "edit" &&
-                        history.otherAttachments?.map((file, fileIndex) => (
-                          <div
-                            key={`existing-${fileIndex}`}
-                            className="file-item existing"
-                          >
-                            <span>{file.name}</span>
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="view-btn"
-                            >
-                              View
-                            </a>
-                          </div>
-                        ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -1737,6 +1284,8 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
         {errors.submit && <div className="submit-error">{errors.submit}</div>}
       </form>
+
+      {/* Sprint6-Story-02-Phase4: Inline form (no modal needed) */}
     </div>
   );
 };

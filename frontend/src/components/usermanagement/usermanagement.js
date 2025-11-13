@@ -43,21 +43,16 @@ const UserManagement = () => {
     parentalStatus: "",
     guardianContact: "",
     assignedMachines: [],
-    medicalHistory: [],
     facialData: null,
   });
   const [balagruhaOptions, setBalagruhaOptions] = useState([
     { value: "67b63186d2486ca7b43fe418", label: "Balagruha 1" },
   ]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [medicalHistoryFile, setMedicalHistoryFile] = useState(null);
   const [facialDataFile, setFacialDataFile] = useState(null);
-  const [medicalHistoryPreview, setMedicalHistoryPreview] = useState(null);
   const [facialDataPreview, setFacialDataPreview] = useState(null);
-  const medicalHistoryRef = useRef(null);
   const facialDataRef = useRef(null);
   const [formErrors, setFormErrors] = useState({});
-  const [medicalHistoryFiles, setMedicalHistoryFiles] = useState({});
   const { user } = useAuth();
   const { canCreate, canRead, canUpdate, canDelete } = usePermission();
   const canCreateUser = canCreate("User Management");
@@ -71,255 +66,6 @@ const UserManagement = () => {
   const canAccessRoles = canRead("Role Management");
 
   const navigate = useNavigate();
-
-  const medicalHistoryRefs = useRef([]);
-
-  const handleAddMedicalHistory = () => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: [
-        ...prev?.medicalHistory,
-        {
-          name: "",
-          description: "",
-          date: "",
-          caseId: "",
-          doctorsName: "",
-          hospitalName: "",
-          currentStatus: {
-            status: "",
-            notes: "",
-            date: "",
-          },
-          prescriptions: [],
-          otherAttachments: [],
-        },
-      ],
-    }));
-  };
-
-  const handleMedicalFileChange = (index, type, e) => {
-    const files = Array.from(e.target.files);
-    const fileKey = `${type}-${index}`;
-
-    setMedicalHistoryFiles((prev) => ({
-      ...prev,
-      [fileKey]: files,
-    }));
-  };
-
-  const handleRemoveMedicalHistory = (index) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.filter((_, i) => i !== index),
-    }));
-
-    // Clean up files for removed history
-    setMedicalHistoryFiles((prev) => {
-      const newFiles = { ...prev };
-      delete newFiles[`prescriptions-${index}`];
-      delete newFiles[`attachments-${index}`];
-      return newFiles;
-    });
-  };
-
-  const handleMedicalHistoryChange = (index, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      medicalHistory: prev.medicalHistory.map((item, i) => {
-        if (i === index) {
-          if (field.includes(".")) {
-            const [parent, child] = field.split(".");
-            return {
-              ...item,
-              [parent]: {
-                ...item[parent],
-                [child]: value,
-              },
-            };
-          }
-          return { ...item, [field]: value };
-        }
-        return item;
-      }),
-    }));
-  };
-
-  const renderMedicalHistoryForm = (history, index) => (
-    <div key={index} className="medical-history-item">
-      <div className="medical-history-header">
-        <h4>Medical Record #{index + 1}</h4>
-        <button
-          type="button"
-          className="remove-history-button"
-          onClick={() => handleRemoveMedicalHistory(index)}
-        >
-          Remove
-        </button>
-      </div>
-
-      <div className="form-group">
-        <label>Condition Name</label>
-        <input
-          type="text"
-          value={history.name}
-          onChange={(e) =>
-            handleMedicalHistoryChange(index, "name", e.target.value)
-          }
-          placeholder="Enter medical condition"
-        />
-      </div>
-
-      <div className="form-group">
-        <label>Description</label>
-        <textarea
-          value={history.description}
-          onChange={(e) =>
-            handleMedicalHistoryChange(index, "description", e.target.value)
-          }
-          placeholder="Enter condition description"
-        />
-      </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label>Diagnosis Date</label>
-          <input
-            type="date"
-            value={history.date}
-            onChange={(e) =>
-              handleMedicalHistoryChange(index, "date", e.target.value)
-            }
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Case ID</label>
-          <input
-            type="text"
-            value={history.caseId}
-            onChange={(e) =>
-              handleMedicalHistoryChange(index, "caseId", e.target.value)
-            }
-            placeholder="Enter case ID"
-          />
-        </div>
-      </div>
-
-      <div className="form-row">
-        <div className="form-group">
-          <label>Doctor's Name</label>
-          <input
-            type="text"
-            value={history.doctorsName}
-            onChange={(e) =>
-              handleMedicalHistoryChange(index, "doctorsName", e.target.value)
-            }
-            placeholder="Enter doctor's name"
-          />
-        </div>
-
-        <div className="form-group">
-          <label>Hospital Name</label>
-          <input
-            type="text"
-            value={history.hospitalName}
-            onChange={(e) =>
-              handleMedicalHistoryChange(index, "hospitalName", e.target.value)
-            }
-            placeholder="Enter hospital name"
-          />
-        </div>
-      </div>
-
-      <div className="current-status-section">
-        <h5>Current Status</h5>
-        <div className="form-row">
-          <div className="form-group">
-            <label>Status</label>
-            <select
-              value={history.currentStatus.status}
-              onChange={(e) =>
-                handleMedicalHistoryChange(
-                  index,
-                  "currentStatus.status",
-                  e.target.value
-                )
-              }
-            >
-              <option value="">Select Status</option>
-              <option value="Stable">Stable</option>
-              <option value="Improving">Improving</option>
-              <option value="Critical">Critical</option>
-              <option value="Managed">Managed</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Status Date</label>
-            <input
-              type="date"
-              value={history.currentStatus.date}
-              onChange={(e) =>
-                handleMedicalHistoryChange(
-                  index,
-                  "currentStatus.date",
-                  e.target.value
-                )
-              }
-            />
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label>Status Notes</label>
-          <textarea
-            value={history.currentStatus.notes}
-            onChange={(e) =>
-              handleMedicalHistoryChange(
-                index,
-                "currentStatus.notes",
-                e.target.value
-              )
-            }
-            placeholder="Enter status notes"
-          />
-        </div>
-      </div>
-
-      <div className="form-group">
-        <label>Prescriptions</label>
-        <input
-          type="file"
-          multiple
-          onChange={(e) => handleMedicalFileChange(index, "prescriptions", e)}
-          accept="image/*,.pdf"
-        />
-        {medicalHistoryFiles[`prescriptions-${index}`]?.map(
-          (file, fileIndex) => (
-            <div key={fileIndex} className="file-preview">
-              {file.name}
-            </div>
-          )
-        )}
-      </div>
-
-      <div className="form-group">
-        <label>Other Attachments</label>
-        <input
-          type="file"
-          multiple
-          onChange={(e) => handleMedicalFileChange(index, "attachments", e)}
-          accept="image/*,.pdf"
-        />
-        {medicalHistoryFiles[`attachments-${index}`]?.map((file, fileIndex) => (
-          <div key={fileIndex} className="file-preview">
-            {file.name}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
 
   useEffect(() => {
     getBalagruhaList();
@@ -361,12 +107,6 @@ const UserManagement = () => {
       });
 
       // Set file previews if they exist
-      if (selectedUser.medicalHistoryUrl) {
-        setMedicalHistoryPreview(selectedUser.medicalHistoryUrl);
-      } else {
-        setMedicalHistoryPreview(null);
-      }
-
       if (selectedUser.facialDataUrl) {
         setFacialDataPreview(selectedUser.facialDataUrl);
       } else {
@@ -465,25 +205,7 @@ const UserManagement = () => {
       });
     }
 
-    if (fileType === "medicalHistory") {
-      // Check if it's a PDF
-      if (file.type !== "application/pdf") {
-        setFormErrors({
-          ...formErrors,
-          medicalHistory: "Only PDF files are allowed",
-        });
-        return;
-      }
-
-      setMedicalHistoryFile(file);
-
-      // Create a preview URL for the PDF
-      const fileReader = new FileReader();
-      fileReader.onload = () => {
-        setMedicalHistoryPreview(fileReader.result);
-      };
-      fileReader.readAsDataURL(file);
-    } else if (fileType === "facialData") {
+    if (fileType === "facialData") {
       // Check if it's an image
       if (!file.type.startsWith("image/")) {
         setFormErrors({
@@ -747,10 +469,6 @@ const UserManagement = () => {
       }
 
       if (view === "add") {
-        if (!medicalHistoryFile && !medicalHistoryPreview) {
-          errors.medicalHistory = "Medical history document is required";
-        }
-
         if (!facialDataFile && !facialDataPreview) {
           errors.facialData = "Facial photo is required";
         }
@@ -791,14 +509,6 @@ const UserManagement = () => {
         formDataToSend.append("guardianContact", formData.guardianContact);
 
         // Add files if they exist
-        if (medicalHistoryFile) {
-          formDataToSend.append("medicalHistory", medicalHistoryFile);
-          console.log(
-            "Appending medical history file:",
-            medicalHistoryFile.name
-          );
-        }
-
         if (facialDataFile) {
           formDataToSend.append("facialData", facialDataFile);
           console.log("Appending facial data file:", facialDataFile.name);
@@ -841,9 +551,7 @@ const UserManagement = () => {
         parentalStatus: "",
         guardianContact: "",
       });
-      setMedicalHistoryFile(null);
       setFacialDataFile(null);
-      setMedicalHistoryPreview(null);
       setFacialDataPreview(null);
 
       setTimeout(() => {
@@ -1166,9 +874,7 @@ const UserManagement = () => {
                       parentalStatus: "",
                       guardianContact: "",
                     });
-                    setMedicalHistoryFile(null);
                     setFacialDataFile(null);
-                    setMedicalHistoryPreview(null);
                     setFacialDataPreview(null);
                     setFormErrors({});
                   }}
@@ -1421,21 +1127,12 @@ const UserManagement = () => {
                                   setSelectedUser(user);
 
                                   // Set file previews if they exist
-                                  if (user.medicalHistoryUrl) {
-                                    setMedicalHistoryPreview(
-                                      user.medicalHistoryUrl
-                                    );
-                                  } else {
-                                    setMedicalHistoryPreview(null);
-                                  }
-
                                   if (user.facialDataUrl) {
                                     setFacialDataPreview(user.facialDataUrl);
                                   } else {
                                     setFacialDataPreview(null);
                                   }
 
-                                  setMedicalHistoryFile(null);
                                   setFacialDataFile(null);
                                   setFormErrors({});
                                   setView("edit");

@@ -403,3 +403,158 @@ select:focus {
 .redbtn {
     color: red;
 }
+
+/* Sprint6-Story-02-Phase4: Medical Check-ins Section (Inline Form) */
+.medical-checkins-section {
+    margin-top: 24px;
+}
+
+.medical-checkins-section .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.medical-checkins-section .section-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.add-medical-btn {
+    padding: 8px 16px;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.add-medical-btn:hover {
+    background: #218838;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Check-ins List */
+.checkins-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.checkin-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+    background: #f8f9fa;
+    transition: box-shadow 0.2s;
+}
+
+.checkin-item:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.checkin-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.checkin-date {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.checkin-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.health-status {
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.health-status.Healthy {
+    background: #d4edda;
+    color: #155724;
+}
+
+.health-status.Sick {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.health-status.Recovering {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.health-status.Injury {
+    background: #f5c6cb;
+    color: #721c24;
+}
+
+.edit-checkin-btn {
+    padding: 6px 12px;
+    background: #4a90e2;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.edit-checkin-btn:hover {
+    background: #357abd;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.checkin-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.checkin-details p {
+    margin: 0;
+    font-size: 14px;
+    color: #495057;
+}
+
+.checkin-details strong {
+    color: #2c3e50;
+    margin-right: 8px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .checkin-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .checkin-header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+}

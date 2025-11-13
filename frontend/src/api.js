@@ -682,6 +682,17 @@ export const getMedicalConditionBasedOnBalagruha = async (balagruhaIds) => {
   }
 };
 
+// Sprint6-Story-02: Get medical check-ins by student ID
+export const getMedicalCheckInsByStudentId = async (studentId) => {
+  try {
+    const response = await api.get(`/api/medical-check-ins/student/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching medical check-ins by student ID:", error);
+    throw error;
+  }
+};
+
 export const getMoodBasedOnBalagruha = async (balagruhaIds) => {
   try {
     const response = await api.post(

@@ -653,7 +653,8 @@ exports.getUsersByRoleAndBalagruhaId = async ({ role, balagruhaId }) => {
       query.role = role;
     }
   }
-  if (balagruhaId) {
+  // Sprint6-Story-02-Phase4-BUG-FIX: Validate balagruhaId before converting to ObjectId
+  if (balagruhaId && balagruhaId !== 'undefined' && balagruhaId !== 'null' && mongoose.Types.ObjectId.isValid(balagruhaId)) {
     query.balagruhaIds = {
       $in: [mongoose.Types.ObjectId.createFromHexString(balagruhaId)],
     };

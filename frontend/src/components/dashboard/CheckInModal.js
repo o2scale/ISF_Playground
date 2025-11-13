@@ -35,24 +35,46 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       console.log('CheckInModal - filtered images:', images);
       console.log('CheckInModal - filtered pdfs:', pdfs);
 
-      setSelectedBalagruha(studentData.balagruhaIds[0]);
-      fetchStudents(studentData.balagruhaIds[0]);
+      // S6-S2-BUG-002 FIX: Extract balagruha ID string from array (could be object or string)
+      const balagruhaId = studentData.balagruhaIds && studentData.balagruhaIds.length > 0
+        ? (typeof studentData.balagruhaIds[0] === 'object'
+            ? studentData.balagruhaIds[0]._id || studentData.balagruhaIds[0].id
+            : studentData.balagruhaIds[0])
+        : '';
+
+      console.log('CheckInModal - extracted balagruhaId:', balagruhaId);
+      setSelectedBalagruha(balagruhaId);
+      fetchStudents(balagruhaId);
       setSelectedStudent(studentData.studentId);
 
-      // Convert date to local timezone for editing
-      const dateObj = new Date(studentData.date);
-      const localDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
-      const dateString = localDate.toISOString().split("T")[0];
-      const timeString = localDate.toISOString().split("T")[1].slice(0, 5);
+      // S6-S2-BUG-001 FIX: Check if date exists before converting (for new check-ins from Users tab)
+      let dateString, timeString;
+      if (studentData.date) {
+        // Convert date to local timezone for editing (existing check-in)
+        const dateObj = new Date(studentData.date);
+        if (!isNaN(dateObj.getTime())) {
+          const localDate = new Date(dateObj.getTime() - (dateObj.getTimezoneOffset() * 60000));
+          dateString = localDate.toISOString().split("T")[0];
+          timeString = localDate.toISOString().split("T")[1].slice(0, 5);
+        } else {
+          // Invalid date, use current date/time
+          dateString = new Date().toISOString().split("T")[0];
+          timeString = new Date().toTimeString().slice(0, 5);
+        }
+      } else {
+        // No date provided (new check-in from Users tab), use current date/time
+        dateString = new Date().toISOString().split("T")[0];
+        timeString = new Date().toTimeString().slice(0, 5);
+      }
 
       setFormData({
         studentId: studentData.studentId,
         studentName: studentData.userName,
-        temperature: studentData.temperature,
+        temperature: studentData.temperature || "",
         date: dateString,
         time: timeString,
-        healthStatus: studentData.healthStatus,
-        notes: studentData.notes,
+        healthStatus: studentData.healthStatus || "normal",
+        notes: studentData.notes || "",
         uploadedImages: images,
         uploadedPdfs: pdfs,
         // NEW FIELDS (Sprint6-Story-3: Handle both old and new formats)

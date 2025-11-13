@@ -40,8 +40,9 @@ exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}) => {
 
 exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}) => {
   const { page = 1, limit = 10 } = pagination;
-  return await MedicalCheckIn.find({ student: studentId })
-    .populate("student", "firstName lastName studentId")
+  // Sprint6-Story-02-Phase4-BUG-FIX: Changed 'student' to 'studentId' to match schema field name
+  return await MedicalCheckIn.find({ studentId: studentId })
+    .populate("studentId", "firstName lastName studentId")
     .populate("createdBy", "name email")
     .populate("followUp.assignedCoaches", "name email")
     .sort({ createdAt: -1 })
@@ -50,7 +51,7 @@ exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}) => {
     .lean()
     .then(async (results) => {
       const totalCount = await MedicalCheckIn.countDocuments({
-        student: studentId,
+        studentId: studentId,
       });
       return {
         success: true,
