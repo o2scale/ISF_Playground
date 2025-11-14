@@ -200,6 +200,8 @@ const MedicInchargeDashboard = () => {
     { id: 3, name: "Check Ins", activeTab: "checkins" },
     // { id: 4, name: "Alerts", activeTab: "alerts", link: "/task" },
     { id: 5, name: "Tasks", activeTab: "tasks", link: "/task" },
+    { id: 6, name: "Purchases", activeTab: "purchases", link: "/purchase" },
+    { id: 7, name: "Shop", activeTab: "shop", link: "/shop" },
     //     { id: 5, name: "Performance", activeTab: "" },
         // { id: 6, name: "Reports", activeTab: "reports" },
   ];

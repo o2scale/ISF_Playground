@@ -93,7 +93,7 @@ const Layout = () => {
       id: 10,
       name: "Shop",
       link: "/shop",
-      roles: ["student", "admin", "coach", "purchase-manager"],
+      roles: ["student", "admin", "coach", "purchase-manager", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
     },
     {
       id: 11,

@@ -1775,6 +1775,8 @@ const MusicCoachDashboard = () => {
     // { id: 5, name: "Performance", activeTab: "performance" },
     // { id: 6, name: "Reports", activeTab: "reports" },
     { id: 7, name: "Users", activeTab: "users" },
+    { id: 8, name: "Purchases", activeTab: "purchases", link: "/purchase" },
+    { id: 9, name: "Shop", activeTab: "shop", link: "/shop" },
   ];
 
   return (
