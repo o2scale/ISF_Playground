@@ -313,17 +313,32 @@ const Layout = () => {
     navigate(-1); // Go back to previous page
   };
 
+  // Roles that have custom dashboards with their own menus
+  const customDashboardRoles = [
+    "medical-incharge",
+    "sports-coach",
+    "music-coach",
+    "amma"
+  ];
+
+  const currentRole = localStorage.getItem("role");
+  const isOnDashboard = location.pathname === "/dashboard";
+  const hasCustomDashboard = customDashboardRoles.includes(currentRole);
+
+  // Show Layout menu for:
+  // 1. Roles without custom dashboards (admin, coach, student, purchase-manager, balagruha-incharge)
+  // 2. Roles with custom dashboards ONLY when they're NOT on /dashboard route
+  const shouldShowLayoutMenu =
+    (currentRole === "admin" ||
+     currentRole === "coach" ||
+     currentRole === "student" ||
+     currentRole === "purchase-manager" ||
+     currentRole === "balagruha-incharge" ||
+     (hasCustomDashboard && !isOnDashboard));
+
   return (
     <div className="app-layout">
-      {(localStorage.getItem("role") === "admin" ||
-        localStorage.getItem("role") === "coach" ||
-        localStorage.getItem("role") === "student" ||
-        localStorage.getItem("role") === "purchase-manager" ||
-        localStorage.getItem("role") === "medical-incharge" ||
-        localStorage.getItem("role") === "balagruha-incharge" ||
-        localStorage.getItem("role") === "sports-coach" ||
-        localStorage.getItem("role") === "music-coach" ||
-        localStorage.getItem("role") === "amma") && (
+      {shouldShowLayoutMenu && (
         <div className="header">
           {/* Hamburger Menu Icon - CLIENT REQUEST: Hidden since WTF sidebar removed from functionality */}
           {/* Client wants ability to restore this later, so commenting out instead of deleting */}
