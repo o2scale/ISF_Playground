@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./MedicInchargeDashboard.css";
 import { useAuth } from "../../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import CheckInModal from "./CheckInModal";
 import ViewCheckInModal from "./ViewCheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
@@ -16,6 +17,7 @@ const MedicInchargeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
   const { logout } = useAuth();
+  const navigate = useNavigate();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewData, setViewData] = useState(null);
@@ -651,7 +653,13 @@ const MedicInchargeDashboard = () => {
               className={`menu-item ${
                 activeTab === menu.activeTab ? "active" : ""
               }`}
-              onClick={() => setActiveTab(menu?.activeTab)}
+              onClick={() => {
+                if (menu.link) {
+                  navigate(menu.link);
+                } else {
+                  setActiveTab(menu?.activeTab);
+                }
+              }}
             >
               {menu.name}
             </div>

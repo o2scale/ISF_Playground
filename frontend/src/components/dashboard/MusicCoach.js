@@ -1797,7 +1797,13 @@ const MusicCoachDashboard = () => {
               className={`menu-item ${
                 activeTab === menu.activeTab ? "active" : ""
               }`}
-              onClick={() => setActiveTab(menu?.activeTab)}
+              onClick={() => {
+                if (menu.link) {
+                  navigate(menu.link);
+                } else {
+                  setActiveTab(menu?.activeTab);
+                }
+              }}
             >
               {menu.name}
             </div>
