@@ -318,7 +318,12 @@ const Layout = () => {
       {(localStorage.getItem("role") === "admin" ||
         localStorage.getItem("role") === "coach" ||
         localStorage.getItem("role") === "student" ||
-        localStorage.getItem("role") === "purchase-manager") && (
+        localStorage.getItem("role") === "purchase-manager" ||
+        localStorage.getItem("role") === "medical-incharge" ||
+        localStorage.getItem("role") === "balagruha-incharge" ||
+        localStorage.getItem("role") === "sports-coach" ||
+        localStorage.getItem("role") === "music-coach" ||
+        localStorage.getItem("role") === "amma") && (
         <div className="header">
           {/* Hamburger Menu Icon - CLIENT REQUEST: Hidden since WTF sidebar removed from functionality */}
           {/* Client wants ability to restore this later, so commenting out instead of deleting */}
