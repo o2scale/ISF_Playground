@@ -313,28 +313,64 @@ const Layout = () => {
     navigate(-1); // Go back to previous page
   };
 
-  // Roles that have custom dashboards with their own menus
-  const customDashboardRoles = [
-    "medical-incharge",
-    "sports-coach",
-    "music-coach",
-    "amma"
-  ];
+  // Custom menus for roles with custom dashboards
+  const customRoleMenus = {
+    "medical-incharge": [
+      { id: 1, name: "Dashboard", link: "/dashboard" },
+      { id: 2, name: "Students", link: "/dashboard", state: { activeTab: "students" } },
+      { id: 3, name: "Check Ins", link: "/dashboard", state: { activeTab: "checkins" } },
+      { id: 4, name: "Tasks", link: "/task" },
+      { id: 5, name: "Purchases", link: "/purchase" },
+      { id: 6, name: "Shop", link: "/shop" },
+    ],
+    "sports-coach": [
+      { id: 1, name: "Dashboard", link: "/dashboard" },
+      { id: 2, name: "Students", link: "/dashboard", state: { activeTab: "students" } },
+      { id: 3, name: "Training", link: "/dashboard", state: { activeTab: "training" } },
+      { id: 4, name: "Sports Tasks", link: "/dashboard", state: { activeTab: "tasks" } },
+      { id: 5, name: "Performance", link: "/dashboard", state: { activeTab: "performance" } },
+      { id: 6, name: "Reports", link: "/dashboard", state: { activeTab: "reports" } },
+      { id: 7, name: "Tasks", link: "/task" },
+      { id: 8, name: "Purchases", link: "/purchase" },
+      { id: 9, name: "Shop", link: "/shop" },
+    ],
+    "music-coach": [
+      { id: 1, name: "Dashboard", link: "/dashboard" },
+      { id: 2, name: "Students", link: "/dashboard", state: { activeTab: "students" } },
+      { id: 3, name: "Training", link: "/dashboard", state: { activeTab: "training" } },
+      { id: 4, name: "Music Tasks", link: "/dashboard", state: { activeTab: "tasks" } },
+      { id: 5, name: "Performance", link: "/dashboard", state: { activeTab: "performance" } },
+      { id: 6, name: "Reports", link: "/dashboard", state: { activeTab: "reports" } },
+      { id: 7, name: "Tasks", link: "/task" },
+      { id: 8, name: "Purchases", link: "/purchase" },
+      { id: 9, name: "Shop", link: "/shop" },
+    ],
+    "amma": [
+      { id: 1, name: "Dashboard", link: "/dashboard" },
+      { id: 2, name: "Students", link: "/dashboard", state: { activeTab: "students" } },
+      { id: 3, name: "Tasks", link: "/task" },
+      { id: 4, name: "Purchases", link: "/purchase" },
+      { id: 5, name: "Shop", link: "/shop" },
+    ],
+  };
 
   const currentRole = localStorage.getItem("role");
   const isOnDashboard = location.pathname === "/dashboard";
-  const hasCustomDashboard = customDashboardRoles.includes(currentRole);
+  const hasCustomDashboard = Object.keys(customRoleMenus).includes(currentRole);
 
-  // Show Layout menu for:
-  // 1. Roles without custom dashboards (admin, coach, student, purchase-manager, balagruha-incharge)
-  // 2. Roles with custom dashboards ONLY when they're NOT on /dashboard route
+  // Determine which menu to show
+  const menuToShow = hasCustomDashboard
+    ? customRoleMenus[currentRole]
+    : visibleMenus;
+
+  // Show Layout menu for all authenticated roles except custom dashboard roles on /dashboard
   const shouldShowLayoutMenu =
-    (currentRole === "admin" ||
-     currentRole === "coach" ||
-     currentRole === "student" ||
-     currentRole === "purchase-manager" ||
-     currentRole === "balagruha-incharge" ||
-     (hasCustomDashboard && !isOnDashboard));
+    currentRole === "admin" ||
+    currentRole === "coach" ||
+    currentRole === "student" ||
+    currentRole === "purchase-manager" ||
+    currentRole === "balagruha-incharge" ||
+    (hasCustomDashboard && !isOnDashboard);
 
   return (
     <div className="app-layout">
@@ -374,7 +410,7 @@ const Layout = () => {
 
           {/* Top Menu */}
           <div className="top-menu scrollable-menu">
-            {visibleMenus.map((menu) => {
+            {menuToShow.map((menu) => {
               const isActive = location.pathname === menu.link;
               const isWtf = menu.name === "WTF";
               const wtfHighlight =
@@ -398,7 +434,12 @@ const Layout = () => {
                       setShouldShakeWtf(true);
                       setTimeout(() => setShouldShakeWtf(false), 700);
                     }
-                    navigate(menu?.link);
+                    // Navigate with state if provided (for dashboard tabs)
+                    if (menu.state) {
+                      navigate(menu.link, { state: menu.state });
+                    } else {
+                      navigate(menu.link);
+                    }
                   }}
                 >
                   {menu.name}

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import "./MedicInchargeDashboard.css";
 import { useAuth } from "../../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import CheckInModal from "./CheckInModal";
 import ViewCheckInModal from "./ViewCheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
@@ -18,6 +18,7 @@ const MedicInchargeDashboard = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewData, setViewData] = useState(null);
@@ -80,6 +81,15 @@ const MedicInchargeDashboard = () => {
     fetchBalagruha()
     fetchMedicalData()
   }, [])
+
+  // Handle navigation from Layout menu with state
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      setActiveTab(location.state.activeTab);
+      // Clear the state to prevent re-triggering
+      window.history.replaceState({}, document.title);
+    }
+  }, [location])
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './SportCoachDashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import TaskManagement, { TaskDetailsModal } from '../TaskManagement/taskmanagement';
 import WeeklyCalendar from './WeeklyCalendar';
 import { getBalagruha, getTasks, updateTask, fetchUsers, getStudentListforAttendance, getMachines, getTaskBytaskId, createTraining, getTraining, updateTraining, deleteTrainign } from "../../api";
@@ -1052,6 +1052,7 @@ const SportCoachDashboard = () => {
 
     const { logout } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
 
     const getCalendarEvents = () => {
         if (!tasks || tasks.length === 0) {
@@ -1200,6 +1201,15 @@ const SportCoachDashboard = () => {
         getTasksList();
         getUsersList();
     }, []);
+
+    // Handle navigation from Layout menu with state
+    useEffect(() => {
+        if (location.state?.activeTab) {
+            setActiveTab(location.state.activeTab);
+            // Clear the state to prevent re-triggering
+            window.history.replaceState({}, document.title);
+        }
+    }, [location]);
 
     const handleEventClick = (event) => {
         setSelectedTask(event.taskData);
