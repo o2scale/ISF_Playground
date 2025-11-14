@@ -321,13 +321,29 @@ exports.getMyPurchaseRequests = async (req, res) => {
  * @route   GET /api/v2/shop/admin/purchase-requests (for Admins)
  * @desc    Get all purchase requests (Admin sees all) - MULTI-PRODUCT
  * @access  Private (Purchase Management:Manage)
+ *
+ * Sprint6-Story-XX: Purchase Request Filtering by Creator
+ * - Admin and Purchase Manager see ALL requests
+ * - Other roles (Coach, Medical Incharge, etc.) see ONLY their own requests
  */
 exports.getAllPurchaseRequests = async (req, res) => {
   try {
     const { status, balagruhaId, category, startDate, endDate } = req.query;
+    const userId = req.user._id;
+    const userRole = req.user.role;
 
     // Build query
     const query = {};
+
+    // Sprint6-Story-XX: Role-based filtering
+    // Only Admin and Purchase Manager can see all requests
+    // Other roles can only see their own requests
+    const canSeeAllRequests = userRole === 'admin' || userRole === 'purchase-manager';
+
+    if (!canSeeAllRequests) {
+      // Filter to show only requests created by this user
+      query.requestedBy = userId;
+    }
 
     if (status && status !== 'all') {
       query.status = status;
