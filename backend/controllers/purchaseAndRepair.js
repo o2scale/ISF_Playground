@@ -50,6 +50,24 @@ const repairRequestController = {
       const query = {};
       if (urgency) query.urgency = urgency;
 
+      // Role-based filtering
+      const userRole = req.user.role;
+      const userId = req.user._id;
+
+      if (userRole === 'admin') {
+        // Admin sees ALL repair requests - no filter
+      } else if (userRole === 'purchase-manager') {
+        // Purchase Manager sees requests from their assigned Balagruha(s)
+        const User = require('../models/user');
+        const user = await User.findById(userId).select('balagruhaIds');
+        const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
+
+        query.balagruhaId = { $in: userBalagruhaIds };
+      } else {
+        // Other roles see ONLY their own created requests
+        query.createdBy = userId;
+      }
+
       const options = {
         skip: (parseInt(page) - 1) * parseInt(limit),
         limit: parseInt(limit),
@@ -276,17 +294,23 @@ const repairRequestController = {
       const query = {};
       if (status) query.status = status;
 
-      // S6-S4-BUG-002: Filter purchase orders by user role
-      // Only admin and purchase-manager can see all orders
-      // Regular users see only their own orders
+      // Role-based filtering
       const userRole = req.user.role;
       const userId = req.user._id;
 
-      if (userRole !== 'admin' && userRole !== 'purchase-manager') {
-        // Regular users: filter by createdBy
+      if (userRole === 'admin') {
+        // Admin sees ALL purchase orders - no filter
+      } else if (userRole === 'purchase-manager') {
+        // Purchase Manager sees orders from their assigned Balagruha(s)
+        const User = require('../models/user');
+        const user = await User.findById(userId).select('balagruhaIds');
+        const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
+
+        query.balagruhaId = { $in: userBalagruhaIds };
+      } else {
+        // Other roles see ONLY their own created orders
         query.createdBy = userId;
       }
-      // Admin and purchase-manager: no filter (see all)
 
       const options = {
         skip: (parseInt(page) - 1) * parseInt(limit),

@@ -180,7 +180,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         }
       }
 
-      const response = userRole === 'admin'
+      // Admin and Purchase Manager use getAllPurchaseRequests (backend filters by balagruha for PM)
+      // Other roles use getMyPurchaseRequests (shows only their own requests)
+      const response = (userRole === 'admin' || userRole === 'purchase-manager')
         ? await getAllPurchaseRequests(params)
         : await getMyPurchaseRequests(params);
 
@@ -200,20 +202,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const applyFilters = () => {
     let filtered = [...requests];
 
-    // FRONTEND FILTERING for Purchase Manager
-    // Note: Backend already filters by requestedBy for getMyPurchaseRequests()
-    // So we only need to filter by balagruha on frontend
-    if (userRole === 'purchase-manager') {
-      filtered = filtered.filter(request => {
-        // Sprint5-Story-21 (S21-BUG-003): Show requests from assigned balagruhas + ALL STOCK requests
-        const balagruhaIdStr = request.balagruhaId?._id || request.balagruhaId;
-        const matchesBalagruha = !request.balagruhaId ||
-          balagruhaIdStr === 'STOCK' ||  // Always show STOCK requests to all users
-          userBalagruhas.some(bgId => bgId === balagruhaIdStr);
-
-        return matchesBalagruha;
-      });
-    }
+    // Backend already handles role-based filtering:
+    // - Admin sees ALL requests
+    // - Purchase Manager sees requests from assigned balagruhas + STOCK
+    // - Other roles see ONLY their own requests
+    // Frontend only applies UI filter selections below
 
     // Sprint5-Story-22: Date filtering now handled by backend API
     // Removed client-side date filtering - backend handles date range queries with proper timezone support
