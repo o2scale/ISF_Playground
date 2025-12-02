@@ -92,6 +92,45 @@ select {
   padding-bottom: 8px;
 }
 
+.module-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.module-chip {
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  background: #f2f6ff;
+  color: #1f2937;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.module-chip.highlight {
+  background: #e0ecff;
+  color: #1d4ed8;
+}
+
+.module-chip:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+
+.chip-icon {
+  font-size: 1.1rem;
+}
+
+.chip-label {
+  font-size: 0.95rem;
+}
+
 .tab {
   padding: 12px 20px;
   background-color: var(--light);

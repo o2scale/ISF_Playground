@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   addUsers,
   getBalagruha,
@@ -14,11 +15,43 @@ import { Modal } from "./modal";
 import FaceCapture from "./FaceCapture";
 import CheckInForm from "../dashboard/CheckInForm";
 
+const MEDICAL_STATUS_OPTIONS = [
+  { value: "active", label: "Active" },
+  { value: "ongoing", label: "Ongoing" },
+  { value: "monitoring", label: "Monitoring" },
+  { value: "managed", label: "Managed" },
+  { value: "resolved", label: "Resolved" },
+  { value: "stable", label: "Stable" },
+];
+
+const ACCEPTED_PRESCRIPTION_TYPES = ".pdf,.jpg,.jpeg,.png";
+const ACCEPTED_ATTACHMENT_TYPES = ".pdf,.jpg,.jpeg,.png,.doc,.docx";
+
+const createEmptyMedicalHistoryEntry = () => ({
+  name: "",
+  description: "",
+  date: "",
+  caseId: "",
+  doctorsName: "",
+  hospitalName: "",
+  currentStatus: {
+    status: "",
+    notes: "",
+    date: "",
+  },
+  prescriptions: [],
+  otherAttachments: [],
+  existingPrescriptions: [],
+  existingOtherAttachments: [],
+  isExisting: false,
+  isDirty: true,
+});
+
 const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
   console.log("usdsds", user);
+  const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
   const role = localStorage.getItem("role");
-  const [machineDropdownOpen, setMachineDropdownOpen] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const faceCaptureRef = useRef();
   const [formData, setFormData] = useState({
@@ -38,7 +71,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     guardianContact2: "",
     assignedMachines: [],
     nextActionDate: "",
-    // medicalHistory removed - Sprint6-Story-02: Replaced with Check-in Form
+    medicalHistory: [],
   });
 
   const [errors, setErrors] = useState({});
@@ -86,6 +119,32 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     if (mode === "edit" && user) {
       console.log("🔍 Edit mode - User object:", user);
       console.log("🔍 Edit mode - userId field:", user.userId);
+      const normalizedMedicalHistory = (user.medicalHistory || []).map(
+        (history) => ({
+          name: history.name || "",
+          description: history.description || "",
+          date: history.date ? history.date.split("T")[0] : "",
+          caseId: history.caseId || "",
+          doctorsName: history.doctorsName || "",
+          hospitalName: history.hospitalName || "",
+          currentStatus: {
+            status: history.currentStatus?.status || "",
+            notes: history.currentStatus?.notes || "",
+            date: history.currentStatus?.date
+              ? history.currentStatus.date.split("T")[0]
+              : "",
+          },
+          prescriptions: [],
+          otherAttachments: [],
+          existingPrescriptions:
+            history.prescriptionUrls || history.prescriptions || [],
+          existingOtherAttachments:
+            history.otherAttachmentUrls || history.otherAttachments || [],
+          isExisting: true,
+          isDirty: false,
+        })
+      );
+
       // Set basic user data
       setFormData({
         name: user.name || "",
@@ -103,40 +162,29 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
         assignedMachines: user.assignedMachines || [],
         guardianName2: user.guardianName2 || "",
         guardianContact2: user.guardianContact2 || "",
-        // medicalHistory removed - Sprint6-Story-02: Replaced with Check-in Form
+        medicalHistory: normalizedMedicalHistory,
       });
 
       // Set facial data preview if available
-      if (user.facialDataUrl) {
+      const existingFacialPhoto =
+        user.facialDataUrl ||
+        user.facialData?.url ||
+        user.facialData?.location ||
+        user.facialData?.photoUrl;
+
+      if (existingFacialPhoto) {
         setPreviews((prev) => ({
           ...prev,
-          facialData: user.facialDataUrl,
+          facialData: existingFacialPhoto,
         }));
       }
-
-      // Set medical history file previews if available
-      if (user.medicalHistory && user.medicalHistory.length > 0) {
-        const medicalHistoryPreviews = {};
-
-        user.medicalHistory.forEach((history, index) => {
-          if (
-            history.prescriptionUrls?.length ||
-            history.otherAttachmentUrls?.length
-          ) {
-            medicalHistoryPreviews[index] = {
-              prescriptions: history.prescriptionUrls || [],
-              otherAttachments: history.otherAttachmentUrls || [],
-            };
-          }
-        });
-
-        if (Object.keys(medicalHistoryPreviews).length > 0) {
-          setPreviews((prev) => ({
-            ...prev,
-            medicalHistoryFiles: medicalHistoryPreviews,
-          }));
-        }
-      }
+    } else if (mode === "add") {
+      setFormData((prev) => ({
+        ...prev,
+        medicalHistory: [],
+      }));
+      setPreviews({ facialData: null });
+      setFiles({ facialData: null });
     }
     fetchBalagruhaOptions();
     getMachinesData();
@@ -213,17 +261,10 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
   // handleMedicalHistoryNestedChange, handleMedicalHistoryFileChange all removed
   useEffect(() => {
     const handleClickOutside = (event) => {
-      // For machine dropdown
-      const machineSelector = document.querySelector(".form-machine-selector");
       // For balagruha dropdown
       const balagruhaSelector = document.querySelector(
         ".form-balagruha-selector"
       );
-
-      // Check if click is outside machine dropdown
-      if (machineSelector && !machineSelector.contains(event.target)) {
-        setMachineDropdownOpen(false);
-      }
 
       // Check if click is outside balagruha dropdown
       if (balagruhaSelector && !balagruhaSelector.contains(event.target)) {
@@ -372,7 +413,168 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     }
   };
 
-  // handleRemoveMedicalHistoryFile removed - Sprint6-Story-02
+  const handleAddMedicalHistory = () => {
+    setFormData((prev) => ({
+      ...prev,
+      medicalHistory: [...prev.medicalHistory, createEmptyMedicalHistoryEntry()],
+    }));
+  };
+
+  const handleRemoveMedicalHistory = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      medicalHistory: prev.medicalHistory.filter((entry, i) => {
+        if (i !== index) return true;
+        return entry?.isExisting ? true : false;
+      }),
+    }));
+  };
+
+  const handleMedicalHistoryChange = (index, field, value) => {
+    setFormData((prev) => {
+      const updated = [...prev.medicalHistory];
+      updated[index] = {
+        ...updated[index],
+        [field]: value,
+        isDirty: true,
+      };
+      return { ...prev, medicalHistory: updated };
+    });
+  };
+
+  const handleMedicalHistoryStatusChange = (index, field, value) => {
+    setFormData((prev) => {
+      const updated = [...prev.medicalHistory];
+      updated[index] = {
+        ...updated[index],
+        currentStatus: {
+          ...updated[index].currentStatus,
+          [field]: value,
+        },
+        isDirty: true,
+      };
+      return { ...prev, medicalHistory: updated };
+    });
+  };
+
+  const handleMedicalHistoryFileChange = (index, field, event) => {
+    const selectedFiles = Array.from(event.target.files || []);
+
+    if (!selectedFiles.length) {
+      return;
+    }
+
+    for (const file of selectedFiles) {
+      const limitMb = file.type === "application/pdf" ? 10 : 5;
+      if (file.size > limitMb * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          medicalHistory: `${file.name} exceeds the ${limitMb}MB limit`,
+        }));
+        return;
+      }
+    }
+
+    setErrors((prev) => ({
+      ...prev,
+      medicalHistory: null,
+    }));
+
+    setFormData((prev) => {
+      const updated = [...prev.medicalHistory];
+      const existing = updated[index][field] || [];
+      updated[index] = {
+        ...updated[index],
+        [field]: [...existing, ...selectedFiles],
+        isDirty: true,
+      };
+      return { ...prev, medicalHistory: updated };
+    });
+  };
+
+  const handleRemoveMedicalHistoryFile = (entryIndex, field, fileIndex) => {
+    setFormData((prev) => {
+      const updated = [...prev.medicalHistory];
+      const currentFiles = [...(updated[entryIndex][field] || [])];
+      currentFiles.splice(fileIndex, 1);
+      updated[entryIndex] = {
+        ...updated[entryIndex],
+        [field]: currentFiles,
+        isDirty: true,
+      };
+      return { ...prev, medicalHistory: updated };
+    });
+  };
+
+  const getBalagruhaIdValue = (balagruha) => {
+    if (!balagruha) return null;
+    if (typeof balagruha === "string") return balagruha;
+    return balagruha._id || balagruha.id || null;
+  };
+
+  const getBalagruhaName = (balagruha) => {
+    if (!balagruha) return "";
+    if (typeof balagruha === "object" && balagruha.name) {
+      return balagruha.name;
+    }
+    const match = balagruhaOptions.find(
+      (option) => option._id === getBalagruhaIdValue(balagruha)
+    );
+    return match?.name || "";
+  };
+
+  const normalizedMachines = useMemo(() => {
+    return (machines || []).map((machine) => ({
+      ...machine,
+      assignedBalagruhaId: getBalagruhaIdValue(machine.assignedBalagruha),
+    }));
+  }, [machines]);
+
+  const machinesByBalagruha = useMemo(() => {
+    const mapping = {};
+    (formData.balagruhaIds || []).forEach((balagruha) => {
+      const balId = getBalagruhaIdValue(balagruha);
+      if (!balId) return;
+      mapping[balId] = normalizedMachines.filter((machine) => {
+        if (!machine.assignedBalagruhaId) {
+          return false;
+        }
+        return machine.assignedBalagruhaId === balId;
+      });
+    });
+    return mapping;
+  }, [formData.balagruhaIds, normalizedMachines]);
+
+  const unassignedMachines = useMemo(() => {
+    return normalizedMachines.filter((machine) => !machine.assignedBalagruhaId);
+  }, [normalizedMachines]);
+
+  const toggleMachineSelection = (machine) => {
+    if (!machine || !machine._id) return;
+    setFormData((prev) => {
+      const exists = prev.assignedMachines.some(
+        (assigned) =>
+          (assigned?._id || assigned) === machine._id ||
+          assigned?.machineId === machine.machineId
+      );
+      const updatedMachines = exists
+        ? prev.assignedMachines.filter(
+            (assigned) =>
+              (assigned?._id || assigned) !== machine._id &&
+              assigned?.machineId !== machine.machineId
+          )
+        : [
+            ...prev.assignedMachines,
+            {
+              _id: machine._id,
+              machineId: machine.machineId,
+              serialNumber: machine.serialNumber,
+              assignedBalagruha: machine.assignedBalagruha,
+            },
+          ];
+      return { ...prev, assignedMachines: updatedMachines };
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -443,7 +645,66 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           formDataToSend.append("facialData", files.facialData);
         }
 
-        // Medical history processing removed - Sprint6-Story-02: Replaced with Check-in Form
+        const historiesToSubmit = (formData.medicalHistory || []).filter(
+          (history) => {
+            if (!history) return false;
+            if (history.isExisting && !history.isDirty) {
+              return false;
+            }
+            const hasContent =
+              history.name ||
+              history.description ||
+              history.caseId ||
+              history.doctorsName ||
+              history.hospitalName ||
+              history.date ||
+              history.currentStatus?.status ||
+              history.currentStatus?.notes ||
+              history.currentStatus?.date ||
+              (history.prescriptions && history.prescriptions.length > 0) ||
+              (history.otherAttachments && history.otherAttachments.length > 0);
+            return hasContent;
+          }
+        );
+
+        historiesToSubmit.forEach((history, index) => {
+          const prefix = `medicalHistory[${index}]`;
+          const appendIfPresent = (key, value) => {
+            if (value !== undefined && value !== null && value !== "") {
+              formDataToSend.append(`${prefix}.${key}`, value);
+            }
+          };
+
+          appendIfPresent("name", history.name);
+          appendIfPresent("description", history.description);
+          appendIfPresent("date", history.date);
+          appendIfPresent("caseId", history.caseId);
+          appendIfPresent("doctorsName", history.doctorsName);
+          appendIfPresent("hospitalName", history.hospitalName);
+
+          if (history.currentStatus) {
+            appendIfPresent(
+              "currentStatus.status",
+              history.currentStatus.status
+            );
+            appendIfPresent(
+              "currentStatus.notes",
+              history.currentStatus.notes
+            );
+            appendIfPresent(
+              "currentStatus.date",
+              history.currentStatus.date
+            );
+          }
+
+          (history.prescriptions || []).forEach((file) => {
+            formDataToSend.append(`${prefix}.prescriptions`, file);
+          });
+
+          (history.otherAttachments || []).forEach((file) => {
+            formDataToSend.append(`${prefix}.otherAttachments`, file);
+          });
+        });
       }
 
       // Log the FormData entries for debugging
@@ -816,86 +1077,140 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
             {localStorage.getItem("role") !== "medical-incharge" && (
               <>
-                <div className="form-group">
-                  <label>Assigned Machines</label>
-                  <div className="form-machine-selector">
-                    <div
-                      className={`form-dropdown-header ${
-                        errors.assignedMachines ? "form-error" : ""
-                      }`}
-                      onClick={() =>
-                        setMachineDropdownOpen(!machineDropdownOpen)
-                      }
+                <div className="form-group machine-assignment-block">
+                  <div className="machine-assignment-header">
+                    <label>Assigned Machines</label>
+                    <button
+                      type="button"
+                      className="machine-link-btn"
+                      onClick={() => navigate("/machines")}
                     >
-                      <span>
-                        {formData.assignedMachines.length
-                          ? `${formData.assignedMachines
-                              .map((machine) => machine.machineId)
-                              .join(", ")}`
-                          : "Select Machines"}
-                      </span>
-                      <span className="form-dropdown-arrow">
-                        {machineDropdownOpen ? "▲" : "▼"}
-                      </span>
+                      Open Machine Manager ↗
+                    </button>
+                  </div>
+                  <p className="machine-helper-text">
+                    1) Select a Balagruha above · 2) Check the machines that
+                    belong to each Balagruha · 3) Use the Machine Manager to
+                    add or reassign hardware when required.
+                  </p>
+
+                  {formData.balagruhaIds.length === 0 ? (
+                    <div className="no-balagruha-message">
+                      Please select a Balagruha first to view available
+                      machines
                     </div>
-                    {machineDropdownOpen && (
-                      <div className="form-dropdown-options">
-                        {formData.balagruhaIds.length > 0 ? (
-                          formData.balagruhaIds.map((balagruha) => {
-                            const selectedBalagruha = balagruhaOptions.find(
-                              (bg) => bg._id === balagruha._id
+                  ) : (
+                    <div className="machine-grid">
+                      {formData.balagruhaIds.map((balagruha) => {
+                        const balId = getBalagruhaIdValue(balagruha);
+                        const machinesForBal = machinesByBalagruha[balId] || [];
+
+                        return (
+                          <div key={balId} className="machine-bal-card">
+                            <div className="machine-bal-card__header">
+                              <h4>{getBalagruhaName(balagruha) || "Balagruha"}</h4>
+                              <span>
+                                {machinesForBal.length > 0
+                                  ? `${machinesForBal.length} machine${
+                                      machinesForBal.length > 1 ? "s" : ""
+                                    }`
+                                  : "No machines"}
+                              </span>
+                            </div>
+
+                            {machinesForBal.length > 0 ? (
+                              machinesForBal.map((machine) => {
+                                const isChecked = formData.assignedMachines.some(
+                                  (assigned) =>
+                                    (assigned?._id || assigned) === machine._id
+                                );
+
+                                return (
+                                  <label
+                                    key={machine._id}
+                                    className="machine-option"
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => toggleMachineSelection(machine)}
+                                    />
+                                    <span>
+                                      <strong>{machine.machineId}</strong>
+                                      {machine.serialNumber && (
+                                        <>
+                                          {" · "}
+                                          <span>{machine.serialNumber}</span>
+                                        </>
+                                      )}
+                                      {!machine.assignedBalagruhaId && (
+                                        <em className="machine-unassigned-pill">
+                                          Unassigned
+                                        </em>
+                                      )}
+                                    </span>
+                                  </label>
+                                );
+                              })
+                            ) : (
+                              <div className="no-machines-message">
+                                No machines mapped to this Balagruha yet. Use the
+                                Machine Manager to add one.
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {unassignedMachines.length > 0 && (
+                        <div className="machine-bal-card">
+                          <div className="machine-bal-card__header">
+                            <h4>Unassigned Machines</h4>
+                            <span>
+                              {unassignedMachines.length} available
+                            </span>
+                          </div>
+                          <p className="machine-helper-text compact">
+                            These machines are not linked to any Balagruha yet.
+                            You can still allocate them to a student, but consider
+                            mapping them in the Machine Manager for clarity.
+                          </p>
+                          {unassignedMachines.map((machine) => {
+                            const isChecked = formData.assignedMachines.some(
+                              (assigned) =>
+                                (assigned?._id || assigned) === machine._id
                             );
 
-                            const availableMachines =
-                              selectedBalagruha?.assignedMachines?.filter(
-                                (machine) => {
-                                  return true;
-                                }
-                              );
+                            return (
+                              <label
+                                key={machine._id}
+                                className="machine-option"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isChecked}
+                                  onChange={() => toggleMachineSelection(machine)}
+                                />
+                                <span>
+                                  <strong>{machine.machineId}</strong>
+                                  {machine.serialNumber && (
+                                    <>
+                                      {" · "}
+                                      <span>{machine.serialNumber}</span>
+                                    </>
+                                  )}
+                                  <em className="machine-unassigned-pill">
+                                    Not mapped
+                                  </em>
+                                </span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                            return availableMachines?.map((machine) => {
-                              const isChecked = formData.assignedMachines.some(
-                                (m) => m._id === machine._id
-                              );
-
-                              return (
-                                <label
-                                  key={machine._id}
-                                  className={`form-checkbox-option`}
-                                >
-                                  <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={() => {
-                                      setFormData((prev) => ({
-                                        ...prev,
-                                        assignedMachines: isChecked
-                                          ? prev.assignedMachines.filter(
-                                              (m) => m._id !== machine._id
-                                            )
-                                          : [...prev.assignedMachines, machine],
-                                      }));
-                                    }}
-                                  />
-                                  <span>
-                                    {machine.machineId} - {machine.serialNumber}
-                                    <small className="balagruha-name">
-                                      ({selectedBalagruha.name})
-                                    </small>
-                                  </span>
-                                </label>
-                              );
-                            });
-                          })
-                        ) : (
-                          <div className="no-balagruha-message">
-                            Please select a Balagruha first to view available
-                            machines
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
                   {errors.assignedMachines && (
                     <span className="form-error-message">
                       {errors.assignedMachines}
@@ -1159,8 +1474,300 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           </div>
         )}
 
-        {/* Medical History Section - REMOVED per Sprint6-Story-02 */}
-        {/* Medical history functionality has been replaced with Check-in Form */}
+        {formData.role === "student" && (
+          <div className="form-section medical-history-section">
+            <div className="section-header">
+              <h3>Medical History</h3>
+              <button
+                type="button"
+                className="add-medical-btn"
+                onClick={handleAddMedicalHistory}
+              >
+                + Add Medical Record
+              </button>
+            </div>
+
+            {formData.medicalHistory.length === 0 ? (
+              <div className="medical-history-empty">
+                No medical records added yet. Use the button above to capture a
+                student's historical conditions, prescriptions, or notes.
+              </div>
+            ) : (
+              formData.medicalHistory.map((history, index) => (
+                <div key={`medical-${index}`} className="medical-history-item">
+                  <div className="medical-history-header">
+                    <h4>
+                      Case #{index + 1}
+                      {history.isExisting && (
+                        <span className="existing-record-pill">Existing</span>
+                      )}
+                    </h4>
+                    <button
+                      type="button"
+                      className={`remove-medical-btn ${
+                        history.isExisting ? "disabled" : ""
+                      }`}
+                      onClick={() => handleRemoveMedicalHistory(index)}
+                      title={
+                        history.isExisting
+                          ? "Existing records can be edited but not removed"
+                          : "Remove this record"
+                      }
+                      disabled={history.isExisting}
+                    >
+                      ×
+                    </button>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Condition / Case Name</label>
+                      <input
+                        type="text"
+                        value={history.name}
+                        onChange={(e) =>
+                          handleMedicalHistoryChange(index, "name", e.target.value)
+                        }
+                        placeholder="eg: Asthma, Allergy"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Case ID / Reference</label>
+                      <input
+                        type="text"
+                        value={history.caseId}
+                        onChange={(e) =>
+                          handleMedicalHistoryChange(index, "caseId", e.target.value)
+                        }
+                        placeholder="Hospital reference number"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Diagnosis Date</label>
+                      <input
+                        type="date"
+                        value={history.date}
+                        onChange={(e) =>
+                          handleMedicalHistoryChange(index, "date", e.target.value)
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Doctor's Name</label>
+                      <input
+                        type="text"
+                        value={history.doctorsName}
+                        onChange={(e) =>
+                          handleMedicalHistoryChange(
+                            index,
+                            "doctorsName",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Treating doctor"
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Hospital / Clinic</label>
+                      <input
+                        type="text"
+                        value={history.hospitalName}
+                        onChange={(e) =>
+                          handleMedicalHistoryChange(
+                            index,
+                            "hospitalName",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Healthcare facility"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Condition Details</label>
+                    <textarea
+                      rows="3"
+                      value={history.description}
+                      onChange={(e) =>
+                        handleMedicalHistoryChange(
+                          index,
+                          "description",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Describe symptoms, triggers or treatment plans"
+                    ></textarea>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Current Status</label>
+                      <select
+                        value={history.currentStatus?.status || ""}
+                        onChange={(e) =>
+                          handleMedicalHistoryStatusChange(
+                            index,
+                            "status",
+                            e.target.value
+                          )
+                        }
+                      >
+                        <option value="">Select status</option>
+                        {MEDICAL_STATUS_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="form-group">
+                      <label>Status Date</label>
+                      <input
+                        type="date"
+                        value={history.currentStatus?.date || ""}
+                        onChange={(e) =>
+                          handleMedicalHistoryStatusChange(
+                            index,
+                            "date",
+                            e.target.value
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label>Status Notes</label>
+                    <textarea
+                      rows="2"
+                      value={history.currentStatus?.notes || ""}
+                      onChange={(e) =>
+                        handleMedicalHistoryStatusChange(
+                          index,
+                          "notes",
+                          e.target.value
+                        )
+                      }
+                      placeholder="Any active prescriptions, symptoms or care instructions"
+                    ></textarea>
+                  </div>
+
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Prescriptions</label>
+                      <input
+                        type="file"
+                        multiple
+                        accept={ACCEPTED_PRESCRIPTION_TYPES}
+                        onChange={(e) =>
+                          handleMedicalHistoryFileChange(index, "prescriptions", e)
+                        }
+                      />
+                      {history.prescriptions?.length > 0 && (
+                        <div className="file-list">
+                          {history.prescriptions.map((file, fileIndex) => (
+                            <div key={fileIndex} className="file-item">
+                              <span>{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveMedicalHistoryFile(
+                                    index,
+                                    "prescriptions",
+                                    fileIndex
+                                  )
+                                }
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {history.existingPrescriptions?.length > 0 && (
+                        <div className="existing-file-list">
+                          {history.existingPrescriptions.map((fileUrl, fileIndex) => (
+                            <a
+                              key={fileIndex}
+                              href={fileUrl}
+                              className="existing-file-link"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              View prescription {fileIndex + 1}
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="form-group">
+                      <label>Other Attachments</label>
+                      <input
+                        type="file"
+                        multiple
+                        accept={ACCEPTED_ATTACHMENT_TYPES}
+                        onChange={(e) =>
+                          handleMedicalHistoryFileChange(
+                            index,
+                            "otherAttachments",
+                            e
+                          )
+                        }
+                      />
+                      {history.otherAttachments?.length > 0 && (
+                        <div className="file-list">
+                          {history.otherAttachments.map((file, fileIndex) => (
+                            <div key={fileIndex} className="file-item">
+                              <span>{file.name}</span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleRemoveMedicalHistoryFile(
+                                    index,
+                                    "otherAttachments",
+                                    fileIndex
+                                  )
+                                }
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {history.existingOtherAttachments?.length > 0 && (
+                        <div className="existing-file-list">
+                          {history.existingOtherAttachments.map(
+                            (fileUrl, fileIndex) => (
+                              <a
+                                key={fileIndex}
+                                href={fileUrl}
+                                className="existing-file-link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                View attachment {fileIndex + 1}
+                              </a>
+                            )
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+
+            {errors.medicalHistory && (
+              <span className="form-error-message">{errors.medicalHistory}</span>
+            )}
+          </div>
+        )}
 
         {/* Sprint6-Story-02-Phase4: Medical Check-ins Section (Inline Form) */}
         {mode === "edit" && formData.role === "student" && (

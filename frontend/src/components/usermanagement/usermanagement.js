@@ -66,6 +66,37 @@ const UserManagement = () => {
   const canAccessRoles = canRead("Role Management");
 
   const navigate = useNavigate();
+  const storedRoleRaw = localStorage.getItem("role") || "";
+  const storedRole = storedRoleRaw.toLowerCase();
+  const coachOnlyRoles = new Set(["coach", "sports-coach", "music-coach"]);
+  const coachRoleSet = new Set([...coachOnlyRoles, "medical-incharge"]);
+  const isCoachLike = coachRoleSet.has(storedRole);
+  const shouldHideOtherCoaches = coachOnlyRoles.has(storedRole);
+  const currentUserId = localStorage.getItem("userId");
+  const moduleShortcuts = [
+    {
+      key: "dashboard",
+      label: "Dashboard",
+      icon: "📊",
+      visible: true,
+      action: () => navigate("/dashboard"),
+    },
+    {
+      key: "tasks",
+      label: "Tasks",
+      icon: "🗓️",
+      visible: canAccessTasks,
+      action: () => navigate("/tasks"),
+    },
+    {
+      key: "machines",
+      label: "Machines",
+      icon: "🤖",
+      visible: canAccessMachines,
+      action: () => navigate("/machines"),
+    },
+  ];
+  const showModuleShortcuts = moduleShortcuts.some((link) => link.visible);
 
   useEffect(() => {
     getBalagruhaList();
@@ -117,14 +148,6 @@ const UserManagement = () => {
 
   const getUsers = async () => {
     try {
-      const role = (localStorage.getItem("role") || "").toLowerCase();
-      const isCoachLike = [
-        "coach",
-        "sports-coach",
-        "music-coach",
-        "medical-incharge",
-      ].includes(role);
-
       if (isCoachLike) {
         // Backend endpoint already enforces role and assigned balagruhas
         const response = await coachBasedUsers();
@@ -322,6 +345,20 @@ const UserManagement = () => {
         : valueA < valueB
         ? 1
         : -1;
+    })
+    .filter((user) => {
+      if (!shouldHideOtherCoaches) {
+        return true;
+      }
+      const userRoleLower = (user?.role || "").toLowerCase();
+      if (coachOnlyRoles.has(userRoleLower)) {
+        const id = user?._id ? user._id.toString() : "";
+        if (!currentUserId) {
+          return true;
+        }
+        return id === currentUserId;
+      }
+      return true;
     });
 
   // Debug filter changes
@@ -688,12 +725,32 @@ const UserManagement = () => {
     // Handle successful submission
     console.log("User saved:", response);
     getUsers();
+    setSelectedUser(null);
+    setFilterRole("all");
+    setFilterStatus("all");
     setView("list");
     // Show success message, refresh user list, etc.
   };
 
   return (
     <div className="user-management">
+      {showModuleShortcuts && (
+        <div className="module-shortcuts">
+          {moduleShortcuts
+            .filter((shortcut) => shortcut.visible)
+            .map((shortcut) => (
+              <button
+                key={shortcut.key}
+                type="button"
+                className={`module-chip ${shortcut.key === "machines" ? "highlight" : ""}`}
+                onClick={shortcut.action}
+              >
+                <span className="chip-icon">{shortcut.icon}</span>
+                <span className="chip-label">{shortcut.label}</span>
+              </button>
+            ))}
+        </div>
+      )}
       {view === "dashboard" && (
         <div className="dashboard">
           <div className="metrics-cards">
@@ -803,6 +860,7 @@ const UserManagement = () => {
 
       {view === "list" && (
         <div className="user-list-view">
+
           {localStorage.getItem("role") === "admin" && (
             <div className="metrics-cards">
               <div className="metric-card total">
@@ -862,6 +920,7 @@ const UserManagement = () => {
                   className={`tab ${view === "add" ? "active" : ""}`}
                   onClick={() => {
                     setView("add");
+                    setSelectedUser(null);
                     setFormData({
                       name: "",
                       email: "",
@@ -870,7 +929,7 @@ const UserManagement = () => {
                       status: "active",
                       age: "",
                       gender: "",
-                      balagruhaIds: "",
+                      balagruhaIds: [],
                       parentalStatus: "",
                       guardianContact: "",
                     });

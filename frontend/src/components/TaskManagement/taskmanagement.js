@@ -3629,11 +3629,66 @@ const TaskManagement = () => {
 
   const getCoachBasedUsers = async () => {
     try {
-      const response = await coachBasedUsers();
-      console.log("usdsdsds", response);
-      // Sprint6-Story-1-AC8: Include ALL users (including students) for task assignment
-      // Coaches need to assign tasks to students and other users from their balagruhas
-      setCoachUsers(response || []);
+      const currentUserId = localStorage.getItem("userId");
+      const [baseResponse, balagruhaResponse] = await Promise.all([
+        coachBasedUsers(),
+        currentUserId ? getBalagruhaById(currentUserId) : Promise.resolve(null),
+      ]);
+
+      const balagruhaList = balagruhaResponse?.data?.balagruhas || [];
+      const balagruhaIds = balagruhaList
+        .map((balagruha) => balagruha?._id)
+        .filter(Boolean);
+
+      const studentRequests = balagruhaIds.map((balagruhaId) =>
+        getAnyUserBasedonRoleandBalagruha("student", balagruhaId).catch(
+          () => null
+        )
+      );
+
+      const adminRequest = balagruhaIds.length
+        ? getAnyUserBasedonRoleandBalagruha("admin", balagruhaIds[0]).catch(
+            () => null
+          )
+        : Promise.resolve(null);
+
+      const [studentResponses, adminResponse] = await Promise.all([
+        Promise.all(studentRequests),
+        adminRequest,
+      ]);
+
+      const extractUsers = (payload) => {
+        if (!payload) return [];
+        if (Array.isArray(payload)) return payload;
+        if (payload.data?.users) return payload.data.users;
+        if (payload.data) return payload.data;
+        if (payload.users) return payload.users;
+        return [];
+      };
+
+      const studentUsers = studentResponses.flatMap((response) => {
+        if (response?.success) {
+          return extractUsers(response);
+        }
+        return [];
+      });
+
+      const adminUsers =
+        adminResponse?.success ? extractUsers(adminResponse) : [];
+
+      const baseUsers = Array.isArray(baseResponse)
+        ? baseResponse
+        : extractUsers(baseResponse);
+
+      const combinedUsers = [...baseUsers, ...studentUsers, ...adminUsers].filter(
+        Boolean
+      );
+
+      const uniqueUsers = Array.from(
+        new Map(combinedUsers.map((user) => [user._id, user])).values()
+      );
+
+      setCoachUsers(uniqueUsers);
     } catch (error) {
       console.error("Error fetching users:", error);
     }

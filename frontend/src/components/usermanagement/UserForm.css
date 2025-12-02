@@ -325,6 +325,31 @@ select:focus {
     background: #c0392b;
 }
 
+.remove-medical-btn.disabled {
+    background: #cbd5f5;
+    cursor: not-allowed;
+    color: #4b5563;
+}
+
+.existing-record-pill {
+    margin-left: 0.5rem;
+    padding: 0.05rem 0.6rem;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #312e81;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.medical-history-empty {
+    padding: 1rem;
+    border: 1px dashed #cfd4dc;
+    border-radius: 8px;
+    color: #5f6b7b;
+    background: #fafbff;
+}
+
 .file-list {
     margin-top: 0.5rem;
 }
@@ -349,6 +374,23 @@ select:focus {
 
 .file-item button:hover {
     color: #c0392b;
+}
+
+.existing-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-top: 0.5rem;
+}
+
+.existing-file-link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.9rem;
+}
+
+.existing-file-link:hover {
+    text-decoration: underline;
 }
 
 .form-machine-selector {
@@ -394,6 +436,95 @@ select:focus {
 
 .form-checkbox-option input[type="checkbox"] {
     margin-right: 8px;
+}
+
+.machine-assignment-block {
+    margin-top: 1.5rem;
+}
+
+.machine-assignment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+}
+
+.machine-link-btn {
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    border: none;
+    background: #eef4ff;
+    color: #1d4ed8;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.machine-link-btn:hover {
+    background: #dbe7ff;
+}
+
+.machine-helper-text {
+    font-size: 0.9rem;
+    color: #5f6b7b;
+    margin: 0.5rem 0 1rem;
+}
+
+.machine-helper-text.compact {
+    margin-top: 0.25rem;
+}
+
+.machine-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+}
+
+.machine-bal-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 1rem;
+    background: #fff;
+}
+
+.machine-bal-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 0.5rem;
+}
+
+.machine-option {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.35rem 0;
+}
+
+.machine-option input {
+    margin: 0;
+}
+
+.machine-unassigned-pill {
+    margin-left: 0.5rem;
+    font-size: 0.75rem;
+    color: #92400e;
+    background: #fff7ed;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+}
+
+.no-machines-message {
+    font-size: 0.9rem;
+    color: #6c757d;
+}
+
+.no-balagruha-message {
+    font-size: 0.95rem;
+    color: #6b7280;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    background: #f9fafb;
+    border: 1px dashed #d1d5db;
 }
 
 .redbtndiv {

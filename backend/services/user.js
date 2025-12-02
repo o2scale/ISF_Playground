@@ -495,11 +495,21 @@ exports.getUserListByAssignedBalagruhaByRole = async ({ role, userId }) => {
             balagruhaId: balagruhaIds,
           });
           if (result.success && result.data) {
-            // Filter out students from the result
-            const nonStudentUsers = (result.data || []).filter(
-              user => user.role !== UserTypes.STUDENT && user.role !== 'student'
-            );
-            return nonStudentUsers;
+            // Include every role (students, admins, support staff) so coaches can
+            // collaborate with the full team assigned to their balagruhas.
+            const uniqueUsersMap = new Map();
+
+            (result.data || []).forEach((user) => {
+              if (!user || !user._id) {
+                return;
+              }
+              const id = user._id.toString();
+              if (!uniqueUsersMap.has(id)) {
+                uniqueUsersMap.set(id, user);
+              }
+            });
+
+            return Array.from(uniqueUsersMap.values());
           } else {
             return [];
           }
