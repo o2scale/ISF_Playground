@@ -1,5 +1,8 @@
 // Test setup file
 const mongoose = require("mongoose");
+const { MongoMemoryServer } = require("mongodb-memory-server");
+
+let mongoServer;
 
 // Suppress console logs during tests
 global.console = {
@@ -141,8 +144,27 @@ expect.extend({
 });
 
 // Clean up after each test
-afterEach(() => {
+afterEach(async () => {
   jest.clearAllMocks();
+  if (mongoose.connection.readyState !== 1) return;
+  const collections = mongoose.connection.collections;
+  for (const key of Object.keys(collections)) {
+    await collections[key].deleteMany({});
+  }
+});
+
+beforeAll(async () => {
+  mongoServer = await MongoMemoryServer.create();
+  const uri = mongoServer.getUri();
+  process.env.MONGO_URI = uri;
+  await mongoose.connect(uri);
+});
+
+afterAll(async () => {
+  await mongoose.connection.close();
+  if (mongoServer) {
+    await mongoServer.stop();
+  }
 });
 
 // Global error handler for unhandled promise rejections
