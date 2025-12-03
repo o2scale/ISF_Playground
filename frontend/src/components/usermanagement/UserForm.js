@@ -27,6 +27,18 @@ const MEDICAL_STATUS_OPTIONS = [
 const ACCEPTED_PRESCRIPTION_TYPES = ".pdf,.jpg,.jpeg,.png";
 const ACCEPTED_ATTACHMENT_TYPES = ".pdf,.jpg,.jpeg,.png,.doc,.docx";
 
+const ROLE_OPTIONS = [
+  { value: "student", label: "Student" },
+  { value: "admin", label: "Admin" },
+  { value: "coach", label: "Coach" },
+  { value: "balagruha-incharge", label: "Balagruha In-charge" },
+  { value: "purchase-manager", label: "Purchase Manager" },
+  { value: "medical-incharge", label: "Medical Incharge" },
+  { value: "sports-coach", label: "Sports Coach" },
+  { value: "music-coach", label: "Music Coach" },
+  { value: "amma", label: "Amma" },
+];
+
 const createEmptyMedicalHistoryEntry = () => ({
   name: "",
   description: "",
@@ -52,6 +64,15 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
   const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
   const role = localStorage.getItem("role");
+  const normalizedRole = (role || "").toLowerCase();
+  const isAdmin = normalizedRole === "admin";
+  const selectableRoleOptions = useMemo(() => {
+    if (isAdmin) {
+      return ROLE_OPTIONS;
+    }
+    return ROLE_OPTIONS.filter((option) => option.value === "student");
+  }, [isAdmin]);
+  const isRoleSelectDisabled = !isAdmin || selectableRoleOptions.length === 1;
   const [isOpen, setIsOpen] = useState(false);
   const faceCaptureRef = useRef();
   const [formData, setFormData] = useState({
@@ -87,6 +108,11 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
     facialData: null,
     // medicalHistoryFiles removed - Sprint6-Story-02
   });
+  const isStudentRole = formData.role === "student";
+  const showMedicalHistoryForStaff =
+    formData.role && formData.role !== "student";
+  const shouldShowMedicalHistorySection =
+    isStudentRole || showMedicalHistoryForStaff;
 
   // Sprint6-Story-02-Phase4: Medical Check-ins state (inline form)
   const [checkIns, setCheckIns] = useState([]);
@@ -114,6 +140,15 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
     return password;
   };
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setFormData((prev) => ({
+        ...prev,
+        role: "student",
+      }));
+    }
+  }, [isAdmin]);
 
   useEffect(() => {
     if (mode === "edit" && user) {
@@ -645,6 +680,9 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           formDataToSend.append("facialData", files.facialData);
         }
 
+      }
+
+      if (shouldShowMedicalHistorySection) {
         const historiesToSubmit = (formData.medicalHistory || []).filter(
           (history) => {
             if (!history) return false;
@@ -915,24 +953,13 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                   value={formData.role}
                   onChange={handleInputChange}
                   className={errors.role ? "error" : ""}
-                  selected={
-                    localStorage?.getItem("role") === "coach" ? "student" : ""
-                  }
-                  disabled={
-                    localStorage?.getItem("role") === "coach" ? true : false
-                  }
+                  disabled={isRoleSelectDisabled}
                 >
-                  <option value="student">Student</option>
-                  <option value="admin">Admin</option>
-                  <option value="coach">Coach</option>
-                  <option value="balagruha-incharge">
-                    Balagruha In-charge
-                  </option>
-                  <option value="purchase-manager">Purchase Manager</option>
-                  <option value="medical-incharge">Medical Incharge</option>
-                  <option value="sports-coach">Sports Coach</option>
-                  <option value="music-coach">Music Coach</option>
-                  <option value="amma">Amma</option>
+                  {selectableRoleOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
                 </select>
                 {errors.role && (
                   <span className="error-message">{errors.role}</span>
@@ -1474,10 +1501,13 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
           </div>
         )}
 
-        {formData.role === "student" && (
+        {shouldShowMedicalHistorySection && (
           <div className="form-section medical-history-section">
             <div className="section-header">
-              <h3>Medical History</h3>
+              <h3>
+                Medical History
+                {!isStudentRole ? " (Staff)" : ""}
+              </h3>
               <button
                 type="button"
                 className="add-medical-btn"
@@ -1489,8 +1519,8 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
             {formData.medicalHistory.length === 0 ? (
               <div className="medical-history-empty">
-                No medical records added yet. Use the button above to capture a
-                student's historical conditions, prescriptions, or notes.
+                No medical records added yet. Use the button above to capture
+                this user's historical conditions, prescriptions, or notes.
               </div>
             ) : (
               formData.medicalHistory.map((history, index) => (

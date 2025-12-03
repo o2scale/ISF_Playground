@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
 import "./usermanagement.css";
-import { useNavigate } from "react-router-dom";
 import {
   addUsers,
   deleteUsers,
@@ -12,6 +11,7 @@ import {
   getBalagruhaById,
   getBalagruhaListByAssignedID,
   getBalagruhaListbyUserID,
+  getUserById,
 } from "../../api";
 import { usePermission } from "../hooks/usePermission";
 import { useAuth } from "../../contexts/AuthContext";
@@ -60,12 +60,6 @@ const UserManagement = () => {
   const canUpdateUser = canUpdate("User Management");
   const canDeleteUser = canDelete("User Management");
 
-  // Check permissions for other modules
-  const canAccessMachines = canRead("Machine Management");
-  const canAccessTasks = canRead("Task Management");
-  const canAccessRoles = canRead("Role Management");
-
-  const navigate = useNavigate();
   const storedRoleRaw = localStorage.getItem("role") || "";
   const storedRole = storedRoleRaw.toLowerCase();
   const coachOnlyRoles = new Set(["coach", "sports-coach", "music-coach"]);
@@ -73,30 +67,16 @@ const UserManagement = () => {
   const isCoachLike = coachRoleSet.has(storedRole);
   const shouldHideOtherCoaches = coachOnlyRoles.has(storedRole);
   const currentUserId = localStorage.getItem("userId");
-  const moduleShortcuts = [
-    {
-      key: "dashboard",
-      label: "Dashboard",
-      icon: "📊",
-      visible: true,
-      action: () => navigate("/dashboard"),
-    },
-    {
-      key: "tasks",
-      label: "Tasks",
-      icon: "🗓️",
-      visible: canAccessTasks,
-      action: () => navigate("/tasks"),
-    },
-    {
-      key: "machines",
-      label: "Machines",
-      icon: "🤖",
-      visible: canAccessMachines,
-      action: () => navigate("/machines"),
-    },
-  ];
-  const showModuleShortcuts = moduleShortcuts.some((link) => link.visible);
+
+  const normalizeBalagruhaId = (value) => {
+    if (!value) return null;
+    if (typeof value === "string") return value;
+    if (typeof value === "object") {
+      const candidate = value._id || value.id || value;
+      return candidate ? candidate.toString() : null;
+    }
+    return String(value);
+  };
 
   useEffect(() => {
     getBalagruhaList();
@@ -206,6 +186,35 @@ const UserManagement = () => {
     }
   };
 
+  const handleEditUserClick = async (userRecord) => {
+    if (!userRecord) return;
+
+    let resolvedUser = userRecord;
+    try {
+      if (userRecord?._id) {
+        const detailedUser = await getUserById(userRecord._id);
+        if (detailedUser && detailedUser._id) {
+          resolvedUser = { ...userRecord, ...detailedUser };
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user details for edit:", error);
+    }
+
+    const previewSource =
+      resolvedUser?.facialDataUrl ||
+      resolvedUser?.facialData?.url ||
+      resolvedUser?.facialData?.location ||
+      resolvedUser?.facialData?.photoUrl ||
+      null;
+
+    setSelectedUser(resolvedUser);
+    setFacialDataPreview(previewSource);
+    setFacialDataFile(null);
+    setFormErrors({});
+    setView("edit");
+  };
+
   const handleFileChange = (e, fileType) => {
     const file = e.target.files[0];
 
@@ -288,15 +297,11 @@ const UserManagement = () => {
         (role === "admin" && filterBalagruha !== "all")
       ) {
         const userBalagruhaIds = (user.balagruhaIds || [])
-          .map((bg) => {
-            if (!bg) return null;
-            if (typeof bg === "string") return bg;
-            if (typeof bg === "object") return bg._id || bg.id || null;
-            return String(bg);
-          })
+          .map((bg) => normalizeBalagruhaId(bg))
           .filter(Boolean);
 
-        const isMatch = userBalagruhaIds.includes(filterBalagruha);
+        const normalizedFilter = normalizeBalagruhaId(filterBalagruha);
+        const isMatch = userBalagruhaIds.includes(normalizedFilter);
         if (filterBalagruha !== "all") {
           console.log(
             `🔍 User ${user.name}: balagruhaIds=${JSON.stringify(
@@ -734,23 +739,6 @@ const UserManagement = () => {
 
   return (
     <div className="user-management">
-      {showModuleShortcuts && (
-        <div className="module-shortcuts">
-          {moduleShortcuts
-            .filter((shortcut) => shortcut.visible)
-            .map((shortcut) => (
-              <button
-                key={shortcut.key}
-                type="button"
-                className={`module-chip ${shortcut.key === "machines" ? "highlight" : ""}`}
-                onClick={shortcut.action}
-              >
-                <span className="chip-icon">{shortcut.icon}</span>
-                <span className="chip-label">{shortcut.label}</span>
-              </button>
-            ))}
-        </div>
-      )}
       {view === "dashboard" && (
         <div className="dashboard">
           <div className="metrics-cards">
@@ -1181,21 +1169,7 @@ const UserManagement = () => {
                             {canUpdateUser && (
                               <button
                                 className="action-button edit"
-                                onClick={() => {
-                                  console.log("🔍 Edit button clicked - User data:", user);
-                                  setSelectedUser(user);
-
-                                  // Set file previews if they exist
-                                  if (user.facialDataUrl) {
-                                    setFacialDataPreview(user.facialDataUrl);
-                                  } else {
-                                    setFacialDataPreview(null);
-                                  }
-
-                                  setFacialDataFile(null);
-                                  setFormErrors({});
-                                  setView("edit");
-                                }}
+                                onClick={() => handleEditUserClick(user)}
                                 title="Edit User"
                               >
                                 ✏️

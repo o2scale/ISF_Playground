@@ -93,6 +93,11 @@ export const fetchUsers = async () => {
   return response.data;
 };
 
+export const getUserById = async (id) => {
+  const response = await api.get(`/api/users/${id}`);
+  return response.data;
+};
+
 export const coachBasedUsers = async () => {
   const response = await api.get("/api/v1/users/assigned/users");
   return response.data;

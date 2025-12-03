@@ -18,6 +18,42 @@ const { isRequestFromLocalhost } = require("../utils/helper");
 const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
+const enrichUsersWithMedicalHistory = (users = []) => {
+  if (!Array.isArray(users)) {
+    return [];
+  }
+
+  return users.map((item) => {
+    if (!item) {
+      return item;
+    }
+
+    const user = { ...item };
+    let medicalHistoryItem = [];
+    let nextActionDate = null;
+
+    if (Array.isArray(user.medicalRecords) && user.medicalRecords.length > 0) {
+      user.medicalRecords.forEach((record) => {
+        if (!record) {
+          return;
+        }
+        if (record.nextActionDate && record.nextActionDate !== null) {
+          nextActionDate = record.nextActionDate;
+        }
+        if (Array.isArray(record.medicalHistory) && record.medicalHistory.length > 0) {
+          medicalHistoryItem = medicalHistoryItem.concat(record.medicalHistory);
+        }
+      });
+    }
+
+    user.nextActionDate = nextActionDate;
+    user.medicalHistory = medicalHistoryItem;
+    delete user.medicalRecords;
+
+    return user;
+  });
+};
+
 // Function for create User
 exports.createUser = async (payload) => {
   try {
@@ -457,67 +493,58 @@ exports.deleteUserById = async (userId) => {
 // API for fetch the user list by role and assigned balagruha
 exports.getUserListByAssignedBalagruhaByRole = async ({ role, userId }) => {
   try {
-    let balagruhaIds = [];
+    // Admins can view every user across all Balagruhas and roles
     if (role === UserTypes.ADMIN) {
-      // get all balagruhaIds
-      let balaIds = await getAllBalagruhaIds();
-      if (balaIds.success) {
-        balagruhaIds = balaIds.data.map((item) => item._id);
-        // get all users by the balagruhaIds
-        let result = await UserDataAccess.getUsersByRoleAndBalagruhaId({
-          role: null,
-          balagruhaIds,
-        });
-        if (result.success && result.data) {
-          return result.data || [];
-        } else {
-          return [];
-        }
-      } else {
-        return [];
-      }
-    } else {
-      let userInfo = await UserDataAccess.getUserInfoById({ userId });
-      if (userInfo.success) {
-        // get the balagruhaIds
-        balagruhaIds =
-          userInfo.data.balagruhaIds.length > 0
-            ? userInfo.data.balagruhaIds.map((item) => item._id)
-            : [];
-        if (balagruhaIds.length === 0) {
-          return [];
-        } else {
-          // S6-S4-BUG-001: Fetch all users EXCEPT students for task assignment
-          // Tasks are for staff/coach accountability, not student assignments
-          // Get users from assigned balagruhas (passing null for role gets all users)
-          let result = await UserDataAccess.getUsersByRoleAndBalagruhaIdList({
-            role: null,
-            balagruhaId: balagruhaIds,
-          });
-          if (result.success && result.data) {
-            // Include every role (students, admins, support staff) so coaches can
-            // collaborate with the full team assigned to their balagruhas.
-            const uniqueUsersMap = new Map();
+      const users = await User.find()
+        .select(
+          "-facialData -password -passwordResetToken -loginAttempts -lockUntil -__v"
+        )
+        .populate("balagruhaIds")
+        .populate("assignedMachines")
+        .populate("medicalRecords")
+        .lean();
 
-            (result.data || []).forEach((user) => {
-              if (!user || !user._id) {
-                return;
-              }
-              const id = user._id.toString();
-              if (!uniqueUsersMap.has(id)) {
-                uniqueUsersMap.set(id, user);
-              }
-            });
-
-            return Array.from(uniqueUsersMap.values());
-          } else {
-            return [];
-          }
-        }
-      } else {
-        return [];
-      }
+      return enrichUsersWithMedicalHistory(users);
     }
+
+    const userInfo = await UserDataAccess.getUserInfoById({ userId });
+    if (!userInfo.success || !userInfo.data) {
+      return [];
+    }
+
+    const balagruhaIds = Array.isArray(userInfo.data.balagruhaIds)
+      ? userInfo.data.balagruhaIds
+          .map((item) => (item?._id ? item._id : item))
+          .filter(Boolean)
+      : [];
+
+    if (balagruhaIds.length === 0) {
+      return [];
+    }
+
+    // Non-admin users can only see students in their assigned Balagruhas
+    const result = await UserDataAccess.getUsersByRoleAndBalagruhaIdList({
+      role: UserTypes.STUDENT,
+      balagruhaId: balagruhaIds,
+    });
+
+    if (!result.success || !Array.isArray(result.data)) {
+      return [];
+    }
+
+    const uniqueUsersMap = new Map();
+
+    result.data.forEach((user) => {
+      if (!user || !user._id) {
+        return;
+      }
+      const id = user._id.toString();
+      if (!uniqueUsersMap.has(id)) {
+        uniqueUsersMap.set(id, user);
+      }
+    });
+
+    return Array.from(uniqueUsersMap.values());
   } catch (error) {
     console.log("error", error);
     errorLogger.error(

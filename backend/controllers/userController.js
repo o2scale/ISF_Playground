@@ -16,8 +16,17 @@ const { UserTypes } = require("../constants/users");
 const { updateNextActionDate } = require("../data-access/medicalRecords");
 const { isRequestFromLocalhost } = require("../utils/helper");
 
-exports.getAllUsers = async (_, res) => {
+exports.getAllUsers = async (req, res) => {
   try {
+    // Non-admin users can only view students from their assigned Balagruhas
+    if (req?.user?.role && req.user.role !== UserTypes.ADMIN) {
+      const scopedUsers = await getUserListByAssignedBalagruhaByRole({
+        role: req.user.role,
+        userId: req.user._id,
+      });
+      return res.status(200).json(scopedUsers || []);
+    }
+
     let users = await User.find()
       .lean()
       .select("-facialData -password")
@@ -121,6 +130,24 @@ exports.deleteUser = async (req, res) => {
 // API for create User
 exports.createUserV1 = async (req, res) => {
   try {
+    const requesterRole = req.user?.role
+      ? req.user.role.toLowerCase()
+      : null;
+    const requestedRole = req.body?.role
+      ? req.body.role.toLowerCase()
+      : UserTypes.STUDENT;
+
+    if (requesterRole && requesterRole !== UserTypes.ADMIN) {
+      if (requestedRole !== UserTypes.STUDENT) {
+        return res.status(403).json({
+          success: false,
+          data: {},
+          message: "Only admin users can create non-student accounts.",
+        });
+      }
+      req.body.role = UserTypes.STUDENT;
+    }
+
     const logData = { ...req.body };
     delete logData.password;
     req.body.createdBy = req.user._id;
