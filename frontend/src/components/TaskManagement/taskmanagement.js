@@ -12,13 +12,13 @@ import {
   addOrUpdateMusicTaskComments,
   addOrUpdateSportsTaskAttachments,
   addOrUpdateSportsTaskComments,
-  coachBasedUsers,
   createMusicTask,
   createSportsTask,
   createTask,
   deleteAttachemnets,
   deleteCommentinTask,
   fetchUsers,
+  getAssignableTaskUsers,
   getBalagruha,
   getBalagruhaById,
   getSportsTaskListByBalagruha,
@@ -776,12 +776,14 @@ const Comment = ({ comment, users, onDelete }) => {
         <div className="comment-header">
           <span className="comment-author">{user.name}</span>
           <span className="comment-time">{formatDate(comment.createdAt)}</span>
-          <button
-            className="delete-button"
-            onClick={() => onDelete(comment._id)}
-          >
-            Delete
-          </button>
+          {typeof onDelete === "function" && (
+            <button
+              className="delete-button"
+              onClick={() => onDelete(comment._id)}
+            >
+              Delete
+            </button>
+          )}
         </div>
         <div className="comment-text">{comment.comment}</div>
         {comment.attachments && comment.attachments.length > 0 && (
@@ -808,7 +810,8 @@ const Comment = ({ comment, users, onDelete }) => {
 // Create Task Form Component
 const CreateTaskForm = ({
   users,
-  coachUsers,
+  staffUsers = [],
+  studentUsers = [],
   onSubmit,
   onCancel,
   balagruhaId,
@@ -820,7 +823,7 @@ const CreateTaskForm = ({
     deadline: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
       .toISOString()
       .split("T")[0], // Default to 1 week from now
-    assignedUser: "",
+    assignedUser: [],
     status: "pending",
     balagruhaId: balagruhaId || "",
     attachments: [],
@@ -850,14 +853,45 @@ const CreateTaskForm = ({
   const [isStudentDropdownOpen, setIsStudentDropdownOpen] = useState(false);
   const [isAssignToDropdownOpen, setIsAssignToDropdownOpen] = useState(false);
   const [assignToSearchQuery, setAssignToSearchQuery] = useState("");
+  const [assignSearchQuery, setAssignSearchQuery] = useState("");
   const balagruhaDropdownRef = useRef(null);
   const studentDropdownRef = useRef(null);
   const assignToDropdownRef = useRef(null);
-  console.log("coach", coachUsers);
-  const filteredUsers = coachUsers;
-  // role === "sports-coach" || role === "music-coach" || role === "coach"
-  //     ? coachUsers
-  //     : coachUsers;
+  const assignableStaff = staffUsers || [];
+  const assignableStudents = studentUsers || [];
+  const allAssignableUsers = useMemo(
+    () => [...assignableStaff, ...assignableStudents],
+    [assignableStaff, assignableStudents]
+  );
+
+  const normalizedAssignSearch = assignSearchQuery.trim().toLowerCase();
+  const filteredStaffUsers = useMemo(() => {
+    if (!normalizedAssignSearch) {
+      return assignableStaff;
+    }
+    return assignableStaff.filter((user) => {
+      const name = user.name?.toLowerCase() || "";
+      const roleLabel = user.role?.toLowerCase() || "";
+      return (
+        name.includes(normalizedAssignSearch) ||
+        roleLabel.includes(normalizedAssignSearch)
+      );
+    });
+  }, [assignableStaff, normalizedAssignSearch]);
+
+  const filteredStudentUsers = useMemo(() => {
+    if (!normalizedAssignSearch) {
+      return assignableStudents;
+    }
+    return assignableStudents.filter((user) => {
+      const name = user.name?.toLowerCase() || "";
+      const roleLabel = user.role?.toLowerCase() || "";
+      return (
+        name.includes(normalizedAssignSearch) ||
+        roleLabel.includes(normalizedAssignSearch)
+      );
+    });
+  }, [assignableStudents, normalizedAssignSearch]);
 
   const initialType =
     role === "sports-coach"
@@ -879,6 +913,21 @@ const CreateTaskForm = ({
     { id: "repair", label: "🔧 Repair Tasks" },
     { id: "medical", label: "🏥 Medical Tasks" },
   ];
+
+  const assignedUserLabel = useMemo(() => {
+    if (!formData.assignedUser || formData.assignedUser.length === 0) {
+      return "Select Users";
+    }
+    return formData.assignedUser
+      .map(
+        (id) => allAssignableUsers.find((user) => user._id === id)?.name || "Unknown User"
+      )
+      .join(", ");
+  }, [formData.assignedUser, allAssignableUsers]);
+
+  const primaryAssigneeId = Array.isArray(formData.assignedUser)
+    ? formData.assignedUser[0] || ""
+    : formData.assignedUser || "";
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -913,8 +962,8 @@ const CreateTaskForm = ({
     setFormData((prev) => ({
       ...prev,
       assignedUser: checked
-        ? [...prev.assignedUser, value]
-        : prev.assignedUser.filter((id) => id !== value),
+        ? [...(prev.assignedUser || []), value]
+        : (prev.assignedUser || []).filter((id) => id !== value),
     }));
   };
 
@@ -1016,7 +1065,12 @@ const CreateTaskForm = ({
   };
 
   const handleBalagruhaSelect = async (balagruhaId) => {
-    setFormData((prev) => ({ ...prev, medicalBalagruhaId: balagruhaId, students: [], assignedUser: "" }));
+    setFormData((prev) => ({
+      ...prev,
+      medicalBalagruhaId: balagruhaId,
+      students: [],
+      assignedUser: [],
+    }));
     setAvailableStudents([]);
     await fetchStudentsByBalagruha(balagruhaId);
     await fetchMedicalManagersByBalagruha();
@@ -1033,7 +1087,7 @@ const CreateTaskForm = ({
   };
 
   const handleAssignToSelect = (userId) => {
-    setFormData((prev) => ({ ...prev, assignedUser: userId }));
+    setFormData((prev) => ({ ...prev, assignedUser: [userId] }));
     setIsAssignToDropdownOpen(false);
     setAssignToSearchQuery(""); // Clear search when user is selected
   };
@@ -1250,29 +1304,66 @@ const CreateTaskForm = ({
                 className="dropdown-toggle"
                 onClick={toggleDropdown}
               >
-                {formData.assignedUser.length > 0
-                  ? formData.assignedUser
-                      .map(
-                        (id) => coachUsers.find((user) => user._id === id)?.name
-                      )
-                      .join(", ")
-                  : "Select Users"}
+                {assignedUserLabel}
                 <span className="arrow">&#9662;</span>
               </button>
 
               {isDropdownOpen && (
-                <div className="dropdown-menu">
-                  {filteredUsers.map((user) => (
-                    <label key={user._id} className="dropdown-item">
-                      <input
-                        type="checkbox"
-                        value={user._id}
-                        checked={formData.assignedUser.includes(user._id)}
-                        onChange={handleCheckboxChange}
-                      />
-                      {user.name} ({user.role})
-                    </label>
-                  ))}
+                <div className="dropdown-menu" style={{ maxHeight: "260px", overflowY: "auto" }}>
+                  <div className="filter-search" style={{ padding: "8px", borderBottom: "1px solid #e0e0e0" }}>
+                    <input
+                      type="text"
+                      placeholder="Search users..."
+                      value={assignSearchQuery}
+                      onChange={(e) => setAssignSearchQuery(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="dropdown-group">
+                    <div className="dropdown-group-label" style={{ fontWeight: 600, padding: "8px" }}>
+                      Staff
+                    </div>
+                    {filteredStaffUsers.length > 0 ? (
+                      filteredStaffUsers.map((user) => (
+                        <label key={user._id} className="dropdown-item">
+                          <input
+                            type="checkbox"
+                            value={user._id}
+                            checked={formData.assignedUser.includes(user._id)}
+                            onChange={handleCheckboxChange}
+                          />
+                          {user.name} ({user.role})
+                        </label>
+                      ))
+                    ) : (
+                      <div className="dropdown-item" style={{ opacity: 0.7 }}>
+                        No staff found
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="dropdown-group">
+                    <div className="dropdown-group-label" style={{ fontWeight: 600, padding: "8px" }}>
+                      Students
+                    </div>
+                    {filteredStudentUsers.length > 0 ? (
+                      filteredStudentUsers.map((user) => (
+                        <label key={user._id} className="dropdown-item">
+                          <input
+                            type="checkbox"
+                            value={user._id}
+                            checked={formData.assignedUser.includes(user._id)}
+                            onChange={handleCheckboxChange}
+                          />
+                          {user.name}
+                        </label>
+                      ))
+                    ) : (
+                      <div className="dropdown-item" style={{ opacity: 0.7 }}>
+                        No students found
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -1431,8 +1522,8 @@ const CreateTaskForm = ({
                     className="dropdown-toggle"
                     onClick={() => setIsAssignToDropdownOpen(!isAssignToDropdownOpen)}
                   >
-                    {formData.assignedUser
-                      ? availableMedicalManagers.find((u) => u._id === formData.assignedUser)?.name || "Select User"
+                    {primaryAssigneeId
+                      ? availableMedicalManagers.find((u) => u._id === primaryAssigneeId)?.name || "Select User"
                       : "Select User"}
                     <span className="arrow">&#9662;</span>
                   </button>
@@ -1467,7 +1558,7 @@ const CreateTaskForm = ({
                             <div
                               key={user._id}
                               className={`dropdown-item ${
-                                formData.assignedUser === user._id ? "selected" : ""
+                                primaryAssigneeId === user._id ? "selected" : ""
                               }`}
                               onClick={() => handleAssignToSelect(user._id)}
                             >
@@ -2072,6 +2163,8 @@ export const TaskDetailsModal = ({
   const [editedValues, setEditedValues] = useState({});
 
   const currentUser = { _id: localStorage.getItem("userId") };
+  const userRole = (localStorage.getItem("role") || "").toLowerCase();
+  const canManageTask = userRole !== "student";
 
   if (!task) return null;
 
@@ -2114,7 +2207,7 @@ export const TaskDetailsModal = ({
   };
 
   const handleStatusChange = async (newStatus) => {
-    if (isUpdating) return;
+    if (!canManageTask || isUpdating) return;
 
     setIsUpdating(true);
     try {
@@ -2149,7 +2242,7 @@ export const TaskDetailsModal = ({
   };
 
   const handleAddComment = async (data) => {
-    if (!commentText.trim() && files.length === 0) return;
+    if (!canManageTask || (!commentText.trim() && files.length === 0)) return;
 
     setIsUpdating(true);
     try {
@@ -2211,7 +2304,7 @@ export const TaskDetailsModal = ({
   };
 
   const handleUploadFiles = async () => {
-    if (files.length === 0) return;
+    if (!canManageTask || files.length === 0) return;
 
     setIsUpdating(true);
     try {
@@ -2238,6 +2331,9 @@ export const TaskDetailsModal = ({
   };
 
   const deleteAttachments = async () => {
+    if (!canManageTask) {
+      return;
+    }
     console.log("tasdads", selectedTask._id, selectedAttachmentId);
     const response = await deleteAttachemnets(task._id, selectedAttachmentId);
     getTaskDetailsByTaskId(selectedTask._id);
@@ -2245,6 +2341,9 @@ export const TaskDetailsModal = ({
   };
 
   const handleDeleteComment = async (commentId) => {
+    if (!canManageTask) {
+      return;
+    }
     const response = await deleteCommentinTask(selectedTask?._id, commentId);
     console.log("response delete ", response);
     setComments(
@@ -2254,6 +2353,9 @@ export const TaskDetailsModal = ({
 
   // Enable edit mode for a specific field
   const enableEditMode = (field) => {
+    if (!canManageTask) {
+      return;
+    }
     setEditMode((prev) => ({ ...prev, [field]: true }));
     setEditedValues((prev) => ({
       ...prev,
@@ -2271,6 +2373,9 @@ export const TaskDetailsModal = ({
 
   // Save changes for a specific field
   const saveFieldChange = async (field) => {
+    if (!canManageTask) {
+      return;
+    }
     setIsUpdating(true);
     try {
       let data = {};
@@ -2347,8 +2452,12 @@ export const TaskDetailsModal = ({
               </div>
             </div>
           ) : (
-            <h2 onClick={() => enableEditMode("title")}>
-              {selectedTask.title} ✏️
+            <h2
+              onClick={canManageTask ? () => enableEditMode("title") : undefined}
+              style={{ cursor: canManageTask ? "pointer" : "default" }}
+            >
+              {selectedTask.title}
+              {canManageTask && " ✏️"}
             </h2>
           )}
           <button className="close-button" onClick={onClose}>
@@ -2409,8 +2518,14 @@ export const TaskDetailsModal = ({
                     </div>
                   </div>
                 ) : (
-                  <p onClick={() => enableEditMode("description")}>
-                    {selectedTask.description} ✏️
+                  <p
+                    onClick={
+                      canManageTask ? () => enableEditMode("description") : undefined
+                    }
+                    style={{ cursor: canManageTask ? "pointer" : "default" }}
+                  >
+                    {selectedTask.description}
+                    {canManageTask && " ✏️"}
                   </p>
                 )}
               </div>
@@ -2452,9 +2567,13 @@ export const TaskDetailsModal = ({
                       className={`status-badge status-${selectedTask.status
                         .replace(/\s+/g, "-")
                         .toLowerCase()}`}
-                      onClick={() => enableEditMode("status")}
+                      onClick={
+                        canManageTask ? () => enableEditMode("status") : undefined
+                      }
+                      style={{ cursor: canManageTask ? "pointer" : "default" }}
                     >
-                      {selectedTask.status} ✏️
+                      {selectedTask.status}
+                      {canManageTask && " ✏️"}
                     </span>
                   )}
                 </div>
@@ -2493,14 +2612,17 @@ export const TaskDetailsModal = ({
                   ) : (
                     <span
                       className={`priority-badge priority-${selectedTask.priority.toLowerCase()}`}
-                      onClick={() => enableEditMode("priority")}
+                      onClick={
+                        canManageTask ? () => enableEditMode("priority") : undefined
+                      }
+                      style={{ cursor: canManageTask ? "pointer" : "default" }}
                     >
                       {selectedTask.priority.toLowerCase() === "high"
                         ? "🔴 High"
                         : selectedTask.priority.toLowerCase() === "medium"
                         ? "🟡 Medium"
-                        : "🟢 Low"}{" "}
-                      ✏️
+                        : "🟢 Low"}
+                      {canManageTask && " ✏️"}
                     </span>
                   )}
                 </div>
@@ -2539,10 +2661,14 @@ export const TaskDetailsModal = ({
                   ) : (
                     <span
                       className={`deadline-text ${isOverdue ? "overdue" : ""}`}
-                      onClick={() => enableEditMode("deadline")}
+                      onClick={
+                        canManageTask ? () => enableEditMode("deadline") : undefined
+                      }
+                      style={{ cursor: canManageTask ? "pointer" : "default" }}
                     >
                       {isOverdue && "⚠️ "}
-                      {formatDate(selectedTask.deadline)} ✏️
+                      {formatDate(selectedTask.deadline)}
+                      {canManageTask && " ✏️"}
                     </span>
                   )}
                 </div>
@@ -2587,11 +2713,16 @@ export const TaskDetailsModal = ({
                       </div>
                     </div>
                   ) : (
-                    <span onClick={() => enableEditMode("assignedUser")}>
+                    <span
+                      onClick={
+                        canManageTask ? () => enableEditMode("assignedUser") : undefined
+                      }
+                      style={{ cursor: canManageTask ? "pointer" : "default" }}
+                    >
                       {selectedTask?.assignedUser
                         ? selectedTask?.assignedUser.name
-                        : "Unassigned"}{" "}
-                      ✏️
+                        : "Unassigned"}
+                      {canManageTask && " ✏️"}
                     </span>
                   )}
                 </div>
@@ -2646,21 +2777,23 @@ export const TaskDetailsModal = ({
             <div className="files-tab">
               <div className="files-header">
                 <h3>Task Attachments</h3>
-                <div className="file-upload-container">
-                  <input
-                    type="file"
-                    multiple
-                    onChange={handleFileChange}
-                    ref={fileInputRef}
-                    style={{ display: "none" }}
-                  />
-                  <button
-                    className="upload-button"
-                    onClick={() => fileInputRef.current.click()}
-                  >
-                    Upload Files
-                  </button>
-                </div>
+                {canManageTask && (
+                  <div className="file-upload-container">
+                    <input
+                      type="file"
+                      multiple
+                      onChange={handleFileChange}
+                      ref={fileInputRef}
+                      style={{ display: "none" }}
+                    />
+                    <button
+                      className="upload-button"
+                      onClick={() => fileInputRef.current.click()}
+                    >
+                      Upload Files
+                    </button>
+                  </div>
+                )}
               </div>
 
               {selectedTask.attachments &&
@@ -2690,16 +2823,17 @@ export const TaskDetailsModal = ({
                               >
                                 Download
                               </a>
-
-                              <div
-                                className="file-download file-download-delete"
-                                onClick={() => {
-                                  setSelectedAttachmentId(file._id);
-                                  setShowDeleteModal(true);
-                                }}
-                              >
-                                Delete
-                              </div>
+                                {canManageTask && (
+                                  <div
+                                    className="file-download file-download-delete"
+                                    onClick={() => {
+                                      setSelectedAttachmentId(file._id);
+                                      setShowDeleteModal(true);
+                                    }}
+                                  >
+                                    Delete
+                                  </div>
+                                )}
                             </div>
                           </div>
                         </div>
@@ -2714,7 +2848,7 @@ export const TaskDetailsModal = ({
                 </div>
               )}
 
-              {files.length > 0 && (
+              {canManageTask && files.length > 0 && (
                 <div className="new-files">
                   <h4>New Files to Upload</h4>
                   <div className="file-preview-list">
@@ -2742,7 +2876,7 @@ export const TaskDetailsModal = ({
             </div>
           )}
 
-          {showDeleteModal && (
+          {canManageTask && showDeleteModal && (
             <div className="modal-overlay">
               <div className="modal-content">
                 <div className="modal-header">
@@ -2785,7 +2919,7 @@ export const TaskDetailsModal = ({
                       key={index}
                       comment={comment}
                       users={users}
-                      onDelete={handleDeleteComment}
+                      onDelete={canManageTask ? handleDeleteComment : undefined}
                     />
                   ))
                 ) : (
@@ -2796,58 +2930,64 @@ export const TaskDetailsModal = ({
                 )}
               </div>
 
-              <div className="add-comment">
-                <textarea
-                  className="comment-input"
-                  placeholder="Add a comment..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                ></textarea>
+              {canManageTask ? (
+                <div className="add-comment">
+                  <textarea
+                    className="comment-input"
+                    placeholder="Add a comment..."
+                    value={commentText}
+                    onChange={(e) => setCommentText(e.target.value)}
+                  ></textarea>
 
-                <div className="comment-actions">
-                  <div className="file-upload-container">
-                    <input
-                      type="file"
-                      multiple
-                      onChange={handleFileChange}
-                      ref={fileInputRef}
-                      style={{ display: "none" }}
-                    />
+                  <div className="comment-actions">
+                    <div className="file-upload-container">
+                      <input
+                        type="file"
+                        multiple
+                        onChange={handleFileChange}
+                        ref={fileInputRef}
+                        style={{ display: "none" }}
+                      />
+                      <button
+                        className="attach-button"
+                        onClick={() => fileInputRef.current.click()}
+                      >
+                        📎 Attach Files
+                      </button>
+                    </div>
+
                     <button
-                      className="attach-button"
-                      onClick={() => fileInputRef.current.click()}
+                      className="post-comment-button"
+                      onClick={(task) => handleAddComment(task)}
+                      disabled={
+                        (!commentText.trim() && files.length === 0) || isUpdating
+                      }
                     >
-                      📎 Attach Files
+                      {isUpdating ? "Posting..." : "Post Comment"}
                     </button>
                   </div>
 
-                  <button
-                    className="post-comment-button"
-                    onClick={(task) => handleAddComment(task)}
-                    disabled={
-                      (!commentText.trim() && files.length === 0) || isUpdating
-                    }
-                  >
-                    {isUpdating ? "Posting..." : "Post Comment"}
-                  </button>
+                  {files.length > 0 && (
+                    <div className="comment-attachments-preview">
+                      {files.map((file, index) => (
+                        <div key={index} className="attachment-preview">
+                          <span className="attachment-name">{file.name}</span>
+                          <button
+                            className="remove-attachment"
+                            onClick={() => removeFile(index)}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-
-                {files.length > 0 && (
-                  <div className="comment-attachments-preview">
-                    {files.map((file, index) => (
-                      <div key={index} className="attachment-preview">
-                        <span className="attachment-name">{file.name}</span>
-                        <button
-                          className="remove-attachment"
-                          onClick={() => removeFile(index)}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              ) : (
+                <p style={{ fontSize: "14px", color: "#666" }}>
+                  Comments are read-only for students.
+                </p>
+              )}
             </div>
           )}
         </div>
@@ -2860,7 +3000,9 @@ export const TaskDetailsModal = ({
               }`}
               onClick={() => handleStatusChange("pending")}
               disabled={
-                selectedTask.status.toLowerCase() === "pending" || isUpdating
+                selectedTask.status.toLowerCase() === "pending" ||
+                isUpdating ||
+                !canManageTask
               }
             >
               {isUpdating ? "Updating..." : "Waiting to Start"}
@@ -2874,7 +3016,8 @@ export const TaskDetailsModal = ({
               onClick={() => handleStatusChange("in progress")}
               disabled={
                 selectedTask.status.toLowerCase() === "in progress" ||
-                isUpdating
+                isUpdating ||
+                !canManageTask
               }
             >
               {isUpdating ? "Updating..." : "Working On It"}
@@ -2887,7 +3030,9 @@ export const TaskDetailsModal = ({
               }`}
               onClick={() => handleStatusChange("completed")}
               disabled={
-                selectedTask.status.toLowerCase() === "completed" || isUpdating
+                selectedTask.status.toLowerCase() === "completed" ||
+                isUpdating ||
+                !canManageTask
               }
             >
               {isUpdating ? "Updating..." : "All Done!"}
@@ -3481,8 +3626,11 @@ const TaskManagement = () => {
   const [showCreateTask, setShowCreateTask] = useState(false);
   const [filters, setFilters] = useState({});
   const [isLoading, setIsLoading] = useState(true);
-  const [coachUsers, setCoachUsers] = useState([]);
+  const [assignableStaff, setAssignableStaff] = useState([]);
+  const [assignableStudents, setAssignableStudents] = useState([]);
   const role = localStorage.getItem("role");
+  const normalizedRole = (role || "").toLowerCase();
+  const isStudent = normalizedRole === "student";
 
   // Fetch balagruha list
   const getBalagruhaList = async () => {
@@ -3551,10 +3699,17 @@ const TaskManagement = () => {
   const handleAddTask = async (taskData) => {
     console.log("taskData", taskData);
     try {
+      if (isStudent) {
+        addToast("Students cannot create tasks", "error");
+        return;
+      }
       const formData = new FormData();
       formData.append("title", taskData.title);
       formData.append("description", taskData.description);
-      formData.append("assignedUser", taskData.assignedUser || "");
+      const assignedUserIds = Array.isArray(taskData.assignedUser)
+        ? taskData.assignedUser.join(",")
+        : taskData.assignedUser || "";
+      formData.append("assignedUser", assignedUserIds);
       formData.append("createdBy", localStorage.getItem("userId"));
       formData.append("deadline", taskData.deadline);
       formData.append("priority", taskData.priority);
@@ -3627,76 +3782,27 @@ const TaskManagement = () => {
     }
   };
 
-  const getCoachBasedUsers = async () => {
+  const getAssignableUsersList = async () => {
     try {
-      const currentUserId = localStorage.getItem("userId");
-      const [baseResponse, balagruhaResponse] = await Promise.all([
-        coachBasedUsers(),
-        currentUserId ? getBalagruhaById(currentUserId) : Promise.resolve(null),
-      ]);
-
-      const balagruhaList = balagruhaResponse?.data?.balagruhas || [];
-      const balagruhaIds = balagruhaList
-        .map((balagruha) => balagruha?._id)
-        .filter(Boolean);
-
-      const studentRequests = balagruhaIds.map((balagruhaId) =>
-        getAnyUserBasedonRoleandBalagruha("student", balagruhaId).catch(
-          () => null
-        )
-      );
-
-      const adminRequest = balagruhaIds.length
-        ? getAnyUserBasedonRoleandBalagruha("admin", balagruhaIds[0]).catch(
-            () => null
-          )
-        : Promise.resolve(null);
-
-      const [studentResponses, adminResponse] = await Promise.all([
-        Promise.all(studentRequests),
-        adminRequest,
-      ]);
-
-      const extractUsers = (payload) => {
-        if (!payload) return [];
-        if (Array.isArray(payload)) return payload;
-        if (payload.data?.users) return payload.data.users;
-        if (payload.data) return payload.data;
-        if (payload.users) return payload.users;
-        return [];
-      };
-
-      const studentUsers = studentResponses.flatMap((response) => {
-        if (response?.success) {
-          return extractUsers(response);
-        }
-        return [];
-      });
-
-      const adminUsers =
-        adminResponse?.success ? extractUsers(adminResponse) : [];
-
-      const baseUsers = Array.isArray(baseResponse)
-        ? baseResponse
-        : extractUsers(baseResponse);
-
-      const combinedUsers = [...baseUsers, ...studentUsers, ...adminUsers].filter(
-        Boolean
-      );
-
-      const uniqueUsers = Array.from(
-        new Map(combinedUsers.map((user) => [user._id, user])).values()
-      );
-
-      setCoachUsers(uniqueUsers);
+      if (isStudent) {
+        setAssignableStaff([]);
+        setAssignableStudents([]);
+        return;
+      }
+      const response = await getAssignableTaskUsers();
+      const staff = response?.data?.staff || [];
+      const students = response?.data?.students || [];
+      setAssignableStaff(staff);
+      setAssignableStudents(students);
     } catch (error) {
-      console.error("Error fetching users:", error);
+      console.error("Error fetching assignable users:", error);
+      addToast("Failed to load assignable users", "error");
     }
   };
 
   useEffect(() => {
     const initializeData = async () => {
-      await getCoachBasedUsers();
+      await getAssignableUsersList();
       await getUsers();
       await getBalagruhaList();
     };
@@ -3749,6 +3855,10 @@ const TaskManagement = () => {
     };
 
     try {
+      if (isStudent) {
+        addToast("Students cannot update tasks", "error");
+        return;
+      }
       if (role === "sports-coach") {
         await updateSportsTask(id, JSON.stringify({ status }));
       } else if (role === "music-coach") {
@@ -3773,6 +3883,10 @@ const TaskManagement = () => {
   // Update task with new data
   const handleUpdateTask = async (id, updateData) => {
     try {
+      if (isStudent) {
+        addToast("Students cannot update tasks", "error");
+        return;
+      }
       await updateTask(id, JSON.stringify(updateData));
       addToast("Task updated successfully", "success");
 
@@ -3797,6 +3911,9 @@ const TaskManagement = () => {
 
   // Handle drag-and-drop
   const handleDragEnd = async (result) => {
+    if (isStudent) {
+      return;
+    }
     if (!result.destination) return;
 
     const { source, destination, draggableId } = result;
@@ -3852,7 +3969,8 @@ const TaskManagement = () => {
         <div className="modal-overlay">
           <CreateTaskForm
             users={users}
-            coachUsers={coachUsers}
+            staffUsers={assignableStaff}
+            studentUsers={assignableStudents}
             onSubmit={handleAddTask}
             onCancel={() => setShowCreateTask(false)}
             balagruhaId={filters.balagruhaId}
@@ -3923,12 +4041,14 @@ const TaskManagement = () => {
                   {pendingTasks.length === 0 && (
                     <div className="empty-column-message">
                       <p>No tasks waiting to start</p>
-                      <button
-                        className="add-here-button"
-                        onClick={() => setShowCreateTask(true)}
-                      >
-                        Add Task Here
-                      </button>
+                      {!isStudent && (
+                        <button
+                          className="add-here-button"
+                          onClick={() => setShowCreateTask(true)}
+                        >
+                          Add Task Here
+                        </button>
+                      )}
                     </div>
                   )}
                 </div>

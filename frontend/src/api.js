@@ -157,6 +157,11 @@ export const getTasks = async (data) => {
   return response.data;
 };
 
+export const getAssignableTaskUsers = async () => {
+  const response = await api.get(`/api/tasks/assignable-users`);
+  return response.data;
+};
+
 export const updateTask = async (id, data) => {
   const response = await api.put(`/api/tasks/status/${id}`, data);
   return response.data;

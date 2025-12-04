@@ -982,6 +982,81 @@ class Task {
       throw error;
     }
   }
+
+  static async getAssignableUsersForCreator({ requester }) {
+    try {
+      if (!requester) {
+        return {
+          success: false,
+          data: {},
+          message: "Requester information missing",
+        };
+      }
+
+      if (requester.role === UserTypes.STUDENT) {
+        return {
+          success: false,
+          data: {},
+          message: "Students are not allowed to assign tasks",
+        };
+      }
+
+      const formatUser = (user) => ({
+        _id: user._id,
+        name: user.name,
+        role: user.role,
+        balagruhaIds: (user.balagruhaIds || []).map((id) => id.toString()),
+      });
+
+      const staffUsers = await User.find({
+        status: "active",
+        role: { $ne: UserTypes.STUDENT },
+      })
+        .select("_id name role balagruhaIds")
+        .sort({ name: 1 })
+        .lean();
+
+      let studentUsers = [];
+      if (requester.role === UserTypes.ADMIN) {
+        studentUsers = await User.find({
+          status: "active",
+          role: UserTypes.STUDENT,
+        })
+          .select("_id name role balagruhaIds")
+          .sort({ name: 1 })
+          .lean();
+      } else {
+        const balagruhaIds = (requester.balagruhaIds || [])
+          .map((id) =>
+            typeof id === "string" ? mongoose.Types.ObjectId.createFromHexString(id) : id
+          )
+          .filter(Boolean);
+
+        if (balagruhaIds.length > 0) {
+          studentUsers = await User.find({
+            status: "active",
+            role: UserTypes.STUDENT,
+            balagruhaIds: { $in: balagruhaIds },
+          })
+            .select("_id name role balagruhaIds")
+            .sort({ name: 1 })
+            .lean();
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          staff: staffUsers.map(formatUser),
+          students: studentUsers.map(formatUser),
+        },
+        message: "Assignable users fetched successfully",
+      };
+    } catch (error) {
+      console.log("error", error);
+      throw error;
+    }
+  }
 }
 
 module.exports = Task;

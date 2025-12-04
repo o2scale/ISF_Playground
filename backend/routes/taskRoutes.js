@@ -56,6 +56,12 @@ router.get(
   authorize("Task Management", "Read"),
   taskController.getTaskOverview
 );
+router.get(
+  "/assignable-users",
+  authenticate,
+  authorize("Task Management", "Read"),
+  taskController.getAssignableTaskUsers
+);
 // API for fetch the task list by balagruha id and filter
 router.post(
   "/all/list",

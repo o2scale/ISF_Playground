@@ -3,9 +3,16 @@ const { logger } = require("../config/pino-config");
 const MusicTask = require("../services/musicTask");
 const TrainingSession = require("../services/trainingSession");
 const { isRequestFromLocalhost } = require("../utils/helper");
+const { UserTypes } = require("../constants/users");
 // API for create Task v1
 exports.createMusicTask = async (req, res) => {
   try {
+    if (req.user.role === UserTypes.STUDENT) {
+      return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+        success: false,
+        message: "Students are not allowed to create tasks",
+      });
+    }
     req.body.createdBy = req.user._id;
     logger.info(
       {

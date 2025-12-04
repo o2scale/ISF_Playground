@@ -5,6 +5,7 @@ const { HTTP_STATUS_CODE } = require("../constants/general");
 const { logger } = require("../config/pino-config");
 const Tasks = require("../services/task");
 const { isRequestFromLocalhost } = require("../utils/helper");
+const { UserTypes } = require("../constants/users");
 // Create a new task with file upload
 exports.createTask = async (req, res) => {
   try {
@@ -266,6 +267,14 @@ exports.getTaskOverview = async (req, res) => {
 exports.createTaskV1 = async (req, res) => {
   try {
     req.body.createdBy = req.user._id;
+
+    if (req.user.role === UserTypes.STUDENT) {
+      return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+        success: false,
+        message: "Students are not allowed to create tasks",
+      });
+    }
+
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -310,6 +319,51 @@ exports.createTaskV1 = async (req, res) => {
   } catch (error) {
     console.log("error", error);
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: "Internal server error.",
+      error: error.message,
+    });
+  }
+};
+
+exports.getAssignableTaskUsers = async (req, res) => {
+  try {
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        requester: req.user?._id,
+      },
+      "Request received to fetch assignable task users"
+    );
+
+    const result = await Tasks.getAssignableUsersForCreator({
+      requester: req.user,
+    });
+
+    if (result.success) {
+      return res.status(HTTP_STATUS_CODE.OK).json({
+        success: true,
+        data: result.data,
+        message: "Assignable users fetched successfully",
+      });
+    }
+
+    return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
+      success: false,
+      message: result.message,
+    });
+  } catch (error) {
+    logger.error(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+      },
+      `Failed to fetch assignable task users: ${error.message}`
+    );
+    return res.status(HTTP_STATUS_CODE.INTERNAL_SERVER_ERROR).json({
       success: false,
       message: "Internal server error.",
       error: error.message,
