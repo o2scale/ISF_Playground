@@ -1,8 +1,16 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from "@testing-library/react";
+import App from "./App";
 
-test('renders learn react link', () => {
+jest.mock("jspdf", () => {
+  return jest.fn().mockImplementation(() => ({
+    addImage: jest.fn(),
+    save: jest.fn(),
+  }));
+});
+
+jest.mock("jspdf-autotable", () => jest.fn());
+
+test("renders student login form", () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+  expect(screen.getByText(/welcome back/i)).toBeInTheDocument();
 });

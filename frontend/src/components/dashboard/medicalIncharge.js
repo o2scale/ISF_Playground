@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./MedicInchargeDashboard.css";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -12,6 +12,99 @@ import DateRangeSelector from "../shop/DateRangeSelector";
 import StudentDetailsTooltip from "./StudentDetailsTooltip";
 import DoctorVisitsTooltip from "./DoctorVisitsTooltip";
 import FollowUpsTooltip from "./FollowUpsTooltip";
+
+const CLOSED_STATUSES = new Set(["completed", "inactive", "closed", "resolved"]);
+const ACTIVE_STATUSES = new Set(["active", "ongoing", "in-progress", "scheduled", "pending", ""]);
+
+const getDoctorVisitsList = (checkin = {}) => {
+  if (Array.isArray(checkin.doctorVisits) && checkin.doctorVisits.length) {
+    return checkin.doctorVisits.filter(Boolean);
+  }
+  if (checkin.doctorVisit && (checkin.doctorVisit.doctorName || checkin.doctorVisit.hospitalName)) {
+    return [checkin.doctorVisit];
+  }
+  return [];
+};
+
+const getFollowUpsList = (checkin = {}) => {
+  if (Array.isArray(checkin.followUps) && checkin.followUps.length) {
+    return checkin.followUps.filter(Boolean);
+  }
+  if (checkin.followUp && (checkin.followUp.followUpDate || checkin.followUp.status || checkin.followUp.hospital || checkin.followUp.doctor)) {
+    return [checkin.followUp];
+  }
+  return [];
+};
+
+const getLatestDoctorVisitName = (checkin = {}) => {
+  const visits = getDoctorVisitsList(checkin);
+  if (!visits.length) {
+    return "-";
+  }
+  const latest = visits[visits.length - 1];
+  return latest.doctorName || latest.hospitalName || "-";
+};
+
+const getLatestFollowUpSummary = (checkin = {}) => {
+  const followUps = getFollowUpsList(checkin);
+  if (!followUps.length) {
+    return checkin.followUp?.doctor || checkin.followUp?.hospital || "-";
+  }
+  const latest = followUps[followUps.length - 1];
+  return latest.doctor || latest.hospital || "-";
+};
+
+const getLatestFollowUp = (checkin = {}) => {
+  const followUps = getFollowUpsList(checkin);
+  if (!followUps.length) {
+    return null;
+  }
+  return followUps[followUps.length - 1];
+};
+
+const getPrimarySymptom = (checkin = {}) => {
+  if (Array.isArray(checkin.symptoms) && checkin.symptoms.length) {
+    const filtered = checkin.symptoms.filter(Boolean);
+    if (filtered.length) {
+      return filtered.join(", ");
+    }
+  }
+  return checkin.customSymptom || "-";
+};
+
+const getCaseClosedDate = (checkin = {}) => {
+  const latestFollowUp = getLatestFollowUp(checkin);
+  const fallback = checkin.updatedAt || checkin.date;
+  if (!latestFollowUp) {
+    return fallback ? new Date(fallback) : null;
+  }
+  const closeDate = latestFollowUp.followUpDate || latestFollowUp.updatedAt || latestFollowUp.createdAt || fallback;
+  return closeDate ? new Date(closeDate) : null;
+};
+
+const isClosedCase = (checkin = {}) => {
+  const latestStatus = (getLatestFollowUp(checkin)?.status || checkin.followUp?.status || "").toLowerCase();
+  return CLOSED_STATUSES.has(latestStatus);
+};
+
+const hasActiveFollowUp = (checkin = {}) => {
+  const followUps = getFollowUpsList(checkin);
+  if (!followUps.length) {
+    return false;
+  }
+  return followUps.some((followUp) => ACTIVE_STATUSES.has((followUp.status || "").toLowerCase()));
+};
+
+const formatCaseDate = (date) => {
+  if (!date) {
+    return "-";
+  }
+  return new Date(date).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+};
 
 const MedicInchargeDashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -38,6 +131,8 @@ const MedicInchargeDashboard = () => {
   const [doctorVisitsTooltipPosition, setDoctorVisitsTooltipPosition] = useState({ x: 0, y: 0 });
   const [hoveredFollowUps, setHoveredFollowUps] = useState(null);
   const [followUpsTooltipPosition, setFollowUpsTooltipPosition] = useState({ x: 0, y: 0 });
+  const [closedCasesPage, setClosedCasesPage] = useState(1);
+  const CLOSED_CASES_PER_PAGE = 5;
   const [checkIns, setCheckIns] = useState([
     // {
     //   id: "HC001",
@@ -205,6 +300,104 @@ const MedicInchargeDashboard = () => {
     Unwell: "🤒",
     Sad: "😔",
   };
+
+  const {
+    closedCases,
+    closedCaseRecords,
+    sickStudentsCount,
+    ongoingTreatmentsCount,
+    criticalCasesCount,
+  } = useMemo(() => {
+    const sickStudents = new Set();
+    const closedEntries = [];
+    const ongoingEntries = [];
+    let criticalCount = 0;
+
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    recentHealthCheckins.forEach((checkin) => {
+      const healthStatus = (checkin.healthStatus || "").toLowerCase();
+      const checkInDate = checkin.date ? new Date(checkin.date) : null;
+
+      if (healthStatus === "critical") {
+        criticalCount += 1;
+      }
+
+      if (
+        checkInDate &&
+        checkInDate >= startOfMonth &&
+        checkInDate <= endOfMonth &&
+        healthStatus !== "normal"
+      ) {
+        sickStudents.add(checkin.studentId || checkin.userId || checkin._id);
+      }
+
+      if (isClosedCase(checkin)) {
+        closedEntries.push({
+          checkin,
+          closedDate: getCaseClosedDate(checkin) || checkInDate || new Date(),
+        });
+      } else if (hasActiveFollowUp(checkin) || healthStatus !== "normal") {
+        ongoingEntries.push(checkin);
+      }
+    });
+
+    const sortedClosed = closedEntries.sort(
+      (a, b) => (b.closedDate?.getTime() || 0) - (a.closedDate?.getTime() || 0)
+    );
+
+    const closedHistoryTiles = sortedClosed.map(({ checkin, closedDate }) => {
+      const balagruhaName =
+        checkin?.balagruhaNames?.[0] ||
+        checkin?.balagruhaName ||
+        "";
+      const studentName = checkin?.userName || "Unknown";
+      const doctorName = getLatestDoctorVisitName(checkin);
+      const symptomsSummary = getPrimarySymptom(checkin);
+      const followUpCount = getFollowUpsList(checkin).length;
+
+      return {
+        id: checkin?._id,
+        studentName,
+        initials: (studentName || "?").charAt(0).toUpperCase(),
+        symptomsSummary,
+        doctorName,
+        balagruhaName,
+        followUpCount,
+        closedDate,
+        rawCheckin: checkin,
+      };
+    });
+
+    return {
+      closedCases: sortedClosed,
+      closedCaseRecords: closedHistoryTiles,
+      sickStudentsCount: sickStudents.size,
+      ongoingTreatmentsCount: ongoingEntries.length,
+      criticalCasesCount: criticalCount,
+    };
+  }, [recentHealthCheckins]);
+
+  const totalClosedPages = Math.max(
+    1,
+    Math.ceil(closedCaseRecords.length / CLOSED_CASES_PER_PAGE)
+  );
+
+  const paginatedClosedCases = useMemo(() => {
+    const startIndex = (closedCasesPage - 1) * CLOSED_CASES_PER_PAGE;
+    return closedCaseRecords.slice(
+      startIndex,
+      startIndex + CLOSED_CASES_PER_PAGE
+    );
+  }, [closedCaseRecords, closedCasesPage]);
+
+  useEffect(() => {
+    if (closedCasesPage > totalClosedPages) {
+      setClosedCasesPage(totalClosedPages);
+    }
+  }, [closedCasesPage, totalClosedPages]);
 
   const sportCoachMenu = [
     { id: 1, name: "Dashboard", activeTab: "dashboard" },
@@ -725,33 +918,151 @@ const MedicInchargeDashboard = () => {
 
               <div className="medic-stats-cards">
                 <div className="medic-stat-card">
-                  <div className="medic-stat-icon normal">🌡️</div>
+                  <div className="medic-stat-card-header">
+                    <div className="medic-stat-icon success">🎯</div>
+                    <span className="medic-stat-chip">Closed</span>
+                  </div>
                   <div className="medic-stat-info">
-                    <h3>{(recentHealthCheckins.reduce((sum, c) => sum + c.temperature, 0) / (recentHealthCheckins.length || 1)).toFixed(1)}°C</h3>
-                    <p>Avg. Temperature Today</p>
+                    <p className="medic-stat-label">Total Students Treated</p>
+                    <h3 className="medic-stat-value">{closedCases.length}</h3>
+                    <span className="medic-stat-subtext">Closed cases recorded</span>
                   </div>
                 </div>
                 <div className="medic-stat-card">
-                  <div className="medic-stat-icon normal">😊</div>
+                  <div className="medic-stat-card-header">
+                    <div className="medic-stat-icon sick">🤒</div>
+                    <span className="medic-stat-chip warning">Month</span>
+                  </div>
                   <div className="medic-stat-info">
-                    <h3>3.7/5</h3>
-                    <p>Avg. Mood Score</p>
+                    <p className="medic-stat-label">Sick Students This Month</p>
+                    <h3 className="medic-stat-value">{sickStudentsCount}</h3>
+                    <span className="medic-stat-subtext">Unique students needing care</span>
                   </div>
                 </div>
                 <div className="medic-stat-card">
-                  <div className="medic-stat-icon warning">⚠️</div>
+                  <div className="medic-stat-card-header">
+                    <div className="medic-stat-icon pending">🕒</div>
+                    <span className="medic-stat-chip info">Follow-up</span>
+                  </div>
                   <div className="medic-stat-info">
-                    <h3>{recentHealthCheckins.filter(c => c.healthStatus === 'important' || c.healthStatus === 'critical').length}</h3>
-                    <p>Health Warnings</p>
+                    <p className="medic-stat-label">Ongoing Treatments</p>
+                    <h3 className="medic-stat-value">{ongoingTreatmentsCount}</h3>
+                    <span className="medic-stat-subtext">Follow-ups still in progress</span>
                   </div>
                 </div>
                 <div className="medic-stat-card">
-                  <div className="medic-stat-icon alert">🚨</div>
+                  <div className="medic-stat-card-header">
+                    <div className="medic-stat-icon alert">🚨</div>
+                    <span className="medic-stat-chip danger">Alert</span>
+                  </div>
                   <div className="medic-stat-info">
-                    <h3>{recentHealthCheckins.filter(c => c.healthStatus === 'critical').length}</h3>
-                    <p>Critical Cases</p>
+                    <p className="medic-stat-label">Critical Cases</p>
+                    <h3 className="medic-stat-value">{criticalCasesCount}</h3>
+                    <span className="medic-stat-subtext">Need immediate attention</span>
                   </div>
                 </div>
+              </div>
+
+              <div className="medic-dashboard-card medic-closed-history">
+                <div className="medic-card-header">
+                  <h3>Closed Case History</h3>
+                  <span className="medic-history-count">{closedCases.length} total</span>
+                </div>
+                {closedCaseRecords.length ? (
+                  <>
+                    <div className="medic-closed-history-table-wrapper">
+                      <table className="medic-closed-history-table">
+                        <thead>
+                          <tr>
+                            <th>Student</th>
+                            <th>Symptoms</th>
+                            <th>Doctor</th>
+                            <th>Balagruha</th>
+                            <th>Closed On</th>
+                            <th>Follow-ups</th>
+                            <th></th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {paginatedClosedCases.map((entry) => {
+                            const doctorLabel =
+                              entry.doctorName && entry.doctorName !== "-"
+                                ? entry.doctorName
+                                : "Pending";
+                            return (
+                              <tr key={entry.id}>
+                                <td>
+                                  <div className="medic-history-student">
+                                    <div className="medic-history-avatar">{entry.initials}</div>
+                                    <div>
+                                      <p className="medic-history-name">{entry.studentName}</p>
+                                      <span className="medic-history-pill">Closed</span>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td>
+                                  <p className="medic-history-note" title={entry.symptomsSummary}>
+                                    {entry.symptomsSummary}
+                                  </p>
+                                </td>
+                                <td className="medic-history-doctor">{doctorLabel}</td>
+                                <td>
+                                  {entry.balagruhaName ? (
+                                    <span className="medic-balagruha-tag">{entry.balagruhaName}</span>
+                                  ) : (
+                                    "—"
+                                  )}
+                                </td>
+                                <td>{formatCaseDate(entry.closedDate)}</td>
+                                <td>
+                                  <span className="medic-followup-pill">
+                                    {entry.followUpCount || 0} follow-ups
+                                  </span>
+                                </td>
+                                <td>
+                                  <button
+                                    type="button"
+                                    className="medic-inline-button"
+                                    onClick={() => handleOpenViewModal(entry.rawCheckin)}
+                                  >
+                                    View Details
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    <div className="medic-history-pagination">
+                      <button
+                        type="button"
+                        className="medic-pagination-button"
+                        onClick={() => setClosedCasesPage((prev) => Math.max(1, prev - 1))}
+                        disabled={closedCasesPage === 1}
+                      >
+                        Previous
+                      </button>
+                      <span className="medic-pagination-info">
+                        Page {closedCasesPage} of {totalClosedPages}
+                      </span>
+                      <button
+                        type="button"
+                        className="medic-pagination-button"
+                        onClick={() =>
+                          setClosedCasesPage((prev) =>
+                            Math.min(totalClosedPages, prev + 1)
+                          )
+                        }
+                        disabled={closedCasesPage === totalClosedPages}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <p className="medic-empty-state">No closed medical cases yet.</p>
+                )}
               </div>
 
               {/* <div className="medic-dashboard-grid">
@@ -911,34 +1222,9 @@ const MedicInchargeDashboard = () => {
                           return true;
                         })
                         .map((checkin, index) => {
-                          const formatSymptoms = () => {
-                            if (!checkin.symptoms || checkin.symptoms.length === 0) return '-';
-                            return checkin.symptoms.filter(s => s).join(', ');
-                          };
-
-                          // Get latest doctor visit (NEW array format or OLD single format)
-                          const getLatestDoctorVisit = () => {
-                            if (checkin.doctorVisits && checkin.doctorVisits.length > 0) {
-                              const latest = checkin.doctorVisits[checkin.doctorVisits.length - 1];
-                              return latest.doctorName || latest.hospitalName || '-';
-                            } else if (checkin.doctorVisit?.doctorName) {
-                              return checkin.doctorVisit.doctorName;
-                            }
-                            return '-';
-                          };
-
-                          // Get latest follow-up (NEW array format or OLD single format)
-                          const getLatestFollowUp = () => {
-                            if (checkin.followUps && checkin.followUps.length > 0) {
-                              const latest = checkin.followUps[checkin.followUps.length - 1];
-                              return latest.doctor || latest.hospital || '-';
-                            } else if (checkin.followUp?.doctor) {
-                              return checkin.followUp.doctor;
-                            } else if (checkin.followUp?.hospital) {
-                              return checkin.followUp.hospital;
-                            }
-                            return '-';
-                          };
+                          const symptomSummary = getPrimarySymptom(checkin);
+                          const doctorVisitSummary = getLatestDoctorVisitName(checkin);
+                          const followUpSummary = getLatestFollowUpSummary(checkin);
 
                           const handleMouseEnter = (e) => {
                             const rect = e.currentTarget.getBoundingClientRect();
@@ -955,11 +1241,7 @@ const MedicInchargeDashboard = () => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             // Position tooltip to the RIGHT of the column
                             setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: rect.top });
-                            const allDoctorVisits = checkin.doctorVisits && checkin.doctorVisits.length > 0
-                              ? checkin.doctorVisits
-                              : checkin.doctorVisit && checkin.doctorVisit.doctorName
-                                ? [checkin.doctorVisit]
-                                : [];
+                            const allDoctorVisits = getDoctorVisitsList(checkin);
                             setHoveredDoctorVisits(allDoctorVisits);
                           };
 
@@ -968,11 +1250,7 @@ const MedicInchargeDashboard = () => {
                             const rect = e.currentTarget.getBoundingClientRect();
                             // Position tooltip to the LEFT
                             setFollowUpsTooltipPosition({ x: rect.left - 380, y: rect.top });
-                            const allFollowUps = checkin.followUps && checkin.followUps.length > 0
-                              ? checkin.followUps
-                              : checkin.followUp && checkin.followUp.followUpDate
-                                ? [checkin.followUp]
-                                : [];
+                            const allFollowUps = getFollowUpsList(checkin);
                             setHoveredFollowUps(allFollowUps);
                           };
 
@@ -994,20 +1272,20 @@ const MedicInchargeDashboard = () => {
                                   month: 'short',
                                   year: 'numeric'
                               })}</td>
-                              <td>{formatSymptoms()}</td>
+                              <td>{symptomSummary}</td>
                               <td
                                 className="truncate"
                                 onMouseEnter={handleDoctorVisitsMouseEnter}
                                 style={{ cursor: 'pointer' }}
                               >
-                                {getLatestDoctorVisit()}
+                                {doctorVisitSummary}
                               </td>
                               <td
                                 className="truncate"
                                 onMouseEnter={handleFollowUpsMouseEnter}
                                 style={{ cursor: 'pointer' }}
                               >
-                                {getLatestFollowUp()}
+                                {followUpSummary}
                               </td>
                             </tr>
                           );
