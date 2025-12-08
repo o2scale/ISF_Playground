@@ -313,35 +313,44 @@ exports.updateUserDetailsById = async (userId, payload) => {
 
     // check the key balagruhaId is an array or string
     if (typeof updateData.balagruhaIds === "string") {
-      // updateData.balagruhaIds = updateData.balagruhaIds.split(',').map(item => mongoose.Types.ObjectId.createFromHexString(item.trim()));
       updateData.balagruhaIds = updateData.balagruhaIds
         .split(",")
-        .map((item) => item.trim());
+        .map((item) => item.trim())
+        .filter((item) => item);
     } else if (Array.isArray(updateData.balagruhaIds)) {
-      // updateData.balagruhaIds = updateData.balagruhaIds.map(item => mongoose.Types.ObjectId.createFromHexString(item))
-      updateData.balagruhaIds = updateData.balagruhaIds.map((item) => item);
+      updateData.balagruhaIds = updateData.balagruhaIds
+        .map((item) => (typeof item === "string" ? item.trim() : item))
+        .filter((item) => item);
     }
 
     if (updateData.assignedMachines) {
-      // check for assignedMachines is present
+      let assignedMachinesList = [];
+      const normalizeIds = (list) =>
+        list
+          .map((item) => (typeof item === "string" ? item.trim() : item))
+          .filter((item) => item && mongoose.Types.ObjectId.isValid(item))
+          .map((item) => mongoose.Types.ObjectId.createFromHexString(item));
+
       if (typeof updateData?.assignedMachines === "string") {
-        // convert the comma separated string to array
-        updateData.assignedMachines = updateData.assignedMachines.split(",");
-        assignedMachinesList = updateData.assignedMachines.map((item) =>
-          mongoose.Types.ObjectId.createFromHexString(item)
+        assignedMachinesList = normalizeIds(
+          updateData.assignedMachines.split(",")
         );
-        updateData.assignedMachines = assignedMachinesList;
       } else if (Array.isArray(updateData.assignedMachines)) {
-        assignedMachinesList = updateData.assignedMachines.map((item) =>
-          mongoose.Types.ObjectId.createFromHexString(item)
-        );
+        assignedMachinesList = normalizeIds(updateData.assignedMachines);
+      }
+
+      if (assignedMachinesList.length > 0) {
         updateData.assignedMachines = assignedMachinesList;
+      } else {
+        delete updateData.assignedMachines;
       }
     }
 
     // Handle balagruhaIds if present
     if (updateData.balagruhaIds && Array.isArray(updateData.balagruhaIds)) {
-      // updateData.balagruhaIds = updateData.balagruhaIds.map(id => id.trim());
+      if (updateData.balagruhaIds.length === 0) {
+        delete updateData.balagruhaIds;
+      }
     } else if (updateData.balagruhaIds) {
       delete updateData.balagruhaIds;
     }
