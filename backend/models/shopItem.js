@@ -180,7 +180,7 @@ shopItemSchema.virtual('primaryImageUrl').get(function() {
 // Pre-save hook: Validate discount price is less than regular price
 shopItemSchema.pre('save', function(next) {
   if (this.discountPrice !== null && this.discountPrice >= this.price) {
-    next(new Error('Discount price must be less than regular price'));
+    return next(new Error('Discount price must be less than regular price'));
   }
   next();
 });

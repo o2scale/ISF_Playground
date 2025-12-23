@@ -1,0 +1,41 @@
+First point.. purchase request can be raised by Every stake holder except children and balgruh in charge. Ie , coaches, medical, sports, music, admin and even the purchase manager himself
+Not purchase "request" but actual purchase on isf shop can be done by children who have enough digital balance.
+
+Delivered to balgruh - confirmed by coach upon actual hand over to the balgruh/child
+.
+Role specific view-
+Coaches - view of their requests, available stock AND orders placed by children of their balgruhs digitally on playground .
+
+Above Business Success - I would elaborate on our hase manager dashboard as follows - p mgr can track the flow of info and material till it reaches destination. And he can see clearly the priority level of the purchase.
+
+
+Under operational efficiency i would mention - PM has authority to edit physical stock of an item with the playground stock in case of discrepancy .
+
+This will be specially useful when we START. I mean when playground goes live, we already have lots of items in stock. 
+Once in a quarter we will be matching physical with digital stock as well.
+
+More changes
+
+One more use case is 
+If a purchase request has been made. 
+But item is already in stock. 
+In that case , PM doesn't have to order the item. Step 2.
+And it doesn't have to click delivered to store . Step 3
+Directly the coach picks up the requested item from store and delivers to balgruh
+
+We can code this as - chk if request item is already in stock . If yes then directly show the 4th step as pending
+
+Next is 
+Journey 1.. 
+All good Except 
+Max price target is in rupees. 
+And when it's up for sale in isf shop, sandhya then enters the "Selling price" in isf coins
+
+Journey 2.
+If item request by tony is already in stock, the 2 intermediate steps like ordered and delivered to store will automatically show as completed.
+
+Journey 3. 
+PM calls all 3 vendors. Finds out who can deliver fastest in best terms and orders accordingly
+
+Journey 4
+Once over, the PM dashboard "score card" will add this to his track record of tasks completed

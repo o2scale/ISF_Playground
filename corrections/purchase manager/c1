@@ -1,0 +1,46 @@
+1. This is a new item creation form which is meant for ONLY FOR ADMIN. The items which we have never purchased before will be added only by ADMIN with the supplier list & price target.
+2. We have an inventory, so adding an inventory for admin now - rework from the purchase manager and restrict adding products for all the other logins.
+3. There is mention of suppliers/vendors - so who creates vendor/supplier? What is the flow of vendor creation- is there any other related management to this? and who has access to this.
+4. As I can see in the dashboard of the purchase manager, there are different reports - for example, reached ISF store - ongoing - delivered, etc — how will the system know these reports, how should it get listed - who all has access to it? - on what basis (punch in the order in different places as the order moves, should the purchasing manager track this and mark every time it reaches the next stage- if so, who can the admin modify? - and there is a stage delivered - who updates this? — Who else will need the delivery report?
+
+This is not changing a form in the existing system, so pls define this process so that I can finalise the scope of all the related functionalities.
+If this can happen tomorrow, I can work on the flow tomorrow itself.
+
+5. Only for the first time that a product is ever purchased does admin need to "introduce" it. After that it's routine. All coaches simply select from known and previously bought and approved items. Whether it's a toy or medicine or a consumables like vaseline or lice oil or anti dandruff or socks or specs. 
+We can't let everyone add new items at random. The same item may already be there with a small difference i nthe spelling for instance.
+
+Admin doesn't manage inventory. 
+6. Admin alone adds a new item. Uploads vendor details for it. 
+7. Coaches raise purchase requests. 
+8. Our hase manager FULFILS them. 
+
+That's the flow
+
+9. U have already implemented a 3 step process .. ie pending purchase... Ongoing task.. delivered. 
+
+In this flow which has 3 steps we have added one more. Basically the last step has been split in two. Bcos "delivered" means 2 things.. delivered by vendor to our store. And delivered by coach to balgruh or child.
+
+10. Purchase request - made by coach
+11. Order placed - made by our hase manager
+12. Delivered to our store - made by purchase manager
+13. Delivered to balgruh - made by coach.
+
+Made means entry done in playground
+
+Admin and purchase manager has viewing access to everything. 
+Coaches have viewing access to whatever they have ordered. 
+Also to the existing stock (purchased for general stock and not for a specific balgrh)
+
+14. Is vendor list random for evry purchase? 
+15. Or do we have to create vendor - so that there is selection For vendor while creating purchase- or add vendor for every purchase ? 
+16. All sections of the process needs to be marked by the user or when delivered by specific rules to obtain the said flow result. 
+Pls confirm if this is right
+
+Vendor CRUD is only by admin.
+
+This UI. Creating new item and it's 3 possible vendors.
+
+All buyers can only select from approved list of items.
+
+This is answer to pt no 3 .. 4 steps. Confirmation by concerned person on each step. 
+This is what I meant when I wrote "made by coach" etc
