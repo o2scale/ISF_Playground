@@ -1,4 +1,5 @@
 const ShopItem = require('../models/shopItem');
+const Vendor = require('../models/vendor');
 
 /**
  * Admin Product Controller - Sprint5-Story-05
@@ -128,8 +129,36 @@ async function createProduct(req, res) {
       isActive,
       availableFor,
       tags,
-      metadata
+      metadata,
+      maxPrice,
+      sellingPrice,
+      approvedVendors
     } = req.body;
+
+    // Sprint 5 Story 1.2: Strict Introduction Policy
+    if (!maxPrice) {
+      return res.status(400).json({
+        success: false,
+        message: 'Max Price (Rupees) is required for new items'
+      });
+    }
+
+    if (!approvedVendors || !Array.isArray(approvedVendors) || approvedVendors.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one Approved Vendor is required'
+      });
+    }
+
+    // Verify all vendor IDs exist
+    const vendorIds = approvedVendors.map(v => v.vendorId);
+    const validVendorsCount = await Vendor.countDocuments({ _id: { $in: vendorIds } });
+    if (validVendorsCount !== vendorIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more Vendor IDs are invalid'
+      });
+    }
 
     // Check SKU uniqueness
     const existingProduct = await ShopItem.findOne({ sku: sku.toUpperCase() });
@@ -156,7 +185,10 @@ async function createProduct(req, res) {
       isActive: isActive !== undefined ? isActive : true,
       availableFor: availableFor || ['student'],
       tags: tags || [],
-      metadata: metadata || {}
+      metadata: metadata || {},
+      maxPrice,
+      sellingPrice,
+      approvedVendors
     });
 
     await product.save();
@@ -215,6 +247,33 @@ async function updateProduct(req, res) {
     delete updateData._id;
     delete updateData.createdAt;
     delete updateData.updatedAt;
+
+    // Sprint 5 Story 1.2: Validation for updates
+    if (updateData.maxPrice !== undefined && updateData.maxPrice < 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Max Price cannot be negative'
+      });
+    }
+
+    if (updateData.approvedVendors !== undefined) {
+      if (!Array.isArray(updateData.approvedVendors) || updateData.approvedVendors.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'At least one Approved Vendor is required if updating vendors'
+        });
+      }
+
+      // Verify all vendor IDs exist
+      const vendorIds = updateData.approvedVendors.map(v => v.vendorId);
+      const validVendorsCount = await Vendor.countDocuments({ _id: { $in: vendorIds } });
+      if (validVendorsCount !== vendorIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'One or more Vendor IDs are invalid'
+        });
+      }
+    }
 
     // Find and update product
     const product = await ShopItem.findByIdAndUpdate(
@@ -338,10 +397,19 @@ async function restoreProduct(req, res) {
 /**
  * Create Pending Product - Sprint5-Story-25
  * POST /api/v2/shop/admin/products/pending
- * @access Multi-role (Coach, Medical, Admin, PM)
+ * @access Admin
  */
 async function createPendingProduct(req, res) {
   try {
+    // Sprint 5 Story 1.2: Restrict to Admin only
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied: Only Admins can introduce new items.',
+        error: 'Forbidden'
+      });
+    }
+
     const { name, category, unit, sku, description } = req.body;
     const userId = req.user._id;
 
@@ -349,7 +417,8 @@ async function createPendingProduct(req, res) {
     if (!name || !category || !unit) {
       return res.status(400).json({
         success: false,
-        error: 'Name, category, and unit are required'
+        message: 'Name, category, and unit are required',
+        error: 'Validation Error'
       });
     }
 
@@ -361,7 +430,8 @@ async function createPendingProduct(req, res) {
     if (existingProduct) {
       return res.status(400).json({
         success: false,
-        error: 'SKU already exists. Please use a different SKU.'
+        message: 'SKU already exists. Please use a different SKU.',
+        error: 'Duplicate SKU'
       });
     }
 
@@ -393,6 +463,7 @@ async function createPendingProduct(req, res) {
     console.error('Error creating pending product:', error);
     res.status(500).json({
       success: false,
+      message: 'Failed to create pending product',
       error: error.message
     });
   }

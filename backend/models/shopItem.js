@@ -136,6 +136,28 @@ const shopItemSchema = new mongoose.Schema(
         values: ['pieces', 'packets', 'boxes', 'kg', 'liters', 'meters', 'units', 'grams', 'ml', 'sets', 'pairs', 'dozen'],
         message: '{VALUE} is not a valid unit'
       }
+    },
+    // Story 1.2: ShopItem Refactor
+    approvedVendors: [{
+      vendorId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Vendor',
+        required: true
+      },
+      rank: {
+        type: Number,
+        default: 1
+      }
+    }],
+    maxPrice: {
+      type: Number,
+      required: false, // Optional for legacy, required for new via controller
+      min: [0, 'Max price cannot be negative']
+    },
+    sellingPrice: {
+      type: Number,
+      required: false, // Optional for legacy
+      min: [0, 'Selling price cannot be negative']
     }
   },
   {
