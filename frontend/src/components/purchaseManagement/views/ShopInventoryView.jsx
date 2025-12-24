@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   getMyPurchaseRequests,
   getAllPurchaseRequests,
@@ -24,6 +24,47 @@ import '../PurchaseManagement.css';
 dayjs.extend(relativeTime);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
+
+// Story 3.1: Infer priority from existing text fields (no schema change)
+export const getPriority = (request) => {
+  const reason = (request?.reason || '').trim();
+  if (reason.toUpperCase().startsWith('[HIGH PRIORITY]')) {
+    return 'High';
+  }
+
+  const justification = request?.justification || '';
+  if (/\bpriority:\s*high\b/i.test(justification)) {
+    return 'High';
+  }
+
+  return 'Normal';
+};
+
+// Story 3.1: PM scorecard (client-side MVP)
+export const getCompletedTasksCount = (requests, userId) => {
+  if (!userId || !Array.isArray(requests)) {
+    return 0;
+  }
+
+  return requests.reduce((count, request) => {
+    const history = request?.statusHistory;
+    if (!Array.isArray(history)) {
+      return count;
+    }
+
+    const completedByUser = history.some((entry) => {
+      if (entry?.status !== 'delivered_store') {
+        return false;
+      }
+
+      const changedBy = entry?.changedBy;
+      const changedById = typeof changedBy === 'string' ? changedBy : changedBy?._id;
+      return changedById === userId;
+    });
+
+    return completedByUser ? count + 1 : count;
+  }, 0);
+};
 
 /**
  * Sprint5-Story-22: Calculate date range for filter options
@@ -110,7 +151,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     balagruha: 'all',
     purchaseManager: 'all',
     category: 'All Categories',  // Sprint5-Story-20
-    status: 'all',
+    // Story 3.1: PM dashboard should default to active work
+    status: userRole === 'purchase-manager' ? 'active' : 'all',
     search: ''
   });
 
@@ -119,6 +161,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     key: 'createdAt',
     direction: 'desc' // Default: most recent first
   });
+
+  const completedTasksCount = useMemo(
+    () => getCompletedTasksCount(requests, userId),
+    [requests, userId]
+  );
 
   useEffect(() => {
     fetchBalagruhas();
@@ -233,7 +280,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     }
 
     // Status filter
-    if (filters.status !== 'all') {
+    if (filters.status === 'active') {
+      filtered = filtered.filter(request => ['pending', 'ordered'].includes(request.status));
+    } else if (filters.status !== 'all') {
       filtered = filtered.filter(request => request.status === filters.status);
     }
 
@@ -252,19 +301,28 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       });
     }
 
-    // Sprint5-Story-23: Apply sorting
-    if (sortConfig.direction) {
-      filtered.sort((a, b) => {
-        const aValue = sortConfig.key === 'createdAt' ? new Date(a[sortConfig.key]) : a[sortConfig.key];
-        const bValue = sortConfig.key === 'createdAt' ? new Date(b[sortConfig.key]) : b[sortConfig.key];
+    // Story 3.1: Priority sorting runs before date sorting
+    filtered.sort((a, b) => {
+      const aPriority = getPriority(a);
+      const bPriority = getPriority(b);
 
-        if (sortConfig.direction === 'asc') {
-          return aValue > bValue ? 1 : -1;
-        } else {
-          return aValue < bValue ? 1 : -1;
-        }
-      });
-    }
+      if (aPriority !== bPriority) {
+        return aPriority === 'High' ? -1 : 1;
+      }
+
+      // Sprint5-Story-23: Date sorting (within the same priority)
+      if (!sortConfig.direction) {
+        return 0;
+      }
+
+      const aValue = sortConfig.key === 'createdAt' ? new Date(a[sortConfig.key]) : a[sortConfig.key];
+      const bValue = sortConfig.key === 'createdAt' ? new Date(b[sortConfig.key]) : b[sortConfig.key];
+
+      if (sortConfig.direction === 'asc') {
+        return aValue > bValue ? 1 : -1;
+      }
+      return aValue < bValue ? 1 : -1;
+    });
 
     setFilteredRequests(filtered);
   };
@@ -495,6 +553,18 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         </div>
       </div>
 
+      {/* Story 3.1: PM Scorecard */}
+      {userRole === 'purchase-manager' && (
+        <div className="pm-scorecard-row" aria-label="PM Scorecard">
+          <div className="pm-scorecard-card">
+            <div className="pm-scorecard-label">Completed Tasks</div>
+            <div className="pm-scorecard-value" data-testid="pm-completed-tasks-count">
+              {completedTasksCount}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="filters-container">
         <div className="filter-row">
@@ -600,6 +670,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               className="filter-select"
             >
               <option value="all">All Status</option>
+              {userRole === 'purchase-manager' && (
+                <option value="active">Active (Pending + Ordered)</option>
+              )}
               <option value="pending">Pending</option>
               <option value="ordered">Ordered</option>
               <option value="delivered_store">Delivered to Store</option>
@@ -659,9 +732,21 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           </thead>
           <tbody>
             {filteredRequests.map(request => (
-              <tr key={request._id} className={`request-row status-${request.status}`}>
+              <tr
+                key={request._id}
+                className={`request-row status-${request.status} ${getPriority(request) === 'High' ? 'priority-high' : ''}`}
+              >
                 <td className="request-id-cell">
                   <strong>{request.requestId}</strong>
+                  {getPriority(request) === 'High' && (
+                    <span
+                      className="priority-badge"
+                      aria-label="High Priority"
+                      title="High Priority"
+                    >
+                      HIGH
+                    </span>
+                  )}
                   {/* Sprint5-Story-21: STOCK badge styling */}
                   {request.balagruhaId === 'STOCK' ? (
                     <div className="balagruha-tag stock-tag" style={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
@@ -761,7 +846,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   {/* Story 2.3: Purchase Manager Fulfillment Actions */}
                   {userRole === 'purchase-manager' && request.status === 'pending' && (
                     <button
-                      className="btn-icon btn-primary"
+                      className="btn btn-primary btn-action"
                       onClick={() =>
                         handleUpdateStatus(
                           request._id,
@@ -773,13 +858,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       disabled={statusUpdating[request._id]}
                       title="Mark Ordered"
                     >
-                      🛒
+                      🛒 Mark Ordered
                     </button>
                   )}
 
                   {userRole === 'purchase-manager' && request.status === 'ordered' && (
                     <button
-                      className="btn-icon btn-primary"
+                      className="btn btn-primary btn-action"
                       onClick={() =>
                         handleUpdateStatus(
                           request._id,
@@ -791,7 +876,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       disabled={statusUpdating[request._id]}
                       title="Mark Received at Store"
                     >
-                      📦
+                      📦 Mark Received at Store
                     </button>
                   )}
 

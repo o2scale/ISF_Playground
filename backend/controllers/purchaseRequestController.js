@@ -464,8 +464,7 @@ exports.getPurchaseRequestById = async (req, res) => {
       .populate('reviewedBy', 'name email')
       .populate('completedBy', 'name email')
       .populate('items.productId', 'name sku stock lowStockThreshold images')
-      .populate('balagruhaId', 'name')
-      .populate('inventoryTransactionId');
+      .populate('inventoryTransactionIds');
 
     if (!request) {
       return res.status(404).json({
@@ -474,12 +473,32 @@ exports.getPurchaseRequestById = async (req, res) => {
       });
     }
 
-    // Authorization: Purchase Manager can only view own requests
-    if (userRole === 'purchase-manager' && request.requestedBy._id.toString() !== userId.toString()) {
-      return res.status(403).json({
-        success: false,
-        message: 'You can only view your own requests'
-      });
+    // Sprint5: Resource-level access control (align with list filtering)
+    if (userRole === 'purchase-manager') {
+      const requestBalagruhaId = request.balagruhaId;
+      const userBalagruhaIds = (req.user.balagruhaIds || []).map((bgId) => bgId.toString());
+      const requestBalagruhaIdStr = requestBalagruhaId?.toString?.() ?? requestBalagruhaId;
+
+      const hasAccess = requestBalagruhaId === 'STOCK' || userBalagruhaIds.includes(requestBalagruhaIdStr);
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to view this purchase request'
+        });
+      }
+    } else if (userRole !== 'admin') {
+      // Non-admin non-PM users can only view their own requests
+      if (request.requestedBy?._id?.toString() !== userId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to view this purchase request'
+        });
+      }
+    }
+
+    // Sprint5-Story-21: Populate balagruhaId only when not STOCK
+    if (request.balagruhaId && request.balagruhaId !== 'STOCK') {
+      await request.populate('balagruhaId', 'name');
     }
 
     res.json({
@@ -965,6 +984,21 @@ exports.updateStatus = async (req, res) => {
 
     const currentStatus = request.status;
 
+    // Sprint5: Resource-level access control (align with list filtering)
+    if (userRole === 'purchase-manager') {
+      const requestBalagruhaId = request.balagruhaId;
+      const userBalagruhaIds = (req.user.balagruhaIds || []).map((bgId) => bgId.toString());
+      const requestBalagruhaIdStr = requestBalagruhaId?.toString?.() ?? requestBalagruhaId;
+
+      const hasAccess = requestBalagruhaId === 'STOCK' || userBalagruhaIds.includes(requestBalagruhaIdStr);
+      if (!hasAccess) {
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to update this purchase request'
+        });
+      }
+    }
+
     // Transition Guards (Story 2.1 strict lifecycle)
     let allowed = false;
 
@@ -1064,6 +1098,25 @@ exports.assignFromStock = async (req, res) => {
         success: false,
         message: 'Purchase request not found'
       });
+    }
+
+    // Sprint5: Resource-level access control (align with list filtering)
+    if (userRole === 'purchase-manager') {
+      const requestBalagruhaId = request.balagruhaId;
+      const userBalagruhaIds = (req.user.balagruhaIds || []).map((bgId) => bgId.toString());
+      const requestBalagruhaIdStr = requestBalagruhaId?.toString?.() ?? requestBalagruhaId;
+
+      const hasAccess = requestBalagruhaId === 'STOCK' || userBalagruhaIds.includes(requestBalagruhaIdStr);
+      if (!hasAccess) {
+        if (session) {
+          await session.abortTransaction();
+          session.endSession();
+        }
+        return res.status(403).json({
+          success: false,
+          message: 'You do not have permission to update this purchase request'
+        });
+      }
     }
 
     if (request.status !== 'pending') {

@@ -203,6 +203,205 @@ describe('Story 2.1: Purchase Request State Machine', () => {
         message: expect.stringContaining('Invalid status')
       }));
     });
+
+    it('should DENY PM from updating status when request is in an unassigned balagruha', async () => {
+      const unassignedBalagruhaId = new mongoose.Types.ObjectId();
+      const assignedBalagruhaId = new mongoose.Types.ObjectId();
+
+      const pr = await PurchaseRequest.create({
+        requestedBy: coachUser._id,
+        balagruhaId: unassignedBalagruhaId,
+        category: 'Others',
+        reason: 'Test',
+        status: 'pending',
+        items: [{
+          productId: product._id,
+          productName: product.name,
+          productSKU: product.sku,
+          requestedQuantity: 5,
+          currentStock: 10,
+          lowStockThreshold: 5,
+          estimatedUnitCost: 10,
+          estimatedTotalCost: 50
+        }]
+      });
+
+      const req = mockRequest({
+        params: { id: pr._id },
+        body: { status: 'ordered' },
+        user: {
+          _id: pmUser._id,
+          role: 'purchase-manager',
+          balagruhaIds: [assignedBalagruhaId]
+        }
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('should ALLOW PM to update status when request is in an assigned balagruha', async () => {
+      const assignedBalagruhaId = new mongoose.Types.ObjectId();
+
+      const pr = await PurchaseRequest.create({
+        requestedBy: coachUser._id,
+        balagruhaId: assignedBalagruhaId,
+        category: 'Others',
+        reason: 'Test',
+        status: 'pending',
+        items: [{
+          productId: product._id,
+          productName: product.name,
+          productSKU: product.sku,
+          requestedQuantity: 5,
+          currentStock: 10,
+          lowStockThreshold: 5,
+          estimatedUnitCost: 10,
+          estimatedTotalCost: 50
+        }]
+      });
+
+      const req = mockRequest({
+        params: { id: pr._id },
+        body: { status: 'ordered' },
+        user: {
+          _id: pmUser._id,
+          role: 'purchase-manager',
+          balagruhaIds: [assignedBalagruhaId]
+        }
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const updatedPr = await PurchaseRequest.findById(pr._id);
+      expect(updatedPr.status).toBe('ordered');
+    });
+  });
+
+  describe('Controller: getPurchaseRequestById (access control)', () => {
+    it('should DENY non-admin non-PM from viewing someone else\'s request', async () => {
+      const requester = await User.create({
+        _id: new mongoose.Types.ObjectId(),
+        role: 'coach',
+        name: 'Requester',
+        email: 'requester@test.com'
+      });
+
+      const otherUser = await User.create({
+        _id: new mongoose.Types.ObjectId(),
+        role: 'coach',
+        name: 'Other',
+        email: 'other@test.com'
+      });
+
+      const pr = await PurchaseRequest.create({
+        requestedBy: requester._id,
+        balagruhaId: 'STOCK',
+        category: 'Others',
+        reason: 'Test',
+        status: 'pending',
+        items: [{
+          productId: product._id,
+          productName: product.name,
+          productSKU: product.sku,
+          requestedQuantity: 1,
+          currentStock: 10,
+          lowStockThreshold: 5,
+          estimatedUnitCost: 10,
+          estimatedTotalCost: 10
+        }]
+      });
+
+      const req = mockRequest({
+        params: { id: pr._id },
+        user: { _id: otherUser._id, role: 'coach' }
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getPurchaseRequestById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
+
+    it('should ALLOW Purchase Manager to view STOCK requests', async () => {
+      const requester = await User.create({
+        _id: new mongoose.Types.ObjectId(),
+        role: 'coach',
+        name: 'Requester',
+        email: 'requester2@test.com'
+      });
+
+      const pr = await PurchaseRequest.create({
+        requestedBy: requester._id,
+        balagruhaId: 'STOCK',
+        category: 'Others',
+        reason: 'Test',
+        status: 'pending',
+        items: [{
+          productId: product._id,
+          productName: product.name,
+          productSKU: product.sku,
+          requestedQuantity: 1,
+          currentStock: 10,
+          lowStockThreshold: 5,
+          estimatedUnitCost: 10,
+          estimatedTotalCost: 10
+        }]
+      });
+
+      const req = mockRequest({
+        params: { id: pr._id },
+        user: { _id: pmUser._id, role: 'purchase-manager', balagruhaIds: [] }
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getPurchaseRequestById(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true
+      }));
+    });
+
+    it('should DENY Purchase Manager from viewing requests outside assigned balagruhas', async () => {
+      const requester = await User.create({
+        _id: new mongoose.Types.ObjectId(),
+        role: 'coach',
+        name: 'Requester',
+        email: 'requester3@test.com'
+      });
+
+      const pr = await PurchaseRequest.create({
+        requestedBy: requester._id,
+        balagruhaId: new mongoose.Types.ObjectId(),
+        category: 'Others',
+        reason: 'Test',
+        status: 'pending',
+        items: [{
+          productId: product._id,
+          productName: product.name,
+          productSKU: product.sku,
+          requestedQuantity: 1,
+          currentStock: 10,
+          lowStockThreshold: 5,
+          estimatedUnitCost: 10,
+          estimatedTotalCost: 10
+        }]
+      });
+
+      const req = mockRequest({
+        params: { id: pr._id },
+        user: { _id: pmUser._id, role: 'purchase-manager', balagruhaIds: [] }
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getPurchaseRequestById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+    });
   });
 
   describe('Controller: assignFromStock (Shortcut)', () => {

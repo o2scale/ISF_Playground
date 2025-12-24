@@ -17,9 +17,9 @@ development_status:
   2-3-fulfillment-actions: "done"
 
   # Epic 3: Operational Dashboards & Analytics
-  3-1-pm-dashboard: "backlog"
-  3-2-coach-dashboard: "backlog"
-  3-3-pm-scorecard: "backlog"
+  3-1-pm-dashboard: "review"
+  3-2-coach-dashboard: "ready-for-dev"
+  3-3-admin-inventory-report: "ready-for-dev"
 
   # Epic 4: Inventory Control & Audit
   4-1-stock-reconciliation: "backlog"

@@ -49,7 +49,7 @@ so that items are ordered and received into the store.
 
 ## Tests
 
-- [ ] Add targeted UI tests for the new status-transition buttons (recommended)
+- [x] Add targeted UI tests for the new status-transition buttons (recommended)
 - [x] Regression: backend tests pass
 - [x] Regression: frontend tests pass
 
@@ -106,15 +106,21 @@ OpenAI GPT-5.2
 ### Completion Notes List
 
 - PMs can now mark `pending -> ordered` and `ordered -> delivered_store` from both the list view and the details modal.
+- Enforced resource-scoped RBAC for Purchase Managers on status transitions and request details access.
 - Status badges now display strict lifecycle statuses with appropriate styling.
+- Added targeted frontend + backend tests covering the new actions and RBAC rules.
 
 ### File List
 
 - backend/routes/v2/purchase-requests.js
+- backend/controllers/purchaseRequestController.js
+- backend/tests/purchaseRequest_story2_1.test.js
 - frontend/src/api.js
 - frontend/src/components/purchaseManagement/views/ShopInventoryView.jsx
 - frontend/src/components/purchaseManagement/modals/ViewRequestModal.jsx
 - frontend/src/components/purchaseManagement/PurchaseManagement.css
+- frontend/src/__tests__/components/purchaseManagement/ShopInventoryView.test.js
+- _bmad-output/implementation-artifacts/sprint-status.yaml
 
 ## Change Log
 

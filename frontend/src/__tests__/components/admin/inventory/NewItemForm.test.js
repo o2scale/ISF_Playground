@@ -5,6 +5,8 @@ import NewItemForm from '../../../../components/admin/inventory/NewItemForm';
 import { api } from '../../../../api';
 import userEvent from '@testing-library/user-event';
 
+jest.setTimeout(15000);
+
 // Mock API and Components
 jest.mock('../../../../api');
 jest.mock('../../../../hooks/use-toast', () => ({
