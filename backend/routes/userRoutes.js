@@ -9,6 +9,7 @@ const {
 } = require("../controllers/userController");
 const { authenticate, authorize } = require("../middleware/auth");
 const User = require("../models/user");
+const Balagruha = require("../models/balagruha");
 
 const router = express.Router();
 
@@ -221,16 +222,31 @@ router.get('/me/balagruhas', authenticate, async (req, res) => {
       });
     }
 
-    // Always include STOCK option first, then user's assigned Balagruhas
-    const balagruhas = [
-      { _id: 'STOCK', name: 'STOCK', isStock: true },
-      ...user.balagruhaIds.map(b => ({
+    const userRole = typeof user.role === 'string' ? user.role.toLowerCase() : '';
+    const isAdmin = userRole === 'admin';
+
+    let visibleBalagruhas = [];
+
+    if (isAdmin) {
+      const allBalagruhas = await Balagruha.find({}, 'name location').sort({ name: 1 });
+      visibleBalagruhas = allBalagruhas.map((b) => ({
         _id: b._id,
         name: b.name,
         location: b.location,
         isStock: false
-      }))
-    ];
+      }));
+    } else {
+      const assigned = Array.isArray(user.balagruhaIds) ? user.balagruhaIds : [];
+      visibleBalagruhas = assigned.map((b) => ({
+        _id: b._id,
+        name: b.name,
+        location: b.location,
+        isStock: false
+      }));
+    }
+
+    // Always include STOCK option first
+    const balagruhas = [{ _id: 'STOCK', name: 'STOCK', isStock: true }, ...visibleBalagruhas];
 
     res.status(200).json({
       success: true,

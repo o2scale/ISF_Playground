@@ -25,6 +25,7 @@ const userSchema = new mongoose.Schema({
   name: String,
   email: String,
   role: String,
+  balagruhaIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Balagruha' }],
 }, { timestamps: true });
 
 // Only register if not already registered
