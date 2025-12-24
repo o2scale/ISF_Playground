@@ -12,15 +12,20 @@ const validateStockAdjustment = [
     .notEmpty().withMessage('Product ID is required')
     .isMongoId().withMessage('Invalid product ID'),
 
+  // Either `adjustment` (delta) or `newStock` (physical count) is required.
   body('adjustment')
-    .notEmpty().withMessage('Adjustment is required')
+    .optional({ checkFalsy: true, nullable: true })
     .isInt().withMessage('Adjustment must be an integer')
     .custom((value) => {
-      if (value === 0) {
+      if (parseInt(value, 10) === 0) {
         throw new Error('Adjustment cannot be zero');
       }
       return true;
     }),
+
+  body('newStock')
+    .optional({ checkFalsy: true, nullable: true })
+    .isInt({ min: 0 }).withMessage('New stock must be a non-negative integer'),
 
   body('reason')
     .notEmpty().withMessage('Reason is required')
@@ -32,6 +37,21 @@ const validateStockAdjustment = [
     .isString().withMessage('Notes must be a string')
     .trim()
     .isLength({ max: 500 }).withMessage('Notes cannot exceed 500 characters'),
+
+  body().custom((_, { req }) => {
+    const hasAdjustment = req.body.adjustment !== undefined && req.body.adjustment !== null && req.body.adjustment !== '';
+    const hasNewStock = req.body.newStock !== undefined && req.body.newStock !== null && req.body.newStock !== '';
+
+    if (!hasAdjustment && !hasNewStock) {
+      throw new Error('Either adjustment or newStock is required');
+    }
+
+    if (hasAdjustment && hasNewStock) {
+      throw new Error('Provide either adjustment or newStock, not both');
+    }
+
+    return true;
+  }),
 
   (req, res, next) => {
     const errors = validationResult(req);

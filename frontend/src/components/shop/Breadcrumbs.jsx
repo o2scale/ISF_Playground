@@ -71,6 +71,9 @@ const Breadcrumbs = ({ customPath }) => {
       } else if (path === '/shop/admin/inventory/out-of-stock') {
         breadcrumbs.push({ label: 'Inventory', path: '/shop/admin/inventory' });
         breadcrumbs.push({ label: 'Out of Stock Report', path: '/shop/admin/inventory/out-of-stock' });
+      } else if (path === '/shop/admin/inventory/master-report') {
+        breadcrumbs.push({ label: 'Inventory', path: '/shop/admin/inventory' });
+        breadcrumbs.push({ label: 'Master Inventory Report', path: '/shop/admin/inventory/master-report' });
       } else if (path === '/shop/admin/analytics') {
         breadcrumbs.push({ label: 'Analytics', path: '/shop/admin/analytics' });
       } else if (path === '/shop/admin/reports') {

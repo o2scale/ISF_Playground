@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import MachineRepairsView from './views/MachineRepairsView';
 import ShopInventoryView from './views/ShopInventoryView';
+import StockReconciliationView from './views/StockReconciliationView';
 import './PurchaseManagement.css';
 
 /**
@@ -10,6 +11,8 @@ import './PurchaseManagement.css';
  */
 export default function PurchaseManagement() {
   const { user } = useAuth();
+  const userRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName;
+  const roleLower = userRole?.toLowerCase();
   const [purchaseType, setPurchaseType] = useState('machine-repairs');
 
   return (
@@ -30,6 +33,9 @@ export default function PurchaseManagement() {
           >
             <option value="machine-repairs">📋 Machine Repairs</option>
             <option value="shop-inventory">🛒 Shop Inventory</option>
+            {(roleLower === 'purchase-manager' || roleLower === 'admin') && (
+              <option value="stock-reconciliation">🧾 Stock Reconciliation</option>
+            )}
           </select>
         </div>
       </div>
@@ -46,6 +52,10 @@ export default function PurchaseManagement() {
             userId={user?._id || user?.id}
             userBalagruhas={user?.balagruhaIds || []}
           />
+        )}
+
+        {purchaseType === 'stock-reconciliation' && (
+          <StockReconciliationView />
         )}
       </div>
     </div>

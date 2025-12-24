@@ -11,6 +11,7 @@ import {
   Settings
 } from 'lucide-react';
 import { api } from '../../api';
+import { useRBAC } from '../../contexts/RBACContext';
 
 /**
  * ShopAdminControls Component - Sprint5-Story-15
@@ -27,6 +28,10 @@ import { api } from '../../api';
 const ShopAdminControls = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasPermission, isLoading: rbacLoading, permissions } = useRBAC();
+
+  const permissionsLoaded = Object.keys(permissions || {}).length > 0;
+  const canManageShop = !rbacLoading && permissionsLoaded && hasPermission('Shop Management', 'Manage');
 
   // Panel state
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -54,19 +59,21 @@ const ShopAdminControls = () => {
 
   // Fetch stock alerts
   useEffect(() => {
+    if (!canManageShop) return;
     fetchStockAlerts();
     // Refresh every 60 seconds
     const interval = setInterval(fetchStockAlerts, 60000);
     return () => clearInterval(interval);
-  }, []);
+  }, [canManageShop]);
 
   // Fetch quick stats
   useEffect(() => {
+    if (!canManageShop) return;
     fetchQuickStats();
     // Refresh every 5 minutes
     const interval = setInterval(fetchQuickStats, 300000);
     return () => clearInterval(interval);
-  }, []);
+  }, [canManageShop]);
 
   const fetchStockAlerts = async () => {
     try {
@@ -167,6 +174,12 @@ const ShopAdminControls = () => {
         : null
     },
     {
+      label: 'Master Report',
+      icon: FileText,
+      path: '/shop/admin/inventory/master-report',
+      color: 'green'
+    },
+    {
       label: 'Analytics',
       icon: BarChart3,
       path: '/shop/admin/analytics',
@@ -179,6 +192,10 @@ const ShopAdminControls = () => {
       color: 'green'
     }
   ];
+
+  if (rbacLoading || !canManageShop) {
+    return null;
+  }
 
   return (
     <div

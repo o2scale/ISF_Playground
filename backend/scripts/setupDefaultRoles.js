@@ -47,8 +47,21 @@ const defaultRoles = [
         actions: ["Create", "Read", "Update", "Delete"],
       },
       {
+        module: "Shop Management",
+        actions: ["Manage"],
+      },
+      {
         module: "notifications",
         actions: ["Create", "Read", "Update", "Delete"],
+      },
+    ],
+  },
+  {
+    roleName: "purchase-manager",
+    permissions: [
+      {
+        module: "Shop Management",
+        actions: ["Manage"],
       },
     ],
   },

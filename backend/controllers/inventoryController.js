@@ -1,5 +1,7 @@
 const ShopItem = require('../models/shopItem');
 const InventoryTransaction = require('../models/inventoryTransaction');
+const Order = require('../models/order');
+const mongoose = require('mongoose');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
 
@@ -16,31 +18,8 @@ const { Readable } = require('stream');
 exports.adjustStock = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { adjustment, reason, notes } = req.body;
+    const { adjustment, newStock, reason, notes } = req.body;
     const userId = req.user._id;
-
-    // Find product
-    const product = await ShopItem.findById(productId);
-    if (!product) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    const previousStock = product.stock;
-    const newStock = previousStock + adjustment;
-
-    // Validate new stock is not negative
-    if (newStock < 0) {
-      return res.status(400).json({
-        message: 'Stock cannot be negative',
-        previousStock,
-        adjustment,
-        wouldBe: newStock
-      });
-    }
-
-    // Update product stock
-    product.stock = newStock;
-    await product.save();
 
     // Map user-friendly reason to transactionType enum
     const transactionTypeMap = {
@@ -54,21 +33,244 @@ exports.adjustStock = async (req, res) => {
 
     const transactionType = transactionTypeMap[reason] || 'adjustment';
 
-    // Create audit trail entry
-    const transaction = await InventoryTransaction.create({
-      productId: product._id,
-      transactionType,
-      quantity: adjustment,
-      previousStock,
-      newStock,
-      reference: {
-        type: 'manual',
-        id: null
-      },
-      reason,
-      notes: notes || '',
-      performedBy: userId
-    });
+    const hasNewStock = newStock !== undefined && newStock !== null && newStock !== '';
+
+    const parseNumber = (value) => {
+      if (value === undefined || value === null || value === '') return null;
+      const parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) ? null : parsed;
+    };
+
+    const applyUpdate = async (session) => {
+      let previousProduct;
+      let previousStock;
+      let adjustmentNum;
+      let resolvedNewStock;
+
+      if (hasNewStock) {
+        const parsedNewStock = parseNumber(newStock);
+        if (parsedNewStock === null) {
+          return { error: { status: 400, body: { message: 'New stock must be a number' } } };
+        }
+
+        resolvedNewStock = parsedNewStock;
+        if (resolvedNewStock < 0) {
+          return {
+            error: {
+              status: 400,
+              body: { message: 'Stock cannot be negative', newStock: resolvedNewStock }
+            }
+          };
+        }
+
+        previousProduct = await ShopItem.findOneAndUpdate(
+          { _id: productId, stock: { $ne: resolvedNewStock } },
+          { $set: { stock: resolvedNewStock } },
+          { new: false, session }
+        )
+          .select('sku name stock')
+          .lean();
+
+        if (!previousProduct) {
+          const existing = await ShopItem.findById(productId)
+            .select('sku name stock')
+            .lean();
+
+          if (!existing) {
+            return { error: { status: 404, body: { message: 'Product not found' } } };
+          }
+
+          return {
+            error: {
+              status: 400,
+              body: {
+                message: 'No stock change detected',
+                previousStock: existing.stock,
+                newStock: existing.stock
+              }
+            }
+          };
+        }
+
+        previousStock = previousProduct.stock;
+        adjustmentNum = resolvedNewStock - previousStock;
+      } else {
+        const parsedAdjustment = parseNumber(adjustment);
+        if (parsedAdjustment === null) {
+          return { error: { status: 400, body: { message: 'Adjustment must be a number' } } };
+        }
+
+        adjustmentNum = parsedAdjustment;
+        if (adjustmentNum === 0) {
+          return {
+            error: {
+              status: 400,
+              body: { message: 'No stock change detected', adjustment: 0 }
+            }
+          };
+        }
+
+        const filter = { _id: productId };
+        if (adjustmentNum < 0) {
+          filter.stock = { $gte: Math.abs(adjustmentNum) };
+        }
+
+        previousProduct = await ShopItem.findOneAndUpdate(
+          filter,
+          { $inc: { stock: adjustmentNum } },
+          { new: false, session }
+        )
+          .select('sku name stock')
+          .lean();
+
+        if (!previousProduct) {
+          const existing = await ShopItem.findById(productId)
+            .select('sku name stock')
+            .lean();
+
+          if (!existing) {
+            return { error: { status: 404, body: { message: 'Product not found' } } };
+          }
+
+          const wouldBe = (existing.stock ?? 0) + adjustmentNum;
+          if (wouldBe < 0) {
+            return {
+              error: {
+                status: 400,
+                body: {
+                  message: 'Stock cannot be negative',
+                  previousStock: existing.stock,
+                  adjustment: adjustmentNum,
+                  wouldBe
+                }
+              }
+            };
+          }
+
+          return {
+            error: {
+              status: 500,
+              body: { message: 'Failed to adjust stock' }
+            }
+          };
+        }
+
+        previousStock = previousProduct.stock;
+        resolvedNewStock = previousStock + adjustmentNum;
+      }
+
+      if (adjustmentNum === 0) {
+        return {
+          error: {
+            status: 400,
+            body: { message: 'No stock change detected', previousStock, newStock: resolvedNewStock }
+          }
+        };
+      }
+
+      if (resolvedNewStock < 0) {
+        return {
+          error: {
+            status: 400,
+            body: {
+              message: 'Stock cannot be negative',
+              previousStock,
+              adjustment: adjustmentNum,
+              wouldBe: resolvedNewStock
+            }
+          }
+        };
+      }
+
+      return {
+        previousProduct,
+        previousStock,
+        resolvedNewStock,
+        adjustmentNum
+      };
+    };
+
+    const isTransactionNotSupportedError = (err) => {
+      const message = typeof err?.message === 'string' ? err.message : '';
+      return (
+        err?.code === 20 ||
+        err?.codeName === 'IllegalOperation' ||
+        message.includes('Transaction numbers are only allowed')
+      );
+    };
+
+    let updateResult;
+    let transaction;
+
+    try {
+      const session = await mongoose.startSession();
+      try {
+        await session.withTransaction(async () => {
+          updateResult = await applyUpdate(session);
+          if (updateResult?.error) return;
+
+          transaction = new InventoryTransaction({
+            productId,
+            transactionType,
+            quantity: updateResult.adjustmentNum,
+            previousStock: updateResult.previousStock,
+            newStock: updateResult.resolvedNewStock,
+            reference: {
+              type: 'manual',
+              id: null
+            },
+            reason,
+            notes: notes || '',
+            performedBy: userId
+          });
+
+          await transaction.save({ session });
+        });
+      } finally {
+        session.endSession();
+      }
+    } catch (err) {
+      if (!isTransactionNotSupportedError(err)) {
+        throw err;
+      }
+
+      updateResult = await applyUpdate(undefined);
+      if (updateResult?.error) {
+        return res.status(updateResult.error.status).json(updateResult.error.body);
+      }
+
+      try {
+        transaction = await InventoryTransaction.create({
+          productId,
+          transactionType,
+          quantity: updateResult.adjustmentNum,
+          previousStock: updateResult.previousStock,
+          newStock: updateResult.resolvedNewStock,
+          reference: {
+            type: 'manual',
+            id: null
+          },
+          reason,
+          notes: notes || '',
+          performedBy: userId
+        });
+      } catch (txError) {
+        try {
+          await ShopItem.updateOne(
+            { _id: productId, stock: updateResult.resolvedNewStock },
+            { $set: { stock: updateResult.previousStock } }
+          );
+        } catch (revertError) {
+          console.error('Failed to revert stock after audit log failure:', revertError);
+        }
+
+        throw txError;
+      }
+    }
+
+    if (updateResult?.error) {
+      return res.status(updateResult.error.status).json(updateResult.error.body);
+    }
 
     // Populate user information for response
     await transaction.populate('performedBy', 'name email');
@@ -76,12 +278,12 @@ exports.adjustStock = async (req, res) => {
     res.status(200).json({
       message: 'Stock adjusted successfully',
       product: {
-        _id: product._id,
-        sku: product.sku,
-        name: product.name,
-        previousStock,
-        newStock: product.stock,
-        adjustment
+        _id: productId,
+        sku: updateResult.previousProduct?.sku,
+        name: updateResult.previousProduct?.name,
+        previousStock: updateResult.previousStock,
+        newStock: updateResult.resolvedNewStock,
+        adjustment: updateResult.adjustmentNum
       },
       transaction
     });
@@ -222,18 +424,44 @@ exports.getAuditTrail = async (req, res) => {
     const { productId } = req.params;
     const { limit = 50, page = 1, reason } = req.query;
 
+    const parsePositiveInt = (value, fallback) => {
+      const parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    };
+
+    const parsedLimit = Math.min(Math.max(parsePositiveInt(limit, 50), 1), 200);
+    const parsedPage = Math.max(parsePositiveInt(page, 1), 1);
+
     // Validate product exists
     const product = await ShopItem.findById(productId);
     if (!product) {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
+
+    const allowedReasons = [
+      'Purchase / Restock',
+      'Inventory Adjustment',
+      'Student Return',
+      'Stock Correction',
+      'Damaged Items',
+      'Other'
+    ];
+
+    const normalizedReason = Array.isArray(reason) ? reason[0] : reason;
 
     // Build filter for transactions
     const filter = { productId };
-    if (reason && reason !== 'all') {
-      filter.reason = reason;
+    if (normalizedReason && normalizedReason !== 'all') {
+      if (!allowedReasons.includes(normalizedReason)) {
+        return res.status(400).json({
+          message: 'Invalid reason filter',
+          allowed: allowedReasons
+        });
+      }
+
+      filter.reason = normalizedReason;
     }
 
     // Get transactions for this product
@@ -241,7 +469,7 @@ exports.getAuditTrail = async (req, res) => {
       InventoryTransaction.find(filter)
         .populate('performedBy', 'name email role')
         .sort({ createdAt: -1 })
-        .limit(parseInt(limit))
+        .limit(parsedLimit)
         .skip(skip),
       InventoryTransaction.countDocuments(filter)
     ]);
@@ -256,9 +484,9 @@ exports.getAuditTrail = async (req, res) => {
       transactions,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / parseInt(limit))
+        page: parsedPage,
+        limit: parsedLimit,
+        pages: Math.ceil(total / parsedLimit)
       }
     });
   } catch (error) {
@@ -287,18 +515,32 @@ exports.getInventoryDashboard = async (req, res) => {
       sortOrder = 'asc'
     } = req.query;
 
+    const parsePositiveInt = (value, fallback) => {
+      const parsed = parseInt(value, 10);
+      return Number.isNaN(parsed) ? fallback : parsed;
+    };
+
+    const parsedLimit = Math.min(Math.max(parsePositiveInt(limit, 50), 1), 200);
+    const parsedPage = Math.max(parsePositiveInt(page, 1), 1);
+
     // Build filter
     const filter = {};
 
-    if (search) {
+    const rawSearch = Array.isArray(search) ? search[0] : search;
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const safeSearch = typeof rawSearch === 'string' ? rawSearch.trim().slice(0, 100) : '';
+
+    if (safeSearch) {
+      const escapedSearch = escapeRegex(safeSearch);
       filter.$or = [
-        { sku: new RegExp(search, 'i') },
-        { name: new RegExp(search, 'i') }
+        { sku: new RegExp(escapedSearch, 'i') },
+        { name: new RegExp(escapedSearch, 'i') }
       ];
     }
 
-    if (category && category !== 'all') {
-      filter.category = category;
+    const rawCategory = Array.isArray(category) ? category[0] : category;
+    if (typeof rawCategory === 'string' && rawCategory && rawCategory !== 'all') {
+      filter.category = rawCategory;
     }
 
     // Stock status filter
@@ -317,15 +559,17 @@ exports.getInventoryDashboard = async (req, res) => {
 
     // Build sort
     const sort = {};
-    sort[sortBy] = sortOrder === 'desc' ? -1 : 1;
+    const resolvedSortBy = Array.isArray(sortBy) ? sortBy[0] : sortBy;
+    const resolvedSortOrder = Array.isArray(sortOrder) ? sortOrder[0] : sortOrder;
+    sort[resolvedSortBy] = resolvedSortOrder === 'desc' ? -1 : 1;
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    const skip = (parsedPage - 1) * parsedLimit;
 
     // Get products with pagination
     const [products, total] = await Promise.all([
       ShopItem.find(filter)
         .sort(sort)
-        .limit(parseInt(limit))
+        .limit(parsedLimit)
         .skip(skip)
         .select('sku name category stock lowStockThreshold price imageUrl images isActive updatedAt'),
       ShopItem.countDocuments(filter)
@@ -366,9 +610,9 @@ exports.getInventoryDashboard = async (req, res) => {
       products,
       pagination: {
         total,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: Math.ceil(total / parseInt(limit))
+        page: parsedPage,
+        limit: parsedLimit,
+        pages: Math.ceil(total / parsedLimit)
       },
       statistics: stats[0] || {
         totalProducts: 0,
@@ -381,6 +625,95 @@ exports.getInventoryDashboard = async (req, res) => {
     console.error('Error fetching inventory dashboard:', error);
     res.status(500).json({
       message: 'Failed to fetch inventory dashboard',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   GET /api/v2/shop/admin/inventory/master-report
+ * @desc    Master inventory report (In Store + Deployed)
+ * @access  Admin (Shop Management: Manage)
+ */
+exports.getMasterInventoryReport = async (req, res) => {
+  try {
+    const { search, category } = req.query;
+
+    // Build ShopItem filter
+    const itemFilter = { isActive: true };
+
+    const rawSearch = Array.isArray(search) ? search[0] : search;
+    const rawCategory = Array.isArray(category) ? category[0] : category;
+
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const safeSearch = typeof rawSearch === 'string' ? rawSearch.trim().slice(0, 100) : '';
+
+    if (safeSearch) {
+      const escapedSearch = escapeRegex(safeSearch);
+      itemFilter.$or = [
+        { sku: new RegExp(escapedSearch, 'i') },
+        { name: new RegExp(escapedSearch, 'i') }
+      ];
+    }
+
+    if (typeof rawCategory === 'string' && rawCategory && rawCategory !== 'all') {
+      itemFilter.category = rawCategory;
+    }
+
+    const products = await ShopItem.find(itemFilter)
+      .sort({ sku: 1 })
+      .select('sku name category stock')
+      .lean();
+
+    if (products.length === 0) {
+      return res.status(200).json({
+        count: 0,
+        products: []
+      });
+    }
+
+    const productIds = products.map(product => product._id);
+
+    // Calculate deployed quantities from completed + delivered orders (scoped to returned products)
+    const deployedAggregation = await Order.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          deliveryStatus: 'delivered',
+          'items.shopItemId': { $in: productIds }
+        }
+      },
+      { $unwind: '$items' },
+      { $match: { 'items.shopItemId': { $in: productIds } } },
+      {
+        $group: {
+          _id: '$items.shopItemId',
+          deployed: { $sum: '$items.quantity' }
+        }
+      }
+    ]);
+
+    const deployedByItemId = new Map(
+      deployedAggregation.map(row => [row._id?.toString(), row.deployed])
+    );
+
+    const report = products.map(product => ({
+      _id: product._id,
+      sku: product.sku,
+      name: product.name,
+      category: product.category,
+      stock: product.stock,
+      deployed: deployedByItemId.get(product._id.toString()) || 0
+    }));
+
+    res.status(200).json({
+      count: report.length,
+      products: report
+    });
+  } catch (error) {
+    console.error('Error generating master inventory report:', error);
+    res.status(500).json({
+      message: 'Failed to generate master inventory report',
       error: error.message
     });
   }
@@ -513,8 +846,6 @@ exports.getStockAlerts = async (req, res) => {
  */
 exports.getQuickStats = async (req, res) => {
   try {
-    const Order = require('../models/order');
-
     // Get total active products
     const totalProducts = await ShopItem.countDocuments({ isActive: true });
 

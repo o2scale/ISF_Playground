@@ -89,6 +89,18 @@ router.get(
 );
 
 /**
+ * @route GET /api/v2/shop/admin/inventory/master-report
+ * @desc Master Inventory Report (In Store + Deployed)
+ * @access Admin only
+ */
+router.get(
+  '/master-report',
+  authenticate,
+  authorize('Shop Management', 'Manage'),
+  inventoryController.getMasterInventoryReport
+);
+
+/**
  * @route GET /api/v2/shop/admin/inventory
  * @desc Get inventory dashboard with all products and stock levels
  * @access Admin only

@@ -19,7 +19,7 @@ development_status:
   # Epic 3: Operational Dashboards & Analytics
   3-1-pm-dashboard: "review"
   3-2-coach-dashboard: "review"
-  3-3-admin-inventory-report: "ready-for-dev"
+  3-3-admin-inventory-report: "review"
 
   # Epic 4: Inventory Control & Audit
-  4-1-stock-reconciliation: "backlog"
+  4-1-stock-reconciliation: "review"

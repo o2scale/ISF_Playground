@@ -69,16 +69,13 @@ export default function AuditTrailModal({ productId, productName, onClose }) {
   };
 
   const formatReason = (reason) => {
-    const reasonMap = {
-      purchase: 'Purchase / Restock',
-      adjustment: 'Inventory Adjustment',
-      return: 'Customer Return',
-      correction: 'Stock Correction',
-      damaged: 'Damaged Items',
-      sale: 'Product Sale',
-      other: 'Other'
-    };
-    return reasonMap[reason] || reason;
+    return reason || 'N/A';
+  };
+
+  const formatPerformedBy = (performedBy) => {
+    if (!performedBy) return 'System';
+    if (typeof performedBy === 'string') return performedBy;
+    return performedBy.name || performedBy.email || performedBy.userId || performedBy._id || 'System';
   };
 
   return (
@@ -176,7 +173,7 @@ export default function AuditTrailModal({ productId, productName, onClose }) {
                     {/* Timeline Dot */}
                     <div
                       className={`w-6 h-6 rounded-full ${getActionColor(
-                        entry.quantityChange
+                        entry.quantity
                       )} border-4 border-white z-10 flex items-center justify-center flex-shrink-0`}
                     >
                       <span className="text-xs text-white">•</span>
@@ -187,18 +184,26 @@ export default function AuditTrailModal({ productId, productName, onClose }) {
                       {/* Header */}
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex items-center gap-2">
-                          {getActionIcon(entry.quantityChange)}
+                          {getActionIcon(entry.quantity)}
                           <p className="font-semibold text-slate-900">
-                            {entry.quantityChange > 0 ? 'Stock Increased' : 'Stock Decreased'}
+                            {entry.quantity > 0
+                              ? 'Stock Increased'
+                              : entry.quantity < 0
+                                ? 'Stock Decreased'
+                                : 'No Stock Change'}
                           </p>
                         </div>
                         <span
                           className={`text-lg font-bold ${
-                            entry.quantityChange > 0 ? 'text-green-600' : 'text-red-600'
+                            entry.quantity > 0
+                              ? 'text-green-600'
+                              : entry.quantity < 0
+                                ? 'text-red-600'
+                                : 'text-slate-600'
                           }`}
                         >
-                          {entry.quantityChange > 0 ? '+' : ''}
-                          {entry.quantityChange}
+                          {entry.quantity > 0 ? '+' : ''}
+                          {entry.quantity}
                         </span>
                       </div>
 
@@ -234,10 +239,10 @@ export default function AuditTrailModal({ productId, productName, onClose }) {
                         <span>
                           By:{' '}
                           <span className="font-medium text-slate-700">
-                            {entry.performedBy?.name || entry.performedBy?.userId || 'System'}
+                            {formatPerformedBy(entry.performedBy)}
                           </span>
                         </span>
-                        <span>{formatDateTime(entry.timestamp)}</span>
+                        <span>{formatDateTime(entry.createdAt)}</span>
                       </div>
                     </div>
                   </div>

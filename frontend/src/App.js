@@ -38,6 +38,7 @@ import ProductManagement from "./pages/ProductManagement";
 import InventoryManagement from "./pages/InventoryManagement";
 import LowStockReport from "./pages/LowStockReport";
 import OutOfStockReport from "./pages/OutOfStockReport";
+import MasterInventoryReport from "./pages/MasterInventoryReport";
 import TransactionHistory from "./pages/TransactionHistory";
 import ShopAnalytics from "./pages/ShopAnalytics";
 import TransactionReports from "./pages/TransactionReports";
@@ -246,6 +247,14 @@ const App = () => {
                   element={
                     <ProtectedRoute module="Shop Management" action="Manage">
                       <OutOfStockReport />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/inventory/master-report"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <MasterInventoryReport />
                     </ProtectedRoute>
                   }
                 />
