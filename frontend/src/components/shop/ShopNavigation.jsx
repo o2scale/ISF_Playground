@@ -43,6 +43,13 @@ const ShopNavigation = () => {
       roles: ['coach', 'admin']
     },
     {
+      label: 'My Requests',
+      icon: '🧾',
+      path: '/coach/requests',
+      description: 'View my purchase requests and student orders',
+      roles: ['coach', 'admin']
+    },
+    {
       label: isAdmin ? 'All Transactions' : 'Transactions',
       icon: '💰',
       path: isAdmin ? '/coins/history' : '/coins/history',

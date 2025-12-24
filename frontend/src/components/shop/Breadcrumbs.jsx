@@ -52,6 +52,11 @@ const Breadcrumbs = ({ customPath }) => {
       breadcrumbs.push({ label: 'Deliveries', path: '/coach/deliveries' });
     }
 
+    // Coach Requests Dashboard
+    if (path === '/coach/requests') {
+      breadcrumbs.push({ label: 'My Requests', path: '/coach/requests' });
+    }
+
     // Admin Routes
     if (path.startsWith('/shop/admin')) {
       breadcrumbs.push({ label: 'Admin', path: null });

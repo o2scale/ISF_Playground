@@ -12,7 +12,7 @@ import AccessDenied from "./components/AccessDenied";
 import NotFound from "./components/NotFound";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { RBACProvider } from "./contexts/RBACContext";
 import { CoinBalanceProvider } from "./contexts/CoinBalanceContext";
 import LoginCard from "./components/login/logincard";
@@ -42,7 +42,20 @@ import TransactionHistory from "./pages/TransactionHistory";
 import ShopAnalytics from "./pages/ShopAnalytics";
 import TransactionReports from "./pages/TransactionReports";
 import CoachDeliveries from "./pages/CoachDeliveries";
+import CoachRequestsDashboard from "./pages/CoachRequestsDashboard";
 import StudentProfile from "./pages/StudentProfile";
+
+const CoachOrAdminRoute = ({ children }) => {
+  const { user } = useAuth();
+  const userRole = typeof user?.role === "string" ? user.role : user?.role?.roleName;
+  const roleLower = userRole?.toLowerCase();
+
+  if (roleLower !== "coach" && roleLower !== "admin") {
+    return <Navigate to="/access-denied" replace />;
+  }
+
+  return children;
+};
 
 const App = () => {
   return (
@@ -259,6 +272,17 @@ const App = () => {
                   element={
                     <ProtectedRoute>
                       <CoachDeliveries />
+                    </ProtectedRoute>
+                  }
+                />
+
+                <Route
+                  path="/coach/requests"
+                  element={
+                    <ProtectedRoute>
+                      <CoachOrAdminRoute>
+                        <CoachRequestsDashboard />
+                      </CoachOrAdminRoute>
                     </ProtectedRoute>
                   }
                 />
