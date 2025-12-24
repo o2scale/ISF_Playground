@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { X, AlertCircle, Package, CheckCircle } from "lucide-react";
+import { X, AlertCircle, Package } from "lucide-react";
 import useShopStore from "../../store/shopStore";
 import { useAuth } from "../../contexts/AuthContext";
 import toast from "react-hot-toast";

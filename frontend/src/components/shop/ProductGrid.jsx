@@ -13,6 +13,7 @@ const ProductGrid = ({
   error,
   pagination,
   onAddToCart,
+  onRequestItem,
   onPageChange,
   onSortChange,
   sortBy
@@ -101,6 +102,7 @@ const ProductGrid = ({
           <ProductCard
             key={product._id}
             product={product}
+            onRequestItem={onRequestItem}
           />
         ))}
       </div>
