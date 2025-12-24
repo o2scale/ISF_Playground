@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
 const {
   createWtfPin,
   getActivePins,
@@ -49,18 +48,7 @@ const {
   getSubmissionsNeedingReview,
 } = require("../../../data-access/wtfSubmission");
 
-let mongoServer;
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
+// Note: DB connection is provided by tests/setup.js
 
 beforeEach(async () => {
   // Clear all collections

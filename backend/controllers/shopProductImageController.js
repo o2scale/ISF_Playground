@@ -301,3 +301,56 @@ exports.setPrimaryImage = async (req, res) => {
     });
   }
 };
+
+/**
+ * Upload generic/temp image (for new items)
+ * POST /api/v2/upload/image
+ * @access Private (Admin)
+ */
+exports.uploadGenericImage = async (req, res) => {
+  try {
+    const file = req.file; // middleware provides single file in 'image' field
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No image provided'
+      });
+    }
+
+    // Use a temp ID or generic folder
+    const tempId = `temp_${Date.now()}`;
+    // Reuse existing service but with temp ID
+    const result = await uploadShopProductImage(file.path, tempId);
+
+    // Cleanup local file
+    if (fs.existsSync(file.path)) {
+      fs.unlinkSync(file.path);
+    }
+
+    if (result.success) {
+      res.json({
+        success: true,
+        url: result.url
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: 'Failed to upload to S3',
+        error: result.message
+      });
+    }
+
+  } catch (error) {
+    errorLogger.error({ error: error.message }, 'Generic image upload error');
+    // Cleanup
+    if (req.file && fs.existsSync(req.file.path)) {
+      fs.unlinkSync(req.file.path);
+    }
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Internal server error'
+    });
+  }
+};
+

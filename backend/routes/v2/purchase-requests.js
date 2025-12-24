@@ -126,4 +126,26 @@ router.post(
   purchaseRequestController.completePurchaseRequest
 );
 
+/**
+ * Story 2.1: State Machine & Shortcut Routes
+ */
+
+// Update Status (State Machine Transitions)
+router.patch(
+  '/:id/status',
+  authenticate,
+  // Permission check is inside the controller based on transitions
+  validateRequestId,
+  purchaseRequestController.updateStatus
+);
+
+// Assign from Stock (Shortcut)
+router.post(
+  '/:id/assign-stock',
+  authenticate,
+  checkPermission('Purchase Management', 'Update'),
+  validateRequestId,
+  purchaseRequestController.assignFromStock
+);
+
 module.exports = router;

@@ -240,6 +240,9 @@ exports.getPendingSubmissions = async ({
   }
 };
 
+// Backward-compatible alias (used by older services/tests)
+exports.getSubmissionsForReview = exports.getPendingSubmissions;
+
 // Get student's submissions
 exports.getStudentSubmissions = async (
   studentId,
@@ -1138,9 +1141,29 @@ exports.getSubmissionStats = async () => {
       },
     ]);
 
+    const countsByStatus = (stats || []).reduce((acc, s) => {
+      if (s && s._id) acc[s._id] = s.count || 0;
+      return acc;
+    }, {});
+
+    const totalSubmissions = transformedSubmissions.length;
+    const pendingCount =
+      (countsByStatus.pending || 0) +
+      (countsByStatus.reviewed || 0) +
+      (countsByStatus.considered || 0);
+    const newCount = countsByStatus.pending || 0;
+    const approvedCount = countsByStatus.approved || 0;
+    const rejectedCount = countsByStatus.rejected || 0;
+
     return {
       success: true,
       data: {
+        totalSubmissions,
+        pendingCount,
+        newCount,
+        approvedCount,
+        rejectedCount,
+        countsByStatus,
         stats,
         submissions: transformedSubmissions,
       },

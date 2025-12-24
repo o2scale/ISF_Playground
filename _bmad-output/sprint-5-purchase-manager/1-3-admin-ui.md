@@ -37,10 +37,17 @@ So that I can easily enforce the strict data requirements.
 - Fixed environment issues with `api` import and UI component path aliases.
 - Verified functionality with Jest tests covering rendering, validation, and submission.
 
+### Code Review Fixes (2025-12-23)
+- Implemented duplicate vendor validation in `NewItemForm.jsx` (prevent selecting same vendor multiple times).
+- Implemented real image upload integration via `/api/v2/upload/image`.
+- Fixed payload data types: `stock` and `lowStockThreshold` are now correctly sent as numbers.
+- Rewrote `NewItemForm.test.js` to use `user-event` for real interaction simulation and verified actual API payloads.
+- **Backend:** Implemented `/api/v2/upload/image` route and `uploadGenericImage` controller to support S3 uploads for new items.
+
 ### Completion Notes
-- All ACs met.
+- All ACs met and verified with robust tests.
 - Component is ready for integration into the main Admin Dashboard router.
-- Tests passing.
+- Tests passing (4/4).
 
 ## File List
 - frontend/src/components/admin/inventory/NewItemForm.jsx
@@ -51,6 +58,7 @@ So that I can easily enforce the strict data requirements.
 ## Change Log
 - 2025-12-23: Implemented NewItemForm and tests.
 - 2025-12-23: Fixed API import paths and UI component aliases.
+- 2025-12-23: [Code Review] Fixed test deception, implemented image upload, added vendor duplication check.
 
 ## Status
-review
+done

@@ -27,11 +27,11 @@ exports.createPin = async (req, res) => {
       `Request received for WTF pin creation`
     );
 
-    // Include file information in the payload
-    const payload = {
-      ...req.body,
-      file: req.file || null,
-    };
+    // Include file information only when present
+    const payload = { ...req.body };
+    if (req.file) {
+      payload.file = req.file;
+    }
 
     const result = await WtfService.createPin(payload);
 
@@ -956,7 +956,8 @@ exports.getPinInteractions = async (req, res) => {
 exports.submitVoiceNote = async (req, res) => {
   try {
     const studentId = req.user?.id;
-    const submissionData = { ...req.body, file: req.file || null };
+    const submissionData = req.body;
+    if (req.file) submissionData.file = req.file;
 
     if (!studentId) {
       return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
@@ -1028,8 +1029,10 @@ exports.submitVoiceNote = async (req, res) => {
 exports.submitMedia = async (req, res) => {
   try {
     const studentId = req.user?.id;
-    const submissionData = { ...req.body, file: req.file || null };
-
+    const submissionData = { ...req.body };
+    if (req.file) {
+      submissionData.file = req.file;
+    }
     if (!studentId) {
       return res.status(HTTP_STATUS_CODE.UNAUTHORIZED).json({
         success: false,
@@ -2271,8 +2274,11 @@ exports.createCoachSuggestion = async (req, res) => {
       ...req.body,
       coachId: req.user?.id,
       suggestedBy: req.user?.name || req.user?.email || "Coach",
-      file: req.file || null,
     };
+
+    if (req.file) {
+      payload.file = req.file;
+    }
 
     logger.info(
       {

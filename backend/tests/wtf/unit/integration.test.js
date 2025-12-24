@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
 const request = require("supertest");
 const express = require("express");
 const bodyParser = require("body-parser");
@@ -18,14 +17,9 @@ const mockAuthorize = (permission, action) => (req, res, next) => {
 jest.mock("../../../services/wtf");
 const WtfService = require("../../../services/wtf");
 
-let mongoServer;
 let app;
 
 beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-
   // Create Express app for testing
   app = express();
   app.use(bodyParser.json());
@@ -127,10 +121,7 @@ beforeAll(async () => {
   );
 });
 
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
+// Note: DB connection is provided by tests/setup.js
 
 beforeEach(async () => {
   jest.clearAllMocks();

@@ -1,11 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import FilterPanel from './FilterPanel';
-import ProductGrid from './ProductGrid';
-import ShopNavigation from './ShopNavigation';
-import Breadcrumbs from './Breadcrumbs';
-import ShopAdminControls from './ShopAdminControls';
-import { useAuth } from '../../contexts/AuthContext';
-import { api } from '../../api';
+import React, { useState, useEffect, useCallback } from "react";
+import FilterPanel from "./FilterPanel";
+import ProductGrid from "./ProductGrid";
+import ShopNavigation from "./ShopNavigation";
+import Breadcrumbs from "./Breadcrumbs";
+import ShopAdminControls from "./ShopAdminControls";
+import RequestItemModal from "./RequestItemModal";
+import { useAuth } from "../../contexts/AuthContext";
+import { api } from "../../api";
 
 /**
  * ShopHome Component - Story-01
@@ -24,13 +25,16 @@ const ShopHome = () => {
     pages: 0
   });
 
+  // Story 2.2: Request Item Modal State
+  const [selectedProductForRequest, setSelectedProductForRequest] = useState(null);
+
   const [filters, setFilters] = useState({
     category: null,
-    search: '',
+    search: "",
     minPrice: null,
     maxPrice: 500,
     inStock: true,
-    sort: '-createdAt'
+    sort: "-createdAt"
   });
 
   // Fetch products
@@ -56,8 +60,8 @@ const ShopHome = () => {
       setProducts(response.data.products);
       setPagination(response.data.pagination);
     } catch (err) {
-      console.error('Error fetching products:', err);
-      setError(err.response?.data?.message || 'Failed to load products. Please try again.');
+      console.error("Error fetching products:", err);
+      setError(err.response?.data?.message || "Failed to load products. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -85,11 +89,11 @@ const ShopHome = () => {
   const handleClearFilters = () => {
     setFilters({
       category: null,
-      search: '',
+      search: "",
       minPrice: null,
       maxPrice: 500,
       inStock: true,
-      sort: '-createdAt'
+      sort: "-createdAt"
     });
     setPagination(prev => ({ ...prev, page: 1 }));
   };
@@ -97,7 +101,7 @@ const ShopHome = () => {
   // Handle page change
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, page: newPage }));
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Handle sort change
@@ -108,15 +112,19 @@ const ShopHome = () => {
 
   // Handle add to cart (will be implemented in Story-02)
   const handleAddToCart = (product) => {
-    console.log('Add to cart:', product);
-    // TODO: Implement in Story-02
+    console.log("Add to cart:", product);
     alert(`"${product.name}" will be added to cart in Story-02`);
+  };
+
+  // Handle request item (Story 2.2)
+  const handleRequestItem = (product) => {
+    setSelectedProductForRequest(product);
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Admin Controls - Draggable floating panel for admins only */}
-      {user?.role?.toLowerCase() === 'admin' && <ShopAdminControls />}
+      {user?.role?.toLowerCase() === "admin" && <ShopAdminControls />}
 
       {/* Page Header */}
       <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
@@ -151,12 +159,21 @@ const ShopHome = () => {
             error={error}
             pagination={pagination}
             onAddToCart={handleAddToCart}
+            onRequestItem={handleRequestItem}
             onPageChange={handlePageChange}
             onSortChange={handleSortChange}
             sortBy={filters.sort}
           />
         </div>
       </div>
+
+      {/* Request Item Modal (Story 2.2) */}
+      {selectedProductForRequest && (
+        <RequestItemModal
+          product={selectedProductForRequest}
+          onClose={() => setSelectedProductForRequest(null)}
+        />
+      )}
     </div>
   );
 };

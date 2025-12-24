@@ -151,8 +151,8 @@ exports.createPurchaseRequest = async (req, res) => {
 
     const isSmallPurchase = (maxItemCost <= ITEM_THRESHOLD) && (totalOrderCost <= ORDER_THRESHOLD);
 
-    // Set initial status based on threshold
-    const initialStatus = isSmallPurchase ? 'pending_fulfillment' : 'pending_approval';
+    // Set initial status (Story 2.1: Strict lifecycle starts at pending)
+    const initialStatus = 'pending';
 
     // Create purchase request
     const purchaseRequest = new PurchaseRequest({
@@ -915,6 +915,234 @@ exports.completePurchaseRequest = async (req, res) => {
       success: false,
       message: 'Error completing purchase request. All changes have been rolled back.',
       error: error.message
+    });
+  }
+};
+
+/**
+ * @route   PATCH /api/v2/shop/admin/purchase-requests/:id/status
+ * @desc    Update purchase request status (State Machine) - Story 2.1
+ * @access  Private (Role based)
+ */
+exports.updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status is required'
+      });
+    }
+
+    const allowedStatuses = new Set([
+      'pending',
+      'ordered',
+      'delivered_store',
+      'delivered_balagruha',
+      'rejected',
+      'on_hold'
+    ]);
+
+    if (!allowedStatuses.has(status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid status: ${status}`
+      });
+    }
+
+    const request = await PurchaseRequest.findById(id);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase request not found'
+      });
+    }
+
+    const currentStatus = request.status;
+
+    // Transition Guards (Story 2.1 strict lifecycle)
+    let allowed = false;
+
+    if (currentStatus === 'pending' && status === 'ordered') {
+      // Guard: Purchase Manager only
+      allowed = userRole === 'purchase-manager';
+    } else if (currentStatus === 'ordered' && status === 'delivered_store') {
+      // Guard: Purchase Manager only
+      allowed = userRole === 'purchase-manager';
+    } else if (currentStatus === 'delivered_store' && status === 'delivered_balagruha') {
+      // Guard: Coach/Requester only (enforced as requester)
+      allowed = request.requestedBy.toString() === userId.toString();
+    } else if (currentStatus === 'pending' && (status === 'rejected' || status === 'on_hold')) {
+      // Keep existing non-happy-path statuses constrained to pending only
+      allowed = userRole === 'purchase-manager';
+    }
+
+    if (!allowed) {
+      return res.status(403).json({
+        success: false,
+        message: `Transition from ${currentStatus} to ${status} not allowed for your role.`
+      });
+    }
+
+    // Update Status
+    request.status = status;
+    request.statusHistory.push({
+      status,
+      changedBy: userId,
+      changedAt: new Date(),
+      notes: notes || `Status changed to ${status}`
+    });
+
+    await request.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Status updated to ${status}`,
+      data: { request }
+    });
+  } catch (error) {
+    console.error('Error updating status:', error);
+    if (error.name === 'ValidationError' || error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: error.message || 'Invalid request'
+      });
+    }
+    res.status(500).json({
+      success: false,
+      message: 'Error updating status',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   POST /api/v2/shop/admin/purchase-requests/:id/assign-stock
+ * @desc    Assign from Stock (Shortcut) - Story 2.1
+ * @access  Private (Purchase Manager)
+ */
+exports.assignFromStock = async (req, res) => {
+  let session = null;
+  // Bypass transaction in test environment to avoid replica set errors
+  if (process.env.NODE_ENV !== 'test') {
+    session = await mongoose.startSession();
+    session.startTransaction();
+  }
+
+  try {
+    const { id } = req.params;
+    const { notes } = req.body;
+    const userId = req.user._id;
+    const userRole = req.user.role;
+
+    if (userRole !== 'purchase-manager' && userRole !== 'admin') {
+      if (session) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      return res.status(403).json({
+        success: false,
+        message: 'Only Purchase Manager can assign from stock'
+      });
+    }
+
+    let requestQuery = PurchaseRequest.findById(id);
+    if (session) requestQuery = requestQuery.session(session);
+    const request = await requestQuery;
+
+    if (!request) {
+      if (session) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase request not found'
+      });
+    }
+
+    if (request.status !== 'pending') {
+      if (session) {
+        await session.abortTransaction();
+        session.endSession();
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Only pending requests can be assigned from stock'
+      });
+    }
+
+    // Check and Decrement Stock
+    for (const item of request.items) {
+      let productQuery = ShopItem.findById(item.productId);
+      if (session) productQuery = productQuery.session(session);
+      const product = await productQuery;
+      
+      if (!product) {
+        throw new Error(`Product ${item.productName} not found`);
+      }
+
+      if (product.stock < item.requestedQuantity) {
+        throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock}, Requested: ${item.requestedQuantity}`);
+      }
+
+      const previousStock = product.stock;
+      product.stock -= item.requestedQuantity;
+      await product.save({ session });
+
+      // Create Inventory Transaction
+      await InventoryTransaction.create([{
+        productId: product._id,
+        transactionType: 'purchase_request',
+        quantity: -item.requestedQuantity,
+        previousStock,
+        newStock: product.stock,
+        reference: {
+          type: 'purchase_request',
+          id: request._id
+        },
+        reason: 'Assigned from Stock (Shortcut)',
+        notes: `${request.requestId}: Shortcut assignment`,
+        performedBy: userId
+      }], { session });
+    }
+
+    // Update PR Status -> delivered_store (skip ordered)
+    request.status = 'delivered_store';
+    request.statusHistory.push({
+      status: 'delivered_store',
+      changedBy: userId,
+      changedAt: new Date(),
+      notes: notes || 'Assigned from stock (Shortcut)'
+    });
+
+    await request.save({ session });
+
+    if (session) {
+      await session.commitTransaction();
+      session.endSession();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Stock assigned and request moved to delivered_store',
+      data: { request }
+    });
+
+  } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
+    console.error('Error assigning from stock:', error);
+    res.status(400).json({ // 400 for business logic errors (like insufficient stock)
+      success: false,
+      message: error.message || 'Error assigning from stock'
     });
   }
 };

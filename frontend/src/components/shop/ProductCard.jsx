@@ -1,26 +1,36 @@
-import React, { useState } from 'react';
-import { ShoppingCart } from 'lucide-react';
-import useShopStore from '../../store/shopStore';
-import { useAuth } from '../../contexts/AuthContext';
+import React, { useState } from "react";
+import { ShoppingCart, Package } from "lucide-react";
+import useShopStore from "../../store/shopStore";
+import { useAuth } from "../../contexts/AuthContext";
 
 /**
  * ProductCard Component - Story-01, Story-02 AC1
  * Displays individual product with image, name, price, and add-to-cart button
  * Design System: WTF Module pin card pattern
  */
-const ProductCard = ({ product }) => {
+const ProductCard = ({ product, onRequestItem }) => {
   const { addToCart } = useShopStore();
   const { user } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
 
   // Check if user is admin, coach, or purchase-manager - they cannot purchase from shop
-  const isAdmin = user?.role?.toLowerCase() === 'admin';
-  const isCoach = user?.role?.toLowerCase() === 'coach';
-  const isPurchaseManager = user?.role?.toLowerCase() === 'purchase-manager';
-  const cannotPurchase = isAdmin || isCoach || isPurchaseManager;
+  const isAdmin = user?.role?.toLowerCase() === "admin";
+  const isCoach = user?.role?.toLowerCase() === "coach";
+  const isPurchaseManager = user?.role?.toLowerCase() === "purchase-manager";
+  const isMedical = user?.role?.toLowerCase() === "medical-in-charge";
+  
+  // Staff Roles (Story 2.2)
+  const isStaff = isAdmin || isCoach || isPurchaseManager || isMedical;
 
-  const handleAddToCart = async () => {
-    if (!product.inStock || isAdding || cannotPurchase) return;
+  const handleAction = async () => {
+    // If staff, request item
+    if (isStaff) {
+      if (onRequestItem) onRequestItem(product);
+      return;
+    }
+
+    // If student, add to cart
+    if (!product.inStock || isAdding) return;
 
     setIsAdding(true);
     try {
@@ -37,7 +47,7 @@ const ProductCard = ({ product }) => {
       {/* Product Image */}
       <div className="relative aspect-square flex-shrink-0">
         <img
-          src={product.primaryImageUrl || product.imageUrl || '/placeholder-product.png'}
+          src={product.primaryImageUrl || product.imageUrl || "/placeholder-product.png"}
           alt={product.name}
           className="w-full h-full object-cover"
           loading="lazy"
@@ -100,27 +110,26 @@ const ProductCard = ({ product }) => {
           )}
         </div>
 
-        {/* Add to Cart Button */}
+        {/* Add to Cart / Request Button */}
         <button
-          onClick={handleAddToCart}
-          disabled={!product.inStock || isAdding || cannotPurchase}
+          onClick={handleAction}
+          disabled={(!product.inStock && !isStaff) || isAdding}
           className={`w-full px-4 py-2 rounded-md font-medium flex items-center justify-center gap-2 transition-colors ${
-            product.inStock && !isAdding && !cannotPurchase
-              ? 'bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800'
-              : 'bg-slate-300 text-slate-500 cursor-not-allowed'
+            product.inStock || isStaff
+              ? "bg-purple-600 text-white hover:bg-purple-700 active:bg-purple-800"
+              : "bg-slate-300 text-slate-500 cursor-not-allowed"
           }`}
-          aria-label={`Add ${product.name} to cart`}
-          title={cannotPurchase ? 'Admins, coaches, and purchase managers cannot purchase from the shop' : ''}
+          aria-label={isStaff ? `Request ${product.name}` : `Add ${product.name} to cart`}
         >
           {isAdding ? (
             <>
               <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              Adding...
+              Processing...
             </>
           ) : (
             <>
-              <ShoppingCart className="w-5 h-5" />
-              {cannotPurchase ? 'View Only' : product.inStock ? 'Add to Cart' : 'Out of Stock'}
+              {isStaff ? <Package className="w-5 h-5" /> : <ShoppingCart className="w-5 h-5" />}
+              {isStaff ? "Request Item" : product.inStock ? "Add to Cart" : "Out of Stock"}
             </>
           )}
         </button>

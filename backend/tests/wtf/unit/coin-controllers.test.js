@@ -1,5 +1,3 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
 
 // Mock the service layer
 jest.mock("../../../services/wtf");
@@ -12,18 +10,7 @@ const {
   expireOldPins,
 } = require("../../../controllers/wtfController");
 
-let mongoServer;
-
-beforeAll(async () => {
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  await mongoose.connect(mongoUri);
-});
-
-afterAll(async () => {
-  await mongoose.disconnect();
-  await mongoServer.stop();
-});
+// Note: DB connection is provided by tests/setup.js (this suite doesn't require DB)
 
 beforeEach(async () => {
   jest.clearAllMocks();

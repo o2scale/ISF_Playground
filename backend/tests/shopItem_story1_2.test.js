@@ -13,7 +13,7 @@ describe('ShopItem Model - Story 1.2', () => {
     // Create a dummy vendor for reference
     vendor = new Vendor({
       name: 'Test Vendor',
-      phone: '123',
+      phone: '9876543210',
       address: 'Test Addr'
     });
     await vendor.save();

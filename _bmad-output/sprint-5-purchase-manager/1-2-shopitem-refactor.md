@@ -63,6 +63,10 @@ So that the organization adheres to budget and quality standards.
     - Added data integrity check: `createProduct` and `updateProduct` now verify that `vendorId`s exist in the database.
     - Standardized error response in `createPendingProduct` to include `message` and `error` fields.
     - Fixed test suite data to comply with Story 1.1 phone validation rules.
+- **Backend Hardening (2025-12-23):**
+    - Implemented duplicate vendor ID validation in `adminProductController.js`.
+    - Added explicit type conversion for numeric fields (`maxPrice`, `sellingPrice`, `stock`) to ensure consistent data types regardless of request format.
+    - Standardized SKU normalization (always uppercase) in `createProduct`.
 
 ### Completion Notes
 - All ACs met.

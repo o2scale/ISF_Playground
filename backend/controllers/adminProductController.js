@@ -150,8 +150,18 @@ async function createProduct(req, res) {
       });
     }
 
-    // Verify all vendor IDs exist
+    // Verify all vendor IDs exist and check for duplicates
     const vendorIds = approvedVendors.map(v => v.vendorId);
+    
+    // Check for duplicate vendor IDs in the request
+    const uniqueVendorIds = new Set(vendorIds.map(id => id.toString()));
+    if (uniqueVendorIds.size !== vendorIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate Vendor IDs found in approved vendors list'
+      });
+    }
+
     const validVendorsCount = await Vendor.countDocuments({ _id: { $in: vendorIds } });
     if (validVendorsCount !== vendorIds.length) {
       return res.status(400).json({
@@ -161,7 +171,15 @@ async function createProduct(req, res) {
     }
 
     // Check SKU uniqueness
-    const existingProduct = await ShopItem.findOne({ sku: sku.toUpperCase() });
+    const normalizedSku = (sku || '').toUpperCase();
+    if (!normalizedSku) {
+      return res.status(400).json({
+        success: false,
+        message: 'SKU is required'
+      });
+    }
+
+    const existingProduct = await ShopItem.findOne({ sku: normalizedSku });
     if (existingProduct) {
       return res.status(400).json({
         success: false,
@@ -172,22 +190,22 @@ async function createProduct(req, res) {
 
     // Create product
     const product = new ShopItem({
-      sku,
+      sku: normalizedSku,
       name,
       description,
       category,
-      price,
-      discountPrice: discountPrice || null,
-      stock: stock || 0,
-      lowStockThreshold: lowStockThreshold || 10,
+      price: price ? Number(price) : undefined,
+      discountPrice: discountPrice ? Number(discountPrice) : null,
+      stock: stock ? Number(stock) : 0,
+      lowStockThreshold: lowStockThreshold ? Number(lowStockThreshold) : 10,
       imageUrl: imageUrl || null,
       images: images || [],
       isActive: isActive !== undefined ? isActive : true,
       availableFor: availableFor || ['student'],
       tags: tags || [],
       metadata: metadata || {},
-      maxPrice,
-      sellingPrice,
+      maxPrice: Number(maxPrice),
+      sellingPrice: Number(sellingPrice),
       approvedVendors
     });
 
@@ -264,8 +282,18 @@ async function updateProduct(req, res) {
         });
       }
 
-      // Verify all vendor IDs exist
+      // Verify all vendor IDs exist and check for duplicates
       const vendorIds = updateData.approvedVendors.map(v => v.vendorId);
+      
+      // Check for duplicate vendor IDs in the request
+      const uniqueVendorIds = new Set(vendorIds.map(id => id.toString()));
+      if (uniqueVendorIds.size !== vendorIds.length) {
+        return res.status(400).json({
+          success: false,
+          message: 'Duplicate Vendor IDs found in approved vendors list'
+        });
+      }
+
       const validVendorsCount = await Vendor.countDocuments({ _id: { $in: vendorIds } });
       if (validVendorsCount !== vendorIds.length) {
         return res.status(400).json({
@@ -274,6 +302,13 @@ async function updateProduct(req, res) {
         });
       }
     }
+
+    // Cast numeric fields
+    if (updateData.maxPrice !== undefined) updateData.maxPrice = Number(updateData.maxPrice);
+    if (updateData.sellingPrice !== undefined) updateData.sellingPrice = Number(updateData.sellingPrice);
+    if (updateData.price !== undefined) updateData.price = Number(updateData.price);
+    if (updateData.stock !== undefined) updateData.stock = Number(updateData.stock);
+    if (updateData.lowStockThreshold !== undefined) updateData.lowStockThreshold = Number(updateData.lowStockThreshold);
 
     // Find and update product
     const product = await ShopItem.findByIdAndUpdate(

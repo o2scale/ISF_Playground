@@ -24,6 +24,7 @@ describe('Admin Product Controller - Story 1.2', () => {
           description: 'Desc',
           category: 'stationery',
           price: 100,
+          sellingPrice: 100,
           maxPrice: 50,
           approvedVendors: [{ vendorId: vendor._id }],
           stock: 10
@@ -100,6 +101,31 @@ describe('Admin Product Controller - Story 1.2', () => {
       expect(res.status).toHaveBeenCalledWith(400);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         message: 'One or more Vendor IDs are invalid'
+      }));
+    });
+
+    it('should fail if duplicate vendor IDs are provided', async () => {
+      const req = mockRequest({
+        body: {
+          sku: 'INVALID-DUP-001',
+          name: 'Duplicate Vendor Item',
+          description: 'Desc',
+          category: 'stationery',
+          maxPrice: 50,
+          sellingPrice: 10,
+          approvedVendors: [
+            { vendorId: vendor._id, rank: 1 },
+            { vendorId: vendor._id, rank: 2 } // Same ID
+          ]
+        }
+      });
+      const res = mockResponse();
+
+      await adminProductController.createProduct(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        message: 'Duplicate Vendor IDs found in approved vendors list'
       }));
     });
   });

@@ -1,5 +1,23 @@
 const mongoose = require('mongoose');
 
+const PURCHASE_REQUEST_STATUSES = [
+  // Story 2.1 strict lifecycle
+  'pending',
+  'ordered',
+  'delivered_store',
+  'delivered_balagruha',
+
+  // Existing workflow statuses used elsewhere in the codebase
+  'pending_approval',
+  'approved',
+  'completed',
+  'cancelled',
+
+  // Existing non-happy-path statuses
+  'rejected',
+  'on_hold'
+];
+
 const purchaseRequestSchema = new mongoose.Schema(
   {
     requestId: {
@@ -131,13 +149,34 @@ const purchaseRequestSchema = new mongoose.Schema(
       index: true
     },
 
-    // Status Management (Sprint5-Story-24: Multi-role purchase requests)
+    // Status Management (Story 2.1: Strict 4-step lifecycle)
     status: {
       type: String,
-      enum: ['pending_approval', 'pending_fulfillment', 'approved', 'fulfilled', 'rejected', 'completed', 'cancelled'],
-      default: 'pending_approval',
+      enum: PURCHASE_REQUEST_STATUSES,
+      default: 'pending',
       index: true
     },
+
+    // Status History (Story 2.1)
+    statusHistory: [{
+      status: {
+        type: String,
+        required: true,
+        enum: PURCHASE_REQUEST_STATUSES
+      },
+      changedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: true
+      },
+      changedAt: {
+        type: Date,
+        default: Date.now
+      },
+      notes: {
+        type: String
+      }
+    }],
 
     // Sprint5-Story-24: Threshold analysis for automatic approval routing
     thresholdAnalysis: {

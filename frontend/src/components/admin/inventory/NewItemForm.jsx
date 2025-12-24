@@ -104,6 +104,20 @@ const NewItemForm = () => {
   };
 
   const handleVendorChange = (index, value) => {
+    // Prevent duplicate selection
+    const isDuplicate = selectedVendors.some(
+      (v, i) => i !== index && v.vendorId === value
+    );
+    
+    if (isDuplicate) {
+      toast({
+        title: "Duplicate Vendor",
+        description: "This vendor is already selected in another slot.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const updatedVendors = [...selectedVendors];
     updatedVendors[index].vendorId = value;
     setSelectedVendors(updatedVendors);
@@ -130,19 +144,21 @@ const NewItemForm = () => {
       if (imageFile) {
         const formData = new FormData();
         formData.append("image", imageFile);
-        // Assuming there's an upload endpoint, otherwise we might need to handle this differently
-        // For this story, we'll assume direct URL or handle upload if endpoint exists.
-        // If no dedicated upload endpoint, we might skip or mock. 
-        // Based on other files, there might be /api/v2/shop/upload or similar.
-        // Checking codebase... if not found, we'll proceed without image upload logic for now 
-        // or assume the API handles multipart/form-data for createProduct (unlikely for strict REST).
-        // Let's assume we need to upload first.
+        
         try {
-           // This is a placeholder. If no upload endpoint exists, we might need to add one or skip.
-           // const uploadRes = await api.post("/api/upload", formData);
-           // uploadedImageUrl = uploadRes.data.url;
+           const uploadRes = await api.post("/api/v2/upload/image", formData, {
+             headers: { "Content-Type": "multipart/form-data" },
+           });
+           if (uploadRes.data.success) {
+             uploadedImageUrl = uploadRes.data.url;
+           }
         } catch (uploadError) {
-             console.warn("Image upload not implemented or failed", uploadError);
+             console.error("Image upload failed", uploadError);
+             toast({
+               title: "Warning",
+               description: "Image upload failed. Item will be created without image.",
+               variant: "warning",
+             });
         }
       }
 
@@ -170,6 +186,8 @@ const NewItemForm = () => {
         price: Number(data.sellingPrice), // Mapping sellingPrice to price for now as per schema
         maxPrice: Number(data.maxPrice),
         sellingPrice: Number(data.sellingPrice),
+        stock: Number(data.stock),
+        lowStockThreshold: Number(data.lowStockThreshold),
         approvedVendors,
         images: uploadedImageUrl ? [{ url: uploadedImageUrl, isPrimary: true }] : [],
       };
