@@ -144,3 +144,7 @@ dist
 
 # Credentials file (contains test user credentials)
 creds
+
+# Private keys (do not commit)
+/isfplayground.pem
+/keys/ISFPlayground.pem
