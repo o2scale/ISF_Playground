@@ -17,8 +17,11 @@ export default function CreatePurchaseRequestModal({
   onClose,
   onSuccess,
   userBalagruhas,
-  balagruhas
+  balagruhas,
+  userRole
 }) {
+  const isAdmin = userRole === 'admin';
+
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
@@ -51,6 +54,12 @@ export default function CreatePurchaseRequestModal({
     description: ''
   });
   const [newProductErrors, setNewProductErrors] = useState({});
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowAddProductForm(false);
+    }
+  }, [isAdmin]);
 
   // ============================================================================
   // FILE PREVIEW COMPONENT (Copied from MachineRepairsView.jsx)
@@ -323,14 +332,14 @@ export default function CreatePurchaseRequestModal({
         });
         setShowAddProductForm(false);
 
-        alert('New product created successfully! Please fill in quantity and estimated cost.');
+        showToast('New product created successfully! Please fill in quantity and estimated cost.', 'success');
       } else {
-        alert('Failed to create product. Please try again.');
+        showToast('Failed to create product. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error creating pending product:', error);
       const errorMsg = error.response?.data?.error || error.message || 'Failed to create product';
-      alert(`Error: ${errorMsg}`);
+      showToast(errorMsg, 'error');
     }
   };
 
@@ -535,8 +544,14 @@ export default function CreatePurchaseRequestModal({
                 Select Products <span className="required">*</span>
               </label>
 
+              {!isAdmin && (
+                <small className="form-hint">
+                  Need a new item? Contact an Admin to add it to the Master Catalog.
+                </small>
+              )}
+
               {/* Sprint5-Story-25: Add New Product Button */}
-              {formData.balagruhaId && !showAddProductForm && (
+              {isAdmin && formData.balagruhaId && !showAddProductForm && (
                 <button
                   type="button"
                   className="btn-add-product"
@@ -557,7 +572,7 @@ export default function CreatePurchaseRequestModal({
               )}
 
               {/* Sprint5-Story-25: Inline Product Addition Form */}
-              {showAddProductForm && (
+              {isAdmin && showAddProductForm && (
                 <div className="inline-product-form" style={{
                   border: '2px solid #007bff',
                   borderRadius: '8px',

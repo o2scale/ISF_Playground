@@ -43,7 +43,7 @@ export default function PurchaseManagement() {
         {purchaseType === 'shop-inventory' && (
           <ShopInventoryView
             userRole={user?.role}
-            userId={user?._id}
+            userId={user?._id || user?.id}
             userBalagruhas={user?.balagruhaIds || []}
           />
         )}

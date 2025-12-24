@@ -58,8 +58,12 @@ export const getCompletedTasksCount = (requests, userId) => {
       }
 
       const changedBy = entry?.changedBy;
-      const changedById = typeof changedBy === 'string' ? changedBy : changedBy?._id;
-      return changedById === userId;
+      const changedById =
+        typeof changedBy === 'string' || typeof changedBy === 'number'
+          ? changedBy
+          : changedBy?._id ?? changedBy?.id;
+
+      return changedById != null && String(changedById) === String(userId);
     });
 
     return completedByUser ? count + 1 : count;
@@ -262,9 +266,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
     // Balagruha filter
     if (filters.balagruha !== 'all') {
-      filtered = filtered.filter(request =>
-        request.balagruhaId?._id === filters.balagruha
-      );
+      filtered = filtered.filter((request) => {
+        const balagruhaId = request.balagruhaId;
+        const requestBalagruhaId =
+          balagruhaId === 'STOCK' ? 'STOCK' : (balagruhaId?._id ?? balagruhaId);
+
+        return String(requestBalagruhaId) === String(filters.balagruha);
+      });
     }
 
     // Purchase Manager filter (Admin only)
@@ -315,8 +323,16 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         return 0;
       }
 
-      const aValue = sortConfig.key === 'createdAt' ? new Date(a[sortConfig.key]) : a[sortConfig.key];
-      const bValue = sortConfig.key === 'createdAt' ? new Date(b[sortConfig.key]) : b[sortConfig.key];
+      const aValue = sortConfig.key === 'createdAt'
+        ? new Date(a[sortConfig.key]).getTime()
+        : a[sortConfig.key];
+      const bValue = sortConfig.key === 'createdAt'
+        ? new Date(b[sortConfig.key]).getTime()
+        : b[sortConfig.key];
+
+      if (aValue === bValue) {
+        return 0;
+      }
 
       if (sortConfig.direction === 'asc') {
         return aValue > bValue ? 1 : -1;
@@ -942,6 +958,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           }}
           userBalagruhas={userBalagruhas}
           balagruhas={getFilteredBalagruhas()}
+          userRole={userRole}
         />
       )}
 
