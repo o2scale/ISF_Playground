@@ -242,6 +242,37 @@ const useShopStore = create(
         }
       },
 
+      // ========== Purchase Requests (Story 2.2) ==========
+
+      /**
+       * Create a purchase request from catalog item selection
+       */
+      createPurchaseRequest: async (data) => {
+        try {
+          const response = await api.post('/api/v2/shop/admin/purchase-requests', data);
+          return response.data;
+        } catch (error) {
+          console.error('Error creating purchase request:', error);
+          throw error;
+        }
+      },
+
+      /**
+       * Shortcut: assign request from stock immediately (PM/Admin only)
+       */
+      assignFromStock: async (requestId, notes) => {
+        try {
+          const response = await api.post(
+            `/api/v2/shop/admin/purchase-requests/${requestId}/assign-stock`,
+            { notes }
+          );
+          return response.data;
+        } catch (error) {
+          console.error('Error assigning from stock:', error);
+          throw error;
+        }
+      },
+
       // ========== Computed Values ==========
 
       /**

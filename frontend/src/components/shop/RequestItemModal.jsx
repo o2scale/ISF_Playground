@@ -48,10 +48,6 @@ export default function RequestItemModal({ product, onClose }) {
       setError("Quantity must be at least 1");
       return;
     }
-    if (!formData.reason.trim()) {
-      setError("Reason is required");
-      return;
-    }
     if (!formData.balagruhaId) {
       setError("Please select a Balagruha (or STOCK)");
       return;
@@ -67,19 +63,22 @@ export default function RequestItemModal({ product, onClose }) {
 
     try {
       // 1. Prepare Data
+      const baseReason = formData.reason.trim() || `Requesting ${product.name}`;
       const reasonWithPriority = formData.priority === "High" 
-        ? `[HIGH PRIORITY] ${formData.reason}`
-        : formData.reason;
+        ? `[HIGH PRIORITY] ${baseReason}`
+        : baseReason;
+
+      const estimatedUnitCost = Number(product?.maxPrice ?? product?.price ?? 0);
 
       const requestData = {
         balagruhaId: formData.balagruhaId,
-        category: product.category || "Others",
+        category: "Others",
         reason: reasonWithPriority,
         justification: `Requested via Shop Catalog. Priority: ${formData.priority}`,
         items: JSON.stringify([{
           productId: product._id,
           requestedQuantity: formData.quantity,
-          estimatedUnitCost: product.price
+          estimatedUnitCost
         }])
       };
 
@@ -190,19 +189,19 @@ export default function RequestItemModal({ product, onClose }) {
 
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-1">
-              Reason <span className="text-red-500">*</span>
+              Reason
             </label>
             <textarea
               name="reason"
               value={formData.reason}
               onChange={handleChange}
               rows={3}
-              placeholder="Why is this needed?"
+              placeholder="Why is this needed? (Optional)"
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
           </div>
 
-          {isPM && (
+          {isPM && product.stock > 0 && (
             <div className="bg-blue-50 p-3 rounded-md border border-blue-100">
               <label className="flex items-start gap-2 cursor-pointer">
                 <input

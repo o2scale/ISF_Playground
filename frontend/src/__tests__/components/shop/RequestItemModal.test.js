@@ -55,15 +55,15 @@ describe('RequestItemModal', () => {
 
   it('validates form submission', async () => {
     useAuth.mockReturnValue({ 
-      user: { role: 'coach', balagruhaIds: ['bg1'] } 
+      user: { role: 'coach', balagruhaIds: [] } 
     });
 
     render(<RequestItemModal product={mockProduct} onClose={mockOnClose} />);
 
-    // Submit empty form (Reason is empty)
+    // Submit without selecting a Balagruha
     fireEvent.click(screen.getByText('Submit Request'));
 
-    expect(screen.getByText('Reason is required')).toBeInTheDocument();
+    expect(screen.getByText('Please select a Balagruha (or STOCK)')).toBeInTheDocument();
     expect(mockCreatePurchaseRequest).not.toHaveBeenCalled();
   });
 
