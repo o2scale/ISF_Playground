@@ -14,7 +14,7 @@ development_status:
   # Epic 2: Purchase Request Workflow Engine
   2-1-workflow-engine: "done"
   2-2-staff-request-ui: "backlog"
-  2-3-fulfillment-actions: "backlog"
+  2-3-fulfillment-actions: "ready-for-dev"
 
   # Epic 3: Operational Dashboards & Analytics
   3-1-pm-dashboard: "backlog"
