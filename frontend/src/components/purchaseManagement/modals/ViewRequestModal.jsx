@@ -1,6 +1,7 @@
 import React from 'react';
+import { useState } from 'react';
 import dayjs from 'dayjs';
-import { cancelPurchaseRequest } from '../../../api';
+import { cancelPurchaseRequest, updatePurchaseRequestStatus } from '../../../api';
 import showToast from '../../../utils/toast';
 import { formatDateTime } from '../../../utils/dateFormatter';  // Sprint5-Story-23
 import '../PurchaseManagement.css';
@@ -10,9 +11,18 @@ import '../PurchaseManagement.css';
  * Displays full details of a purchase request
  */
 export default function ViewRequestModal({ request, onClose, userRole, onRefresh }) {
+  const [statusUpdating, setStatusUpdating] = useState(false);
+
   const getStatusBadge = (status) => {
     // Sprint5-Story-24: Updated status badges with new workflow statuses
     const badges = {
+      // Story 2.1 strict lifecycle
+      pending: { icon: '🟠', label: 'Pending', className: 'status-pending', tooltip: 'Awaiting purchase manager action' },
+      ordered: { icon: '🛒', label: 'Ordered', className: 'status-ordered', tooltip: 'Order placed with vendor' },
+      delivered_store: { icon: '📦', label: 'Delivered to Store', className: 'status-delivered-store', tooltip: 'Received into store' },
+      delivered_balagruha: { icon: '🏠', label: 'Delivered to Balagruha', className: 'status-delivered-balagruha', tooltip: 'Delivered to requester/balagruha' },
+      on_hold: { icon: '⏸️', label: 'On Hold', className: 'status-on-hold', tooltip: 'Request on hold' },
+
       pending_approval: { icon: '🔴', label: 'Pending Approval', className: 'status-pending-approval', tooltip: 'Requires admin approval' },
       pending_fulfillment: { icon: '🟡', label: 'Pending Fulfillment', className: 'status-pending-fulfillment', tooltip: 'Ready for purchase manager to fulfill' },
       approved: { icon: '🔵', label: 'Approved', className: 'status-approved', tooltip: 'Approved by admin, awaiting fulfillment' },
@@ -22,7 +32,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
       cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled', tooltip: 'Request cancelled' }
     };
 
-    const badge = badges[status] || badges.pending_approval;
+    const badge = badges[status] || { icon: 'ℹ️', label: status, className: 'status-pending', tooltip: status };
     return (
       <span
         className={`status-badge large ${badge.className}`}
@@ -50,6 +60,29 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
     } catch (error) {
       console.error('Error cancelling request:', error);
       showToast(error.response?.data?.message || 'Error cancelling request', 'error');
+    }
+  };
+
+  const handleUpdateStatus = async (nextStatus, notes, successMessage) => {
+    setStatusUpdating(true);
+    try {
+      const response = await updatePurchaseRequestStatus(request._id, {
+        status: nextStatus,
+        notes
+      });
+
+      if (response.success) {
+        showToast(successMessage, 'success');
+        onRefresh();
+        onClose();
+      } else {
+        showToast(response.message || 'Error updating request status', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating purchase request status:', error);
+      showToast(error.response?.data?.message || 'Error updating request status', 'error');
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
@@ -417,10 +450,43 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
         </div>
 
         <div className="modal-footer">
+          {userRole === 'purchase-manager' && request.status === 'pending' && (
+            <button
+              className="btn btn-primary"
+              onClick={() =>
+                handleUpdateStatus(
+                  'ordered',
+                  'Marked Ordered via Purchase Management',
+                  'Request marked as ordered'
+                )
+              }
+              disabled={statusUpdating}
+            >
+              🛒 Mark Ordered
+            </button>
+          )}
+
+          {userRole === 'purchase-manager' && request.status === 'ordered' && (
+            <button
+              className="btn btn-primary"
+              onClick={() =>
+                handleUpdateStatus(
+                  'delivered_store',
+                  'Marked Received at Store via Purchase Management',
+                  'Request marked as received at store'
+                )
+              }
+              disabled={statusUpdating}
+            >
+              📦 Mark Received at Store
+            </button>
+          )}
+
           {request.status === 'pending_approval' && userRole === 'purchase-manager' && (
             <button
               className="btn btn-danger"
               onClick={handleCancel}
+              disabled={statusUpdating}
             >
               ✖️ Cancel Request
             </button>
@@ -428,6 +494,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           <button
             className="btn btn-secondary"
             onClick={onClose}
+            disabled={statusUpdating}
           >
             Close
           </button>

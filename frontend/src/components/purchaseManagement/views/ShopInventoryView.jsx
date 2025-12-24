@@ -3,6 +3,7 @@ import {
   getMyPurchaseRequests,
   getAllPurchaseRequests,
   cancelPurchaseRequest,
+  updatePurchaseRequestStatus,
   getUserBalagruhas  // Sprint5-Story-24: Get user's assigned Balagruhas
 } from '../../../api';
 import showToast from '../../../utils/toast';
@@ -91,6 +92,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [balagruhas, setBalagruhas] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statusUpdating, setStatusUpdating] = useState({});
 
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -290,6 +292,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const getStatusBadge = (status) => {
     // Sprint5-Story-24: Updated status badges with new workflow statuses
     const badges = {
+      // Story 2.1 strict lifecycle
+      pending: { icon: '🟠', label: 'Pending', className: 'status-pending', tooltip: 'Awaiting purchase manager action' },
+      ordered: { icon: '🛒', label: 'Ordered', className: 'status-ordered', tooltip: 'Order placed with vendor' },
+      delivered_store: { icon: '📦', label: 'Delivered to Store', className: 'status-delivered-store', tooltip: 'Received into store' },
+      delivered_balagruha: { icon: '🏠', label: 'Delivered to Balagruha', className: 'status-delivered-balagruha', tooltip: 'Delivered to requester/balagruha' },
+      on_hold: { icon: '⏸️', label: 'On Hold', className: 'status-on-hold', tooltip: 'Request on hold' },
+
       pending_approval: { icon: '🔴', label: 'Pending Approval', className: 'status-pending-approval', tooltip: 'Requires admin approval' },
       pending_fulfillment: { icon: '🟡', label: 'Pending Fulfillment', className: 'status-pending-fulfillment', tooltip: 'Ready for purchase manager to fulfill' },
       approved: { icon: '🔵', label: 'Approved', className: 'status-approved', tooltip: 'Approved by admin, awaiting fulfillment' },
@@ -299,7 +308,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled', tooltip: 'Request cancelled' }
     };
 
-    const badge = badges[status] || badges.pending_approval;
+    const badge = badges[status] || { icon: 'ℹ️', label: status, className: 'status-pending', tooltip: status };
     return (
       <span
         className={`status-badge ${badge.className}`}
@@ -308,6 +317,29 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         {badge.icon} {badge.label}
       </span>
     );
+  };
+
+  const handleUpdateStatus = async (requestId, nextStatus, notes, successMessage) => {
+    setStatusUpdating((prev) => ({ ...prev, [requestId]: true }));
+
+    try {
+      const response = await updatePurchaseRequestStatus(requestId, {
+        status: nextStatus,
+        notes
+      });
+
+      if (response.success) {
+        showToast(successMessage, 'success');
+        fetchPurchaseRequests();
+      } else {
+        showToast(response.message || 'Error updating request status', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating purchase request status:', error);
+      showToast(error.response?.data?.message || 'Error updating request status', 'error');
+    } finally {
+      setStatusUpdating((prev) => ({ ...prev, [requestId]: false }));
+    }
   };
 
   const handleCancelRequest = async (requestId) => {
@@ -568,6 +600,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               className="filter-select"
             >
               <option value="all">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="ordered">Ordered</option>
+              <option value="delivered_store">Delivered to Store</option>
+              <option value="delivered_balagruha">Delivered to Balagruha</option>
+              <option value="on_hold">On Hold</option>
               <option value="pending_approval">Pending Approval</option>
               <option value="pending_fulfillment">Pending Fulfillment</option>
               <option value="approved">Approved</option>
@@ -718,6 +755,43 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       title="Cancel Request"
                     >
                       ✖️
+                    </button>
+                  )}
+
+                  {/* Story 2.3: Purchase Manager Fulfillment Actions */}
+                  {userRole === 'purchase-manager' && request.status === 'pending' && (
+                    <button
+                      className="btn-icon btn-primary"
+                      onClick={() =>
+                        handleUpdateStatus(
+                          request._id,
+                          'ordered',
+                          'Marked Ordered via Purchase Management',
+                          'Request marked as ordered'
+                        )
+                      }
+                      disabled={statusUpdating[request._id]}
+                      title="Mark Ordered"
+                    >
+                      🛒
+                    </button>
+                  )}
+
+                  {userRole === 'purchase-manager' && request.status === 'ordered' && (
+                    <button
+                      className="btn-icon btn-primary"
+                      onClick={() =>
+                        handleUpdateStatus(
+                          request._id,
+                          'delivered_store',
+                          'Marked Received at Store via Purchase Management',
+                          'Request marked as received at store'
+                        )
+                      }
+                      disabled={statusUpdating[request._id]}
+                      title="Mark Received at Store"
+                    >
+                      📦
                     </button>
                   )}
 

@@ -87,7 +87,7 @@ router.get(
 router.get(
   '/',
   authenticate,
-  checkPermission('Purchase Management', 'Manage'),
+  checkPurchaseRequestAccess(),
   purchaseRequestController.getAllPurchaseRequests
 );
 

@@ -2044,6 +2044,17 @@ export const completePurchaseRequest = async (requestId, data) => {
   }
 };
 
+// Update purchase request status (State Machine) - Story 2.3
+export const updatePurchaseRequestStatus = async (requestId, data) => {
+  try {
+    const response = await api.patch(`/api/v2/shop/admin/purchase-requests/${requestId}/status`, data);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating purchase request status:", error);
+    throw error;
+  }
+};
+
 // Get purchase request statistics (Admin) - Sprint5-Story-18
 export const getPurchaseRequestStats = async () => {
   try {
