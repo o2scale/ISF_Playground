@@ -1,38 +1,29 @@
 import React from 'react';
 import { useState } from 'react';
 import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
 import { cancelPurchaseRequest, updatePurchaseRequestStatus } from '../../../api';
 import showToast from '../../../utils/toast';
 import { formatDateTime } from '../../../utils/dateFormatter';  // Sprint5-Story-23
+import { UserTypes, normalizeUserRole } from '../../../constants/userTypes';
+import {
+  PurchaseRequestStatuses,
+  getPurchaseRequestStatusMeta
+} from '../../../constants/purchaseRequestStatuses';
 import '../PurchaseManagement.css';
+
+dayjs.extend(relativeTime);
 
 /**
  * View Request Modal - Sprint5-Story-17
  * Displays full details of a purchase request
  */
 export default function ViewRequestModal({ request, onClose, userRole, onRefresh }) {
+  const normalizedRole = normalizeUserRole(userRole);
   const [statusUpdating, setStatusUpdating] = useState(false);
 
   const getStatusBadge = (status) => {
-    // Sprint5-Story-24: Updated status badges with new workflow statuses
-    const badges = {
-      // Story 2.1 strict lifecycle
-      pending: { icon: '🟠', label: 'Pending', className: 'status-pending', tooltip: 'Awaiting purchase manager action' },
-      ordered: { icon: '🛒', label: 'Ordered', className: 'status-ordered', tooltip: 'Order placed with vendor' },
-      delivered_store: { icon: '📦', label: 'Delivered to Store', className: 'status-delivered-store', tooltip: 'Received into store' },
-      delivered_balagruha: { icon: '🏠', label: 'Delivered to Balagruha', className: 'status-delivered-balagruha', tooltip: 'Delivered to requester/balagruha' },
-      on_hold: { icon: '⏸️', label: 'On Hold', className: 'status-on-hold', tooltip: 'Request on hold' },
-
-      pending_approval: { icon: '🔴', label: 'Pending Approval', className: 'status-pending-approval', tooltip: 'Requires admin approval' },
-      pending_fulfillment: { icon: '🟡', label: 'Pending Fulfillment', className: 'status-pending-fulfillment', tooltip: 'Ready for purchase manager to fulfill' },
-      approved: { icon: '🔵', label: 'Approved', className: 'status-approved', tooltip: 'Approved by admin, awaiting fulfillment' },
-      fulfilled: { icon: '✅', label: 'Fulfilled', className: 'status-fulfilled', tooltip: 'Purchase completed' },
-      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected', tooltip: 'Request was rejected' },
-      completed: { icon: '✅', label: 'Completed', className: 'status-completed', tooltip: 'Request completed' },
-      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled', tooltip: 'Request cancelled' }
-    };
-
-    const badge = badges[status] || { icon: 'ℹ️', label: status, className: 'status-pending', tooltip: status };
+    const badge = getPurchaseRequestStatusMeta(status);
     return (
       <span
         className={`status-badge large ${badge.className}`}
@@ -290,10 +281,10 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           )}
 
           {/* Approval/Rejection Details */}
-          {(request.status === 'approved' || request.status === 'rejected') && (
+          {(request.status === PurchaseRequestStatuses.APPROVED || request.status === PurchaseRequestStatuses.REJECTED) && (
             <div className="detail-section">
               <h4 className="section-title">
-                {request.status === 'approved' ? 'Approval Details' : 'Rejection Details'}
+                {request.status === PurchaseRequestStatuses.APPROVED ? 'Approval Details' : 'Rejection Details'}
               </h4>
               <div className="detail-grid">
                 <div className="detail-item">
@@ -314,7 +305,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
               {request.reviewNotes && (
                 <div className="detail-item full-width">
                   <span className="detail-label">
-                    {request.status === 'approved' ? 'Approval Notes:' : 'Rejection Reason:'}
+                    {request.status === PurchaseRequestStatuses.APPROVED ? 'Approval Notes:' : 'Rejection Reason:'}
                   </span>
                   <p className="detail-text">{request.reviewNotes}</p>
                 </div>
@@ -323,7 +314,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           )}
 
           {/* Completion Details - Story 19 (Multi-Product) */}
-          {request.status === 'completed' && (
+          {request.status === PurchaseRequestStatuses.COMPLETED && (
             <div className="detail-section">
               <h4 className="section-title">📦 Purchase & Stock Update Details</h4>
               <div className="detail-grid">
@@ -450,12 +441,12 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
         </div>
 
         <div className="modal-footer">
-          {userRole === 'purchase-manager' && request.status === 'pending' && (
+          {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.PENDING && (
             <button
               className="btn btn-primary"
               onClick={() =>
                 handleUpdateStatus(
-                  'ordered',
+                  PurchaseRequestStatuses.ORDERED,
                   'Marked Ordered via Purchase Management',
                   'Request marked as ordered'
                 )
@@ -466,12 +457,12 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
             </button>
           )}
 
-          {userRole === 'purchase-manager' && request.status === 'ordered' && (
+          {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
             <button
               className="btn btn-primary"
               onClick={() =>
                 handleUpdateStatus(
-                  'delivered_store',
+                  PurchaseRequestStatuses.DELIVERED_STORE,
                   'Marked Received at Store via Purchase Management',
                   'Request marked as received at store'
                 )
@@ -482,7 +473,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
             </button>
           )}
 
-          {request.status === 'pending_approval' && userRole === 'purchase-manager' && (
+          {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (
             <button
               className="btn btn-danger"
               onClick={handleCancel}

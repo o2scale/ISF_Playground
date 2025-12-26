@@ -20,6 +20,12 @@ import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import '../PurchaseManagement.css';
+import { UserTypes, normalizeUserRole } from '../../../constants/userTypes';
+import {
+  PurchaseRequestStatuses,
+  PurchaseRequestStatusFilterOptions,
+  getPurchaseRequestStatusMeta
+} from '../../../constants/purchaseRequestStatuses';
 
 dayjs.extend(relativeTime);
 dayjs.extend(isSameOrAfter);
@@ -53,7 +59,7 @@ export const getCompletedTasksCount = (requests, userId) => {
     }
 
     const completedByUser = history.some((entry) => {
-      if (entry?.status !== 'delivered_store') {
+      if (entry?.status !== PurchaseRequestStatuses.DELIVERED_STORE) {
         return false;
       }
 
@@ -133,6 +139,8 @@ const getDateRangeFromFilter = (filterValue) => {
  * Displays purchase requests for shop inventory with frontend filtering
  */
 export default function ShopInventoryView({ userRole, userId, userBalagruhas }) {
+  const normalizedRole = normalizeUserRole(userRole);
+
   const [requests, setRequests] = useState([]);
   const [filteredRequests, setFilteredRequests] = useState([]);
   const [balagruhas, setBalagruhas] = useState([]);
@@ -156,7 +164,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     purchaseManager: 'all',
     category: 'All Categories',  // Sprint5-Story-20
     // Story 3.1: PM dashboard should default to active work
-    status: userRole === 'purchase-manager' ? 'active' : 'all',
+    status: normalizedRole === UserTypes.PURCHASE_MANAGER ? 'active' : 'all',
     search: ''
   });
 
@@ -199,7 +207,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   useEffect(() => {
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [requests, filters, sortConfig, userRole, userId, userBalagruhas]);
+  }, [requests, filters, sortConfig, normalizedRole, userId, userBalagruhas]);
 
   const fetchBalagruhas = async () => {
     try {
@@ -235,7 +243,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
       // Admin and Purchase Manager use getAllPurchaseRequests (backend filters by balagruha for PM)
       // Other roles use getMyPurchaseRequests (shows only their own requests)
-      const response = (userRole === 'admin' || userRole === 'purchase-manager')
+      const response = (normalizedRole === UserTypes.ADMIN || normalizedRole === UserTypes.PURCHASE_MANAGER)
         ? await getAllPurchaseRequests(params)
         : await getMyPurchaseRequests(params);
 
@@ -289,7 +297,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
     // Status filter
     if (filters.status === 'active') {
-      filtered = filtered.filter(request => ['pending', 'ordered'].includes(request.status));
+      filtered = filtered.filter(request => [
+        PurchaseRequestStatuses.PENDING,
+        PurchaseRequestStatuses.ORDERED
+      ].includes(request.status));
     } else if (filters.status !== 'all') {
       filtered = filtered.filter(request => request.status === filters.status);
     }
@@ -364,25 +375,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   };
 
   const getStatusBadge = (status) => {
-    // Sprint5-Story-24: Updated status badges with new workflow statuses
-    const badges = {
-      // Story 2.1 strict lifecycle
-      pending: { icon: '🟠', label: 'Pending', className: 'status-pending', tooltip: 'Awaiting purchase manager action' },
-      ordered: { icon: '🛒', label: 'Ordered', className: 'status-ordered', tooltip: 'Order placed with vendor' },
-      delivered_store: { icon: '📦', label: 'Delivered to Store', className: 'status-delivered-store', tooltip: 'Received into store' },
-      delivered_balagruha: { icon: '🏠', label: 'Delivered to Balagruha', className: 'status-delivered-balagruha', tooltip: 'Delivered to requester/balagruha' },
-      on_hold: { icon: '⏸️', label: 'On Hold', className: 'status-on-hold', tooltip: 'Request on hold' },
-
-      pending_approval: { icon: '🔴', label: 'Pending Approval', className: 'status-pending-approval', tooltip: 'Requires admin approval' },
-      pending_fulfillment: { icon: '🟡', label: 'Pending Fulfillment', className: 'status-pending-fulfillment', tooltip: 'Ready for purchase manager to fulfill' },
-      approved: { icon: '🔵', label: 'Approved', className: 'status-approved', tooltip: 'Approved by admin, awaiting fulfillment' },
-      fulfilled: { icon: '✅', label: 'Fulfilled', className: 'status-fulfilled', tooltip: 'Purchase completed' },
-      rejected: { icon: '❌', label: 'Rejected', className: 'status-rejected', tooltip: 'Request was rejected' },
-      completed: { icon: '✅', label: 'Completed', className: 'status-completed', tooltip: 'Request completed' },
-      cancelled: { icon: '⚫', label: 'Cancelled', className: 'status-cancelled', tooltip: 'Request cancelled' }
-    };
-
-    const badge = badges[status] || { icon: 'ℹ️', label: status, className: 'status-pending', tooltip: status };
+    const badge = getPurchaseRequestStatusMeta(status);
     return (
       <span
         className={`status-badge ${badge.className}`}
@@ -468,7 +461,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     doc.setFont(undefined, 'normal');
     doc.text(`Generated: ${dayjs().format('DD-MM-YYYY HH:mm')}`, 14, 22);
     doc.text(`Total Requests: ${filteredRequests.length}`, 14, 28);
-    doc.text(`Pending: ${filteredRequests.filter(r => r.status === 'pending_approval').length}`, 14, 34);
+    doc.text(`Pending: ${filteredRequests.filter(r => r.status === PurchaseRequestStatuses.PENDING_APPROVAL).length}`, 14, 34);
 
     // Table
     const tableColumn = ['Request ID', 'Product', 'Qty', 'Reason', 'Status', 'Date'];
@@ -495,7 +488,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
   // Get balagruha options based on role
   const getFilteredBalagruhas = () => {
-    if (userRole === 'admin') {
+    if (normalizedRole === UserTypes.ADMIN) {
       return balagruhas;
     }
     // Sprint5-Story-21 (S21-BUG-002 FIX): Always include STOCK + user's assigned Balagruhas
@@ -551,7 +544,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         <h2 className="view-title">🛒 Shop Inventory Purchase Requests</h2>
         <div className="header-actions">
           {/* Sprint5-Story-24: Multi-role access to purchase request creation */}
-          {['purchase-manager', 'coach', 'medical-incharge', 'admin'].includes(userRole) && (
+          {[UserTypes.PURCHASE_MANAGER, UserTypes.COACH, UserTypes.MEDICAL_IN_CHARGE, UserTypes.ADMIN].includes(normalizedRole) && (
             <button
               className="btn btn-primary"
               onClick={() => setShowCreateModal(true)}
@@ -570,7 +563,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       </div>
 
       {/* Story 3.1: PM Scorecard */}
-      {userRole === 'purchase-manager' && (
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && (
         <div className="pm-scorecard-row" aria-label="PM Scorecard">
           <div className="pm-scorecard-card">
             <div className="pm-scorecard-label">Completed Tasks</div>
@@ -644,7 +637,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           </div>
 
           {/* Purchase Manager Filter (Admin only) */}
-          {userRole === 'admin' && (
+          {normalizedRole === UserTypes.ADMIN && (
             <div className="filter-group">
               <label>Purchase Manager:</label>
               <select
@@ -686,21 +679,14 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               className="filter-select"
             >
               <option value="all">All Status</option>
-              {userRole === 'purchase-manager' && (
+              {normalizedRole === UserTypes.PURCHASE_MANAGER && (
                 <option value="active">Active (Pending + Ordered)</option>
               )}
-              <option value="pending">Pending</option>
-              <option value="ordered">Ordered</option>
-              <option value="delivered_store">Delivered to Store</option>
-              <option value="delivered_balagruha">Delivered to Balagruha</option>
-              <option value="on_hold">On Hold</option>
-              <option value="pending_approval">Pending Approval</option>
-              <option value="pending_fulfillment">Pending Fulfillment</option>
-              <option value="approved">Approved</option>
-              <option value="fulfilled">Fulfilled</option>
-              <option value="rejected">Rejected</option>
-              <option value="completed">Completed</option>
-              <option value="cancelled">Cancelled</option>
+              {PurchaseRequestStatusFilterOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -728,7 +714,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <th>Total Items / Quantity</th>
               <th>Total Cost</th>
               <th>Reason</th>
-              {userRole === 'admin' && <th>Requested By</th>}
+              {normalizedRole === UserTypes.ADMIN && <th>Requested By</th>}
               <th>Status</th>
               <th>Category</th>
               {/* Sprint5-Story-23: Sortable date column */}
@@ -802,7 +788,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   ₹{request.totalEstimatedCost ? request.totalEstimatedCost.toLocaleString() : '0'}
                 </td>
                 <td className="reason-cell">{request.reason}</td>
-                {userRole === 'admin' && (
+                {normalizedRole === UserTypes.ADMIN && (
                   <td className="requester-cell">
                     <div className="requester-name">{request.requestedBy?.name || 'Unknown'}</div>
                     <div className="requester-email">{request.requestedBy?.email || ''}</div>
@@ -829,7 +815,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   </button>
 
                   {/* Admin Actions - Story 18 */}
-                  {request.status === 'pending_approval' && userRole === 'admin' && (
+                  {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.ADMIN && (
                     <>
                       <button
                         className="btn-icon btn-approve"
@@ -849,7 +835,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   )}
 
                   {/* Purchase Manager Actions */}
-                  {request.status === 'pending_approval' && userRole === 'purchase-manager' && (
+                  {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (
                     <button
                       className="btn-icon btn-cancel"
                       onClick={() => handleCancelRequest(request._id)}
@@ -860,13 +846,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   )}
 
                   {/* Story 2.3: Purchase Manager Fulfillment Actions */}
-                  {userRole === 'purchase-manager' && request.status === 'pending' && (
+                  {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.PENDING && (
                     <button
                       className="btn btn-primary btn-action"
                       onClick={() =>
                         handleUpdateStatus(
                           request._id,
-                          'ordered',
+                          PurchaseRequestStatuses.ORDERED,
                           'Marked Ordered via Purchase Management',
                           'Request marked as ordered'
                         )
@@ -878,13 +864,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     </button>
                   )}
 
-                  {userRole === 'purchase-manager' && request.status === 'ordered' && (
+                  {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
                     <button
                       className="btn btn-primary btn-action"
                       onClick={() =>
                         handleUpdateStatus(
                           request._id,
-                          'delivered_store',
+                          PurchaseRequestStatuses.DELIVERED_STORE,
                           'Marked Received at Store via Purchase Management',
                           'Request marked as received at store'
                         )
@@ -897,7 +883,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   )}
 
                   {/* Update Stock Button - Story 19 */}
-                  {request.status === 'approved' && userRole === 'purchase-manager' && (
+                  {request.status === PurchaseRequestStatuses.APPROVED && normalizedRole === UserTypes.PURCHASE_MANAGER && (
                     <button
                       className="btn-icon btn-primary"
                       onClick={() => handleUpdateStock(request)}
@@ -911,8 +897,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             ))}
             {filteredRequests.length === 0 && (
               <tr>
-                <td colSpan={userRole === 'admin' ? "10" : "9"} className="no-data">
-                  {userRole === 'purchase-manager'
+                <td colSpan={normalizedRole === UserTypes.ADMIN ? "10" : "9"} className="no-data">
+                  {normalizedRole === UserTypes.PURCHASE_MANAGER
                     ? "No purchase requests found. Click '+ New Purchase Request' to create one."
                     : "No purchase requests found."}
                 </td>
@@ -931,19 +917,19 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         <div className="stats-item">
           <span className="stats-label">Pending:</span>
           <span className="stats-value pending">
-            {filteredRequests.filter(r => r.status === 'pending_approval').length}
+            {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.PENDING_APPROVAL).length}
           </span>
         </div>
         <div className="stats-item">
           <span className="stats-label">Approved:</span>
           <span className="stats-value approved">
-            {filteredRequests.filter(r => r.status === 'approved').length}
+            {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.APPROVED).length}
           </span>
         </div>
         <div className="stats-item">
           <span className="stats-label">Completed:</span>
           <span className="stats-value completed">
-            {filteredRequests.filter(r => r.status === 'completed').length}
+            {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.COMPLETED).length}
           </span>
         </div>
       </div>
