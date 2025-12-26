@@ -113,6 +113,28 @@ describe('Vendor Controller - Story 1.1', () => {
         ])
       }));
     });
+
+    it('should filter by search term', async () => {
+      await Vendor.create([
+        { name: 'Alpha Supplies', phone: '9876543210', address: 'MG Road' },
+        { name: 'Beta Traders', phone: '9876543211', address: 'Brigade Road' }
+      ]);
+
+      const req = mockRequest({
+        query: { search: 'alpha' }
+      });
+      const res = mockResponse();
+
+      await vendorController.getAllVendors(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        count: 1,
+        vendors: expect.arrayContaining([
+          expect.objectContaining({ name: 'Alpha Supplies' })
+        ])
+      }));
+    });
   });
 
   describe('updateVendor', () => {

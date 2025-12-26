@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import {
+  api,
   createPurchaseRequest,
   getLowStockProducts,
   getAllShopItems,
   createPendingProduct  // Sprint5-Story-25
 } from '../../../api';
 import showToast from '../../../utils/toast';
+import ImageUpload from '../../shop/ImageUpload';
+import { UserTypes, normalizeUserRole } from '../../../constants/userTypes';
 import '../PurchaseManagement.css';
 
 /**
@@ -20,7 +23,7 @@ export default function CreatePurchaseRequestModal({
   balagruhas,
   userRole
 }) {
-  const isAdmin = userRole === 'admin';
+  const isAdmin = normalizeUserRole(userRole) === UserTypes.ADMIN;
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -51,15 +54,126 @@ export default function CreatePurchaseRequestModal({
     category: 'stationery',
     unit: 'pieces',
     sku: '',
-    description: ''
+    description: '',
+    maxPrice: '',
+    sellingPrice: '',
+    discountPrice: '',
+    stock: '0',
+    lowStockThreshold: '10',
+    imageUrl: ''
   });
   const [newProductErrors, setNewProductErrors] = useState({});
+
+  // Vendors (for inline product addition)
+  const [vendorOptions, setVendorOptions] = useState([]);
+  const [vendorsLoading, setVendorsLoading] = useState(false);
+  const [vendorsError, setVendorsError] = useState(null);
+  const [newProductSelectedVendors, setNewProductSelectedVendors] = useState([
+    { vendorId: '', rank: 1 },
+    { vendorId: '', rank: 2 },
+    { vendorId: '', rank: 3 }
+  ]);
 
   useEffect(() => {
     if (!isAdmin) {
       setShowAddProductForm(false);
     }
   }, [isAdmin]);
+
+  const resetInlineProductForm = () => {
+    setNewProductForm({
+      name: '',
+      category: 'stationery',
+      unit: 'pieces',
+      sku: '',
+      description: '',
+      maxPrice: '',
+      sellingPrice: '',
+      discountPrice: '',
+      stock: '0',
+      lowStockThreshold: '10',
+      imageUrl: ''
+    });
+    setNewProductErrors({});
+    setNewProductSelectedVendors([
+      { vendorId: '', rank: 1 },
+      { vendorId: '', rank: 2 },
+      { vendorId: '', rank: 3 }
+    ]);
+  };
+
+  const fetchVendors = async () => {
+    try {
+      setVendorsLoading(true);
+      setVendorsError(null);
+
+      const response = await api.get('/api/v2/vendors', {
+        params: {
+          active: 'true',
+          limit: 100
+        }
+      });
+
+      if (response.data?.success) {
+        setVendorOptions(response.data.vendors || []);
+      } else {
+        throw new Error(response.data?.error || 'Failed to load vendors');
+      }
+    } catch (err) {
+      console.error('Failed to fetch vendors:', err);
+      setVendorOptions([]);
+      setVendorsError(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to load vendors');
+    } finally {
+      setVendorsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!isAdmin) return;
+    if (!showAddProductForm) return;
+    fetchVendors();
+  }, [isAdmin, showAddProductForm]);
+
+  const handleNewProductFieldChange = (field, value) => {
+    const nextValue = field === 'sku' ? value.toUpperCase().replace(/\s+/g, '') : value;
+
+    setNewProductForm(prev => ({
+      ...prev,
+      [field]: nextValue
+    }));
+
+    if (newProductErrors[field]) {
+      setNewProductErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+    }
+  };
+
+  const handleNewProductVendorChange = (index, vendorId) => {
+    if (vendorId) {
+      const isDuplicate = newProductSelectedVendors.some((v, i) => i !== index && v.vendorId === vendorId);
+      if (isDuplicate) {
+        showToast('This vendor is already selected in another rank', 'error');
+        return;
+      }
+    }
+
+    setNewProductSelectedVendors((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], vendorId };
+      return next;
+    });
+
+    if (newProductErrors.approvedVendors) {
+      setNewProductErrors((prev) => {
+        const next = { ...prev };
+        delete next.approvedVendors;
+        return next;
+      });
+    }
+  };
 
   // ============================================================================
   // FILE PREVIEW COMPONENT (Copied from MachineRepairsView.jsx)
@@ -283,6 +397,54 @@ export default function CreatePurchaseRequestModal({
       errors.unit = 'Unit is required';
     }
 
+    if (newProductForm.sku.trim()) {
+      if (!/^[A-Z0-9-]+$/.test(newProductForm.sku)) {
+        errors.sku = 'SKU must contain only uppercase letters, numbers, and hyphens';
+      } else if (newProductForm.sku.length < 3 || newProductForm.sku.length > 20) {
+        errors.sku = 'SKU must be between 3 and 20 characters';
+      }
+    }
+
+    const maxPrice = Number(newProductForm.maxPrice);
+    if (newProductForm.maxPrice === '' || Number.isNaN(maxPrice) || maxPrice < 0) {
+      errors.maxPrice = 'Max Price (₹) is required';
+    }
+
+    const sellingPrice = Number(newProductForm.sellingPrice);
+    if (newProductForm.sellingPrice === '' || Number.isNaN(sellingPrice) || sellingPrice < 0) {
+      errors.sellingPrice = 'Selling Price (coins) is required';
+    }
+
+    if (newProductForm.discountPrice !== '' && newProductForm.discountPrice !== null && newProductForm.discountPrice !== undefined) {
+      const discountPrice = Number(newProductForm.discountPrice);
+      if (Number.isNaN(discountPrice) || discountPrice < 0) {
+        errors.discountPrice = 'Discount price must be a non-negative number';
+      } else if (!Number.isNaN(sellingPrice) && discountPrice >= sellingPrice) {
+        errors.discountPrice = 'Discount price must be less than selling price';
+      }
+    }
+
+    if (newProductForm.stock !== '' && newProductForm.stock !== null && newProductForm.stock !== undefined) {
+      const stock = Number(newProductForm.stock);
+      if (Number.isNaN(stock) || stock < 0) {
+        errors.stock = 'Stock must be a non-negative number';
+      }
+    }
+
+    if (newProductForm.lowStockThreshold !== '' && newProductForm.lowStockThreshold !== null && newProductForm.lowStockThreshold !== undefined) {
+      const threshold = Number(newProductForm.lowStockThreshold);
+      if (Number.isNaN(threshold) || threshold < 0) {
+        errors.lowStockThreshold = 'Low stock threshold must be a non-negative number';
+      }
+    }
+
+    const approvedVendors = newProductSelectedVendors
+      .filter((v) => v.vendorId)
+      .map((v) => ({ vendorId: v.vendorId, rank: v.rank }));
+    if (approvedVendors.length === 0) {
+      errors.approvedVendors = 'Please select at least one approved vendor';
+    }
+
     if (Object.keys(errors).length > 0) {
       setNewProductErrors(errors);
       return;
@@ -295,7 +457,15 @@ export default function CreatePurchaseRequestModal({
         category: newProductForm.category,
         unit: newProductForm.unit,
         sku: newProductForm.sku.trim() || undefined,
-        description: newProductForm.description.trim() || undefined
+        description: newProductForm.description.trim() || undefined,
+        maxPrice: Number(newProductForm.maxPrice),
+        sellingPrice: Number(newProductForm.sellingPrice),
+        discountPrice: newProductForm.discountPrice !== '' ? Number(newProductForm.discountPrice) : undefined,
+        approvedVendors,
+        stock: newProductForm.stock !== '' ? Number(newProductForm.stock) : 0,
+        lowStockThreshold: newProductForm.lowStockThreshold !== '' ? Number(newProductForm.lowStockThreshold) : 10,
+        imageUrl: newProductForm.imageUrl || undefined,
+        images: newProductForm.imageUrl ? [{ url: newProductForm.imageUrl, isPrimary: true }] : []
       });
 
       if (response.success && response.product) {
@@ -323,13 +493,7 @@ export default function CreatePurchaseRequestModal({
         }));
 
         // Reset form and hide
-        setNewProductForm({
-          name: '',
-          category: 'Consumables',
-          unit: 'pieces',
-          sku: '',
-          description: ''
-        });
+        resetInlineProductForm();
         setShowAddProductForm(false);
 
         showToast('New product created successfully! Please fill in quantity and estimated cost.', 'success');
@@ -338,20 +502,17 @@ export default function CreatePurchaseRequestModal({
       }
     } catch (error) {
       console.error('Error creating pending product:', error);
-      const errorMsg = error.response?.data?.error || error.message || 'Failed to create product';
+      const errorMsg =
+        error.response?.data?.message ||
+        error.response?.data?.error ||
+        error.message ||
+        'Failed to create product';
       showToast(errorMsg, 'error');
     }
   };
 
   const handleCancelAddProduct = () => {
-    setNewProductForm({
-      name: '',
-      category: 'Consumables',
-      unit: 'pieces',
-      sku: '',
-      description: ''
-    });
-    setNewProductErrors({});
+    resetInlineProductForm();
     setShowAddProductForm(false);
   };
 
@@ -592,7 +753,7 @@ export default function CreatePurchaseRequestModal({
                       type="text"
                       className="form-control"
                       value={newProductForm.name}
-                      onChange={(e) => setNewProductForm(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => handleNewProductFieldChange('name', e.target.value)}
                       placeholder="Enter product name"
                     />
                     {newProductErrors.name && (
@@ -608,7 +769,7 @@ export default function CreatePurchaseRequestModal({
                       <select
                         className="form-select"
                         value={newProductForm.category}
-                        onChange={(e) => setNewProductForm(prev => ({ ...prev, category: e.target.value }))}
+                        onChange={(e) => handleNewProductFieldChange('category', e.target.value)}
                       >
                         <option value="stationery">Stationery</option>
                         <option value="sports">Sports</option>
@@ -629,7 +790,7 @@ export default function CreatePurchaseRequestModal({
                       <select
                         className="form-select"
                         value={newProductForm.unit}
-                        onChange={(e) => setNewProductForm(prev => ({ ...prev, unit: e.target.value }))}
+                        onChange={(e) => handleNewProductFieldChange('unit', e.target.value)}
                       >
                         <option value="pieces">Pieces</option>
                         <option value="packets">Packets</option>
@@ -658,9 +819,12 @@ export default function CreatePurchaseRequestModal({
                       type="text"
                       className="form-control"
                       value={newProductForm.sku}
-                      onChange={(e) => setNewProductForm(prev => ({ ...prev, sku: e.target.value }))}
+                      onChange={(e) => handleNewProductFieldChange('sku', e.target.value)}
                       placeholder="Leave blank for auto-generation"
                     />
+                    {newProductErrors.sku && (
+                      <small style={{ color: 'red' }}>{newProductErrors.sku}</small>
+                    )}
                     <small style={{ color: '#6c757d' }}>
                       If left blank, SKU will be auto-generated (NEW-{Date.now()})
                     </small>
@@ -673,10 +837,175 @@ export default function CreatePurchaseRequestModal({
                     <textarea
                       className="form-control"
                       value={newProductForm.description}
-                      onChange={(e) => setNewProductForm(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={(e) => handleNewProductFieldChange('description', e.target.value)}
                       placeholder="Enter product description"
                       rows="2"
                     />
+                  </div>
+
+                  {/* Story 1.2 / 1.3: Governance fields */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Max Price (₹) <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={newProductForm.maxPrice}
+                        onChange={(e) => handleNewProductFieldChange('maxPrice', e.target.value)}
+                        placeholder="Procurement limit"
+                        min="0"
+                      />
+                      {newProductErrors.maxPrice && (
+                        <small style={{ color: 'red' }}>{newProductErrors.maxPrice}</small>
+                      )}
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Selling Price (coins) <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={newProductForm.sellingPrice}
+                        onChange={(e) => handleNewProductFieldChange('sellingPrice', e.target.value)}
+                        placeholder="Shop price"
+                        min="0"
+                      />
+                      {newProductErrors.sellingPrice && (
+                        <small style={{ color: 'red' }}>{newProductErrors.sellingPrice}</small>
+                      )}
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Discount Price (coins)
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={newProductForm.discountPrice}
+                        onChange={(e) => handleNewProductFieldChange('discountPrice', e.target.value)}
+                        placeholder="Optional"
+                        min="0"
+                      />
+                      {newProductErrors.discountPrice && (
+                        <small style={{ color: 'red' }}>{newProductErrors.discountPrice}</small>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Approved Vendors */}
+                  <div style={{ marginBottom: '12px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Approved Vendors (Ranked) <span style={{ color: 'red' }}>*</span>
+                    </label>
+
+                    {vendorsLoading ? (
+                      <small style={{ color: '#6c757d' }}>Loading vendors...</small>
+                    ) : vendorsError ? (
+                      <div>
+                        <small style={{ color: 'red' }}>{vendorsError}</small>
+                        <div>
+                          <button
+                            type="button"
+                            onClick={fetchVendors}
+                            style={{
+                              marginTop: '6px',
+                              padding: '6px 12px',
+                              backgroundColor: '#f8f9fa',
+                              border: '1px solid #ced4da',
+                              borderRadius: '4px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'grid', gridTemplateColumns: '80px 1fr', gap: '8px', alignItems: 'center' }}>
+                        {newProductSelectedVendors.map((slot, index) => (
+                          <React.Fragment key={slot.rank}>
+                            <div style={{ fontSize: '13px', fontWeight: 'bold' }}>Rank {slot.rank}</div>
+                            <select
+                              className="form-select"
+                              value={slot.vendorId}
+                              onChange={(e) => handleNewProductVendorChange(index, e.target.value)}
+                            >
+                              <option value="">Select vendor...</option>
+                              {vendorOptions.map((v) => (
+                                <option key={v._id} value={v._id}>
+                                  {v.name} ({v.phone})
+                                </option>
+                              ))}
+                            </select>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    )}
+
+                    {newProductErrors.approvedVendors && (
+                      <small style={{ color: 'red' }}>{newProductErrors.approvedVendors}</small>
+                    )}
+
+                    {!vendorsLoading && !vendorsError && vendorOptions.length === 0 && (
+                      <small style={{ color: '#6c757d' }}>
+                        No active vendors found. Please create vendors in Shop Admin → Vendors.
+                      </small>
+                    )}
+                  </div>
+
+                  {/* Stock */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Stock
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={newProductForm.stock}
+                        onChange={(e) => handleNewProductFieldChange('stock', e.target.value)}
+                        placeholder="0"
+                        min="0"
+                      />
+                      {newProductErrors.stock && (
+                        <small style={{ color: 'red' }}>{newProductErrors.stock}</small>
+                      )}
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                        Low Stock Threshold
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        value={newProductForm.lowStockThreshold}
+                        onChange={(e) => handleNewProductFieldChange('lowStockThreshold', e.target.value)}
+                        placeholder="10"
+                        min="0"
+                      />
+                      {newProductErrors.lowStockThreshold && (
+                        <small style={{ color: 'red' }}>{newProductErrors.lowStockThreshold}</small>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Image */}
+                  <div style={{ marginBottom: '16px' }}>
+                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
+                      Product Image
+                    </label>
+                    <div style={{ maxWidth: '520px' }}>
+                      <ImageUpload
+                        currentImageUrl={newProductForm.imageUrl}
+                        onUpload={(url) => handleNewProductFieldChange('imageUrl', url)}
+                      />
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', gap: '8px' }}>

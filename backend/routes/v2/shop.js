@@ -43,7 +43,7 @@ router.get('/categories', shopController.getCategories);
 router.post(
   '/products/:productId/images',
   authenticate,
-  authorize('shop', 'manage'),
+  authorize('Shop Management', 'Manage'),
   upload.array('images', 5),
   shopProductImageController.uploadProductImages
 );
@@ -56,7 +56,7 @@ router.post(
 router.delete(
   '/products/:productId/images/:imageId',
   authenticate,
-  authorize('shop', 'manage'),
+  authorize('Shop Management', 'Manage'),
   shopProductImageController.deleteProductImage
 );
 
@@ -68,7 +68,7 @@ router.delete(
 router.put(
   '/products/:productId/images/:imageId/primary',
   authenticate,
-  authorize('shop', 'manage'),
+  authorize('Shop Management', 'Manage'),
   shopProductImageController.setPrimaryImage
 );
 

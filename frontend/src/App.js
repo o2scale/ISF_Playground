@@ -39,19 +39,20 @@ import InventoryManagement from "./pages/InventoryManagement";
 import LowStockReport from "./pages/LowStockReport";
 import OutOfStockReport from "./pages/OutOfStockReport";
 import MasterInventoryReport from "./pages/MasterInventoryReport";
+import VendorManagement from "./pages/VendorManagement";
 import TransactionHistory from "./pages/TransactionHistory";
 import ShopAnalytics from "./pages/ShopAnalytics";
 import TransactionReports from "./pages/TransactionReports";
 import CoachDeliveries from "./pages/CoachDeliveries";
 import CoachRequestsDashboard from "./pages/CoachRequestsDashboard";
 import StudentProfile from "./pages/StudentProfile";
+import { UserTypes, normalizeUserRole } from "./constants/userTypes";
 
 const CoachOrAdminRoute = ({ children }) => {
   const { user } = useAuth();
-  const userRole = typeof user?.role === "string" ? user.role : user?.role?.roleName;
-  const roleLower = userRole?.toLowerCase();
+  const normalizedRole = normalizeUserRole(user?.role);
 
-  if (roleLower !== "coach" && roleLower !== "admin") {
+  if (normalizedRole !== UserTypes.COACH && normalizedRole !== UserTypes.ADMIN) {
     return <Navigate to="/access-denied" replace />;
   }
 
@@ -223,6 +224,14 @@ const App = () => {
                   element={
                     <ProtectedRoute module="Shop Management" action="Manage">
                       <ProductManagement />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/shop/admin/vendors"
+                  element={
+                    <ProtectedRoute module="Shop Management" action="Manage">
+                      <VendorManagement />
                     </ProtectedRoute>
                   }
                 />

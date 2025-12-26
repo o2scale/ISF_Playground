@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import ImageUpload from './ImageUpload';
 import ProductImageUpload from '../admin/ProductImageUpload';
+import { api } from '../../api';
 
 /**
  * ProductFormModal Component - Sprint5-Story-05
@@ -10,7 +13,17 @@ import ProductImageUpload from '../admin/ProductImageUpload';
  */
 
 export default function ProductFormModal({ product, onClose, onSubmit, onRefresh }) {
+  const navigate = useNavigate();
   const isEditing = Boolean(product);
+
+  const [vendors, setVendors] = useState([]);
+  const [vendorsLoading, setVendorsLoading] = useState(true);
+  const [vendorsError, setVendorsError] = useState(null);
+  const [selectedVendors, setSelectedVendors] = useState([
+    { vendorId: '', rank: 1 },
+    { vendorId: '', rank: 2 },
+    { vendorId: '', rank: 3 }
+  ]);
 
   const [formData, setFormData] = useState({
     sku: '',
@@ -19,6 +32,7 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
     category: 'stationery',
     price: '',
     discountPrice: '',
+    maxPrice: '',
     stock: '',
     lowStockThreshold: '10',
     imageUrl: '',
@@ -29,6 +43,36 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    fetchVendors();
+  }, []);
+
+  const fetchVendors = async () => {
+    try {
+      setVendorsLoading(true);
+      setVendorsError(null);
+
+      const response = await api.get('/api/v2/vendors', {
+        params: {
+          active: 'true',
+          limit: 100
+        }
+      });
+
+      if (response.data?.success) {
+        setVendors(response.data.vendors || []);
+      } else {
+        throw new Error(response.data?.error || 'Failed to load vendors');
+      }
+    } catch (err) {
+      console.error('Failed to fetch vendors:', err);
+      setVendors([]);
+      setVendorsError(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to load vendors');
+    } finally {
+      setVendorsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     if (product) {
       setFormData({
         sku: product.sku || '',
@@ -37,19 +81,60 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
         category: product.category || 'stationery',
         price: product.price?.toString() || '',
         discountPrice: product.discountPrice?.toString() || '',
+        maxPrice: product.maxPrice?.toString() || '',
         stock: product.stock?.toString() || '',
         lowStockThreshold: product.lowStockThreshold?.toString() || '10',
         imageUrl: product.imageUrl || product.primaryImageUrl || '',
         isActive: product.isActive !== undefined ? product.isActive : true
       });
+
+      const ranked = Array.isArray(product.approvedVendors) ? [...product.approvedVendors] : [];
+      ranked.sort((a, b) => (a.rank || 0) - (b.rank || 0));
+
+      setSelectedVendors([
+        { vendorId: String(ranked.find((v) => (v.rank || 1) === 1)?.vendorId?._id || ranked.find((v) => (v.rank || 1) === 1)?.vendorId || ''), rank: 1 },
+        { vendorId: String(ranked.find((v) => (v.rank || 2) === 2)?.vendorId?._id || ranked.find((v) => (v.rank || 2) === 2)?.vendorId || ''), rank: 2 },
+        { vendorId: String(ranked.find((v) => (v.rank || 3) === 3)?.vendorId?._id || ranked.find((v) => (v.rank || 3) === 3)?.vendorId || ''), rank: 3 }
+      ]);
+    } else {
+      setSelectedVendors([
+        { vendorId: '', rank: 1 },
+        { vendorId: '', rank: 2 },
+        { vendorId: '', rank: 3 }
+      ]);
     }
   }, [product]);
 
+  const handleVendorChange = (index, vendorId) => {
+    if (vendorId) {
+      const isDuplicate = selectedVendors.some((v, i) => i !== index && v.vendorId === vendorId);
+      if (isDuplicate) {
+        toast.error('This vendor is already selected in another rank');
+        return;
+      }
+    }
+
+    setSelectedVendors((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], vendorId };
+      return next;
+    });
+
+    if (errors.approvedVendors) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.approvedVendors;
+        return next;
+      });
+    }
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const nextValue = name === 'sku' ? value.toUpperCase().replace(/\s+/g, '') : value;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : nextValue
     }));
 
     // Clear error for this field
@@ -74,6 +159,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
       newErrors.sku = 'SKU is required';
     } else if (!isEditing && !/^[A-Z0-9-]+$/.test(formData.sku)) {
       newErrors.sku = 'SKU must contain only uppercase letters, numbers, and hyphens';
+    } else if (!isEditing && (formData.sku.length < 3 || formData.sku.length > 20)) {
+      newErrors.sku = 'SKU must be between 3 and 20 characters';
     }
 
     // Name validation
@@ -94,6 +181,16 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
     const price = parseInt(formData.price);
     if (!formData.price || isNaN(price) || price < 1) {
       newErrors.price = 'Price must be a positive number';
+    }
+
+    // Max price validation (required for new products)
+    const maxPrice = formData.maxPrice === '' ? null : Number(formData.maxPrice);
+    if (!isEditing) {
+      if (maxPrice === null || Number.isNaN(maxPrice) || maxPrice < 0) {
+        newErrors.maxPrice = 'Max Price (₹) is required for new items';
+      }
+    } else if (maxPrice !== null && (Number.isNaN(maxPrice) || maxPrice < 0)) {
+      newErrors.maxPrice = 'Max Price must be a non-negative number';
     }
 
     // Discount price validation
@@ -122,6 +219,17 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
       }
     }
 
+    // Approved vendors (required for new products)
+    const approvedVendors = selectedVendors.filter((v) => v.vendorId);
+    if (!isEditing && approvedVendors.length === 0) {
+      newErrors.approvedVendors = 'Please select at least one approved vendor';
+    }
+
+    // If editing an item that already has vendors, prevent clearing all
+    if (isEditing && Array.isArray(product?.approvedVendors) && product.approvedVendors.length > 0 && approvedVendors.length === 0) {
+      newErrors.approvedVendors = 'At least one approved vendor is required';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -136,13 +244,23 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
     setSubmitting(true);
 
     try {
+      const approvedVendors = selectedVendors
+        .filter((v) => v.vendorId)
+        .map((v) => ({ vendorId: v.vendorId, rank: v.rank }));
+
       const submitData = {
         ...formData,
         price: parseInt(formData.price),
+        sellingPrice: parseInt(formData.price), // Story 1.2 mapping: sellingPrice in coins
         discountPrice: formData.discountPrice ? parseInt(formData.discountPrice) : null,
+        maxPrice: formData.maxPrice !== '' ? Number(formData.maxPrice) : undefined,
         stock: formData.stock ? parseInt(formData.stock) : 0,
         lowStockThreshold: formData.lowStockThreshold ? parseInt(formData.lowStockThreshold) : 10
       };
+
+      if (approvedVendors.length > 0) {
+        submitData.approvedVendors = approvedVendors;
+      }
 
       // Remove empty/null values
       Object.keys(submitData).forEach(key => {
@@ -153,7 +271,19 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
 
       await onSubmit(submitData);
     } catch (error) {
-      // Error handling is done in parent component
+      const apiErrors = error.response?.data?.errors;
+      if (Array.isArray(apiErrors) && apiErrors.length > 0) {
+        const nextErrors = {};
+        apiErrors.forEach((err) => {
+          if (err?.field && err?.message && !nextErrors[err.field]) {
+            nextErrors[err.field] = err.message;
+          }
+        });
+
+        if (Object.keys(nextErrors).length > 0) {
+          setErrors((prev) => ({ ...prev, ...nextErrors }));
+        }
+      }
     } finally {
       setSubmitting(false);
     }
@@ -254,11 +384,29 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
             </select>
           </div>
 
-          {/* Price & Discount Price */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Pricing - Story 1.2 */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">
-                Price (coins) <span className="text-red-500">*</span>
+                Max Price (₹) <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="number"
+                name="maxPrice"
+                value={formData.maxPrice}
+                onChange={handleChange}
+                min="0"
+                placeholder="50"
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
+                  errors.maxPrice ? 'border-red-500' : 'border-slate-300'
+                }`}
+              />
+              {errors.maxPrice && <p className="mt-1 text-sm text-red-600">{errors.maxPrice}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Selling Price (coins) <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -291,6 +439,73 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
               />
               {errors.discountPrice && <p className="mt-1 text-sm text-red-600">{errors.discountPrice}</p>}
             </div>
+          </div>
+
+          {/* Approved Vendors - Story 1.3 */}
+          <div>
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Approved Vendors (Ranked) <span className="text-red-500">*</span>
+              </label>
+              {!vendorsLoading && vendors.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => navigate('/shop/admin/vendors')}
+                  className="text-sm text-purple-600 hover:text-purple-700 font-medium"
+                >
+                  + Create Vendors
+                </button>
+              )}
+            </div>
+
+            {vendorsLoading ? (
+              <div className="text-sm text-slate-600">Loading vendors...</div>
+            ) : vendorsError ? (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                <div className="text-sm text-red-800">{vendorsError}</div>
+                <button
+                  type="button"
+                  onClick={fetchVendors}
+                  className="mt-2 text-sm text-red-700 hover:text-red-800 font-medium"
+                >
+                  Retry
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {selectedVendors.map((slot, index) => (
+                  <div key={slot.rank} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+                    <div className="text-sm text-slate-700 font-medium">Rank {slot.rank}</div>
+                    <div className="md:col-span-2">
+                      <select
+                        value={slot.vendorId}
+                        onChange={(e) => handleVendorChange(index, e.target.value)}
+                        className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="">Select vendor...</option>
+                        {vendors.map((v) => (
+                          <option key={v._id} value={v._id}>
+                            {v.name} ({v.phone})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                ))}
+
+                {errors.approvedVendors && (
+                  <p className="text-sm text-red-600">{errors.approvedVendors}</p>
+                )}
+
+                {!vendorsLoading && vendors.length === 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    <p className="text-sm text-amber-800">
+                      No active vendors found. Please create at least one vendor before adding a new product.
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Stock & Low Stock Threshold */}

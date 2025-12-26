@@ -7,11 +7,8 @@ const { mockRequest, mockResponse } = global.testUtils;
 describe('Admin Product Controller - Story 1.2', () => {
   let vendor;
 
-  beforeAll(async () => {
-    vendor = await Vendor.create({ name: 'Valid Vendor', phone: '9876543210', address: 'A' });
-  });
-
   beforeEach(async () => {
+    vendor = await Vendor.create({ name: 'Valid Vendor', phone: '9876543210', address: 'A' });
     await ShopItem.deleteMany({});
   });
 
@@ -137,7 +134,10 @@ describe('Admin Product Controller - Story 1.2', () => {
         body: {
           name: 'Pending Item',
           category: 'stationery',
-          unit: 'units'
+          unit: 'units',
+          maxPrice: 50,
+          sellingPrice: 10,
+          approvedVendors: [{ vendorId: vendor._id }]
         }
       });
       const res = mockResponse();

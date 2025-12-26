@@ -63,6 +63,8 @@ const Breadcrumbs = ({ customPath }) => {
 
       if (path === '/shop/admin/products') {
         breadcrumbs.push({ label: 'Product Management', path: '/shop/admin/products' });
+      } else if (path === '/shop/admin/vendors') {
+        breadcrumbs.push({ label: 'Vendor Management', path: '/shop/admin/vendors' });
       } else if (path === '/shop/admin/inventory') {
         breadcrumbs.push({ label: 'Inventory Management', path: '/shop/admin/inventory' });
       } else if (path === '/shop/admin/inventory/low-stock') {

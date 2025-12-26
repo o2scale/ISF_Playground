@@ -445,7 +445,21 @@ async function createPendingProduct(req, res) {
       });
     }
 
-    const { name, category, unit, sku, description } = req.body;
+    const {
+      name,
+      category,
+      unit,
+      sku,
+      description,
+      maxPrice,
+      sellingPrice,
+      discountPrice,
+      approvedVendors,
+      imageUrl,
+      images,
+      stock,
+      lowStockThreshold
+    } = req.body;
     const userId = req.user._id;
 
     // Validation
@@ -457,8 +471,53 @@ async function createPendingProduct(req, res) {
       });
     }
 
+    // Align pending product creation with Story 1.2 governance rules
+    if (maxPrice === undefined || maxPrice === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Max Price (Rupees) is required for new items',
+        error: 'Validation Error'
+      });
+    }
+
+    if (sellingPrice === undefined || sellingPrice === null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Selling Price (Coins) is required for new items',
+        error: 'Validation Error'
+      });
+    }
+
+    if (!approvedVendors || !Array.isArray(approvedVendors) || approvedVendors.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'At least one Approved Vendor is required',
+        error: 'Validation Error'
+      });
+    }
+
+    // Verify all vendor IDs exist and check for duplicates
+    const vendorIds = approvedVendors.map(v => v.vendorId);
+    const uniqueVendorIds = new Set(vendorIds.map(id => id.toString()));
+    if (uniqueVendorIds.size !== vendorIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'Duplicate Vendor IDs found in approved vendors list',
+        error: 'Validation Error'
+      });
+    }
+
+    const validVendorsCount = await Vendor.countDocuments({ _id: { $in: vendorIds } });
+    if (validVendorsCount !== vendorIds.length) {
+      return res.status(400).json({
+        success: false,
+        message: 'One or more Vendor IDs are invalid',
+        error: 'Validation Error'
+      });
+    }
+
     // Generate SKU if not provided
-    const generatedSKU = sku || `NEW-${Date.now()}`;
+    const generatedSKU = (sku || `NEW-${Date.now()}`).toUpperCase();
 
     // Check SKU uniqueness
     const existingProduct = await ShopItem.findOne({ sku: generatedSKU });
@@ -479,9 +538,17 @@ async function createPendingProduct(req, res) {
       description: description || 'Pending product - details to be added',
       isPendingProduct: true,
       isActive: false,
-      stock: 0,
-      lowStockThreshold: 0,
-      price: 0,  // Default price, will be set during fulfillment
+      stock: stock !== undefined && stock !== null ? Number(stock) : 0,
+      lowStockThreshold: lowStockThreshold !== undefined && lowStockThreshold !== null ? Number(lowStockThreshold) : 10,
+      price: Number(sellingPrice),
+      discountPrice: discountPrice !== undefined && discountPrice !== null && discountPrice !== ''
+        ? Number(discountPrice)
+        : null,
+      maxPrice: Number(maxPrice),
+      sellingPrice: Number(sellingPrice),
+      approvedVendors,
+      imageUrl: imageUrl || null,
+      images: Array.isArray(images) ? images : [],
       balagruhaId: null,
       createdBy: userId,
       createdInRequest: null  // Will be set when added to request
@@ -496,6 +563,15 @@ async function createPendingProduct(req, res) {
     });
   } catch (error) {
     console.error('Error creating pending product:', error);
+
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        error: error.message
+      });
+    }
+
     res.status(500).json({
       success: false,
       message: 'Failed to create pending product',

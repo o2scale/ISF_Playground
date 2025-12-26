@@ -147,7 +147,12 @@ export default function ProductManagement() {
       fetchProducts();
     } catch (err) {
       console.error('Error saving product:', err);
-      const errorMessage = err.response?.data?.message || 'Failed to save product';
+      const apiErrors = err.response?.data?.errors;
+      const errorMessage =
+        Array.isArray(apiErrors) && apiErrors.length > 0
+          ? apiErrors[0].message
+          : (err.response?.data?.message || 'Failed to save product');
+
       toast.error(errorMessage);
       throw err; // Re-throw to let modal handle it
     }

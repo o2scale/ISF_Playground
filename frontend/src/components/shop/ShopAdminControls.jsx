@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
   Package,
+  Truck,
   BarChart3,
   FileText,
   AlertTriangle,
@@ -162,6 +163,12 @@ const ShopAdminControls = () => {
       label: 'Products',
       icon: Package,
       path: '/shop/admin/products',
+      color: 'purple'
+    },
+    {
+      label: 'Vendors',
+      icon: Truck,
+      path: '/shop/admin/vendors',
       color: 'purple'
     },
     {

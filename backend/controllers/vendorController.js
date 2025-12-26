@@ -41,11 +41,21 @@ exports.createVendor = async (req, res) => {
  */
 exports.getAllVendors = async (req, res) => {
   try {
-    const { active, page = 1, limit = 20 } = req.query;
+    const { active, search, page = 1, limit = 20 } = req.query;
     const query = {};
 
     if (active !== undefined) {
       query.active = active === 'true';
+    }
+
+    if (typeof search === 'string' && search.trim()) {
+      const escaped = search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const regex = new RegExp(escaped, 'i');
+      query.$or = [
+        { name: regex },
+        { phone: regex },
+        { address: regex }
+      ];
     }
 
     const pageNum = parseInt(page);
