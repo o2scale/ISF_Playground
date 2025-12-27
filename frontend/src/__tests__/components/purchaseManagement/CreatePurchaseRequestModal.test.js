@@ -33,6 +33,12 @@ describe('CreatePurchaseRequestModal - PRD alignment (admin-only New Item)', () 
     await waitFor(() => expect(getAllShopItems).toHaveBeenCalled());
   };
 
+  const selectCategory = async () => {
+    // Category is the second combobox
+    const categorySelect = screen.getAllByRole('combobox')[1];
+    fireEvent.change(categorySelect, { target: { value: 'ISF Shop' } });
+  };
+
   it('hides “+ Add New Product” for non-admin roles and shows helper message', async () => {
     render(
       <CreatePurchaseRequestModal
@@ -42,6 +48,7 @@ describe('CreatePurchaseRequestModal - PRD alignment (admin-only New Item)', () 
     );
 
     await selectBalagruha();
+    await selectCategory();
 
     expect(
       screen.queryByRole('button', { name: /add new product/i })
@@ -61,6 +68,7 @@ describe('CreatePurchaseRequestModal - PRD alignment (admin-only New Item)', () 
     );
 
     await selectBalagruha();
+    await selectCategory();
 
     expect(
       screen.getByRole('button', { name: /add new product/i })

@@ -1609,3 +1609,86 @@
 .dropdown-options::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+/* ============================================================================
+   STORY 3.4: TABBED UX FOR PURCHASE MANAGER
+   ============================================================================ */
+
+/* Category Tabs */
+.category-tabs-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.category-tab {
+  padding: 10px 16px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.category-tab:hover {
+  border-color: #3b82f6;
+  background-color: #f9fafb;
+}
+
+.category-tab.active-tab {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Status Tabs */
+.status-tabs-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.status-tab {
+  padding: 10px 16px;
+  background-color: white;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.status-tab:hover {
+  border-color: #3b82f6;
+  background-color: #f9fafb;
+}
+
+.status-tab.active-tab {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .category-tabs-row,
+  .status-tabs-row {
+    gap: 6px;
+  }
+
+  .category-tab,
+  .status-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+}
+

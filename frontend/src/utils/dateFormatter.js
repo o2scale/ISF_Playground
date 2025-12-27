@@ -48,6 +48,44 @@ export const formatDate = (date, format = 'dd/mm/yy') => {
 };
 
 /**
+ * Format a date-only value (e.g. from <input type="date"> -> YYYY-MM-DD) in local time,
+ * avoiding the common timezone off-by-one that happens with new Date('YYYY-MM-DD').
+ *
+ * Accepts:
+ * - 'YYYY-MM-DD' (treated as local date)
+ * - ISO strings / Date objects (formatted in local timezone)
+ */
+export const formatDateOnly = (date, format = 'dd/mm/yy') => {
+  if (!date) return 'N/A';
+
+  try {
+    let dateObj;
+
+    if (typeof date === 'string') {
+      const m = date.match(/^\d{4}-\d{2}-\d{2}$/);
+      if (m) {
+        const [y, mo, d] = date.split('-').map((v) => Number(v));
+        // local date at midnight
+        dateObj = new Date(y, mo - 1, d);
+      } else {
+        dateObj = new Date(date);
+      }
+    } else {
+      dateObj = date;
+    }
+
+    if (isNaN(dateObj.getTime())) {
+      return 'Invalid Date';
+    }
+
+    return formatDate(dateObj, format);
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return 'N/A';
+  }
+};
+
+/**
  * Format date with time (for detailed views)
  * @param {string|Date} date - Date string or Date object
  * @returns {string} Formatted date and time string

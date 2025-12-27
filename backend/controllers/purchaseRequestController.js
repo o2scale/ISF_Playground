@@ -16,8 +16,12 @@ const mongoose = require('mongoose');
  */
 exports.createPurchaseRequest = async (req, res) => {
   try {
-    const { balagruhaId, category, items, reason, justification } = req.body;
+    const { balagruhaId, category, items, reason, justification, deadline, priority } = req.body;
     const userId = req.user._id;
+
+    const normalizedPriority = typeof priority === 'string' ? priority.toLowerCase().trim() : '';
+    const allowedPriorities = new Set(['low', 'medium', 'high']);
+    const finalPriority = allowedPriorities.has(normalizedPriority) ? normalizedPriority : 'medium';
 
     // Files are in req.files (uploaded by multer automatically)
     const uploadedFiles = req.files || [];
@@ -39,12 +43,32 @@ exports.createPurchaseRequest = async (req, res) => {
       });
     }
 
-    const validCategories = ['New Equipment', 'Consumables (Including medicines)', 'Others'];
+    const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid category value. Must be one of: New Equipment, Consumables (Including medicines), Others'
+        message: 'Invalid category value. Must be one of: ISF Shop, Medicines, Consumables, Repairs, Infra, Others'
       });
+    }
+
+    // Deadline is optional; if provided must be a valid date.
+    // If provided as a date-only string (YYYY-MM-DD), store it as local date midnight
+    // to avoid timezone off-by-one when later rendering as a date.
+    let parsedDeadline = null;
+    if (deadline) {
+      if (typeof deadline === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+        const [y, m, d] = deadline.split('-').map((v) => Number(v));
+        parsedDeadline = new Date(y, m - 1, d);
+      } else {
+        parsedDeadline = new Date(deadline);
+      }
+
+      if (Number.isNaN(parsedDeadline.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid deadline format'
+        });
+      }
     }
 
     // Validate balagruhaId (Sprint5-Story-21: Support STOCK)
@@ -158,6 +182,8 @@ exports.createPurchaseRequest = async (req, res) => {
     const purchaseRequest = new PurchaseRequest({
       balagruhaId: balagruhaId,  // Now required: either 'STOCK' or ObjectId
       category: category.trim(),
+      deadline: parsedDeadline,
+      priority: finalPriority,
       items: validatedItems,
       attachments,
       reason: reason.trim(),
@@ -219,6 +245,8 @@ exports.getMyPurchaseRequests = async (req, res) => {
     const userRole = req.user.role;
     const { status, balagruhaId, category, startDate, endDate } = req.query;
 
+    const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
+
     // Role-based filtering
     // This endpoint is now only used for non-admin/non-purchase-manager roles
     // Admin and Purchase Manager use getAllPurchaseRequests instead
@@ -237,6 +265,12 @@ exports.getMyPurchaseRequests = async (req, res) => {
     }
 
     if (category && category !== 'All Categories') {
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category value. Must be one of: ISF Shop, Medicines, Consumables, Repairs, Infra, Others'
+        });
+      }
       query.category = category;
     }
 
@@ -298,6 +332,8 @@ exports.getMyPurchaseRequests = async (req, res) => {
 exports.getAllPurchaseRequests = async (req, res) => {
   try {
     const { status, balagruhaId, category, startDate, endDate } = req.query;
+
+    const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
     const userId = req.user._id;
     const userRole = req.user.role;
 
@@ -346,6 +382,12 @@ exports.getAllPurchaseRequests = async (req, res) => {
     }
 
     if (category && category !== 'All Categories') {
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category value. Must be one of: ISF Shop, Medicines, Consumables, Repairs, Infra, Others'
+        });
+      }
       query.category = category;
     }
 
@@ -1009,8 +1051,8 @@ exports.updateStatus = async (req, res) => {
       // Guard: Purchase Manager only
       allowed = userRole === 'purchase-manager';
     } else if (currentStatus === 'delivered_store' && status === 'delivered_balagruha') {
-      // Guard: Coach/Requester only (enforced as requester)
-      allowed = request.requestedBy.toString() === userId.toString();
+      // Guard: Requester (Coach) or Admin
+      allowed = request.requestedBy.toString() === userId.toString() || userRole === 'admin';
     } else if (currentStatus === 'pending' && (status === 'rejected' || status === 'on_hold')) {
       // Keep existing non-happy-path statuses constrained to pending only
       allowed = userRole === 'purchase-manager';

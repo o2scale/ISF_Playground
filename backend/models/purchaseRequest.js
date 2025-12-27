@@ -18,6 +18,17 @@ const PURCHASE_REQUEST_STATUSES = [
   'on_hold'
 ];
 
+const PURCHASE_REQUEST_CATEGORIES = [
+  'ISF Shop',
+  'Medicines',
+  'Consumables',
+  'Repairs',
+  'Infra',
+  'Others'
+];
+
+const PURCHASE_REQUEST_PRIORITIES = ['low', 'medium', 'high'];
+
 const purchaseRequestSchema = new mongoose.Schema(
   {
     requestId: {
@@ -47,8 +58,23 @@ const purchaseRequestSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: ['New Equipment', 'Consumables (Including medicines)', 'Others'],
+      enum: PURCHASE_REQUEST_CATEGORIES,
       trim: true,
+      index: true
+    },
+
+    // Deadline (C3): per-request
+    deadline: {
+      type: Date,
+      required: false,
+      index: true
+    },
+
+    // Priority (C3)
+    priority: {
+      type: String,
+      enum: PURCHASE_REQUEST_PRIORITIES,
+      default: 'medium',
       index: true
     },
 

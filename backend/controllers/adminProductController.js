@@ -132,7 +132,8 @@ async function createProduct(req, res) {
       metadata,
       maxPrice,
       sellingPrice,
-      approvedVendors
+      approvedVendors,
+      purchaseCategory
     } = req.body;
 
     // Sprint 5 Story 1.2: Strict Introduction Policy
@@ -194,6 +195,7 @@ async function createProduct(req, res) {
       name,
       description,
       category,
+      purchaseCategory,
       price: price ? Number(price) : undefined,
       discountPrice: discountPrice ? Number(discountPrice) : null,
       stock: stock ? Number(stock) : 0,
@@ -458,7 +460,8 @@ async function createPendingProduct(req, res) {
       imageUrl,
       images,
       stock,
-      lowStockThreshold
+      lowStockThreshold,
+      purchaseCategory
     } = req.body;
     const userId = req.user._id;
 
@@ -534,6 +537,7 @@ async function createPendingProduct(req, res) {
       name,
       sku: generatedSKU,
       category,
+      purchaseCategory,
       unit,
       description: description || 'Pending product - details to be added',
       isPendingProduct: true,

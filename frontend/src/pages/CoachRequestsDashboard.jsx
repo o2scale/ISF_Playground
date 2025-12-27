@@ -1,7 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { getCoachDeliveries, getMyPurchaseRequests } from '../api';
+import { getCoachDeliveries, getMyPurchaseRequests, updatePurchaseRequestStatus } from '../api';
 import ShopNavigation from '../components/shop/ShopNavigation';
 import Breadcrumbs from '../components/shop/Breadcrumbs';
+import showToast from '../utils/toast';
+import { PurchaseRequestStatuses, getPurchaseRequestStatusMeta } from '../constants/purchaseRequestStatuses';
+import { formatDateOnly } from '../utils/dateFormatter';
 
 const getDateRangeFromFilter = (filterValue) => {
   const formatDateParam = (date) => {
@@ -106,6 +109,7 @@ export default function CoachRequestsDashboard() {
   const [purchaseRequests, setPurchaseRequests] = useState([]);
   const [purchaseLoading, setPurchaseLoading] = useState(true);
   const [purchaseError, setPurchaseError] = useState(null);
+  const [markingDelivered, setMarkingDelivered] = useState(null);
 
   const [purchaseFilters, setPurchaseFilters] = useState({
     status: 'all',
@@ -162,6 +166,30 @@ export default function CoachRequestsDashboard() {
       setPurchaseLoading(false);
     }
   }, [purchaseParams]);
+
+  const handleMarkDeliveredToBalagruha = async (requestId) => {
+    try {
+      setMarkingDelivered(requestId);
+
+      const response = await updatePurchaseRequestStatus(requestId, {
+        status: PurchaseRequestStatuses.DELIVERED_BALAGRUHA,
+        notes: 'Marked Delivered to Balagruha by requester'
+      });
+
+      if (!response?.success) {
+        showToast(response?.message || 'Failed to mark Delivered to Balagruha', 'error');
+        return;
+      }
+
+      showToast('Marked as Delivered to Balagruha', 'success');
+      await fetchPurchaseRequests();
+    } catch (err) {
+      console.error('Error marking Delivered to Balagruha:', err);
+      showToast(err?.response?.data?.message || 'Failed to mark Delivered to Balagruha', 'error');
+    } finally {
+      setMarkingDelivered(null);
+    }
+  };
 
   const fetchDigitalOrders = useCallback(async () => {
     try {
@@ -298,6 +326,8 @@ export default function CoachRequestsDashboard() {
                     <th className="py-2 pr-4">Created</th>
                     <th className="py-2 pr-4">Balagruha</th>
                     <th className="py-2 pr-4">Items</th>
+                    <th className="py-2 pr-4">Priority</th>
+                    <th className="py-2 pr-4">Deadline</th>
                     <th className="py-2 pr-4">Status</th>
                   </tr>
                 </thead>
@@ -326,14 +356,39 @@ export default function CoachRequestsDashboard() {
                         </td>
                         <td className="py-3 pr-4 text-slate-700">{balagruhaName}</td>
                         <td className="py-3 pr-4 text-slate-700">{itemsCount}</td>
-                        <td className="py-3 pr-4 text-slate-700">{statusLabel(req.status)}</td>
+                        <td className="py-3 pr-4 text-slate-700">
+                          {(req.priority || '').toLowerCase() === 'high'
+                            ? 'High'
+                            : (req.priority || '').toLowerCase() === 'low'
+                              ? 'Low'
+                              : 'Medium'}
+                        </td>
+                        <td className="py-3 pr-4 text-slate-700">
+                          {req.deadline ? formatDateOnly(req.deadline, 'dd/mm/yy') : '—'}
+                        </td>
+                        <td className="py-3 pr-4 text-slate-700">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                            <span>{getPurchaseRequestStatusMeta(req.status)?.label || statusLabel(req.status)}</span>
+                            {req.status === PurchaseRequestStatuses.DELIVERED_STORE && (
+                              <button
+                                type="button"
+                                onClick={() => handleMarkDeliveredToBalagruha(req._id)}
+                                disabled={markingDelivered === req._id}
+                                className="px-3 py-1.5 text-xs font-medium rounded-md border border-green-600 text-green-700 hover:bg-green-50 disabled:opacity-60 disabled:cursor-not-allowed"
+                                title="Confirm you have received and handed over the items"
+                              >
+                                {markingDelivered === req._id ? 'Marking…' : 'Mark Delivered'}
+                              </button>
+                            )}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}
 
                   {purchaseRequests.length === 0 && (
                     <tr>
-                      <td className="py-6 text-slate-600" colSpan={5}>
+                      <td className="py-6 text-slate-600" colSpan={7}>
                         No purchase requests found.
                       </td>
                     </tr>

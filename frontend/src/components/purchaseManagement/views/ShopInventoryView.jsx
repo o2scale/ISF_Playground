@@ -7,7 +7,7 @@ import {
   getUserBalagruhas  // Sprint5-Story-24: Get user's assigned Balagruhas
 } from '../../../api';
 import showToast from '../../../utils/toast';
-import { formatDate, formatDateTime, getReadableDate } from '../../../utils/dateFormatter';  // Sprint5-Story-23: Date formatting utilities
+import { formatDate, formatDateOnly, formatDateTime, getReadableDate } from '../../../utils/dateFormatter';  // Sprint5-Story-23: Date formatting utilities
 import CreatePurchaseRequestModal from '../modals/CreatePurchaseRequestModal';
 import ViewRequestModal from '../modals/ViewRequestModal';
 import ApproveRequestModal from '../modals/ApproveRequestModal';
@@ -27,12 +27,31 @@ import {
   getPurchaseRequestStatusMeta
 } from '../../../constants/purchaseRequestStatuses';
 
+const CATEGORY_OPTIONS = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
+
+const STATUS_BUCKET_OPTIONS = [
+  { label: 'Purchase Requests', value: 'pending' },
+  { label: 'On Going Order', value: 'ordered' },
+  { label: 'Reached ISF Store', value: 'delivered_store' },
+  { label: 'Delivered', value: 'delivered_balagruha' }
+];
+
 dayjs.extend(relativeTime);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
-// Story 3.1: Infer priority from existing text fields (no schema change)
 export const getPriority = (request) => {
+  const explicit = (request?.priority || '').toString().toLowerCase();
+  if (explicit === 'high') {
+    return 'High';
+  }
+  if (explicit === 'low') {
+    return 'Low';
+  }
+  if (explicit === 'medium') {
+    return 'Medium';
+  }
+
   const reason = (request?.reason || '').trim();
   if (reason.toUpperCase().startsWith('[HIGH PRIORITY]')) {
     return 'High';
@@ -43,7 +62,7 @@ export const getPriority = (request) => {
     return 'High';
   }
 
-  return 'Normal';
+  return 'Medium';
 };
 
 // Story 3.1: PM scorecard (client-side MVP)
@@ -160,13 +179,18 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     dateRange: null,
     fromDate: '',
     toDate: '',
+    priority: 'all',
     balagruha: 'all',
     purchaseManager: 'all',
     category: 'All Categories',  // Sprint5-Story-20
     // Story 3.1: PM dashboard should default to active work
-    status: normalizedRole === UserTypes.PURCHASE_MANAGER ? 'active' : 'all',
+    status: normalizedRole === UserTypes.PURCHASE_MANAGER ? 'pending' : 'all',
     search: ''
   });
+
+  // Story 3.4: Tab states for PM
+  const [activeCategoryTab, setActiveCategoryTab] = useState('All Categories');
+  const [activeStatusTab, setActiveStatusTab] = useState('pending');
 
   // Sprint5-Story-23: Sorting state for date column
   const [sortConfig, setSortConfig] = useState({
@@ -297,12 +321,22 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
     // Status filter
     if (filters.status === 'active') {
+      // Active work includes requests still in-progress, including those awaiting coach confirmation.
       filtered = filtered.filter(request => [
         PurchaseRequestStatuses.PENDING,
-        PurchaseRequestStatuses.ORDERED
+        PurchaseRequestStatuses.ORDERED,
+        PurchaseRequestStatuses.DELIVERED_STORE
       ].includes(request.status));
     } else if (filters.status !== 'all') {
       filtered = filtered.filter(request => request.status === filters.status);
+    }
+
+    // Priority filter
+    if (filters.priority && filters.priority !== 'all') {
+      filtered = filtered.filter((request) => {
+        const p = (request?.priority || '').toString().toLowerCase();
+        return p === filters.priority;
+      });
     }
 
     // Search filter (product name, SKU, reason, requestId)
@@ -326,7 +360,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       const bPriority = getPriority(b);
 
       if (aPriority !== bPriority) {
-        return aPriority === 'High' ? -1 : 1;
+        const order = { High: 0, Medium: 1, Low: 2 };
+        return (order[aPriority] ?? 9) - (order[bPriority] ?? 9);
       }
 
       // Sprint5-Story-23: Date sorting (within the same priority)
@@ -353,6 +388,61 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
     setFilteredRequests(filtered);
   };
+
+  // C3: PM needs grouping by item, per status bucket
+  const groupedByStatus = useMemo(() => {
+    const buckets = new Map();
+
+    for (const request of filteredRequests) {
+      const status = request?.status || 'unknown';
+      if (!buckets.has(status)) {
+        buckets.set(status, new Map());
+      }
+
+      const byItem = buckets.get(status);
+      const items = Array.isArray(request?.items) ? request.items : [];
+
+      for (const item of items) {
+        const key = String(item?.productId?._id ?? item?.productId ?? item?.productSKU ?? item?.productName ?? 'unknown');
+        const prev = byItem.get(key);
+        if (prev) {
+          prev.totalRequestedQuantity += Number(item?.requestedQuantity || 0);
+          prev.requestCount += 1;
+        } else {
+          byItem.set(key, {
+            key,
+            productId: item?.productId?._id ?? item?.productId,
+            productName: item?.productName || item?.productId?.name || 'Unknown item',
+            productSKU: item?.productSKU || item?.productId?.sku || '',
+            totalRequestedQuantity: Number(item?.requestedQuantity || 0),
+            requestCount: 1
+          });
+        }
+      }
+    }
+
+    const result = [];
+    for (const [status, byItem] of buckets.entries()) {
+      const rows = Array.from(byItem.values()).sort((a, b) => b.totalRequestedQuantity - a.totalRequestedQuantity);
+      result.push({ status, rows });
+    }
+
+    // Put active statuses first
+    const statusOrder = [
+      PurchaseRequestStatuses.PENDING,
+      PurchaseRequestStatuses.ORDERED,
+      PurchaseRequestStatuses.DELIVERED_STORE,
+      PurchaseRequestStatuses.DELIVERED_BALAGRUHA,
+      PurchaseRequestStatuses.PENDING_APPROVAL,
+      PurchaseRequestStatuses.APPROVED,
+      PurchaseRequestStatuses.COMPLETED,
+      PurchaseRequestStatuses.CANCELLED,
+      PurchaseRequestStatuses.REJECTED,
+      PurchaseRequestStatuses.ON_HOLD
+    ];
+    result.sort((a, b) => statusOrder.indexOf(a.status) - statusOrder.indexOf(b.status));
+    return result;
+  }, [filteredRequests]);
 
   // Sprint5-Story-23: Handle sorting for date column
   const handleSort = (key) => {
@@ -528,6 +618,18 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     });
   };
 
+  // Story 3.4: Handle category tab click
+  const handleCategoryTabClick = (category) => {
+    setActiveCategoryTab(category);
+    setFilters({ ...filters, category });
+  };
+
+  // Story 3.4: Handle status bucket tab click
+  const handleStatusTabClick = (status) => {
+    setActiveStatusTab(status);
+    setFilters({ ...filters, status });
+  };
+
   if (loading) {
     return (
       <div className="loading-container">
@@ -574,6 +676,42 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         </div>
       )}
 
+      {/* Story 3.4: Category Tabs (PM only) */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && (
+        <div className="category-tabs-row" style={{ marginBottom: '12px' }}>
+          <button
+            className={`category-tab ${activeCategoryTab === 'All Categories' ? 'active-tab' : ''}`}
+            onClick={() => handleCategoryTabClick('All Categories')}
+          >
+            All Categories
+          </button>
+          {CATEGORY_OPTIONS.map((category) => (
+            <button
+              key={category}
+              className={`category-tab ${activeCategoryTab === category ? 'active-tab' : ''}`}
+              onClick={() => handleCategoryTabClick(category)}
+            >
+              {category}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Story 3.4: Status Bucket Tabs (PM only) */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && (
+        <div className="status-tabs-row" style={{ marginBottom: '12px' }}>
+          {STATUS_BUCKET_OPTIONS.map((bucket) => (
+            <button
+              key={bucket.value}
+              className={`status-tab ${activeStatusTab === bucket.value ? 'active-tab' : ''}`}
+              onClick={() => handleStatusTabClick(bucket.value)}
+            >
+              {bucket.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="filters-container">
         <div className="filter-row">
@@ -590,6 +728,21 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <option value="thisWeek">This Week</option>
               <option value="thisMonth">This Month</option>
               <option value="custom">Custom Range</option>
+            </select>
+          </div>
+
+          {/* Priority Filter */}
+          <div className="filter-group">
+            <label>Priority:</label>
+            <select
+              value={filters.priority || 'all'}
+              onChange={(e) => setFilters({ ...filters, priority: e.target.value })}
+              className="filter-select"
+            >
+              <option value="all">All Priorities</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
             </select>
           </div>
 
@@ -655,40 +808,41 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             </div>
           )}
 
-          {/* Category Filter - Sprint5-Story-20 */}
-          <div className="filter-group">
-            <label>Category:</label>
-            <select
-              value={filters.category}
-              onChange={(e) => setFilters({ ...filters, category: e.target.value })}
-              className="filter-select"
-            >
-              <option value="All Categories">All Categories</option>
-              <option value="New Equipment">New Equipment</option>
-              <option value="Consumables (Including medicines)">Consumables (Including medicines)</option>
-              <option value="Others">Others</option>
-            </select>
-          </div>
+          {/* Category Filter - Sprint5-Story-20 - Hidden for PM (uses tabs) */}
+          {normalizedRole !== UserTypes.PURCHASE_MANAGER && (
+            <div className="filter-group">
+              <label>Category:</label>
+              <select
+                value={filters.category}
+                onChange={(e) => setFilters({ ...filters, category: e.target.value })}
+                className="filter-select"
+              >
+                <option value="All Categories">All Categories</option>
+                {CATEGORY_OPTIONS.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
-          {/* Status Filter */}
-          <div className="filter-group">
-            <label>Status:</label>
-            <select
-              value={filters.status}
-              onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-              className="filter-select"
-            >
-              <option value="all">All Status</option>
-              {normalizedRole === UserTypes.PURCHASE_MANAGER && (
-                <option value="active">Active (Pending + Ordered)</option>
-              )}
-              {PurchaseRequestStatusFilterOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Status Filter - Hidden for PM (uses tabs) */}
+          {normalizedRole !== UserTypes.PURCHASE_MANAGER && (
+            <div className="filter-group">
+              <label>Status:</label>
+              <select
+                value={filters.status}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
+                className="filter-select"
+              >
+                <option value="all">All Status</option>
+                {PurchaseRequestStatusFilterOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Search Filter */}
           <div className="filter-group search-group">
@@ -704,9 +858,55 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         </div>
       </div>
 
+      {/* C3: PM item grouping by status bucket */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && (
+        <div className="requests-table-container" style={{ marginTop: '16px' }}>
+          <h3 style={{ margin: '0 0 10px 0' }}>Grouped Summary (by Item, per Status)</h3>
+          {groupedByStatus.map((bucket) => (
+            <div key={bucket.status} style={{ marginBottom: '14px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                <div>{getStatusBadge(bucket.status)}</div>
+                <div style={{ color: '#555' }}>{bucket.rows.length} item(s)</div>
+              </div>
+              <table className="requests-table" aria-label={`Grouped summary table (${bucket.status})`}>
+                <thead>
+                  <tr>
+                    <th>Item</th>
+                    <th>Total Qty</th>
+                    <th># Lines</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bucket.rows.slice(0, 25).map((row) => (
+                    <tr key={row.key}>
+                      <td>
+                        <div style={{ fontWeight: 600 }}>{row.productName}</div>
+                        {row.productSKU ? <div style={{ fontSize: '12px', color: '#666' }}>{row.productSKU}</div> : null}
+                      </td>
+                      <td>{row.totalRequestedQuantity}</td>
+                      <td>{row.requestCount}</td>
+                    </tr>
+                  ))}
+                  {bucket.rows.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="no-data">No items</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+              {bucket.rows.length > 25 && (
+                <div style={{ fontSize: '12px', color: '#666', marginTop: '6px' }}>
+                  Showing top 25 items by quantity.
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Requests Table */}
       <div className="requests-table-container">
-        <table className="requests-table">
+        <table className="requests-table" aria-label="Shop Inventory Purchase Requests Table">
           <thead>
             <tr>
               <th>Request ID</th>
@@ -715,8 +915,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <th>Total Cost</th>
               <th>Reason</th>
               {normalizedRole === UserTypes.ADMIN && <th>Requested By</th>}
+              <th>Priority</th>
               <th>Status</th>
               <th>Category</th>
+              <th>Deadline</th>
               {/* Sprint5-Story-23: Sortable date column */}
               <th
                 onClick={() => handleSort('createdAt')}
@@ -794,8 +996,43 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     <div className="requester-email">{request.requestedBy?.email || ''}</div>
                   </td>
                 )}
-                <td>{getStatusBadge(request.status)}</td>
+                <td className="priority-cell">
+                  {(request.priority || '').toLowerCase() === 'high'
+                    ? 'High'
+                    : (request.priority || '').toLowerCase() === 'low'
+                      ? 'Low'
+                      : 'Medium'}
+                </td>
+                <td>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <div>{getStatusBadge(request.status)}</div>
+                    {request.status === PurchaseRequestStatuses.DELIVERED_STORE &&
+                      (normalizedRole === UserTypes.ADMIN ||
+                        normalizedRole === UserTypes.COACH ||
+                        String(request.requestedBy?._id || request.requestedBy) === String(userId)) && (
+                        <button
+                          className="btn btn-success btn-action"
+                          style={{ padding: '6px 10px', fontSize: '12px', alignSelf: 'flex-start' }}
+                          onClick={() =>
+                            handleUpdateStatus(
+                              request._id,
+                              PurchaseRequestStatuses.DELIVERED_BALAGRUHA,
+                              'Marked Delivered to Balagruha via Purchase Management',
+                              'Request marked as delivered to balagruha'
+                            )
+                          }
+                          disabled={statusUpdating[request._id]}
+                          title="Mark Delivered to Balagruha"
+                        >
+                          🏠 Mark Delivered
+                        </button>
+                      )}
+                  </div>
+                </td>
                 <td className="category-cell">{request.category || 'Not Categorized'}</td>
+                <td className="deadline-cell">
+                  {request.deadline ? formatDateOnly(request.deadline, 'dd/mm/yy') : '—'}
+                </td>
                 {/* Sprint5-Story-23: Date column with new format and tooltip */}
                 <td
                   className="date-cell"
@@ -897,7 +1134,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             ))}
             {filteredRequests.length === 0 && (
               <tr>
-                <td colSpan={normalizedRole === UserTypes.ADMIN ? "10" : "9"} className="no-data">
+                <td colSpan={normalizedRole === UserTypes.ADMIN ? "12" : "11"} className="no-data">
                   {normalizedRole === UserTypes.PURCHASE_MANAGER
                     ? "No purchase requests found. Click '+ New Purchase Request' to create one."
                     : "No purchase requests found."}

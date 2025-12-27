@@ -13,6 +13,7 @@ import {
   getPurchaseOverView,
   updatePurchaseOrder,
   updateRepairRequest,
+  getAllPurchaseRequests,
 } from "../../api";
 import TaskManagement from "../TaskManagement/taskmanagement";
 import showToast from "../../utils/toast";
@@ -182,12 +183,38 @@ const PurchaseDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const [pmPurchaseRequests, setPmPurchaseRequests] = useState([]);
+
   useEffect(() => {
     fetchDashboardData();
     fetchRepairRequests();
     fetchPurchaseOrders();
     fetchBalagruha();
+    fetchPurchaseRequests();
   }, []);
+
+  const fetchPurchaseRequests = async () => {
+    try {
+      const response = await getAllPurchaseRequests({
+        limit: 25,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      });
+
+      if (response?.success) {
+        setPmPurchaseRequests(response.data?.requests || []);
+      }
+    } catch (err) {
+      console.error('Error fetching PM purchase requests:', err);
+    }
+  };
+
+  const getPriorityLabel = (req) => {
+    const p = (req?.priority || '').toString().toLowerCase();
+    if (p === 'high') return 'High';
+    if (p === 'low') return 'Low';
+    return 'Medium';
+  };
 
   const fetchPurchaseOrders = async () => {
     try {
@@ -800,100 +827,73 @@ const PurchaseDashboard = () => {
 
               {/* Detailed Statistics */}
               <div className="dashboard-detailed-stats">
-                {/* Repair Status Distribution */}
-                <div className="dashboard-card repair-status">
-                  <h3>Repair Status Distribution</h3>
-                  <div className="status-bars">
-                    <div className="status-bar">
-                      <div className="bar-label">Pending</div>
-                      <div className="bar-container">
-                        <div
-                          className="bar pending"
-                          style={{
-                            width: `${
-                              (dashboardData.repairStats.pending /
-                                (dashboardData.repairStats.pending +
-                                  dashboardData.repairStats.inProgress +
-                                  dashboardData.repairStats.completed)) *
-                              100
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="bar-value">
-                        {dashboardData.repairStats.pending}
-                      </div>
-                    </div>
-                    <div className="status-bar">
-                      <div className="bar-label">In Progress</div>
-                      <div className="bar-container">
-                        <div
-                          className="bar in-progress"
-                          style={{
-                            width: `${
-                              (dashboardData.repairStats.inProgress /
-                                (dashboardData.repairStats.pending +
-                                  dashboardData.repairStats.inProgress +
-                                  dashboardData.repairStats.completed)) *
-                              100
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="bar-value">
-                        {dashboardData.repairStats.inProgress}
-                      </div>
-                    </div>
-                    <div className="status-bar">
-                      <div className="bar-label">Completed</div>
-                      <div className="bar-container">
-                        <div
-                          className="bar completed"
-                          style={{
-                            width: `${
-                              (dashboardData.repairStats.completed /
-                                (dashboardData.repairStats.pending +
-                                  dashboardData.repairStats.inProgress +
-                                  dashboardData.repairStats.completed)) *
-                              100
-                            }%`,
-                          }}
-                        ></div>
-                      </div>
-                      <div className="bar-value">
-                        {dashboardData.repairStats.completed}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Recent Activities */}
+                {/* Purchase Requests (Sprint5) */}
                 <div className="dashboard-card recent-activities">
-                  <h3>Recent Activities</h3>
-                  <div className="activity-list">
-                    {dashboardData.recentActivities.map((activity, index) => (
-                      <div key={index} className="activity-item">
-                        <div className="activity-icon">
-                          {activity.type === "repair" ? "🔧" : "🛒"}
-                        </div>
-                        <div className="activity-details">
-                          <div className="activity-title">{activity.title}</div>
-                          <div className="activity-meta">
-                            <span
-                              className={`activity-status ${activity.status}`}
-                            >
-                              {activity.status}
-                            </span>
-                            <span className="activity-date">
-                              {activity.date.toLocaleDateString()}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="activity-cost">
-                          ₹{Number(activity.cost).toLocaleString()}
-                        </div>
-                      </div>
-                    ))}
+                  <h3>Purchase Requests</h3>
+                  <div className="purchase-data-table" style={{ padding: '0', boxShadow: 'none', border: 'none' }}>
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Req Date</th>
+                          <th>Item Name</th>
+                          <th>Qty</th>
+                          <th>Requested by</th>
+                          <th>Priority</th>
+                          <th>Deadline</th>
+                          <th>Status</th>
+                          <th>Special Instructions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {pmPurchaseRequests.length === 0 && (
+                          <tr>
+                            <td colSpan={8} style={{ padding: '16px', color: '#6b7280' }}>
+                              No purchase requests found.
+                            </td>
+                          </tr>
+                        )}
+
+                        {pmPurchaseRequests.map((req) => {
+                          const firstItem = Array.isArray(req.items) && req.items.length > 0 ? req.items[0] : null;
+                          const itemName = firstItem?.productName || '—';
+                          const qty = Array.isArray(req.items)
+                            ? req.items.reduce((sum, item) => sum + Number(item.requestedQuantity || 0), 0)
+                            : 0;
+
+                          const requestedBy = req.requestedBy?.name || req.requestedBy?.email || '—';
+                          const priority = getPriorityLabel(req);
+
+                          return (
+                            <tr key={req._id || req.requestId}>
+                              <td>{req.createdAt ? dayjs(req.createdAt).format('DD/MM/YY') : '—'}</td>
+                              <td>{itemName}</td>
+                              <td>{qty}</td>
+                              <td>{requestedBy}</td>
+                              <td>
+                                <span
+                                  className={`purchase-tag ${
+                                    priority === 'High'
+                                      ? 'purchase-high'
+                                      : priority === 'Low'
+                                        ? 'purchase-low'
+                                        : 'purchase-medium'
+                                  }`}
+                                >
+                                  {priority}
+                                </span>
+                              </td>
+                              <td>{req.deadline ? dayjs(req.deadline).format('DD/MM/YY') : '—'}</td>
+                              <td>
+                                <span className={`purchase-tag purchase-status-${(req.status || '').toString().replace('_', '-')}`}>
+                                  {req.status || '—'}
+                                </span>
+                              </td>
+                              <td>{req.justification || req.reason || '—'}</td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>

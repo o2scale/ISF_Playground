@@ -32,6 +32,11 @@ const validateProductCreate = [
     .isIn(['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'])
     .withMessage('Invalid category. Must be one of: stationery, sports, books, uniforms, digital, other'),
 
+  body('purchaseCategory')
+    .optional()
+    .isIn(['ISF Shop', 'Medicines', 'Repairs', 'Consumables', 'Infra', 'Others'])
+    .withMessage('Invalid purchaseCategory. Must be one of: ISF Shop, Medicines, Repairs, Consumables, Infra, Others'),
+
   body('price')
     .notEmpty().withMessage('Price is required')
     .isInt({ min: 1 }).withMessage('Price must be a positive integer (coins)'),
@@ -115,6 +120,11 @@ const validateProductUpdate = [
     .isIn(['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'])
     .withMessage('Invalid category'),
 
+  body('purchaseCategory')
+    .optional()
+    .isIn(['ISF Shop', 'Medicines', 'Repairs', 'Consumables', 'Infra', 'Others'])
+    .withMessage('Invalid purchaseCategory'),
+
   body('price')
     .optional()
     .isInt({ min: 1 }).withMessage('Price must be a positive integer'),
@@ -196,6 +206,11 @@ const validateProductQuery = [
     .optional()
     .isIn(['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'])
     .withMessage('Invalid category'),
+
+  query('purchaseCategory')
+    .optional()
+    .isIn(['ISF Shop', 'Medicines', 'Repairs', 'Consumables', 'Infra', 'Others'])
+    .withMessage('Invalid purchaseCategory'),
 
   query('isActive')
     .optional()

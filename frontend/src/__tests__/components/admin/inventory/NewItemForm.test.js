@@ -113,8 +113,10 @@ describe('NewItemForm - Story 1.3', () => {
     // Click the last one which is usually the one in the portal/popover
     userEvent.click(stationeryOptions[stationeryOptions.length - 1]);
 
+    // Purchase Category has a default (ISF Shop)
+
     // Select Vendor 1
-    const vendor1Trigger = triggers[2]; // 3rd combobox
+    const vendor1Trigger = triggers[3]; // vendor selects shift by +1 due to purchaseCategory
     userEvent.click(vendor1Trigger);
     
     const vendorOneOptions = await screen.findAllByText('Vendor One');
@@ -136,6 +138,7 @@ describe('NewItemForm - Story 1.3', () => {
         sellingPrice: 50,
         stock: 10,
         category: 'stationery',
+        purchaseCategory: 'ISF Shop',
         approvedVendors: [
           { vendorId: 'v1', rank: 1 }
         ]
@@ -148,8 +151,8 @@ describe('NewItemForm - Story 1.3', () => {
     await waitFor(() => expect(api.get).toHaveBeenCalled());
 
     const triggers = screen.getAllByRole('combobox');
-    const vendor1Trigger = triggers[2];
-    const vendor2Trigger = triggers[3];
+    const vendor1Trigger = triggers[3];
+    const vendor2Trigger = triggers[4];
 
     // Select Vendor One in Slot 1
     userEvent.click(vendor1Trigger);

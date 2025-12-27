@@ -10,6 +10,7 @@ exports.getProducts = async (req, res, next) => {
   try {
     const {
       category,
+      purchaseCategory,
       search,
       minPrice,
       maxPrice,
@@ -21,6 +22,7 @@ exports.getProducts = async (req, res, next) => {
 
     const filters = {
       category,
+      purchaseCategory,
       search,
       minPrice,
       maxPrice,

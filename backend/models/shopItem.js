@@ -30,6 +30,18 @@ const shopItemSchema = new mongoose.Schema(
       },
       index: true
     },
+
+    // Story 2.5: Purchase Request category mapping for catalog scoping
+    purchaseCategory: {
+      type: String,
+      required: false,
+      enum: {
+        values: ['ISF Shop', 'Medicines', 'Repairs', 'Consumables', 'Infra', 'Others'],
+        message: '{VALUE} is not a valid purchaseCategory'
+      },
+      index: true,
+      default: 'ISF Shop'
+    },
     price: {
       type: Number,
       required: [true, 'Price is required'],

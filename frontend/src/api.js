@@ -2081,6 +2081,25 @@ export const getAllShopItems = async () => {
   }
 };
 
+// Story 2.5: Get shop items filtered by shop category (backend category)
+export const getShopItemsByCategory = async ({ category, purchaseCategory, limit = 1000 } = {}) => {
+  try {
+    const qs = new URLSearchParams();
+    if (category) qs.set('category', category);
+    if (purchaseCategory) qs.set('purchaseCategory', purchaseCategory);
+    if (limit) qs.set('limit', String(limit));
+
+    const response = await api.get(`/api/v2/shop/products?${qs.toString()}`);
+    return {
+      success: true,
+      data: response.data.products || []
+    };
+  } catch (error) {
+    console.error('Error fetching shop items by category:', error);
+    throw error;
+  }
+};
+
 // Sprint5-Story-25: Create pending product (inline product addition)
 export const createPendingProduct = async (productData) => {
   try {

@@ -34,6 +34,15 @@ const CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
+const PURCHASE_CATEGORIES = [
+  { value: "ISF Shop", label: "ISF Shop" },
+  { value: "Medicines", label: "Medicines" },
+  { value: "Repairs", label: "Repairs" },
+  { value: "Consumables", label: "Consumables" },
+  { value: "Infra", label: "Infra" },
+  { value: "Others", label: "Others" }
+];
+
 const UNITS = [
     { value: "pieces", label: "Pieces" },
     { value: "packets", label: "Packets" },
@@ -72,6 +81,7 @@ const NewItemForm = () => {
       name: "",
       sku: "",
       category: "",
+      purchaseCategory: "ISF Shop",
       description: "",
       unit: "pieces",
       maxPrice: "",
@@ -286,6 +296,25 @@ const NewItemForm = () => {
                         {UNITS.map((unit) => (
                           <SelectItem key={unit.value} value={unit.value}>
                             {unit.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="purchaseCategory">Purchase Category</Label>
+                    <Select
+                      onValueChange={(value) => setValue("purchaseCategory", value)}
+                      defaultValue={watch("purchaseCategory")}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select purchase category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PURCHASE_CATEGORIES.map((cat) => (
+                          <SelectItem key={cat.value} value={cat.value}>
+                            {cat.label}
                           </SelectItem>
                         ))}
                       </SelectContent>

@@ -4,6 +4,7 @@ import {
   createPurchaseRequest,
   getLowStockProducts,
   getAllShopItems,
+  getShopItemsByCategory,
   createPendingProduct  // Sprint5-Story-25
 } from '../../../api';
 import showToast from '../../../utils/toast';
@@ -32,6 +33,8 @@ export default function CreatePurchaseRequestModal({
   const [formData, setFormData] = useState({
     balagruhaId: '',
     category: '',  // NEW - Sprint5-Story-20
+    deadline: '',
+    priority: 'medium',
     items: [],  // Array of {productId, productName, productSKU, requestedQuantity, estimatedUnitCost}
     reason: '',
     justification: '',
@@ -63,6 +66,11 @@ export default function CreatePurchaseRequestModal({
     imageUrl: ''
   });
   const [newProductErrors, setNewProductErrors] = useState({});
+
+  const shouldScopeByPurchaseCategory = (requestCategory) => {
+    // Selecting ISF Shop should not artificially hide items.
+    return Boolean(requestCategory) && requestCategory !== 'ISF Shop';
+  };
 
   // Vendors (for inline product addition)
   const [vendorOptions, setVendorOptions] = useState([]);
@@ -240,8 +248,11 @@ export default function CreatePurchaseRequestModal({
   const fetchProducts = async (balagruhaId) => {
     try {
       setFetchingProducts(true);
-      // Fetch ALL products for the balagruha
-      const response = await getAllShopItems();
+
+      // Story 2.5: Reduce product list size by filtering products based on selected purchase category.
+      const response = shouldScopeByPurchaseCategory(formData.category)
+        ? await getShopItemsByCategory({ purchaseCategory: formData.category, limit: 1000 })
+        : await getAllShopItems();
 
       if (response.success) {
         const allProducts = response.data || [];
@@ -287,6 +298,23 @@ export default function CreatePurchaseRequestModal({
       setLowStockProducts([]);
     }
   };
+
+  // Story 2.5: When purchase category changes, refetch products so the picker is scoped.
+  useEffect(() => {
+    if (!formData.balagruhaId) {
+      return;
+    }
+
+    // Clear selection since chosen products may no longer be visible in new scope
+    setSelectedProducts(new Set());
+    setFormData((prev) => ({
+      ...prev,
+      items: []
+    }));
+
+    fetchProducts(formData.balagruhaId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.category]);
 
   // ============================================================================
   // EVENT HANDLERS - Product Selection
@@ -554,6 +582,8 @@ export default function CreatePurchaseRequestModal({
       return;
     }
 
+    // Deadline is optional
+
     // Validation - At least one product
     if (formData.items.length === 0) {
       showToast('Please select at least one product', 'error');
@@ -586,6 +616,10 @@ export default function CreatePurchaseRequestModal({
       // Add regular fields
       submitData.append('balagruhaId', formData.balagruhaId);
       submitData.append('category', formData.category); // Sprint5-Story-20
+      submitData.append('priority', formData.priority);
+      if (formData.deadline) {
+        submitData.append('deadline', formData.deadline);
+      }
       submitData.append('items', JSON.stringify(formData.items)); // Stringify items array
       submitData.append('reason', formData.reason.trim());
       submitData.append('justification', formData.justification.trim());
@@ -687,13 +721,50 @@ export default function CreatePurchaseRequestModal({
                 className="form-select"
               >
                 <option value="">Select category...</option>
-                <option value="New Equipment">New Equipment</option>
-                <option value="Consumables (Including medicines)">Consumables (Including medicines)</option>
+                <option value="ISF Shop">ISF Shop</option>
+                <option value="Medicines">Medicines</option>
+                <option value="Consumables">Consumables</option>
+                <option value="Repairs">Repairs</option>
+                <option value="Infra">Infra</option>
                 <option value="Others">Others</option>
               </select>
               <small className="form-hint">
                 Categorize this purchase request for better tracking and reporting
               </small>
+            </div>
+
+            {/* ================================================================ */}
+            {/* PRIORITY (C3): Per-request */}
+            {/* ================================================================ */}
+
+            <div className="form-group">
+              <label className="form-label">
+                Priority <span className="required">*</span>
+              </label>
+              <select
+                value={formData.priority}
+                onChange={(e) => setFormData((prev) => ({ ...prev, priority: e.target.value }))}
+                className="form-select"
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+              <small className="form-hint">Use High only when urgent.</small>
+            </div>
+
+            {/* ================================================================ */}
+            {/* DEADLINE (C3): Per-request */}
+            {/* ================================================================ */}
+
+            <div className="form-group">
+              <label className="form-label">Deadline</label>
+              <input
+                type="date"
+                value={formData.deadline}
+                onChange={(e) => setFormData(prev => ({ ...prev, deadline: e.target.value }))}
+                className="form-input"
+              />
             </div>
 
             {/* ================================================================ */}

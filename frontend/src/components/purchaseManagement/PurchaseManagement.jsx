@@ -13,7 +13,7 @@ export default function PurchaseManagement() {
   const { user } = useAuth();
   const userRole = typeof user?.role === 'string' ? user.role : user?.role?.roleName;
   const roleLower = userRole?.toLowerCase();
-  const [purchaseType, setPurchaseType] = useState('machine-repairs');
+  const [purchaseType, setPurchaseType] = useState('shop-inventory');
 
   return (
     <div className="purchase-management-container">

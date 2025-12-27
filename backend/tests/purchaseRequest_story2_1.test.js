@@ -59,6 +59,7 @@ describe('Story 2.1: Purchase Request State Machine', () => {
           estimatedUnitCost: 10,
           estimatedTotalCost: 10
         }],
+        deadline: new Date(),
         status: 'pending' // New status
       });
 
@@ -88,7 +89,8 @@ describe('Story 2.1: Purchase Request State Machine', () => {
           lowStockThreshold: 5,
           estimatedUnitCost: 10,
           estimatedTotalCost: 50
-        }]
+        }],
+        deadline: new Date()
       });
       prId = pr._id;
     });
@@ -187,6 +189,23 @@ describe('Story 2.1: Purchase Request State Machine', () => {
       expect(res.status).toHaveBeenCalledWith(403);
     });
 
+    it('should allow Admin to move delivered_store -> delivered_balagruha', async () => {
+      await PurchaseRequest.findByIdAndUpdate(prId, { status: 'delivered_store' });
+
+      const req = mockRequest({
+        params: { id: prId },
+        body: { status: 'delivered_balagruha' },
+        user: adminUser
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const updatedPr = await PurchaseRequest.findById(prId);
+      expect(updatedPr.status).toBe('delivered_balagruha');
+    });
+
     it('should return 400 for invalid status value', async () => {
       const req = mockRequest({
         params: { id: prId },
@@ -223,7 +242,8 @@ describe('Story 2.1: Purchase Request State Machine', () => {
           lowStockThreshold: 5,
           estimatedUnitCost: 10,
           estimatedTotalCost: 50
-        }]
+        }],
+        deadline: new Date()
       });
 
       const req = mockRequest({
@@ -467,6 +487,44 @@ describe('Story 2.1: Purchase Request State Machine', () => {
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         message: expect.stringContaining('Insufficient stock')
       }));
+    });
+  });
+
+  describe('Story 2.5: Category filter validation (list endpoints)', () => {
+    it('should return 400 for invalid category filter in getAllPurchaseRequests', async () => {
+      const req = mockRequest({
+        query: { category: 'Not A Real Category' },
+        user: adminUser
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getAllPurchaseRequests(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          message: expect.stringContaining('Invalid category value')
+        })
+      );
+    });
+
+    it('should return 400 for invalid category filter in getMyPurchaseRequests', async () => {
+      const req = mockRequest({
+        query: { category: 'Not A Real Category' },
+        user: coachUser
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getMyPurchaseRequests(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          success: false,
+          message: expect.stringContaining('Invalid category value')
+        })
+      );
     });
   });
 });

@@ -12,6 +12,7 @@ class ShopService {
     try {
       const {
         category,
+        purchaseCategory,
         search,
         minPrice,
         maxPrice,
@@ -36,6 +37,11 @@ class ShopService {
       // Category filter
       if (category) {
         query.category = category;
+      }
+
+      // Story 2.5: Purchase category filter (scopes catalog by procurement bucket)
+      if (purchaseCategory) {
+        query.purchaseCategory = purchaseCategory;
       }
 
       // Search filter (text index)
