@@ -143,7 +143,9 @@ userSchema.methods.incrementLoginAttempts = async function () {
   } else {
     const updates = { $inc: { loginAttempts: 1 } };
 
-    if (this.loginAttempts + 1 >= 5) {
+    // Allow more attempts before locking to reduce accidental lockouts while
+    // still protecting against brute-force attacks.
+    if (this.loginAttempts + 1 >= 10) {
       updates.$set = { lockUntil: Date.now() + 1800000 };
     }
 
