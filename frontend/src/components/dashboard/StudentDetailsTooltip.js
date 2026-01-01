@@ -66,8 +66,9 @@ const StudentDetailsTooltip = ({ checkIn, position }) => {
     <div
       className="student-details-tooltip"
       style={{
-        top: position?.y || 0,
-        left: position?.x || 0
+        left: `${position.x}px`,
+        top: position.alignY === 'bottom' ? 'auto' : `${position.y}px`,
+        bottom: position.alignY === 'bottom' ? `${position.y}px` : 'auto',
       }}
     >
       <div className="tooltip-header">

@@ -107,6 +107,16 @@ const formatCaseDate = (date) => {
 };
 
 const MedicInchargeDashboard = () => {
+  const getVerticalPosition = (rect) => {
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const neededSpace = 550; // Estimated max height of tooltip
+    
+    if (spaceBelow < neededSpace) {
+      return { y: window.innerHeight - rect.bottom, alignY: 'bottom' };
+    }
+    return { y: rect.top, alignY: 'top' };
+  };
+
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
   const { logout } = useAuth();
@@ -175,6 +185,17 @@ const MedicInchargeDashboard = () => {
   useEffect(() => {
     fetchBalagruha()
     fetchMedicalData()
+
+    const handleGlobalClick = () => {
+      setHoveredStudent(null);
+      setHoveredDoctorVisits(null);
+      setHoveredFollowUps(null);
+    };
+
+    document.addEventListener('click', handleGlobalClick);
+    return () => {
+      document.removeEventListener('click', handleGlobalClick);
+    };
   }, [])
 
   // Handle navigation from Layout menu with state
@@ -1119,6 +1140,7 @@ const MedicInchargeDashboard = () => {
                 </div>
               </div> */}
 
+              <div className="medic-filters-row">
               {/* Balagruha Filter Navigation */}
               <div className="balagruha-filter-section">
                 <button className="bg-scroll-arrow" onClick={() => document.getElementById('bg-filter-container').scrollBy({left: -200, behavior: 'smooth'})}>
@@ -1185,6 +1207,7 @@ const MedicInchargeDashboard = () => {
                   Critical
                 </button>
               </div>
+              </div>
 
               <div className="medic-dashboard-card medic-recent-checkins">
                 <div className="medic-card-header">
@@ -1226,32 +1249,56 @@ const MedicInchargeDashboard = () => {
                           const doctorVisitSummary = getLatestDoctorVisitName(checkin);
                           const followUpSummary = getLatestFollowUpSummary(checkin);
 
-                          const handleMouseEnter = (e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            // Smart positioning: if too close to right edge, show on left
-                            const spaceOnRight = window.innerWidth - rect.right;
-                            const tooltipWidth = 450;
-                            const x = spaceOnRight > tooltipWidth ? rect.right + 10 : rect.left - tooltipWidth - 10;
-                            setTooltipPosition({ x, y: rect.top });
-                            setHoveredStudent(checkin);
+                          const handleStudentClick = (e) => {
+                            e.stopPropagation();
+                            if (hoveredStudent && hoveredStudent._id === checkin._id) {
+                                setHoveredStudent(null);
+                            } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const verticalPos = getVerticalPosition(rect);
+                                // Smart positioning: if too close to right edge, show on left
+                                const spaceOnRight = window.innerWidth - rect.right;
+                                const tooltipWidth = 450;
+                                const x = spaceOnRight > tooltipWidth ? rect.right + 10 : rect.left - tooltipWidth - 10;
+                                setTooltipPosition({ x, y: verticalPos.y, alignY: verticalPos.alignY });
+                                setHoveredStudent(checkin);
+                                setHoveredDoctorVisits(null);
+                                setHoveredFollowUps(null);
+                            }
                           };
 
-                          // Handle mouse enter for doctor visits tooltip
-                          const handleDoctorVisitsMouseEnter = (e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            // Position tooltip to the RIGHT of the column
-                            setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: rect.top });
-                            const allDoctorVisits = getDoctorVisitsList(checkin);
-                            setHoveredDoctorVisits(allDoctorVisits);
+
+
+                          // Handle click for doctor visits tooltip
+                          const handleDoctorVisitsClick = (e) => {
+                            e.stopPropagation();
+                            if (hoveredDoctorVisits && hoveredDoctorVisits.id === checkin._id) {
+                                setHoveredDoctorVisits(null);
+                            } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                // Position tooltip to the RIGHT of the column
+                                setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: rect.top });
+                                const allDoctorVisits = getDoctorVisitsList(checkin);
+                                setHoveredDoctorVisits({ id: checkin._id, data: allDoctorVisits });
+                                setHoveredStudent(null);
+                                setHoveredFollowUps(null);
+                            }
                           };
 
-                          // Handle mouse enter for follow-ups tooltip
-                          const handleFollowUpsMouseEnter = (e) => {
-                            const rect = e.currentTarget.getBoundingClientRect();
-                            // Position tooltip to the LEFT
-                            setFollowUpsTooltipPosition({ x: rect.left - 380, y: rect.top });
-                            const allFollowUps = getFollowUpsList(checkin);
-                            setHoveredFollowUps(allFollowUps);
+                          // Handle click for follow-ups tooltip
+                          const handleFollowUpsClick = (e) => {
+                            e.stopPropagation();
+                            if (hoveredFollowUps && hoveredFollowUps.id === checkin._id) {
+                                setHoveredFollowUps(null);
+                            } else {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                // Position tooltip to the LEFT
+                                setFollowUpsTooltipPosition({ x: rect.left - 380, y: rect.top });
+                                const allFollowUps = getFollowUpsList(checkin);
+                                setHoveredFollowUps({ id: checkin._id, data: allFollowUps });
+                                setHoveredStudent(null);
+                                setHoveredDoctorVisits(null);
+                            }
                           };
 
                           return (
@@ -1261,8 +1308,7 @@ const MedicInchargeDashboard = () => {
                             >
                               <td>{index + 1}</td>
                               <td
-                                onMouseEnter={handleMouseEnter}
-                                onMouseLeave={() => setHoveredStudent(null)}
+                                onClick={handleStudentClick}
                                 style={{ cursor: 'pointer', fontWeight: 600, color: '#6366f1' }}
                               >
                                 {checkin.userName}
@@ -1275,14 +1321,14 @@ const MedicInchargeDashboard = () => {
                               <td>{symptomSummary}</td>
                               <td
                                 className="truncate"
-                                onMouseEnter={handleDoctorVisitsMouseEnter}
-                                style={{ cursor: 'pointer' }}
+                                onClick={handleDoctorVisitsClick}
+                                style={{ cursor: 'pointer', color: '#6366f1', fontWeight: 600 }}
                               >
                                 {doctorVisitSummary}
                               </td>
                               <td
                                 className="truncate"
-                                onMouseEnter={handleFollowUpsMouseEnter}
+                                onClick={handleFollowUpsClick}
                                 style={{ cursor: 'pointer' }}
                               >
                                 {followUpSummary}
@@ -1298,18 +1344,16 @@ const MedicInchargeDashboard = () => {
                       position={tooltipPosition}
                     />
                   )}
-                  {hoveredDoctorVisits && hoveredDoctorVisits.length > 0 && (
+                  {hoveredDoctorVisits && hoveredDoctorVisits.data && hoveredDoctorVisits.data.length > 0 && (
                     <DoctorVisitsTooltip
-                      doctorVisits={hoveredDoctorVisits}
+                      doctorVisits={hoveredDoctorVisits.data}
                       position={doctorVisitsTooltipPosition}
-                      onMouseLeave={() => setHoveredDoctorVisits(null)}
                     />
                   )}
-                  {hoveredFollowUps && hoveredFollowUps.length > 0 && (
+                  {hoveredFollowUps && hoveredFollowUps.data && hoveredFollowUps.data.length > 0 && (
                     <FollowUpsTooltip
-                      followUps={hoveredFollowUps}
+                      followUps={hoveredFollowUps.data}
                       position={followUpsTooltipPosition}
-                      onMouseLeave={() => setHoveredFollowUps(null)}
                     />
                   )}
                 </div>
@@ -1412,38 +1456,65 @@ const MedicInchargeDashboard = () => {
                         return '-';
                       };
 
-                      // Handle mouse enter for student name tooltip
-                      const handleMouseEnter = (e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setTooltipPosition({ x: rect.right + 10, y: rect.top });
-                        setHoveredStudent(checkin);
+                      // Handle click for student name tooltip
+                      const handleStudentClick = (e) => {
+                        e.stopPropagation();
+                        if (hoveredStudent && hoveredStudent._id === checkin._id) {
+                            setHoveredStudent(null);
+                        } else {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const verticalPos = getVerticalPosition(rect);
+                            const spaceOnRight = window.innerWidth - rect.right;
+                            const tooltipWidth = 450;
+                            const x = spaceOnRight > tooltipWidth ? rect.right + 10 : rect.left - tooltipWidth - 10;
+                            setTooltipPosition({ x, y: verticalPos.y, alignY: verticalPos.alignY });
+                            setHoveredStudent(checkin);
+                            setHoveredDoctorVisits(null);
+                            setHoveredFollowUps(null);
+                        }
                       };
 
-                      // Handle mouse enter for doctor visits tooltip
-                      const handleDoctorVisitsMouseEnter = (e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: rect.top });
-                        // Get all doctor visits (NEW array or OLD single format)
-                        const allDoctorVisits = checkin.doctorVisits && checkin.doctorVisits.length > 0
-                          ? checkin.doctorVisits
-                          : checkin.doctorVisit && checkin.doctorVisit.doctorName
-                            ? [checkin.doctorVisit]
-                            : [];
-                        setHoveredDoctorVisits(allDoctorVisits);
+                      // Handle click for doctor visits tooltip
+                      const handleDoctorVisitsClick = (e) => {
+                        e.stopPropagation();
+                        if (hoveredDoctorVisits && hoveredDoctorVisits.id === checkin._id) {
+                            setHoveredDoctorVisits(null);
+                        } else {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const verticalPos = getVerticalPosition(rect);
+                            setDoctorVisitsTooltipPosition({ x: rect.right + 10, y: verticalPos.y, alignY: verticalPos.alignY });
+                            // Get all doctor visits (NEW array or OLD single format)
+                            const allDoctorVisits = checkin.doctorVisits && checkin.doctorVisits.length > 0
+                              ? checkin.doctorVisits
+                              : checkin.doctorVisit && checkin.doctorVisit.doctorName
+                                ? [checkin.doctorVisit]
+                                : [];
+                            setHoveredDoctorVisits({ id: checkin._id, data: allDoctorVisits });
+                            setHoveredStudent(null);
+                            setHoveredFollowUps(null);
+                        }
                       };
 
-                      // Handle mouse enter for follow-ups tooltip
-                      const handleFollowUpsMouseEnter = (e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        // Position tooltip to the LEFT of the column
-                        setFollowUpsTooltipPosition({ x: rect.left - 380, y: rect.top });
-                        // Get all follow-ups (NEW array or OLD single format)
-                        const allFollowUps = checkin.followUps && checkin.followUps.length > 0
-                          ? checkin.followUps
-                          : checkin.followUp && checkin.followUp.followUpDate
-                            ? [checkin.followUp]
-                            : [];
-                        setHoveredFollowUps(allFollowUps);
+                      // Handle click for follow-ups tooltip
+                      const handleFollowUpsClick = (e) => {
+                        e.stopPropagation();
+                        if (hoveredFollowUps && hoveredFollowUps.id === checkin._id) {
+                            setHoveredFollowUps(null);
+                        } else {
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            const verticalPos = getVerticalPosition(rect);
+                            // Position tooltip to the LEFT of the column
+                            setFollowUpsTooltipPosition({ x: rect.left - 380, y: verticalPos.y, alignY: verticalPos.alignY });
+                            // Get all follow-ups (NEW array or OLD single format)
+                            const allFollowUps = checkin.followUps && checkin.followUps.length > 0
+                              ? checkin.followUps
+                              : checkin.followUp && checkin.followUp.followUpDate
+                                ? [checkin.followUp]
+                                : [];
+                            setHoveredFollowUps({ id: checkin._id, data: allFollowUps });
+                            setHoveredStudent(null);
+                            setHoveredDoctorVisits(null);
+                        }
                       };
 
                       return (
@@ -1451,8 +1522,8 @@ const MedicInchargeDashboard = () => {
                           <td style={{ textAlign: 'center' }}>{index + 1}</td>
                           <td
                             className="student-name"
-                            onMouseEnter={handleMouseEnter}
-                            onMouseLeave={() => setHoveredStudent(null)}
+                            onClick={handleStudentClick}
+                            style={{ cursor: 'pointer' }}
                           >
                             {checkin.userName}
                           </td>
@@ -1469,14 +1540,14 @@ const MedicInchargeDashboard = () => {
                           <td className="truncate">{formatSymptoms()}</td>
                           <td
                             className="truncate"
-                            onMouseEnter={handleDoctorVisitsMouseEnter}
-                            style={{ cursor: 'pointer' }}
+                            onClick={handleDoctorVisitsClick}
+                            style={{ cursor: 'pointer', color: '#6366f1', fontWeight: 600 }}
                           >
                             {getLatestDoctorVisit()}
                           </td>
                           <td
                             className="truncate"
-                            onMouseEnter={handleFollowUpsMouseEnter}
+                            onClick={handleFollowUpsClick}
                             style={{ cursor: 'pointer' }}
                           >
                             {getLatestFollowUp()}
@@ -1512,18 +1583,16 @@ const MedicInchargeDashboard = () => {
                 {hoveredStudent && (
                   <StudentDetailsTooltip checkIn={hoveredStudent} position={tooltipPosition} />
                 )}
-                {hoveredDoctorVisits && hoveredDoctorVisits.length > 0 && (
+                {hoveredDoctorVisits && hoveredDoctorVisits.data && hoveredDoctorVisits.data.length > 0 && (
                   <DoctorVisitsTooltip
-                    doctorVisits={hoveredDoctorVisits}
+                    doctorVisits={hoveredDoctorVisits.data}
                     position={doctorVisitsTooltipPosition}
-                    onMouseLeave={() => setHoveredDoctorVisits(null)}
                   />
                 )}
-                {hoveredFollowUps && hoveredFollowUps.length > 0 && (
+                {hoveredFollowUps && hoveredFollowUps.data && hoveredFollowUps.data.length > 0 && (
                   <FollowUpsTooltip
-                    followUps={hoveredFollowUps}
+                    followUps={hoveredFollowUps.data}
                     position={followUpsTooltipPosition}
-                    onMouseLeave={() => setHoveredFollowUps(null)}
                   />
                 )}
               </div>

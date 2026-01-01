@@ -11,7 +11,8 @@ const FollowUpsTooltip = ({ followUps, position, onMouseLeave }) => {
       className="student-details-tooltip"
       style={{
         left: `${position.x}px`,
-        top: `${position.y}px`,
+        top: position.alignY === 'bottom' ? 'auto' : `${position.y}px`,
+        bottom: position.alignY === 'bottom' ? `${position.y}px` : 'auto',
       }}
       onMouseLeave={onMouseLeave}
     >
