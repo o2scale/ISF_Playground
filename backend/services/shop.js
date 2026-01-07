@@ -1,4 +1,5 @@
 const ShopItem = require('../models/shopItem');
+const PurchaseRequest = require('../models/purchaseRequest');
 const { logger, errorLogger } = require('../config/pino-config');
 
 class ShopService {
@@ -265,6 +266,188 @@ class ShopService {
       return {
         success: false,
         message: 'Failed to retrieve categories',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get stock levels for Present Stock tab
+   * @param {Object} filters - Category filter
+   * @returns {Promise<Object>} Stock levels and summary
+   */
+  static async getStockLevels({ category } = {}) {
+    try {
+      const query = { isActive: true };
+      if (category && category !== 'all') {
+        query.category = category;
+      }
+
+      const products = await ShopItem.find(query)
+        .select('name sku category stock lowStockThreshold isActive balagruhaId')
+        .sort({ stock: 1, name: 1 })
+        .lean();
+
+      let inStock = 0;
+      let lowStock = 0;
+      let outOfStock = 0;
+
+      const enrichedProducts = products.map(p => {
+        let stockStatus = 'in_stock';
+        if (p.stock <= 0) {
+          stockStatus = 'out_of_stock';
+          outOfStock++;
+        } else if (p.stock <= (p.lowStockThreshold || 10)) {
+          stockStatus = 'low_stock';
+          lowStock++;
+        } else {
+          inStock++;
+        }
+        return {
+          ...p,
+          stockStatus,
+          minStockLevel: p.lowStockThreshold || 10,
+          stockQuantity: p.stock
+        };
+      });
+
+      return {
+        success: true,
+        data: enrichedProducts,
+        summary: {
+          total: products.length,
+          inStock,
+          lowStock,
+          outOfStock
+        }
+      };
+    } catch (error) {
+      errorLogger.error({ error: error.message }, 'Error retrieving stock levels');
+      return {
+        success: false,
+        message: 'Failed to retrieve stock levels',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get vendors with product counts
+   * @param {Object} options - Limit
+   * @returns {Promise<Object>} Vendors with counts
+   */
+  static async getVendorsWithProductCount({ limit = 100 } = {}) {
+    try {
+      const vendors = await ShopItem.aggregate([
+        { $match: { isActive: true } },
+        { $unwind: '$approvedVendors' },
+        {
+          $group: {
+            _id: '$approvedVendors.vendorId',
+            productCount: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'vendors',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'vendor'
+          }
+        },
+        { $unwind: '$vendor' },
+        {
+          $project: {
+            _id: '$vendor._id',
+            name: '$vendor.name',
+            email: '$vendor.email',
+            phone: '$vendor.phone',
+            contactPerson: '$vendor.contactPerson',
+            isActive: '$vendor.isActive',
+            productCount: 1
+          }
+        },
+        { $sort: { name: 1 } },
+        { $limit: limit }
+      ]);
+
+      return {
+        success: true,
+        data: vendors
+      };
+    } catch (error) {
+      errorLogger.error({ error: error.message }, 'Error retrieving vendors with counts');
+      return {
+        success: false,
+        message: 'Failed to retrieve vendors',
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Get most consumed products
+   * @param {Object} options - Period (week/month/year/all), limit
+   * @returns {Promise<Object>} Most consumed products
+   */
+  static async getMostConsumed({ period = 'all', limit = 50 } = {}) {
+    try {
+      const matchStage = { $match: {} };
+
+      // Date filtering
+      if (period !== 'all') {
+        const now = new Date();
+        let startDate = new Date();
+
+        if (period === 'week') startDate.setDate(now.getDate() - 7);
+        if (period === 'month') startDate.setMonth(now.getMonth() - 1);
+        if (period === 'quarter') startDate.setMonth(now.getMonth() - 3);
+        if (period === 'year') startDate.setFullYear(now.getFullYear() - 1);
+
+        matchStage.$match.createdAt = { $gte: startDate };
+      }
+
+      const results = await PurchaseRequest.aggregate([
+        matchStage,
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.productId',
+            totalQuantity: { $sum: '$items.requestedQuantity' },
+            requestCount: { $sum: 1 }
+          }
+        },
+        {
+          $lookup: {
+            from: 'shopitems',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'product'
+          }
+        },
+        { $unwind: '$product' },
+        {
+          $project: {
+            productId: '$_id',
+            productName: '$product.name',
+            productSKU: '$product.sku',
+            totalQuantity: 1,
+            requestCount: 1
+          }
+        },
+        { $sort: { totalQuantity: -1 } },
+        { $limit: limit }
+      ]);
+
+      return {
+        success: true,
+        data: results
+      };
+    } catch (error) {
+      errorLogger.error({ error: error.message }, 'Error retrieving consumption analytics');
+      return {
+        success: false,
+        message: 'Failed to retrieve consumption data',
         error: error.message
       };
     }

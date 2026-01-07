@@ -72,4 +72,42 @@ router.put(
   shopProductImageController.setPrimaryImage
 );
 
+// ==================== PURCHASE MANAGER DASHBOARD TABS (Story 3.6) ====================
+
+/**
+ * @route GET /api/v2/shop/admin/inventory/stock-levels
+ * @desc Get stock levels for Present Stock tab
+ * @access Private (Purchase Manager)
+ */
+router.get(
+  '/admin/inventory/stock-levels',
+  authenticate,
+  authorize('Purchase Management', 'Read'),
+  shopController.getStockLevels
+);
+
+/**
+ * @route GET /api/v2/shop/vendors
+ * @desc Get vendors with product counts
+ * @access Private (Purchase Manager)
+ */
+router.get(
+  '/vendors',
+  authenticate,
+  authorize('Purchase Management', 'Read'),
+  shopController.getVendorsWithProductCount
+);
+
+/**
+ * @route GET /api/v2/shop/admin/analytics/most-consumed
+ * @desc Get most consumed products
+ * @access Private (Purchase Manager)
+ */
+router.get(
+  '/admin/analytics/most-consumed',
+  authenticate,
+  authorize('Purchase Management', 'Read'),
+  shopController.getMostConsumed
+);
+
 module.exports = router;

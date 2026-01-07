@@ -1,4 +1,5 @@
 const Vendor = require('../models/vendor');
+const ShopItem = require('../models/shopItem');
 
 /**
  * @desc    Create new vendor
@@ -35,13 +36,13 @@ exports.createVendor = async (req, res) => {
 };
 
 /**
- * @desc    Get all vendors
+ * @desc    Get all vendors (Story 3.6: Enhanced with product count)
  * @route   GET /api/v2/vendors
- * @access  Admin
+ * @access  Admin, Purchase Manager
  */
 exports.getAllVendors = async (req, res) => {
   try {
-    const { active, search, page = 1, limit = 20 } = req.query;
+    const { active, search, page = 1, limit = 20, includeProductCount } = req.query;
     const query = {};
 
     if (active !== undefined) {
@@ -63,10 +64,36 @@ exports.getAllVendors = async (req, res) => {
     const limitNum = Math.min(parseInt(limit), 100);
     const skip = (pageNum - 1) * limitNum;
 
-    const vendors = await Vendor.find(query)
+    let vendors = await Vendor.find(query)
       .sort({ name: 1 })
       .skip(skip)
-      .limit(limitNum);
+      .limit(limitNum)
+      .lean();
+
+    // Story 3.6: Add product count per vendor if requested
+    if (includeProductCount === 'true') {
+      const vendorIds = vendors.map(v => v._id);
+      
+      // Count products per vendor from ShopItem.approvedVendors
+      const productCounts = await ShopItem.aggregate([
+        { $match: { isActive: true, approvedVendors: { $in: vendorIds } } },
+        { $unwind: '$approvedVendors' },
+        { $match: { approvedVendors: { $in: vendorIds } } },
+        { $group: { _id: '$approvedVendors', count: { $sum: 1 } } }
+      ]);
+
+      // Create a map for quick lookup
+      const countMap = {};
+      productCounts.forEach(pc => {
+        countMap[pc._id.toString()] = pc.count;
+      });
+
+      // Add product count to each vendor
+      vendors = vendors.map(vendor => ({
+        ...vendor,
+        productCount: countMap[vendor._id.toString()] || 0
+      }));
+    }
 
     const total = await Vendor.countDocuments(query);
 
@@ -82,6 +109,7 @@ exports.getAllVendors = async (req, res) => {
       vendors
     });
   } catch (error) {
+    console.error('Error fetching vendors:', error);
     res.status(500).json({
       success: false,
       error: 'Server Error'

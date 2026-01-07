@@ -14,6 +14,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead,
   updateNotificationLastViewed,
+  getPendingPurchaseRequestCount,  // Story 3.9: PM badge
 } from "../api";
 
 // Create Sidebar Context
@@ -44,6 +45,8 @@ const Layout = () => {
   // Trigger a brief shake animation on the WTF menu item in child view
   const [shouldShakeWtf, setShouldShakeWtf] = useState(false);
   const [isLoadingNotifications, setIsLoadingNotifications] = useState(false);
+  // Story 3.9: PM pending badge state
+  const [pendingPurchaseCount, setPendingPurchaseCount] = useState({ total: 0, highPriority: 0 });
 
   // Check if current route is WTF
   const isWTFRoute = location.pathname === "/wtf";
@@ -184,6 +187,21 @@ const Layout = () => {
     }
   };
 
+  // Story 3.9: Fetch pending purchase request count for PM badge
+  const fetchPendingPurchaseCount = async () => {
+    const userRole = localStorage.getItem("role");
+    if (userRole === "purchase-manager" || userRole === "admin") {
+      try {
+        const result = await getPendingPurchaseRequestCount();
+        if (result.success) {
+          setPendingPurchaseCount(result.data);
+        }
+      } catch (error) {
+        console.error("Error fetching pending purchase count:", error);
+      }
+    }
+  };
+
   // Mark notification as read
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -296,6 +314,14 @@ const Layout = () => {
     if (userRole === "student") {
       fetchNotifications();
       fetchUnreadCount();
+    }
+
+    // Story 3.9: Fetch pending count for PM badge
+    if (userRole === "purchase-manager" || userRole === "admin") {
+      fetchPendingPurchaseCount();
+      // Poll every 60 seconds for updates
+      const interval = setInterval(fetchPendingPurchaseCount, 60000);
+      return () => clearInterval(interval);
     }
   }, []);
 
@@ -431,6 +457,7 @@ const Layout = () => {
             {menuToShow.map((menu) => {
               const isActive = location.pathname === menu.link;
               const isWtf = menu.name === "WTF";
+              const isPurchases = menu.name === "Purchases";
               const wtfHighlight =
                 isWtf && (isWTFRoute || shouldShakeWtf) && role === "student";
               const classes = [
@@ -461,6 +488,16 @@ const Layout = () => {
                   }}
                 >
                   {menu.name}
+                  {/* Story 3.9: PM pending badge for Purchases menu */}
+                  {isPurchases && role === "purchase-manager" && pendingPurchaseCount.total > 0 && (
+                    <span 
+                      className="pm-pending-badge"
+                      title={`${pendingPurchaseCount.total} pending requests${pendingPurchaseCount.highPriority > 0 ? ` (${pendingPurchaseCount.highPriority} high priority)` : ''}`}
+                    >
+                      {pendingPurchaseCount.total}
+                      {pendingPurchaseCount.highPriority > 0 && <span className="high-priority-dot">!</span>}
+                    </span>
+                  )}
                 </div>
               );
             })}

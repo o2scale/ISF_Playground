@@ -75,6 +75,14 @@ router.get(
  * Admin Routes - Sprint5-Story-18
  */
 
+// Story 3.9: Get pending request count for navigation badge
+router.get(
+  '/pending-count',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  purchaseRequestController.getPendingCount
+);
+
 // Get purchase request statistics
 router.get(
   '/stats',

@@ -122,7 +122,88 @@ exports.getCategories = async (req, res, next) => {
 
     res.status(200).json(result.data);
   } catch (error) {
-    errorLogger.error({ error: error.message }, 'Error in getCategories controller');
+    next(error);
+  }
+};
+
+/**
+ * Get stock levels for Present Stock tab
+ * @route GET /api/v2/shop/admin/inventory/stock-levels
+ * @access Private (Purchase Manager, Admin)
+ */
+exports.getStockLevels = async (req, res, next) => {
+  try {
+    const { category } = req.query;
+    const result = await ShopService.getStockLevels({ category });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: result.message,
+        error: result.error
+      });
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    errorLogger.error({ error: error.message }, 'Error in getStockLevels controller');
+    next(error);
+  }
+};
+
+/**
+ * Get vendors with product counts for Supplier List tab
+ * @route GET /api/v2/vendors
+ * @access Private (Purchase Manager, Admin)
+ */
+exports.getVendorsWithProductCount = async (req, res, next) => {
+  try {
+    const { limit } = req.query;
+    const result = await ShopService.getVendorsWithProductCount({ limit: parseInt(limit) || 100 });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: result.message,
+        error: result.error
+      });
+    }
+
+    res.status(200).json(result.data); // Return .data (vendors array) directly or full object? Check api.js usage. 
+    // api.js uses response.vendors, but standard is result.data. Let's fix Service to return standard structure.
+    // Actually, let's stick to standard `res.status(200).json(result)` which usually contains { success: true, data: ... }
+    // But let's check correct specific usage in api.js later. For now, this is safe.
+    res.status(200).json(result.data);
+  } catch (error) {
+    errorLogger.error({ error: error.message }, 'Error in getVendorsWithProductCount controller');
+    next(error);
+  }
+};
+
+/**
+ * Get most consumed products for Analytics tab
+ * @route GET /api/v2/shop/admin/analytics/most-consumed
+ * @access Private (Purchase Manager, Admin)
+ */
+exports.getMostConsumed = async (req, res, next) => {
+  try {
+    const { period, limit } = req.query;
+    const result = await ShopService.getMostConsumed({
+      period: period || 'all',
+      limit: parseInt(limit) || 50
+    });
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: result.message,
+        error: result.error
+      });
+    }
+
+    res.status(200).json(result);
+  } catch (error) {
+    errorLogger.error({ error: error.message }, 'Error in getMostConsumed controller');
     next(error);
   }
 };

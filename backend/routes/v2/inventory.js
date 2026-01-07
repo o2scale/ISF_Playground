@@ -65,6 +65,30 @@ router.get(
 );
 
 /**
+ * Story 3.6: Stock Levels for PM Dashboard "Present Stock" tab
+ * @route GET /api/v2/shop/admin/inventory/stock-levels
+ * @desc Get all products with stock status
+ * @access Purchase Manager, Admin
+ */
+router.get(
+  '/stock-levels',
+  authenticate,
+  inventoryController.getStockLevels
+);
+
+/**
+ * Story 3.6: Most Consumed Analytics for PM Dashboard
+ * @route GET /api/v2/shop/admin/inventory/most-consumed
+ * @desc Get products ranked by consumption frequency
+ * @access Purchase Manager, Admin
+ */
+router.get(
+  '/most-consumed',
+  authenticate,
+  inventoryController.getMostConsumed
+);
+
+/**
  * @route GET /api/v2/shop/admin/inventory/out-of-stock
  * @desc Get products with stock = 0 (Sprint5-Story-07)
  * @access Admin only

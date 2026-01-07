@@ -866,3 +866,168 @@ exports.getQuickStats = async (req, res) => {
     });
   }
 };
+
+/**
+ * Story 3.6: Get all stock levels with status for PM dashboard
+ * @route   GET /api/v2/shop/admin/inventory/stock-levels
+ * @desc    Get all products with stock status (in_stock/low_stock/out_of_stock)
+ * @access  Purchase Manager, Admin
+ */
+exports.getStockLevels = async (req, res) => {
+  try {
+    const { category, status, search, limit = 100 } = req.query;
+
+    // Build query
+    let query = { isActive: true };
+
+    // Category filter
+    if (category && category !== 'all') {
+      query.purchaseCategory = category;
+    }
+
+    // Search filter
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { sku: { $regex: search, $options: 'i' } }
+      ];
+    }
+
+    // Fetch products
+    const products = await ShopItem.find(query)
+      .select('name sku stock lowStockThreshold category purchaseCategory price')
+      .sort({ stock: 1 }) // Lowest stock first
+      .limit(parseInt(limit));
+
+    // Calculate stock status for each product
+    const productsWithStatus = products.map(product => {
+      const stockNum = product.stock || 0;
+      const threshold = product.lowStockThreshold || 10;
+      
+      let stockStatus;
+      if (stockNum === 0) {
+        stockStatus = 'out_of_stock';
+      } else if (stockNum <= threshold) {
+        stockStatus = 'low_stock';
+      } else {
+        stockStatus = 'in_stock';
+      }
+
+      return {
+        _id: product._id,
+        name: product.name,
+        sku: product.sku,
+        stock: stockNum,
+        lowStockThreshold: threshold,
+        status: stockStatus,
+        category: product.category,
+        purchaseCategory: product.purchaseCategory,
+        price: product.price
+      };
+    });
+
+    // Filter by status if provided
+    let filteredProducts = productsWithStatus;
+    if (status && status !== 'all') {
+      filteredProducts = productsWithStatus.filter(p => p.status === status);
+    }
+
+    // Get summary counts
+    const summary = {
+      total: productsWithStatus.length,
+      inStock: productsWithStatus.filter(p => p.status === 'in_stock').length,
+      lowStock: productsWithStatus.filter(p => p.status === 'low_stock').length,
+      outOfStock: productsWithStatus.filter(p => p.status === 'out_of_stock').length
+    };
+
+    res.status(200).json({
+      success: true,
+      data: filteredProducts,
+      summary
+    });
+
+  } catch (error) {
+    console.error('Error fetching stock levels:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch stock levels',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Story 3.6: Get most consumed products analytics
+ * @route   GET /api/v2/shop/admin/analytics/most-consumed
+ * @desc    Get products ranked by consumption/request frequency
+ * @access  Purchase Manager, Admin
+ */
+exports.getMostConsumed = async (req, res) => {
+  try {
+    const { period = 'all', limit = 50 } = req.query;
+    const PurchaseRequest = require('../models/purchaseRequest');
+
+    // Calculate date filter based on period
+    let dateFilter = {};
+    const now = new Date();
+    
+    switch (period) {
+      case 'week':
+        const weekAgo = new Date(now);
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        dateFilter = { createdAt: { $gte: weekAgo } };
+        break;
+      case 'month':
+        const monthAgo = new Date(now);
+        monthAgo.setMonth(monthAgo.getMonth() - 1);
+        dateFilter = { createdAt: { $gte: monthAgo } };
+        break;
+      case 'year':
+        const yearAgo = new Date(now);
+        yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+        dateFilter = { createdAt: { $gte: yearAgo } };
+        break;
+      default:
+        // 'all' - no date filter
+        break;
+    }
+
+    // Aggregate purchase request items
+    const consumptionData = await PurchaseRequest.aggregate([
+      // Match by date if applicable
+      { $match: { ...dateFilter, status: { $ne: 'cancelled' } } },
+      // Unwind items array
+      { $unwind: '$items' },
+      // Group by product
+      {
+        $group: {
+          _id: '$items.productId',
+          productName: { $first: '$items.productName' },
+          productSKU: { $first: '$items.productSKU' },
+          totalQuantityRequested: { $sum: '$items.requestedQuantity' },
+          requestCount: { $sum: 1 },
+          lastRequestedAt: { $max: '$createdAt' }
+        }
+      },
+      // Sort by total quantity descending
+      { $sort: { totalQuantityRequested: -1 } },
+      // Limit results
+      { $limit: parseInt(limit) }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: consumptionData,
+      period,
+      totalProducts: consumptionData.length
+    });
+
+  } catch (error) {
+    console.error('Error fetching most consumed products:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch consumption data',
+      error: error.message
+    });
+  }
+};

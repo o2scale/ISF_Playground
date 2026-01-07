@@ -592,6 +592,38 @@ export const createSchedule = async (data) => {
   }
 };
 
+// ==================== PURCHASE MANAGER DASHBOARD TABS API (Story 3.6) ====================
+
+export const getStockLevels = async (params) => {
+  try {
+    const response = await api.get('/api/v2/shop/admin/inventory/stock-levels', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching stock levels:', error);
+    throw error;
+  }
+};
+
+export const getVendorsWithProductCount = async (params) => {
+  try {
+    const response = await api.get('/api/v2/shop/vendors', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching vendors:', error);
+    throw error;
+  }
+};
+
+export const getMostConsumed = async (params) => {
+  try {
+    const response = await api.get('/api/v2/shop/admin/analytics/most-consumed', { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching most consumed analytics:', error);
+    throw error;
+  }
+};
+
 export const getSchedules = async (filters) => {
   try {
     const response = await api.post("/api/schedules/admin", filters);
@@ -1989,6 +2021,17 @@ export const getAllPurchaseRequests = async (params = {}) => {
   }
 };
 
+// Story 3.9: Get pending purchase request count for PM navigation badge
+export const getPendingPurchaseRequestCount = async () => {
+  try {
+    const response = await api.get('/api/v2/shop/admin/purchase-requests/pending-count');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pending purchase request count:", error);
+    throw error;
+  }
+};
+
 // Get single purchase request by ID
 export const getPurchaseRequestById = async (requestId) => {
   try {
@@ -2110,3 +2153,5 @@ export const createPendingProduct = async (productData) => {
     throw error;
   }
 };
+
+

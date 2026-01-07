@@ -296,6 +296,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
     const requests = await PurchaseRequest.find(query)
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
+      .populate('deliveredByCoachId', 'name email')  // Story 2.6: Delivery tracking
       .populate('items.productId', 'name sku stock lowStockThreshold images')
       .sort({ createdAt: -1 });
 
@@ -413,6 +414,7 @@ exports.getAllPurchaseRequests = async (req, res) => {
     const requests = await PurchaseRequest.find(query)
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
+      .populate('deliveredByCoachId', 'name email')  // Story 2.6: Delivery tracking
       .populate('items.productId', 'name sku stock lowStockThreshold images')
       .sort({ createdAt: -1 });
 
@@ -988,7 +990,7 @@ exports.completePurchaseRequest = async (req, res) => {
 exports.updateStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, notes } = req.body;
+    const { status, notes, repairTechnicianName } = req.body;  // Story 2.6: Add repairTechnicianName
     const userId = req.user._id;
     const userRole = req.user.role;
 
@@ -1041,6 +1043,16 @@ exports.updateStatus = async (req, res) => {
       }
     }
 
+    // Story 2.6: Require Repair Technician Name for Repairs category at delivered_store
+    if (status === 'delivered_store' && request.category === 'Repairs') {
+      if (!repairTechnicianName || !repairTechnicianName.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Repair Technician Name is required for repair items'
+        });
+      }
+    }
+
     // Transition Guards (Story 2.1 strict lifecycle)
     let allowed = false;
 
@@ -1073,6 +1085,17 @@ exports.updateStatus = async (req, res) => {
       changedAt: new Date(),
       notes: notes || `Status changed to ${status}`
     });
+
+    // Story 2.6: Capture Repair Technician Name at delivered_store for Repairs
+    if (status === 'delivered_store' && request.category === 'Repairs' && repairTechnicianName) {
+      request.repairTechnicianName = repairTechnicianName.trim();
+    }
+
+    // Story 2.6: Auto-capture delivery info at delivered_balagruha
+    if (status === 'delivered_balagruha') {
+      request.deliveredByCoachId = userId;
+      request.deliveredToBalagruhaAt = new Date();
+    }
 
     await request.save();
 
@@ -1262,5 +1285,56 @@ function getDefaultThresholdForCategory(category) {
   };
   return thresholds[category] || 10;  // Default to 10 if category not found
 }
+
+/**
+ * Story 3.9: Get pending request count for PM navigation badge
+ * @route   GET /api/v2/shop/admin/purchase-requests/pending-count
+ * @desc    Returns count of pending requests for PM badge
+ * @access  Private (Purchase Manager, Admin)
+ */
+exports.getPendingCount = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const userRole = typeof req.user.role === 'string' ? req.user.role.toLowerCase() : req.user.role?.roleName?.toLowerCase() || '';
+
+    // Build query for pending status
+    let query = { status: 'pending' };
+
+    // PM sees only their assigned balagruhas + STOCK
+    if (userRole === 'purchase-manager') {
+      const user = await User.findById(userId).select('balagruhaIds');
+      const balagruhaIds = user?.balagruhaIds || [];
+      
+      query.$or = [
+        { balagruhaId: { $in: balagruhaIds } },
+        { balagruhaId: 'STOCK' }
+      ];
+    }
+
+    const total = await PurchaseRequest.countDocuments(query);
+
+    // Also get high priority count
+    const highPriority = await PurchaseRequest.countDocuments({
+      ...query,
+      priority: 'high'
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        total,
+        highPriority,
+        normalPriority: total - highPriority
+      }
+    });
+
+  } catch (error) {
+    console.error('Error getting pending count:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching pending request count'
+    });
+  }
+};
 
 module.exports = exports;

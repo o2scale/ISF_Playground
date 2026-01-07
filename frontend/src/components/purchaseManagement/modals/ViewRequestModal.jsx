@@ -21,6 +21,9 @@ dayjs.extend(relativeTime);
 export default function ViewRequestModal({ request, onClose, userRole, onRefresh }) {
   const normalizedRole = normalizeUserRole(userRole);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  // Story 2.6: State for repair technician name prompt
+  const [showTechnicianPrompt, setShowTechnicianPrompt] = useState(false);
+  const [repairTechnicianName, setRepairTechnicianName] = useState('');
 
   const getStatusBadge = (status) => {
     const badge = getPurchaseRequestStatusMeta(status);
@@ -54,12 +57,13 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
     }
   };
 
-  const handleUpdateStatus = async (nextStatus, notes, successMessage) => {
+  const handleUpdateStatus = async (nextStatus, notes, successMessage, additionalData = {}) => {
     setStatusUpdating(true);
     try {
       const response = await updatePurchaseRequestStatus(request._id, {
         status: nextStatus,
-        notes
+        notes,
+        ...additionalData  // Story 2.6: Include additional data like repairTechnicianName
       });
 
       if (response.success) {
@@ -74,7 +78,36 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
       showToast(error.response?.data?.message || 'Error updating request status', 'error');
     } finally {
       setStatusUpdating(false);
+      setShowTechnicianPrompt(false);
+      setRepairTechnicianName('');
     }
+  };
+
+  // Story 2.6: Handle marking as delivered to store (with technician prompt for Repairs)
+  const handleMarkDeliveredStore = () => {
+    if (request.category === 'Repairs') {
+      setShowTechnicianPrompt(true);
+    } else {
+      handleUpdateStatus(
+        PurchaseRequestStatuses.DELIVERED_STORE,
+        'Marked Received at Store via Purchase Management',
+        'Request marked as received at store'
+      );
+    }
+  };
+
+  // Story 2.6: Submit with technician name
+  const handleSubmitWithTechnician = () => {
+    if (!repairTechnicianName.trim()) {
+      showToast('Please enter the repair technician name', 'error');
+      return;
+    }
+    handleUpdateStatus(
+      PurchaseRequestStatuses.DELIVERED_STORE,
+      'Marked Received at Store via Purchase Management',
+      'Request marked as received at store',
+      { repairTechnicianName: repairTechnicianName.trim() }
+    );
   };
 
   return (
@@ -425,6 +458,50 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
             </div>
           )}
 
+          {/* Story 2.6: Delivery Tracking Section */}
+          {(request.status === PurchaseRequestStatuses.DELIVERED_BALAGRUHA || 
+            request.repairTechnicianName || 
+            request.deliveredByCoachId) && (
+            <div className="detail-section" style={{ backgroundColor: '#e8f5e9', padding: '16px', borderRadius: '8px' }}>
+              <h4 className="section-title">🚚 Delivery Tracking</h4>
+              <div className="detail-grid">
+                {/* Repair Technician (for Repairs category) */}
+                {request.repairTechnicianName && (
+                  <div className="detail-item">
+                    <span className="detail-label">Repair Technician:</span>
+                    <span className="detail-value" style={{ fontWeight: 600 }}>
+                      🔧 {request.repairTechnicianName}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Delivered By Coach */}
+                {request.deliveredByCoachId && (
+                  <div className="detail-item">
+                    <span className="detail-label">Delivered to Balagruha By:</span>
+                    <span className="detail-value">
+                      👤 {request.deliveredByCoachId?.name || 'Unknown Coach'}
+                      {request.deliveredByCoachId?.email && (
+                        <span className="user-email"> ({request.deliveredByCoachId.email})</span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                
+                {/* Delivery Timestamp */}
+                {request.deliveredToBalagruhaAt && (
+                  <div className="detail-item">
+                    <span className="detail-label">Delivered At:</span>
+                    <span className="detail-value">
+                      📅 {formatDateTime(request.deliveredToBalagruhaAt)}
+                      <span className="time-ago"> ({dayjs(request.deliveredToBalagruhaAt).fromNow()})</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Metadata */}
           <div className="detail-section metadata">
             <div className="detail-grid">
@@ -460,17 +537,59 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
             <button
               className="btn btn-primary"
-              onClick={() =>
-                handleUpdateStatus(
-                  PurchaseRequestStatuses.DELIVERED_STORE,
-                  'Marked Received at Store via Purchase Management',
-                  'Request marked as received at store'
-                )
-              }
+              onClick={handleMarkDeliveredStore}
               disabled={statusUpdating}
             >
               📦 Mark Received at Store
             </button>
+          )}
+
+          {/* Story 2.6: Repair Technician Name Prompt */}
+          {showTechnicianPrompt && (
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px',
+              padding: '12px',
+              backgroundColor: '#fff3e0',
+              borderRadius: '8px',
+              marginRight: 'auto'
+            }}>
+              <span style={{ fontWeight: 500, color: '#e65100' }}>🔧 Technician Name:</span>
+              <input
+                type="text"
+                value={repairTechnicianName}
+                onChange={(e) => setRepairTechnicianName(e.target.value)}
+                placeholder="Enter technician name"
+                style={{
+                  padding: '8px 12px',
+                  border: '1px solid #ffcc80',
+                  borderRadius: '4px',
+                  fontSize: '14px',
+                  minWidth: '200px'
+                }}
+                autoFocus
+              />
+              <button
+                className="btn btn-success"
+                onClick={handleSubmitWithTechnician}
+                disabled={statusUpdating || !repairTechnicianName.trim()}
+                style={{ padding: '8px 16px' }}
+              >
+                ✓ Submit
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowTechnicianPrompt(false);
+                  setRepairTechnicianName('');
+                }}
+                disabled={statusUpdating}
+                style={{ padding: '8px 12px' }}
+              >
+                ✕
+              </button>
+            </div>
           )}
 
           {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (

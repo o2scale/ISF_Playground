@@ -46,7 +46,7 @@ const purchaseRequestSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,  // Allow ObjectId or String 'STOCK'
       required: true,
       validate: {
-        validator: function(v) {
+        validator: function (v) {
           return v === 'STOCK' || mongoose.Types.ObjectId.isValid(v);
         },
         message: 'balagruhaId must be either "STOCK" or a valid Balagruha ID'
@@ -299,7 +299,29 @@ const purchaseRequestSchema = new mongoose.Schema(
         type: String,
         maxlength: [200, 'Allocation notes cannot exceed 200 characters']
       }
-    }]
+    }],
+
+    // Story 2.6: Repair Technician & Delivery Tracking
+    // Repair technician name (required for Repairs category at delivered_store)
+    repairTechnicianName: {
+      type: String,
+      required: false,
+      trim: true,
+      maxlength: [100, 'Technician name cannot exceed 100 characters']
+    },
+
+    // Story 2.6: Coach who delivered to Balagruha
+    deliveredByCoachId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false
+    },
+
+    // Story 2.6: Timestamp when delivered to Balagruha
+    deliveredToBalagruhaAt: {
+      type: Date,
+      required: false
+    }
   },
   {
     timestamps: true,
@@ -314,11 +336,11 @@ purchaseRequestSchema.index({ balagruhaId: 1, status: 1 });
 purchaseRequestSchema.index({ createdAt: -1 });
 
 // Auto-generate requestId and calculate totalEstimatedCost
-purchaseRequestSchema.pre('save', async function(next) {
+purchaseRequestSchema.pre('save', async function (next) {
   // Generate requestId for new documents
   if (this.isNew && !this.requestId) {
     const count = await mongoose.model('PurchaseRequest').countDocuments();
-    this.requestId = `PR-${String(count + 1).padStart(3, '0')}`;
+    this.requestId = `PR-${String(count + 1).padStart(5, '0')}`;
   }
 
   // Calculate totalEstimatedCost from items
@@ -330,19 +352,19 @@ purchaseRequestSchema.pre('save', async function(next) {
 });
 
 // Virtual: requestAge (in hours)
-purchaseRequestSchema.virtual('requestAge').get(function() {
+purchaseRequestSchema.virtual('requestAge').get(function () {
   const now = new Date();
   const diffMs = now - this.createdAt;
   return Math.floor(diffMs / (1000 * 60 * 60));  // hours
 });
 
 // Virtual: totalItems
-purchaseRequestSchema.virtual('totalItems').get(function() {
+purchaseRequestSchema.virtual('totalItems').get(function () {
   return this.items ? this.items.length : 0;
 });
 
 // Virtual: totalQuantity
-purchaseRequestSchema.virtual('totalQuantity').get(function() {
+purchaseRequestSchema.virtual('totalQuantity').get(function () {
   return this.items ? this.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0;
 });
 

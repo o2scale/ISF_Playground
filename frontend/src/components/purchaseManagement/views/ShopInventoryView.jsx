@@ -4,7 +4,10 @@ import {
   getAllPurchaseRequests,
   cancelPurchaseRequest,
   updatePurchaseRequestStatus,
-  getUserBalagruhas  // Sprint5-Story-24: Get user's assigned Balagruhas
+  getUserBalagruhas,  // Sprint5-Story-24: Get user's assigned Balagruhas
+  getStockLevels,     // Story 3.6: Present Stock tab
+  getMostConsumed,    // Story 3.6: Most Consumed tab
+  getVendorsWithProductCount  // Story 3.6: Supplier List tab
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import { formatDate, formatDateOnly, formatDateTime, getReadableDate } from '../../../utils/dateFormatter';  // Sprint5-Story-23: Date formatting utilities
@@ -29,11 +32,17 @@ import {
 
 const CATEGORY_OPTIONS = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
 
+// Story 3.6: Updated to include 8 tabs as per client feedback
 const STATUS_BUCKET_OPTIONS = [
-  { label: 'Purchase Requests', value: 'pending' },
-  { label: 'On Going Order', value: 'ordered' },
-  { label: 'Reached ISF Store', value: 'delivered_store' },
-  { label: 'Delivered', value: 'delivered_balagruha' }
+  // Workflow status tabs (existing)
+  { label: 'Purchase Requests', value: 'pending', type: 'workflow' },
+  { label: 'On Going Order', value: 'ordered', type: 'workflow' },
+  { label: 'Reached ISF Store', value: 'delivered_store', type: 'workflow' },
+  { label: 'Delivered', value: 'delivered_balagruha', type: 'workflow' },
+  // Story 3.6: New inventory insight tabs
+  { label: 'Present Stock', value: 'present_stock', type: 'inventory' },
+  { label: 'Supplier List', value: 'supplier_list', type: 'inventory' },
+  { label: 'Most Consumed', value: 'most_consumed', type: 'analytics' }
 ];
 
 dayjs.extend(relativeTime);
@@ -166,6 +175,14 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const [loading, setLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState({});
 
+  // Story 3.6: State for new tab views
+  const [stockLevels, setStockLevels] = useState([]);
+  const [stockSummary, setStockSummary] = useState({ total: 0, inStock: 0, lowStock: 0, outOfStock: 0 });
+  const [vendors, setVendors] = useState([]);
+  const [mostConsumed, setMostConsumed] = useState([]);
+  const [consumptionPeriod, setConsumptionPeriod] = useState('all');
+  const [tabLoading, setTabLoading] = useState(false);
+
   // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
@@ -182,6 +199,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     priority: 'all',
     balagruha: 'all',
     purchaseManager: 'all',
+    requester: 'all',  // Story 3.8: Coach/Requester filter for PM
     category: 'All Categories',  // Sprint5-Story-20
     // Story 3.1: PM dashboard should default to active work
     status: normalizedRole === UserTypes.PURCHASE_MANAGER ? 'pending' : 'all',
@@ -191,6 +209,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   // Story 3.4: Tab states for PM
   const [activeCategoryTab, setActiveCategoryTab] = useState('All Categories');
   const [activeStatusTab, setActiveStatusTab] = useState('pending');
+
+  // Story 3.5: View mode toggle (list vs bunched) and expanded rows
+  const [viewMode, setViewMode] = useState('list'); // 'list' or 'bunched'
+  const [expandedBunchedItems, setExpandedBunchedItems] = useState(new Set());
 
   // Sprint5-Story-23: Sorting state for date column
   const [sortConfig, setSortConfig] = useState({
@@ -284,6 +306,55 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     }
   };
 
+  // Story 3.6: Fetch stock levels for "Present Stock" tab
+  const fetchStockLevels = async () => {
+    try {
+      setTabLoading(true);
+      const response = await getStockLevels({ category: filters.category === 'All Categories' ? 'all' : filters.category });
+      if (response.success) {
+        setStockLevels(response.data || []);
+        setStockSummary(response.summary || { total: 0, inStock: 0, lowStock: 0, outOfStock: 0 });
+      }
+    } catch (error) {
+      console.error('Error fetching stock levels:', error);
+      showToast('Failed to load stock levels', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  // Story 3.6: Fetch vendors for "Supplier List" tab
+  const fetchVendors = async () => {
+    try {
+      setTabLoading(true);
+      const response = await getVendorsWithProductCount({ limit: 100 });
+      if (response.success) {
+        setVendors(response.vendors || []);
+      }
+    } catch (error) {
+      console.error('Error fetching vendors:', error);
+      showToast('Failed to load supplier list', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
+  // Story 3.6: Fetch most consumed products for "Most Consumed" tab
+  const fetchMostConsumed = async (period = 'all') => {
+    try {
+      setTabLoading(true);
+      const response = await getMostConsumed({ period, limit: 50 });
+      if (response.success) {
+        setMostConsumed(response.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching consumption data:', error);
+      showToast('Failed to load consumption data', 'error');
+    } finally {
+      setTabLoading(false);
+    }
+  };
+
   const applyFilters = () => {
     let filtered = [...requests];
 
@@ -311,6 +382,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     if (filters.purchaseManager !== 'all') {
       filtered = filtered.filter(request =>
         request.requestedBy?._id === filters.purchaseManager
+      );
+    }
+
+    // Story 3.8: Coach/Requester filter (PM view)
+    if (filters.requester !== 'all') {
+      filtered = filtered.filter(request =>
+        String(request.requestedBy?._id) === String(filters.requester)
       );
     }
 
@@ -389,7 +467,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     setFilteredRequests(filtered);
   };
 
-  // C3: PM needs grouping by item, per status bucket
+  // C3 + Story 3.5: PM needs grouping by item, per status bucket with expandable details
   const groupedByStatus = useMemo(() => {
     const buckets = new Map();
 
@@ -405,9 +483,29 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       for (const item of items) {
         const key = String(item?.productId?._id ?? item?.productId ?? item?.productSKU ?? item?.productName ?? 'unknown');
         const prev = byItem.get(key);
+        const requestPriority = getPriority(request);
+        
+        // Story 3.5: Track individual requests for expandable view
+        const requestDetail = {
+          requestId: request._id,
+          requestDisplayId: request.requestId,
+          requesterName: request.requestedBy?.name || 'Unknown',
+          balagruhaName: request.balagruhaId === 'STOCK' ? 'STOCK' : (request.balagruhaId?.name || 'Unknown'),
+          quantity: Number(item?.requestedQuantity || 0),
+          priority: requestPriority,
+          deadline: request.deadline,
+          createdAt: request.createdAt
+        };
+
         if (prev) {
           prev.totalRequestedQuantity += Number(item?.requestedQuantity || 0);
           prev.requestCount += 1;
+          prev.requests.push(requestDetail);
+          // Story 3.5: Priority aggregation - keep highest
+          const priorityOrder = { 'High': 0, 'Medium': 1, 'Low': 2 };
+          if ((priorityOrder[requestPriority] ?? 9) < (priorityOrder[prev.highestPriority] ?? 9)) {
+            prev.highestPriority = requestPriority;
+          }
         } else {
           byItem.set(key, {
             key,
@@ -415,7 +513,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             productName: item?.productName || item?.productId?.name || 'Unknown item',
             productSKU: item?.productSKU || item?.productId?.sku || '',
             totalRequestedQuantity: Number(item?.requestedQuantity || 0),
-            requestCount: 1
+            requestCount: 1,
+            highestPriority: requestPriority,
+            requests: [requestDetail]
           });
         }
       }
@@ -476,13 +576,14 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     );
   };
 
-  const handleUpdateStatus = async (requestId, nextStatus, notes, successMessage) => {
+  const handleUpdateStatus = async (requestId, nextStatus, notes, successMessage, additionalData = {}) => {
     setStatusUpdating((prev) => ({ ...prev, [requestId]: true }));
 
     try {
       const response = await updatePurchaseRequestStatus(requestId, {
         status: nextStatus,
-        notes
+        notes,
+        ...additionalData  // Story 2.6: Support additional data like repairTechnicianName
       });
 
       if (response.success) {
@@ -496,6 +597,31 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       showToast(error.response?.data?.message || 'Error updating request status', 'error');
     } finally {
       setStatusUpdating((prev) => ({ ...prev, [requestId]: false }));
+    }
+  };
+
+  // Story 2.6: Handle marking as delivered to store with technician name prompt for Repairs
+  const handleMarkDeliveredStore = (request) => {
+    if (request.category === 'Repairs') {
+      const technicianName = window.prompt('Enter Repair Technician Name (required):');
+      if (!technicianName || !technicianName.trim()) {
+        showToast('Technician name is required for repair items', 'error');
+        return;
+      }
+      handleUpdateStatus(
+        request._id,
+        PurchaseRequestStatuses.DELIVERED_STORE,
+        'Marked Received at Store via Purchase Management',
+        'Request marked as received at store',
+        { repairTechnicianName: technicianName.trim() }
+      );
+    } else {
+      handleUpdateStatus(
+        request._id,
+        PurchaseRequestStatuses.DELIVERED_STORE,
+        'Marked Received at Store via Purchase Management',
+        'Request marked as received at store'
+      );
     }
   };
 
@@ -536,6 +662,59 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const handleUpdateStock = (request) => {
     setSelectedRequest(request);
     setShowUpdateStockModal(true);
+  };
+
+  // Story 3.5: Toggle expanded state for bunched item
+  const toggleBunchedItemExpand = (key) => {
+    setExpandedBunchedItems(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(key)) {
+        newSet.delete(key);
+      } else {
+        newSet.add(key);
+      }
+      return newSet;
+    });
+  };
+
+  // Story 3.5: Order All - Mark all requests for a bunched item as ordered
+  const handleOrderAll = async (bunchedItem, status) => {
+    // Only allow "Order All" for pending items
+    if (status !== PurchaseRequestStatuses.PENDING) {
+      showToast('Order All is only available for pending requests', 'warning');
+      return;
+    }
+
+    const requestIds = bunchedItem.requests.map(r => r.requestId);
+    const confirmMsg = `Mark all ${requestIds.length} request(s) for "${bunchedItem.productName}" as Ordered?`;
+    
+    if (!window.confirm(confirmMsg)) {
+      return;
+    }
+
+    try {
+      // Update each request sequentially
+      let successCount = 0;
+      for (const requestId of requestIds) {
+        const response = await updatePurchaseRequestStatus(requestId, {
+          status: PurchaseRequestStatuses.ORDERED,
+          notes: `Bulk ordered via "Order All" for ${bunchedItem.productName}`
+        });
+        if (response.success) {
+          successCount++;
+        }
+      }
+
+      if (successCount === requestIds.length) {
+        showToast(`All ${successCount} requests marked as ordered`, 'success');
+      } else {
+        showToast(`${successCount} of ${requestIds.length} requests updated`, 'warning');
+      }
+      fetchPurchaseRequests();
+    } catch (error) {
+      console.error('Error in Order All:', error);
+      showToast('Error updating some requests', 'error');
+    }
   };
 
   const exportToPDF = () => {
@@ -609,12 +788,43 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     return Array.from(uniqueManagers.values());
   };
 
-  // Reset purchase manager filter when balagruha changes
+  // Story 3.8: Get unique requesters (coaches, medical in charge, etc.) for filter dropdown
+  const getAvailableRequesters = () => {
+    let relevantRequests = requests;
+
+    // If a balagruha is selected, only show requesters who have requests for that balagruha
+    if (filters.balagruha !== 'all') {
+      relevantRequests = requests.filter(req => {
+        const balagruhaId = req.balagruhaId;
+        const requestBalagruhaId = balagruhaId === 'STOCK' ? 'STOCK' : (balagruhaId?._id ?? balagruhaId);
+        return String(requestBalagruhaId) === String(filters.balagruha);
+      });
+    }
+
+    // Extract unique requesters and sort by name
+    const uniqueRequesters = new Map();
+    relevantRequests.forEach(req => {
+      if (req.requestedBy && req.requestedBy._id) {
+        uniqueRequesters.set(req.requestedBy._id, {
+          _id: req.requestedBy._id,
+          name: req.requestedBy.name || 'Unknown',
+          email: req.requestedBy.email || ''
+        });
+      }
+    });
+
+    return Array.from(uniqueRequesters.values()).sort((a, b) => 
+      (a.name || '').localeCompare(b.name || '')
+    );
+  };
+
+  // Reset filters when balagruha changes
   const handleBalagruhaChange = (balagruhaId) => {
     setFilters({
       ...filters,
       balagruha: balagruhaId,
-      purchaseManager: 'all' // Reset purchase manager when balagruha changes
+      purchaseManager: 'all', // Reset purchase manager when balagruha changes
+      requester: 'all' // Story 3.8: Reset requester when balagruha changes
     });
   };
 
@@ -624,10 +834,37 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     setFilters({ ...filters, category });
   };
 
-  // Story 3.4: Handle status bucket tab click
+  // Story 3.4 + 3.6: Handle status bucket tab click (including new inventory/analytics tabs)
   const handleStatusTabClick = (status) => {
     setActiveStatusTab(status);
-    setFilters({ ...filters, status });
+    
+    // Story 3.6: Fetch data for inventory/analytics tabs
+    const tabConfig = STATUS_BUCKET_OPTIONS.find(t => t.value === status);
+    if (tabConfig?.type === 'inventory' || tabConfig?.type === 'analytics') {
+      // Don't update status filter for non-workflow tabs
+      if (status === 'present_stock') {
+        fetchStockLevels();
+      } else if (status === 'supplier_list') {
+        fetchVendors();
+      } else if (status === 'most_consumed') {
+        fetchMostConsumed(consumptionPeriod);
+      }
+    } else {
+      // Workflow tabs - update status filter
+      setFilters({ ...filters, status });
+    }
+  };
+
+  // Story 3.6: Handle consumption period change for Most Consumed tab
+  const handleConsumptionPeriodChange = (period) => {
+    setConsumptionPeriod(period);
+    fetchMostConsumed(period);
+  };
+
+  // Story 3.6: Helper to check if current tab is a workflow tab
+  const isWorkflowTab = () => {
+    const tabConfig = STATUS_BUCKET_OPTIONS.find(t => t.value === activeStatusTab);
+    return tabConfig?.type === 'workflow';
   };
 
   if (loading) {
@@ -643,7 +880,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     <div className="shop-inventory-view">
       {/* Header with Action Buttons */}
       <div className="view-header">
-        <h2 className="view-title">🛒 Shop Inventory Purchase Requests</h2>
+        <h2 className="view-title">📋 Purchase Requests</h2>
         <div className="header-actions">
           {/* Sprint5-Story-24: Multi-role access to purchase request creation */}
           {[UserTypes.PURCHASE_MANAGER, UserTypes.COACH, UserTypes.MEDICAL_IN_CHARGE, UserTypes.ADMIN].includes(normalizedRole) && (
@@ -664,11 +901,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         </div>
       </div>
 
-      {/* Story 3.1: PM Scorecard */}
+      {/* Story 3.1: PM Scorecard (Story 3.10: Renamed from "Completed Tasks") */}
       {normalizedRole === UserTypes.PURCHASE_MANAGER && (
         <div className="pm-scorecard-row" aria-label="PM Scorecard">
           <div className="pm-scorecard-card">
-            <div className="pm-scorecard-label">Completed Tasks</div>
+            <div className="pm-scorecard-label">Delivered to Store</div>
             <div className="pm-scorecard-value" data-testid="pm-completed-tasks-count">
               {completedTasksCount}
             </div>
@@ -789,6 +1026,25 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             </select>
           </div>
 
+          {/* Story 3.8: Coach/Requester Filter (PM view) */}
+          {normalizedRole === UserTypes.PURCHASE_MANAGER && (
+            <div className="filter-group">
+              <label>Requested By:</label>
+              <select
+                value={filters.requester}
+                onChange={(e) => setFilters({ ...filters, requester: e.target.value })}
+                className="filter-select"
+              >
+                <option value="all">All Requesters</option>
+                {getAvailableRequesters().map(requester => (
+                  <option key={requester._id} value={requester._id}>
+                    {requester.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Purchase Manager Filter (Admin only) */}
           {normalizedRole === UserTypes.ADMIN && (
             <div className="filter-group">
@@ -858,79 +1114,471 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         </div>
       </div>
 
-      {/* C3: PM item grouping by status bucket */}
-      {normalizedRole === UserTypes.PURCHASE_MANAGER && (
+      {/* Story 3.5: View Mode Toggle + Enhanced Bunched View - Only show for PM workflow tabs */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && isWorkflowTab() && (
         <div className="requests-table-container" style={{ marginTop: '16px' }}>
-          <h3 style={{ margin: '0 0 10px 0' }}>Grouped Summary (by Item, per Status)</h3>
-          {groupedByStatus.map((bucket) => (
-            <div key={bucket.status} style={{ marginBottom: '14px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+          {/* Story 3.5: View Toggle Button */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <h3 style={{ margin: 0 }}>
+              {viewMode === 'bunched' ? '📦 Bunched View (by Item)' : '📋 List View'}
+            </h3>
+            <div style={{ display: 'flex', gap: '4px', backgroundColor: '#f3f4f6', borderRadius: '8px', padding: '4px' }}>
+              <button
+                onClick={() => setViewMode('list')}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '13px',
+                  backgroundColor: viewMode === 'list' ? '#4f46e5' : 'transparent',
+                  color: viewMode === 'list' ? '#fff' : '#374151',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📋 List
+              </button>
+              <button
+                onClick={() => setViewMode('bunched')}
+                style={{
+                  padding: '6px 16px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 500,
+                  fontSize: '13px',
+                  backgroundColor: viewMode === 'bunched' ? '#4f46e5' : 'transparent',
+                  color: viewMode === 'bunched' ? '#fff' : '#374151',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📦 Bunched
+              </button>
+            </div>
+          </div>
+
+          {/* Story 3.5: Bunched View Content */}
+          {viewMode === 'bunched' && groupedByStatus.map((bucket) => (
+            <div key={bucket.status} style={{ marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
                 <div>{getStatusBadge(bucket.status)}</div>
-                <div style={{ color: '#555' }}>{bucket.rows.length} item(s)</div>
+                <div style={{ color: '#555', fontSize: '14px' }}>{bucket.rows.length} unique item(s)</div>
               </div>
-              <table className="requests-table" aria-label={`Grouped summary table (${bucket.status})`}>
-                <thead>
-                  <tr>
-                    <th>Item</th>
-                    <th>Total Qty</th>
-                    <th># Lines</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bucket.rows.slice(0, 25).map((row) => (
-                    <tr key={row.key}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{row.productName}</div>
-                        {row.productSKU ? <div style={{ fontSize: '12px', color: '#666' }}>{row.productSKU}</div> : null}
-                      </td>
-                      <td>{row.totalRequestedQuantity}</td>
-                      <td>{row.requestCount}</td>
-                    </tr>
-                  ))}
-                  {bucket.rows.length === 0 && (
-                    <tr>
-                      <td colSpan={3} className="no-data">No items</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-              {bucket.rows.length > 25 && (
-                <div style={{ fontSize: '12px', color: '#666', marginTop: '6px' }}>
-                  Showing top 25 items by quantity.
-                </div>
-              )}
+              
+              {/* Bunched Items Cards */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {bucket.rows.slice(0, 25).map((row) => {
+                  const isExpanded = expandedBunchedItems.has(`${bucket.status}-${row.key}`);
+                  const itemKey = `${bucket.status}-${row.key}`;
+                  
+                  return (
+                    <div 
+                      key={row.key}
+                      style={{
+                        border: '1px solid #e5e7eb',
+                        borderRadius: '8px',
+                        backgroundColor: row.highestPriority === 'High' ? '#fef2f2' : '#fff',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      {/* Bunched Item Header */}
+                      <div 
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '12px 16px',
+                          cursor: 'pointer',
+                          backgroundColor: isExpanded ? '#f9fafb' : 'transparent'
+                        }}
+                        onClick={() => toggleBunchedItemExpand(itemKey)}
+                      >
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '15px', marginBottom: '4px' }}>
+                            {row.productName}
+                            {row.highestPriority === 'High' && (
+                              <span style={{ 
+                                marginLeft: '8px', 
+                                backgroundColor: '#dc2626', 
+                                color: '#fff', 
+                                padding: '2px 8px', 
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                fontWeight: 600
+                              }}>
+                                HIGH PRIORITY
+                              </span>
+                            )}
+                          </div>
+                          {row.productSKU && (
+                            <div style={{ fontSize: '12px', color: '#666' }}>{row.productSKU}</div>
+                          )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '20px', fontWeight: 700, color: '#4f46e5' }}>
+                              {row.totalRequestedQuantity}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>Total Qty</div>
+                          </div>
+                          <div style={{ textAlign: 'center' }}>
+                            <div style={{ fontSize: '16px', fontWeight: 600, color: '#374151' }}>
+                              {row.requestCount}
+                            </div>
+                            <div style={{ fontSize: '11px', color: '#666' }}>Requests</div>
+                          </div>
+                          
+                          {/* Story 3.5: Order All Button - Only for pending status */}
+                          {bucket.status === PurchaseRequestStatuses.PENDING && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOrderAll(row, bucket.status);
+                              }}
+                              style={{
+                                padding: '8px 16px',
+                                backgroundColor: '#16a34a',
+                                color: '#fff',
+                                border: 'none',
+                                borderRadius: '6px',
+                                cursor: 'pointer',
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                whiteSpace: 'nowrap'
+                              }}
+                              title={`Mark all ${row.requestCount} requests as Ordered`}
+                            >
+                              🛒 Order All
+                            </button>
+                          )}
+                          
+                          <div style={{ 
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+                            transition: 'transform 0.2s',
+                            color: '#6b7280'
+                          }}>
+                            ▼
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Story 3.5: Expanded Details - Individual Requests */}
+                      {isExpanded && (
+                        <div style={{ 
+                          borderTop: '1px solid #e5e7eb', 
+                          backgroundColor: '#f9fafb',
+                          padding: '12px 16px'
+                        }}>
+                          <table style={{ width: '100%', fontSize: '13px', borderCollapse: 'collapse' }}>
+                            <thead>
+                              <tr style={{ color: '#6b7280', textAlign: 'left' }}>
+                                <th style={{ padding: '6px 8px', fontWeight: 500 }}>Request ID</th>
+                                <th style={{ padding: '6px 8px', fontWeight: 500 }}>Requester</th>
+                                <th style={{ padding: '6px 8px', fontWeight: 500 }}>Balagruha</th>
+                                <th style={{ padding: '6px 8px', fontWeight: 500 }}>Qty</th>
+                                <th style={{ padding: '6px 8px', fontWeight: 500 }}>Priority</th>
+                                <th style={{ padding: '6px 8px', fontWeight: 500 }}>Date</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {row.requests.map((req, idx) => (
+                                <tr 
+                                  key={req.requestId || idx}
+                                  style={{ 
+                                    backgroundColor: idx % 2 === 0 ? '#fff' : '#f3f4f6',
+                                    borderBottom: '1px solid #e5e7eb'
+                                  }}
+                                >
+                                  <td style={{ padding: '8px', fontWeight: 500 }}>{req.requestDisplayId}</td>
+                                  <td style={{ padding: '8px' }}>{req.requesterName}</td>
+                                  <td style={{ padding: '8px' }}>
+                                    {req.balagruhaName === 'STOCK' ? (
+                                      <span style={{ color: '#1976d2', fontWeight: 600 }}>📦 STOCK</span>
+                                    ) : (
+                                      <span>📍 {req.balagruhaName}</span>
+                                    )}
+                                  </td>
+                                  <td style={{ padding: '8px', fontWeight: 600 }}>{req.quantity}</td>
+                                  <td style={{ padding: '8px' }}>
+                                    <span style={{
+                                      padding: '2px 8px',
+                                      borderRadius: '4px',
+                                      fontSize: '11px',
+                                      fontWeight: 600,
+                                      backgroundColor: req.priority === 'High' ? '#fee2e2' : req.priority === 'Low' ? '#f3f4f6' : '#fef3c7',
+                                      color: req.priority === 'High' ? '#dc2626' : req.priority === 'Low' ? '#6b7280' : '#d97706'
+                                    }}>
+                                      {req.priority}
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '8px', color: '#666' }}>
+                                    {formatDate(req.createdAt, 'dd/mm/yy')}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+                
+                {bucket.rows.length === 0 && (
+                  <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
+                    No items in this status
+                  </div>
+                )}
+                
+                {bucket.rows.length > 25 && (
+                  <div style={{ fontSize: '12px', color: '#666', marginTop: '6px', fontStyle: 'italic' }}>
+                    Showing top 25 items by quantity.
+                  </div>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* Requests Table */}
+      {/* Story 3.6: Present Stock View */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && activeStatusTab === 'present_stock' && (
+        <div className="requests-table-container" style={{ marginTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>📦 Present Stock</h3>
+            <div style={{ display: 'flex', gap: '20px', fontSize: '14px' }}>
+              <span style={{ color: '#16a34a' }}>✓ In Stock: {stockSummary.inStock}</span>
+              <span style={{ color: '#f59e0b' }}>⚠ Low Stock: {stockSummary.lowStock}</span>
+              <span style={{ color: '#dc2626' }}>✗ Out of Stock: {stockSummary.outOfStock}</span>
+            </div>
+          </div>
+          
+          {tabLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
+              Loading stock levels...
+            </div>
+          ) : (
+            <table className="requests-table" aria-label="Present Stock Table">
+              <thead>
+                <tr>
+                  <th>Product Name</th>
+                  <th>SKU</th>
+                  <th>Category</th>
+                  <th>Current Stock</th>
+                  <th>Min Stock Level</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockLevels.map(item => (
+                  <tr key={item._id}>
+                    <td style={{ fontWeight: 600 }}>{item.name}</td>
+                    <td style={{ color: '#666', fontSize: '13px' }}>{item.sku || '-'}</td>
+                    <td>{item.category || '-'}</td>
+                    <td style={{ fontWeight: 600 }}>{item.stockQuantity}</td>
+                    <td>{item.minStockLevel || 5}</td>
+                    <td>
+                      {item.stockStatus === 'out_of_stock' && (
+                        <span className="status-badge status-cancelled" style={{ backgroundColor: '#fee2e2', color: '#dc2626' }}>
+                          Out of Stock
+                        </span>
+                      )}
+                      {item.stockStatus === 'low_stock' && (
+                        <span className="status-badge" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
+                          Low Stock
+                        </span>
+                      )}
+                      {item.stockStatus === 'in_stock' && (
+                        <span className="status-badge status-approved" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+                          In Stock
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {stockLevels.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="no-data">No products found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Story 3.6: Supplier List View */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && activeStatusTab === 'supplier_list' && (
+        <div className="requests-table-container" style={{ marginTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>🏪 Supplier List</h3>
+            <span style={{ color: '#666' }}>Total Vendors: {vendors.length}</span>
+          </div>
+          
+          {tabLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
+              Loading suppliers...
+            </div>
+          ) : (
+            <table className="requests-table" aria-label="Supplier List Table">
+              <thead>
+                <tr>
+                  <th>Vendor Name</th>
+                  <th>Contact Person</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Products Supplied</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {vendors.map(vendor => (
+                  <tr key={vendor._id}>
+                    <td style={{ fontWeight: 600 }}>{vendor.name}</td>
+                    <td>{vendor.contactPerson || '-'}</td>
+                    <td>{vendor.phone || '-'}</td>
+                    <td style={{ fontSize: '13px', color: '#666' }}>{vendor.email || '-'}</td>
+                    <td>
+                      <span style={{ 
+                        backgroundColor: '#e0e7ff', 
+                        color: '#4338ca', 
+                        padding: '4px 10px', 
+                        borderRadius: '12px',
+                        fontWeight: 600,
+                        fontSize: '13px'
+                      }}>
+                        {vendor.productCount || 0} products
+                      </span>
+                    </td>
+                    <td>
+                      {vendor.isActive !== false ? (
+                        <span className="status-badge status-approved" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+                          Active
+                        </span>
+                      ) : (
+                        <span className="status-badge" style={{ backgroundColor: '#f3f4f6', color: '#6b7280' }}>
+                          Inactive
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {vendors.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="no-data">No vendors found</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Story 3.6: Most Consumed View */}
+      {normalizedRole === UserTypes.PURCHASE_MANAGER && activeStatusTab === 'most_consumed' && (
+        <div className="requests-table-container" style={{ marginTop: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h3 style={{ margin: 0 }}>📊 Most Consumed Products</h3>
+            <div className="filter-group" style={{ marginBottom: 0 }}>
+              <label style={{ marginRight: '8px' }}>Period:</label>
+              <select
+                value={consumptionPeriod}
+                onChange={(e) => handleConsumptionPeriodChange(e.target.value)}
+                className="filter-select"
+                style={{ minWidth: '150px' }}
+              >
+                <option value="all">All Time</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="quarter">This Quarter</option>
+                <option value="year">This Year</option>
+              </select>
+            </div>
+          </div>
+          
+          {tabLoading ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
+              <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
+              Loading consumption data...
+            </div>
+          ) : (
+            <table className="requests-table" aria-label="Most Consumed Products Table">
+              <thead>
+                <tr>
+                  <th style={{ width: '60px' }}>Rank</th>
+                  <th>Product Name</th>
+                  <th>SKU</th>
+                  <th>Total Quantity Requested</th>
+                  <th>Number of Requests</th>
+                  <th>Avg Qty per Request</th>
+                </tr>
+              </thead>
+              <tbody>
+                {mostConsumed.map((item, index) => (
+                  <tr key={item.productId || index}>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ 
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        backgroundColor: index < 3 ? (index === 0 ? '#fbbf24' : index === 1 ? '#9ca3af' : '#cd7f32') : '#e5e7eb',
+                        color: index < 3 ? '#fff' : '#374151',
+                        fontWeight: 600,
+                        fontSize: '13px'
+                      }}>
+                        {index + 1}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{item.productName}</td>
+                    <td style={{ color: '#666', fontSize: '13px' }}>{item.productSKU || '-'}</td>
+                    <td style={{ fontWeight: 600, color: '#4f46e5' }}>{item.totalQuantity}</td>
+                    <td>{item.requestCount}</td>
+                    <td>{(item.totalQuantity / item.requestCount).toFixed(1)}</td>
+                  </tr>
+                ))}
+                {mostConsumed.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="no-data">No consumption data found for this period</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {/* Requests Table - Only show for workflow tabs (list view) or non-PM users */}
+      {(normalizedRole !== UserTypes.PURCHASE_MANAGER || (isWorkflowTab() && viewMode === 'list')) && (
       <div className="requests-table-container">
         <table className="requests-table" aria-label="Shop Inventory Purchase Requests Table">
           <thead>
             <tr>
               <th>Request ID</th>
-              <th>Products</th>
-              <th>Total Items / Quantity</th>
-              <th>Total Cost</th>
-              <th>Reason</th>
-              {normalizedRole === UserTypes.ADMIN && <th>Requested By</th>}
-              <th>Priority</th>
-              <th>Status</th>
-              <th>Category</th>
-              <th>Deadline</th>
-              {/* Sprint5-Story-23: Sortable date column */}
+              {/* Story 3.10: Date moved to position 2 (after ID) per client feedback */}
               <th
                 onClick={() => handleSort('createdAt')}
                 style={{ cursor: 'pointer', userSelect: 'none' }}
                 title="Click to sort by date"
               >
-                Created Date {' '}
+                Date {' '}
                 {sortConfig.key === 'createdAt' && (
                   sortConfig.direction === 'desc' ? '▼' :
                   sortConfig.direction === 'asc' ? '▲' : ''
                 )}
               </th>
+              <th>Products</th>
+              <th>Qty</th>
+              <th>Priority</th>
+              <th>Balagruha</th>
+              {normalizedRole === UserTypes.ADMIN && <th>Requester</th>}
+              <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -940,6 +1588,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                 key={request._id}
                 className={`request-row status-${request.status} ${getPriority(request) === 'High' ? 'priority-high' : ''}`}
               >
+                {/* Column 1: Request ID */}
                 <td className="request-id-cell">
                   <strong>{request.requestId}</strong>
                   {getPriority(request) === 'High' && (
@@ -951,17 +1600,17 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       HIGH
                     </span>
                   )}
-                  {/* Sprint5-Story-21: STOCK badge styling */}
-                  {request.balagruhaId === 'STOCK' ? (
-                    <div className="balagruha-tag stock-tag" style={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold' }}>
-                      📦 STOCK
-                    </div>
-                  ) : request.balagruhaId && (
-                    <div className="balagruha-tag">
-                      📍 {request.balagruhaId.name}
-                    </div>
-                  )}
                 </td>
+                {/* Column 2: Date (Story 3.10 - moved to position 2) */}
+                <td
+                  className="date-cell"
+                  title={`Created on: ${formatDateTime(request.createdAt)}`}
+                  aria-label={`Created on ${getReadableDate(request.createdAt)}`}
+                >
+                  <div>{formatDate(request.createdAt, 'dd/mm/yy')}</div>
+                  <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
+                </td>
+                {/* Column 3: Products */}
                 <td>
                   <div className="product-info">
                     {request.items && request.items.length > 0 ? (
@@ -982,20 +1631,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     )}
                   </div>
                 </td>
+                {/* Column 4: Qty */}
                 <td className="quantity-cell">
-                  {request.items ? request.items.length : 0} items / {' '}
-                  {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0} units
+                  {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0}
                 </td>
-                <td className="cost-cell">
-                  ₹{request.totalEstimatedCost ? request.totalEstimatedCost.toLocaleString() : '0'}
-                </td>
-                <td className="reason-cell">{request.reason}</td>
-                {normalizedRole === UserTypes.ADMIN && (
-                  <td className="requester-cell">
-                    <div className="requester-name">{request.requestedBy?.name || 'Unknown'}</div>
-                    <div className="requester-email">{request.requestedBy?.email || ''}</div>
-                  </td>
-                )}
+                {/* Column 5: Priority */}
                 <td className="priority-cell">
                   {(request.priority || '').toLowerCase() === 'high'
                     ? 'High'
@@ -1003,6 +1643,28 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       ? 'Low'
                       : 'Medium'}
                 </td>
+                {/* Column 6: Balagruha */}
+                <td>
+                  {request.balagruhaId === 'STOCK' ? (
+                    <span className="balagruha-tag stock-tag" style={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
+                      📦 STOCK
+                    </span>
+                  ) : request.balagruhaId ? (
+                    <span className="balagruha-tag">
+                      📍 {request.balagruhaId.name}
+                    </span>
+                  ) : (
+                    <span style={{ color: '#9ca3af' }}>—</span>
+                  )}
+                </td>
+                {/* Column 7: Requester (Admin only) */}
+                {normalizedRole === UserTypes.ADMIN && (
+                  <td className="requester-cell">
+                    <div className="requester-name">{request.requestedBy?.name || 'Unknown'}</div>
+                    <div className="requester-email">{request.requestedBy?.email || ''}</div>
+                  </td>
+                )}
+                {/* Column 8: Status */}
                 <td>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div>{getStatusBadge(request.status)}</div>
@@ -1029,19 +1691,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       )}
                   </div>
                 </td>
-                <td className="category-cell">{request.category || 'Not Categorized'}</td>
-                <td className="deadline-cell">
-                  {request.deadline ? formatDateOnly(request.deadline, 'dd/mm/yy') : '—'}
-                </td>
-                {/* Sprint5-Story-23: Date column with new format and tooltip */}
-                <td
-                  className="date-cell"
-                  title={`Created on: ${formatDateTime(request.createdAt)}`}
-                  aria-label={`Created on ${getReadableDate(request.createdAt)}`}
-                >
-                  <div>{formatDate(request.createdAt, 'dd/mm/yy')}</div>
-                  <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
-                </td>
+                {/* Column 9: Actions */}
                 <td className="actions-cell">
                   <button
                     className="btn-icon"
@@ -1104,14 +1754,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
                     <button
                       className="btn btn-primary btn-action"
-                      onClick={() =>
-                        handleUpdateStatus(
-                          request._id,
-                          PurchaseRequestStatuses.DELIVERED_STORE,
-                          'Marked Received at Store via Purchase Management',
-                          'Request marked as received at store'
-                        )
-                      }
+                      onClick={() => handleMarkDeliveredStore(request)}
                       disabled={statusUpdating[request._id]}
                       title="Mark Received at Store"
                     >
@@ -1134,7 +1777,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             ))}
             {filteredRequests.length === 0 && (
               <tr>
-                <td colSpan={normalizedRole === UserTypes.ADMIN ? "12" : "11"} className="no-data">
+                <td colSpan={normalizedRole === UserTypes.ADMIN ? "9" : "8"} className="no-data">
                   {normalizedRole === UserTypes.PURCHASE_MANAGER
                     ? "No purchase requests found. Click '+ New Purchase Request' to create one."
                     : "No purchase requests found."}
@@ -1144,8 +1787,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           </tbody>
         </table>
       </div>
+      )}
 
-      {/* Stats Footer */}
+      {/* Stats Footer - Only show for workflow tabs (list view) or non-PM users */}
+      {(normalizedRole !== UserTypes.PURCHASE_MANAGER || (isWorkflowTab() && viewMode === 'list')) && (
       <div className="stats-footer">
         <div className="stats-item">
           <span className="stats-label">Total Requests:</span>
@@ -1170,6 +1815,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           </span>
         </div>
       </div>
+      )}
 
       {/* Modals */}
       {showCreateModal && (
