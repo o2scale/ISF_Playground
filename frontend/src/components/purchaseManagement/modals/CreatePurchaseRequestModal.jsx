@@ -36,8 +36,6 @@ export default function CreatePurchaseRequestModal({
     deadline: '',
     priority: 'medium',
     items: [],  // Array of {productId, productName, productSKU, requestedQuantity, estimatedUnitCost}
-    reason: '',
-    justification: '',
     attachments: []  // NEW - File array
   });
 
@@ -593,7 +591,7 @@ export default function CreatePurchaseRequestModal({
     // Validation - All items must have valid quantity and cost
     const invalidItems = formData.items.filter(
       item => !item.requestedQuantity || item.requestedQuantity < 1 ||
-              item.estimatedUnitCost < 0
+        item.estimatedUnitCost < 0
     );
 
     if (invalidItems.length > 0) {
@@ -601,11 +599,8 @@ export default function CreatePurchaseRequestModal({
       return;
     }
 
-    // Validation - Reason required
-    if (!formData.reason.trim()) {
-      showToast('Please provide a reason', 'error');
-      return;
-    }
+    // Validation - Reason no longer required
+
 
     try {
       setLoading(true);
@@ -621,8 +616,7 @@ export default function CreatePurchaseRequestModal({
         submitData.append('deadline', formData.deadline);
       }
       submitData.append('items', JSON.stringify(formData.items)); // Stringify items array
-      submitData.append('reason', formData.reason.trim());
-      submitData.append('justification', formData.justification.trim());
+
 
       // Add files
       formData.attachments.forEach(file => {
@@ -1202,10 +1196,10 @@ export default function CreatePurchaseRequestModal({
                             product.name.toLowerCase().includes(productSearchQuery.toLowerCase()) ||
                             product.sku.toLowerCase().includes(productSearchQuery.toLowerCase())
                           ).length === 0 && (
-                          <div className="no-results">
-                            No products found matching "{productSearchQuery}"
-                          </div>
-                        )}
+                            <div className="no-results">
+                              No products found matching "{productSearchQuery}"
+                            </div>
+                          )}
                       </div>
                     </div>
                   )}
@@ -1221,12 +1215,12 @@ export default function CreatePurchaseRequestModal({
               )}
 
               {formData.balagruhaId && !fetchingProducts &&
-               lowStockProducts.filter(p => !p.balagruhaId || p.balagruhaId === formData.balagruhaId).length === 0 &&
-               !showAllProducts && (
-                <small className="form-hint success">
-                  ✅ No low-stock items in this balagruha! Toggle to show all products.
-                </small>
-              )}
+                lowStockProducts.filter(p => !p.balagruhaId || p.balagruhaId === formData.balagruhaId).length === 0 &&
+                !showAllProducts && (
+                  <small className="form-hint success">
+                    ✅ No low-stock items in this balagruha! Toggle to show all products.
+                  </small>
+                )}
             </div>
 
             {/* ================================================================ */}
@@ -1242,10 +1236,10 @@ export default function CreatePurchaseRequestModal({
                       <tr>
                         <th>Product</th>
                         <th>SKU</th>
-                        <th style={{width: '120px'}}>Quantity *</th>
-                        <th style={{width: '140px'}}>Unit Cost (₹) *</th>
-                        <th style={{width: '120px'}}>Total (₹)</th>
-                        <th style={{width: '60px'}}>Action</th>
+                        <th style={{ width: '120px' }}>Quantity *</th>
+                        <th style={{ width: '140px' }}>Unit Cost (₹) *</th>
+                        <th style={{ width: '120px' }}>Total (₹)</th>
+                        <th style={{ width: '60px' }}>Action</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1377,44 +1371,7 @@ export default function CreatePurchaseRequestModal({
               )}
             </div>
 
-            {/* ================================================================ */}
-            {/* REASON */}
-            {/* ================================================================ */}
-
-            <div className="form-group">
-              <label className="form-label">
-                Reason <span className="required">*</span>
-              </label>
-              <input
-                type="text"
-                maxLength="200"
-                value={formData.reason}
-                onChange={(e) => setFormData(prev => ({ ...prev, reason: e.target.value }))}
-                placeholder="Why is this purchase needed?"
-                required
-                className="form-input"
-              />
-              <small className="char-count">{formData.reason.length}/200 characters</small>
-            </div>
-
-            {/* ================================================================ */}
-            {/* JUSTIFICATION */}
-            {/* ================================================================ */}
-
-            <div className="form-group">
-              <label className="form-label">
-                Justification (Optional)
-              </label>
-              <textarea
-                maxLength="500"
-                rows="3"
-                value={formData.justification}
-                onChange={(e) => setFormData(prev => ({ ...prev, justification: e.target.value }))}
-                placeholder="Additional details or context (optional)"
-                className="form-textarea"
-              />
-              <small className="char-count">{formData.justification.length}/500 characters</small>
-            </div>
+            {/* Reason and Justification removed as per user request */}
           </div>
 
           {/* ================================================================ */}

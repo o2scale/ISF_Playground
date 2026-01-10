@@ -447,11 +447,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         return 0;
       }
 
-      const aValue = sortConfig.key === 'createdAt'
-        ? new Date(a[sortConfig.key]).getTime()
+      const aValue = (sortConfig.key === 'createdAt' || sortConfig.key === 'deadline')
+        ? (a[sortConfig.key] ? new Date(a[sortConfig.key]).getTime() : 0)
         : a[sortConfig.key];
-      const bValue = sortConfig.key === 'createdAt'
-        ? new Date(b[sortConfig.key]).getTime()
+      const bValue = (sortConfig.key === 'createdAt' || sortConfig.key === 'deadline')
+        ? (b[sortConfig.key] ? new Date(b[sortConfig.key]).getTime() : 0)
         : b[sortConfig.key];
 
       if (aValue === bValue) {
@@ -484,7 +484,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         const key = String(item?.productId?._id ?? item?.productId ?? item?.productSKU ?? item?.productName ?? 'unknown');
         const prev = byItem.get(key);
         const requestPriority = getPriority(request);
-        
+
         // Story 3.5: Track individual requests for expandable view
         const requestDetail = {
           requestId: request._id,
@@ -687,7 +687,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
     const requestIds = bunchedItem.requests.map(r => r.requestId);
     const confirmMsg = `Mark all ${requestIds.length} request(s) for "${bunchedItem.productName}" as Ordered?`;
-    
+
     if (!window.confirm(confirmMsg)) {
       return;
     }
@@ -813,7 +813,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       }
     });
 
-    return Array.from(uniqueRequesters.values()).sort((a, b) => 
+    return Array.from(uniqueRequesters.values()).sort((a, b) =>
       (a.name || '').localeCompare(b.name || '')
     );
   };
@@ -837,7 +837,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   // Story 3.4 + 3.6: Handle status bucket tab click (including new inventory/analytics tabs)
   const handleStatusTabClick = (status) => {
     setActiveStatusTab(status);
-    
+
     // Story 3.6: Fetch data for inventory/analytics tabs
     const tabConfig = STATUS_BUCKET_OPTIONS.find(t => t.value === status);
     if (tabConfig?.type === 'inventory' || tabConfig?.type === 'analytics') {
@@ -1165,15 +1165,15 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                 <div>{getStatusBadge(bucket.status)}</div>
                 <div style={{ color: '#555', fontSize: '14px' }}>{bucket.rows.length} unique item(s)</div>
               </div>
-              
+
               {/* Bunched Items Cards */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {bucket.rows.slice(0, 25).map((row) => {
                   const isExpanded = expandedBunchedItems.has(`${bucket.status}-${row.key}`);
                   const itemKey = `${bucket.status}-${row.key}`;
-                  
+
                   return (
-                    <div 
+                    <div
                       key={row.key}
                       style={{
                         border: '1px solid #e5e7eb',
@@ -1183,7 +1183,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       }}
                     >
                       {/* Bunched Item Header */}
-                      <div 
+                      <div
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -1198,11 +1198,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                           <div style={{ fontWeight: 600, fontSize: '15px', marginBottom: '4px' }}>
                             {row.productName}
                             {row.highestPriority === 'High' && (
-                              <span style={{ 
-                                marginLeft: '8px', 
-                                backgroundColor: '#dc2626', 
-                                color: '#fff', 
-                                padding: '2px 8px', 
+                              <span style={{
+                                marginLeft: '8px',
+                                backgroundColor: '#dc2626',
+                                color: '#fff',
+                                padding: '2px 8px',
                                 borderRadius: '4px',
                                 fontSize: '11px',
                                 fontWeight: 600
@@ -1215,7 +1215,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                             <div style={{ fontSize: '12px', color: '#666' }}>{row.productSKU}</div>
                           )}
                         </div>
-                        
+
                         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
                           <div style={{ textAlign: 'center' }}>
                             <div style={{ fontSize: '20px', fontWeight: 700, color: '#4f46e5' }}>
@@ -1229,7 +1229,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                             </div>
                             <div style={{ fontSize: '11px', color: '#666' }}>Requests</div>
                           </div>
-                          
+
                           {/* Story 3.5: Order All Button - Only for pending status */}
                           {bucket.status === PurchaseRequestStatuses.PENDING && (
                             <button
@@ -1253,9 +1253,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                               🛒 Order All
                             </button>
                           )}
-                          
-                          <div style={{ 
-                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)', 
+
+                          <div style={{
+                            transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                             transition: 'transform 0.2s',
                             color: '#6b7280'
                           }}>
@@ -1263,11 +1263,11 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                           </div>
                         </div>
                       </div>
-                      
+
                       {/* Story 3.5: Expanded Details - Individual Requests */}
                       {isExpanded && (
-                        <div style={{ 
-                          borderTop: '1px solid #e5e7eb', 
+                        <div style={{
+                          borderTop: '1px solid #e5e7eb',
                           backgroundColor: '#f9fafb',
                           padding: '12px 16px'
                         }}>
@@ -1284,9 +1284,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                             </thead>
                             <tbody>
                               {row.requests.map((req, idx) => (
-                                <tr 
+                                <tr
                                   key={req.requestId || idx}
-                                  style={{ 
+                                  style={{
                                     backgroundColor: idx % 2 === 0 ? '#fff' : '#f3f4f6',
                                     borderBottom: '1px solid #e5e7eb'
                                   }}
@@ -1325,13 +1325,13 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     </div>
                   );
                 })}
-                
+
                 {bucket.rows.length === 0 && (
                   <div style={{ padding: '20px', textAlign: 'center', color: '#6b7280', backgroundColor: '#f9fafb', borderRadius: '8px' }}>
                     No items in this status
                   </div>
                 )}
-                
+
                 {bucket.rows.length > 25 && (
                   <div style={{ fontSize: '12px', color: '#666', marginTop: '6px', fontStyle: 'italic' }}>
                     Showing top 25 items by quantity.
@@ -1354,7 +1354,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               <span style={{ color: '#dc2626' }}>✗ Out of Stock: {stockSummary.outOfStock}</span>
             </div>
           </div>
-          
+
           {tabLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
@@ -1417,7 +1417,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
             <h3 style={{ margin: 0 }}>🏪 Supplier List</h3>
             <span style={{ color: '#666' }}>Total Vendors: {vendors.length}</span>
           </div>
-          
+
           {tabLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
@@ -1443,10 +1443,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     <td>{vendor.phone || '-'}</td>
                     <td style={{ fontSize: '13px', color: '#666' }}>{vendor.email || '-'}</td>
                     <td>
-                      <span style={{ 
-                        backgroundColor: '#e0e7ff', 
-                        color: '#4338ca', 
-                        padding: '4px 10px', 
+                      <span style={{
+                        backgroundColor: '#e0e7ff',
+                        color: '#4338ca',
+                        padding: '4px 10px',
                         borderRadius: '12px',
                         fontWeight: 600,
                         fontSize: '13px'
@@ -1499,7 +1499,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
               </select>
             </div>
           </div>
-          
+
           {tabLoading ? (
             <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
               <div className="loading-spinner" style={{ margin: '0 auto 10px' }}></div>
@@ -1521,7 +1521,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                 {mostConsumed.map((item, index) => (
                   <tr key={item.productId || index}>
                     <td style={{ textAlign: 'center' }}>
-                      <span style={{ 
+                      <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1556,265 +1556,286 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
       {/* Requests Table - Only show for workflow tabs (list view) or non-PM users */}
       {(normalizedRole !== UserTypes.PURCHASE_MANAGER || (isWorkflowTab() && viewMode === 'list')) && (
-      <div className="requests-table-container">
-        <table className="requests-table" aria-label="Shop Inventory Purchase Requests Table">
-          <thead>
-            <tr>
-              <th>Request ID</th>
-              {/* Story 3.10: Date moved to position 2 (after ID) per client feedback */}
-              <th
-                onClick={() => handleSort('createdAt')}
-                style={{ cursor: 'pointer', userSelect: 'none' }}
-                title="Click to sort by date"
-              >
-                Date {' '}
-                {sortConfig.key === 'createdAt' && (
-                  sortConfig.direction === 'desc' ? '▼' :
-                  sortConfig.direction === 'asc' ? '▲' : ''
-                )}
-              </th>
-              <th>Products</th>
-              <th>Qty</th>
-              <th>Priority</th>
-              <th>Balagruha</th>
-              {normalizedRole === UserTypes.ADMIN && <th>Requester</th>}
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRequests.map(request => (
-              <tr
-                key={request._id}
-                className={`request-row status-${request.status} ${getPriority(request) === 'High' ? 'priority-high' : ''}`}
-              >
-                {/* Column 1: Request ID */}
-                <td className="request-id-cell">
-                  <strong>{request.requestId}</strong>
-                  {getPriority(request) === 'High' && (
-                    <span
-                      className="priority-badge"
-                      aria-label="High Priority"
-                      title="High Priority"
-                    >
-                      HIGH
-                    </span>
-                  )}
-                </td>
-                {/* Column 2: Date (Story 3.10 - moved to position 2) */}
-                <td
-                  className="date-cell"
-                  title={`Created on: ${formatDateTime(request.createdAt)}`}
-                  aria-label={`Created on ${getReadableDate(request.createdAt)}`}
-                >
-                  <div>{formatDate(request.createdAt, 'dd/mm/yy')}</div>
-                  <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
-                </td>
-                {/* Column 3: Products */}
-                <td>
-                  <div className="product-info">
-                    {request.items && request.items.length > 0 ? (
-                      <>
-                        <div className="product-name">{request.items.length} product{request.items.length > 1 ? 's' : ''}</div>
-                        <div className="product-sku">
-                          {request.items.slice(0, 2).map((item, idx) => (
-                            <span key={idx}>
-                              {item.productName}
-                              {idx < 1 && idx < request.items.length - 1 && ', '}
-                            </span>
-                          ))}
-                          {request.items.length > 2 && ` +${request.items.length - 2} more`}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="product-name">No items</div>
-                    )}
-                  </div>
-                </td>
-                {/* Column 4: Qty */}
-                <td className="quantity-cell">
-                  {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0}
-                </td>
-                {/* Column 5: Priority */}
-                <td className="priority-cell">
-                  {(request.priority || '').toLowerCase() === 'high'
-                    ? 'High'
-                    : (request.priority || '').toLowerCase() === 'low'
-                      ? 'Low'
-                      : 'Medium'}
-                </td>
-                {/* Column 6: Balagruha */}
-                <td>
-                  {request.balagruhaId === 'STOCK' ? (
-                    <span className="balagruha-tag stock-tag" style={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
-                      📦 STOCK
-                    </span>
-                  ) : request.balagruhaId ? (
-                    <span className="balagruha-tag">
-                      📍 {request.balagruhaId.name}
-                    </span>
-                  ) : (
-                    <span style={{ color: '#9ca3af' }}>—</span>
-                  )}
-                </td>
-                {/* Column 7: Requester (Admin only) */}
-                {normalizedRole === UserTypes.ADMIN && (
-                  <td className="requester-cell">
-                    <div className="requester-name">{request.requestedBy?.name || 'Unknown'}</div>
-                    <div className="requester-email">{request.requestedBy?.email || ''}</div>
-                  </td>
-                )}
-                {/* Column 8: Status */}
-                <td>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div>{getStatusBadge(request.status)}</div>
-                    {request.status === PurchaseRequestStatuses.DELIVERED_STORE &&
-                      (normalizedRole === UserTypes.ADMIN ||
-                        normalizedRole === UserTypes.COACH ||
-                        String(request.requestedBy?._id || request.requestedBy) === String(userId)) && (
-                        <button
-                          className="btn btn-success btn-action"
-                          style={{ padding: '6px 10px', fontSize: '12px', alignSelf: 'flex-start' }}
-                          onClick={() =>
-                            handleUpdateStatus(
-                              request._id,
-                              PurchaseRequestStatuses.DELIVERED_BALAGRUHA,
-                              'Marked Delivered to Balagruha via Purchase Management',
-                              'Request marked as delivered to balagruha'
-                            )
-                          }
-                          disabled={statusUpdating[request._id]}
-                          title="Mark Delivered to Balagruha"
-                        >
-                          🏠 Mark Delivered
-                        </button>
-                      )}
-                  </div>
-                </td>
-                {/* Column 9: Actions */}
-                <td className="actions-cell">
-                  <button
-                    className="btn-icon"
-                    onClick={() => handleViewRequest(request)}
-                    title="View Details"
-                  >
-                    👁️
-                  </button>
-
-                  {/* Admin Actions - Story 18 */}
-                  {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.ADMIN && (
-                    <>
-                      <button
-                        className="btn-icon btn-approve"
-                        onClick={() => handleApprove(request)}
-                        title="Approve Request"
-                      >
-                        ✅
-                      </button>
-                      <button
-                        className="btn-icon btn-reject"
-                        onClick={() => handleReject(request)}
-                        title="Reject Request"
-                      >
-                        ❌
-                      </button>
-                    </>
-                  )}
-
-                  {/* Purchase Manager Actions */}
-                  {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (
-                    <button
-                      className="btn-icon btn-cancel"
-                      onClick={() => handleCancelRequest(request._id)}
-                      title="Cancel Request"
-                    >
-                      ✖️
-                    </button>
-                  )}
-
-                  {/* Story 2.3: Purchase Manager Fulfillment Actions */}
-                  {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.PENDING && (
-                    <button
-                      className="btn btn-primary btn-action"
-                      onClick={() =>
-                        handleUpdateStatus(
-                          request._id,
-                          PurchaseRequestStatuses.ORDERED,
-                          'Marked Ordered via Purchase Management',
-                          'Request marked as ordered'
-                        )
-                      }
-                      disabled={statusUpdating[request._id]}
-                      title="Mark Ordered"
-                    >
-                      🛒 Mark Ordered
-                    </button>
-                  )}
-
-                  {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
-                    <button
-                      className="btn btn-primary btn-action"
-                      onClick={() => handleMarkDeliveredStore(request)}
-                      disabled={statusUpdating[request._id]}
-                      title="Mark Received at Store"
-                    >
-                      📦 Mark Received at Store
-                    </button>
-                  )}
-
-                  {/* Update Stock Button - Story 19 */}
-                  {request.status === PurchaseRequestStatuses.APPROVED && normalizedRole === UserTypes.PURCHASE_MANAGER && (
-                    <button
-                      className="btn-icon btn-primary"
-                      onClick={() => handleUpdateStock(request)}
-                      title="Update Stock"
-                    >
-                      📦
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
-            {filteredRequests.length === 0 && (
+        <div className="requests-table-container">
+          <table className="requests-table" aria-label="Shop Inventory Purchase Requests Table">
+            <thead>
               <tr>
-                <td colSpan={normalizedRole === UserTypes.ADMIN ? "9" : "8"} className="no-data">
-                  {normalizedRole === UserTypes.PURCHASE_MANAGER
-                    ? "No purchase requests found. Click '+ New Purchase Request' to create one."
-                    : "No purchase requests found."}
-                </td>
+                <th>Request ID</th>
+                {/* Story 3.10: Date moved to position 2 (after ID) per client feedback */}
+                <th
+                  onClick={() => handleSort('createdAt')}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by date"
+                >
+                  Date {' '}
+                  {sortConfig.key === 'createdAt' && (
+                    sortConfig.direction === 'desc' ? '▼' :
+                      sortConfig.direction === 'asc' ? '▲' : ''
+                  )}
+                </th>
+                <th>Products</th>
+                <th>Qty</th>
+                <th>Priority</th>
+                <th
+                  onClick={() => handleSort('deadline')}
+                  style={{ cursor: 'pointer', userSelect: 'none' }}
+                  title="Click to sort by deadline"
+                >
+                  Deadline {' '}
+                  {sortConfig.key === 'deadline' && (
+                    sortConfig.direction === 'desc' ? '▼' :
+                      sortConfig.direction === 'asc' ? '▲' : ''
+                  )}
+                </th>
+                <th>Balagruha</th>
+                {normalizedRole === UserTypes.ADMIN && <th>Requester</th>}
+                <th>Status</th>
+                <th>Actions</th>
               </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {filteredRequests.map(request => (
+                <tr
+                  key={request._id}
+                  className={`request-row status-${request.status} ${getPriority(request) === 'High' ? 'priority-high' : ''}`}
+                >
+                  {/* Column 1: Request ID */}
+                  <td className="request-id-cell">
+                    <strong>{request.requestId}</strong>
+                    {getPriority(request) === 'High' && (
+                      <span
+                        className="priority-badge"
+                        aria-label="High Priority"
+                        title="High Priority"
+                      >
+                        HIGH
+                      </span>
+                    )}
+                  </td>
+                  {/* Column 2: Date (Story 3.10 - moved to position 2) */}
+                  <td
+                    className="date-cell"
+                    title={`Created on: ${formatDateTime(request.createdAt)}`}
+                    aria-label={`Created on ${getReadableDate(request.createdAt)}`}
+                  >
+                    <div>{formatDate(request.createdAt, 'dd/mm/yy')}</div>
+                    <div className="time-ago">{dayjs(request.createdAt).fromNow()}</div>
+                  </td>
+                  {/* Column 3: Products */}
+                  <td>
+                    <div className="product-info">
+                      {request.items && request.items.length > 0 ? (
+                        <>
+                          <div className="product-name">{request.items.length} product{request.items.length > 1 ? 's' : ''}</div>
+                          <div className="product-sku">
+                            {request.items.slice(0, 2).map((item, idx) => (
+                              <span key={idx}>
+                                {item.productName}
+                                {idx < 1 && idx < request.items.length - 1 && ', '}
+                              </span>
+                            ))}
+                            {request.items.length > 2 && ` +${request.items.length - 2} more`}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="product-name">No items</div>
+                      )}
+                    </div>
+                  </td>
+                  {/* Column 4: Qty */}
+                  <td className="quantity-cell">
+                    {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0}
+                  </td>
+                  {/* Column 5: Priority */}
+                  <td className="priority-cell">
+                    {(request.priority || '').toLowerCase() === 'high'
+                      ? 'High'
+                      : (request.priority || '').toLowerCase() === 'low'
+                        ? 'Low'
+                        : 'Medium'}
+                  </td>
+                  {/* Column 6: Deadline */}
+                  <td className="deadline-cell">
+                    {request.deadline ? (
+                      <div title={`Deadline: ${formatDate(request.deadline, 'dd/mm/yy')}`}>
+                        {formatDate(request.deadline, 'dd/mm/yy')}
+                      </div>
+                    ) : (
+                      <span style={{ color: '#9ca3af' }}>—</span>
+                    )}
+                  </td>
+                  {/* Column 7: Balagruha */}
+                  <td>
+                    {request.balagruhaId === 'STOCK' ? (
+                      <span className="balagruha-tag stock-tag" style={{ backgroundColor: '#e3f2fd', color: '#1976d2', fontWeight: 'bold', padding: '4px 8px', borderRadius: '4px' }}>
+                        📦 STOCK
+                      </span>
+                    ) : request.balagruhaId ? (
+                      <span className="balagruha-tag">
+                        📍 {request.balagruhaId.name}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#9ca3af' }}>—</span>
+                    )}
+                  </td>
+                  {/* Column 7: Requester (Admin only) */}
+                  {normalizedRole === UserTypes.ADMIN && (
+                    <td className="requester-cell">
+                      <div className="requester-name">{request.requestedBy?.name || 'Unknown'}</div>
+                      <div className="requester-email">{request.requestedBy?.email || ''}</div>
+                    </td>
+                  )}
+                  {/* Column 8: Status */}
+                  <td>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div>{getStatusBadge(request.status)}</div>
+                      {request.status === PurchaseRequestStatuses.DELIVERED_STORE &&
+                        (normalizedRole === UserTypes.ADMIN ||
+                          normalizedRole === UserTypes.COACH ||
+                          String(request.requestedBy?._id || request.requestedBy) === String(userId)) && (
+                          <button
+                            className="btn btn-success btn-action"
+                            style={{ padding: '6px 10px', fontSize: '12px', alignSelf: 'flex-start' }}
+                            onClick={() =>
+                              handleUpdateStatus(
+                                request._id,
+                                PurchaseRequestStatuses.DELIVERED_BALAGRUHA,
+                                'Marked Delivered to Balagruha via Purchase Management',
+                                'Request marked as delivered to balagruha'
+                              )
+                            }
+                            disabled={statusUpdating[request._id]}
+                            title="Mark Delivered to Balagruha"
+                          >
+                            🏠 Mark Delivered
+                          </button>
+                        )}
+                    </div>
+                  </td>
+                  {/* Column 9: Actions */}
+                  <td className="actions-cell">
+                    <button
+                      className="btn-icon"
+                      onClick={() => handleViewRequest(request)}
+                      title="View Details"
+                    >
+                      👁️
+                    </button>
+
+                    {/* Admin Actions - Story 18 */}
+                    {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.ADMIN && (
+                      <>
+                        <button
+                          className="btn-icon btn-approve"
+                          onClick={() => handleApprove(request)}
+                          title="Approve Request"
+                        >
+                          ✅
+                        </button>
+                        <button
+                          className="btn-icon btn-reject"
+                          onClick={() => handleReject(request)}
+                          title="Reject Request"
+                        >
+                          ❌
+                        </button>
+                      </>
+                    )}
+
+                    {/* Purchase Manager Actions */}
+                    {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (
+                      <button
+                        className="btn-icon btn-cancel"
+                        onClick={() => handleCancelRequest(request._id)}
+                        title="Cancel Request"
+                      >
+                        ✖️
+                      </button>
+                    )}
+
+                    {/* Story 2.3: Purchase Manager Fulfillment Actions */}
+                    {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.PENDING && (
+                      <button
+                        className="btn btn-primary btn-action"
+                        onClick={() =>
+                          handleUpdateStatus(
+                            request._id,
+                            PurchaseRequestStatuses.ORDERED,
+                            'Marked Ordered via Purchase Management',
+                            'Request marked as ordered'
+                          )
+                        }
+                        disabled={statusUpdating[request._id]}
+                        title="Mark Ordered"
+                      >
+                        🛒 Mark Ordered
+                      </button>
+                    )}
+
+                    {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
+                      <button
+                        className="btn btn-primary btn-action"
+                        onClick={() => handleMarkDeliveredStore(request)}
+                        disabled={statusUpdating[request._id]}
+                        title="Mark Received at Store"
+                      >
+                        📦 Mark Received at Store
+                      </button>
+                    )}
+
+                    {/* Update Stock Button - Story 19 */}
+                    {request.status === PurchaseRequestStatuses.APPROVED && normalizedRole === UserTypes.PURCHASE_MANAGER && (
+                      <button
+                        className="btn-icon btn-primary"
+                        onClick={() => handleUpdateStock(request)}
+                        title="Update Stock"
+                      >
+                        📦
+                      </button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+              {filteredRequests.length === 0 && (
+                <tr>
+                  <td colSpan={normalizedRole === UserTypes.ADMIN ? "10" : "9"} className="no-data">
+                    {normalizedRole === UserTypes.PURCHASE_MANAGER
+                      ? "No purchase requests found. Click '+ New Purchase Request' to create one."
+                      : "No purchase requests found."}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {/* Stats Footer - Only show for workflow tabs (list view) or non-PM users */}
       {(normalizedRole !== UserTypes.PURCHASE_MANAGER || (isWorkflowTab() && viewMode === 'list')) && (
-      <div className="stats-footer">
-        <div className="stats-item">
-          <span className="stats-label">Total Requests:</span>
-          <span className="stats-value">{filteredRequests.length}</span>
+        <div className="stats-footer">
+          <div className="stats-item">
+            <span className="stats-label">Total Requests:</span>
+            <span className="stats-value">{filteredRequests.length}</span>
+          </div>
+          <div className="stats-item">
+            <span className="stats-label">Pending:</span>
+            <span className="stats-value pending">
+              {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.PENDING_APPROVAL).length}
+            </span>
+          </div>
+          <div className="stats-item">
+            <span className="stats-label">Approved:</span>
+            <span className="stats-value approved">
+              {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.APPROVED).length}
+            </span>
+          </div>
+          <div className="stats-item">
+            <span className="stats-label">Completed:</span>
+            <span className="stats-value completed">
+              {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.COMPLETED).length}
+            </span>
+          </div>
         </div>
-        <div className="stats-item">
-          <span className="stats-label">Pending:</span>
-          <span className="stats-value pending">
-            {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.PENDING_APPROVAL).length}
-          </span>
-        </div>
-        <div className="stats-item">
-          <span className="stats-label">Approved:</span>
-          <span className="stats-value approved">
-            {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.APPROVED).length}
-          </span>
-        </div>
-        <div className="stats-item">
-          <span className="stats-label">Completed:</span>
-          <span className="stats-value completed">
-            {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.COMPLETED).length}
-          </span>
-        </div>
-      </div>
       )}
 
       {/* Modals */}

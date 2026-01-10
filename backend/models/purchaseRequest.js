@@ -157,7 +157,7 @@ const purchaseRequestSchema = new mongoose.Schema(
     },
     reason: {
       type: String,
-      required: [true, 'Reason is required'],
+      required: false,
       maxlength: [200, 'Reason cannot exceed 200 characters'],
       trim: true
     },

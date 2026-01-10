@@ -245,10 +245,12 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
               </div>
             </div>
 
-            <div className="detail-item full-width">
-              <span className="detail-label">Reason:</span>
-              <p className="detail-text">{request.reason}</p>
-            </div>
+            {request.reason && (
+              <div className="detail-item full-width">
+                <span className="detail-label">Reason:</span>
+                <p className="detail-text">{request.reason}</p>
+              </div>
+            )}
 
             {request.justification && (
               <div className="detail-item full-width">
@@ -459,48 +461,48 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           )}
 
           {/* Story 2.6: Delivery Tracking Section */}
-          {(request.status === PurchaseRequestStatuses.DELIVERED_BALAGRUHA || 
-            request.repairTechnicianName || 
+          {(request.status === PurchaseRequestStatuses.DELIVERED_BALAGRUHA ||
+            request.repairTechnicianName ||
             request.deliveredByCoachId) && (
-            <div className="detail-section" style={{ backgroundColor: '#e8f5e9', padding: '16px', borderRadius: '8px' }}>
-              <h4 className="section-title">🚚 Delivery Tracking</h4>
-              <div className="detail-grid">
-                {/* Repair Technician (for Repairs category) */}
-                {request.repairTechnicianName && (
-                  <div className="detail-item">
-                    <span className="detail-label">Repair Technician:</span>
-                    <span className="detail-value" style={{ fontWeight: 600 }}>
-                      🔧 {request.repairTechnicianName}
-                    </span>
-                  </div>
-                )}
-                
-                {/* Delivered By Coach */}
-                {request.deliveredByCoachId && (
-                  <div className="detail-item">
-                    <span className="detail-label">Delivered to Balagruha By:</span>
-                    <span className="detail-value">
-                      👤 {request.deliveredByCoachId?.name || 'Unknown Coach'}
-                      {request.deliveredByCoachId?.email && (
-                        <span className="user-email"> ({request.deliveredByCoachId.email})</span>
-                      )}
-                    </span>
-                  </div>
-                )}
-                
-                {/* Delivery Timestamp */}
-                {request.deliveredToBalagruhaAt && (
-                  <div className="detail-item">
-                    <span className="detail-label">Delivered At:</span>
-                    <span className="detail-value">
-                      📅 {formatDateTime(request.deliveredToBalagruhaAt)}
-                      <span className="time-ago"> ({dayjs(request.deliveredToBalagruhaAt).fromNow()})</span>
-                    </span>
-                  </div>
-                )}
+              <div className="detail-section" style={{ backgroundColor: '#e8f5e9', padding: '16px', borderRadius: '8px' }}>
+                <h4 className="section-title">🚚 Delivery Tracking</h4>
+                <div className="detail-grid">
+                  {/* Repair Technician (for Repairs category) */}
+                  {request.repairTechnicianName && (
+                    <div className="detail-item">
+                      <span className="detail-label">Repair Technician:</span>
+                      <span className="detail-value" style={{ fontWeight: 600 }}>
+                        🔧 {request.repairTechnicianName}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Delivered By Coach */}
+                  {request.deliveredByCoachId && (
+                    <div className="detail-item">
+                      <span className="detail-label">Delivered to Balagruha By:</span>
+                      <span className="detail-value">
+                        👤 {request.deliveredByCoachId?.name || 'Unknown Coach'}
+                        {request.deliveredByCoachId?.email && (
+                          <span className="user-email"> ({request.deliveredByCoachId.email})</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Delivery Timestamp */}
+                  {request.deliveredToBalagruhaAt && (
+                    <div className="detail-item">
+                      <span className="detail-label">Delivered At:</span>
+                      <span className="detail-value">
+                        📅 {formatDateTime(request.deliveredToBalagruhaAt)}
+                        <span className="time-ago"> ({dayjs(request.deliveredToBalagruhaAt).fromNow()})</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Metadata */}
           <div className="detail-section metadata">
@@ -546,9 +548,9 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
 
           {/* Story 2.6: Repair Technician Name Prompt */}
           {showTechnicianPrompt && (
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
               gap: '8px',
               padding: '12px',
               backgroundColor: '#fff3e0',

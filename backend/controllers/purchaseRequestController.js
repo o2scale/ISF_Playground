@@ -186,7 +186,7 @@ exports.createPurchaseRequest = async (req, res) => {
       priority: finalPriority,
       items: validatedItems,
       attachments,
-      reason: reason.trim(),
+      reason: reason?.trim() || '',
       justification: justification?.trim() || '',
       requestedBy: userId,
       status: initialStatus,
@@ -1200,7 +1200,7 @@ exports.assignFromStock = async (req, res) => {
       let productQuery = ShopItem.findById(item.productId);
       if (session) productQuery = productQuery.session(session);
       const product = await productQuery;
-      
+
       if (!product) {
         throw new Error(`Product ${item.productName} not found`);
       }
@@ -1304,7 +1304,7 @@ exports.getPendingCount = async (req, res) => {
     if (userRole === 'purchase-manager') {
       const user = await User.findById(userId).select('balagruhaIds');
       const balagruhaIds = user?.balagruhaIds || [];
-      
+
       query.$or = [
         { balagruhaId: { $in: balagruhaIds } },
         { balagruhaId: 'STOCK' }

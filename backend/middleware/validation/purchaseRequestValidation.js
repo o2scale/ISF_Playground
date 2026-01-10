@@ -19,15 +19,8 @@ exports.validateCreateRequest = (req, res, next) => {
     });
   }
 
-  // Validate reason
-  if (!reason || typeof reason !== 'string' || reason.trim().length === 0) {
-    return res.status(400).json({
-      success: false,
-      message: 'Reason is required'
-    });
-  }
-
-  if (reason.length > 200) {
+  // Validate reason (optional)
+  if (reason && reason.length > 200) {
     return res.status(400).json({
       success: false,
       message: 'Reason cannot exceed 200 characters'
