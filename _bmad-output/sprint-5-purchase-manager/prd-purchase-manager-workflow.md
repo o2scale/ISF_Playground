@@ -94,15 +94,34 @@ The system currently supports a 3-step process. This enhancement expands it to a
 *   **Admin Master Catalog:**
     *   "New Item" introduction UI (strict Admin-only access).
     *   Centralized Vendor/Supplier Management (CRUD) - Admin-only.
+*   **Six Purchase Categories:**
+    *   Items are organized into **6 distinct categories** to reduce list clutter:
+        1. **Medicines** - All medical supplies and pharmaceuticals
+        2. **ISF Shop** - Items for the student rewards shop
+        3. **Repair** - Maintenance and repair materials
+        4. **Infra** - Infrastructure and facility items
+        5. **Consumables** - Daily-use items (hair oil, vaseline, socks, etc.)
+        6. **Other** - Miscellaneous items
+    *   When a coach selects a category, only items from that category appear in the dropdown.
+    *   If a coach needs items from multiple categories, they create separate requests per category.
 *   **Workflow Engine (4-Step Accountability Lifecycle):**
     *   **Requester:** Expanded to include Coaches, Medical, Sports, Music, Admin, and PM (Excludes Children/Balagruha-in-charge).
     *   **Step 1: Purchase Request:** Initiated by any authorized requester.
     *   **Step 2: Order Placed:** Transaction recorded by PM.
     *   **Step 3: Delivered to Store:** Logged by PM upon receipt.
     *   **Step 4: Delivered to Balagruha/Child:** Confirmed by Coach upon actual handover.
+*   **Request Priority & Deadline:**
+    *   Every purchase request has a **Priority Level**: High, Medium, or Low.
+    *   PM dashboard displays requests sorted by priority first.
+    *   High priority items are visually highlighted (red badge).
 *   **Role-Based Dashboards:**
     *   **Admin & PM:** Full visibility, plus "Priority Level" tracking for purchases.
     *   **Coaches:** Visibility into their requests, available stock, AND orders placed by children in their Balagruha.
+*   **PM Bunched/Grouped View:**
+    *   **Critical Feature:** When PM views pending requests, same items across ALL requests are **bunched together**.
+    *   Example: If 5 coaches request Paracetamol, PM sees "Paracetamol - Total: 150 tablets" with expandable details per requester.
+    *   This eliminates manual counting across filters and enables bulk ordering.
+    *   Grouping is available as a toggle view (List View vs. Bunched View).
 *   **Inventory Control:**
     *   **Stock Reconciliation:** PM authority to manually edit stock counts to match physical reality (Audit Tool).
 
@@ -201,6 +220,8 @@ This feature is built as a responsive Web Application module embedded within the
 *   **FR2:** Update `ShopItem` schema to include `approvedVendors` (array of Vendor refs) and `maxPrice` (in Rupees).
 *   **FR2a:** Add `sellingPrice` (in Coins) to `ShopItem` to separate internal economy from procurement cost.
 *   **FR3:** Update `PurchaseRequest` schema status enum to include `delivered_to_store` and `delivered_to_balagruha`.
+*   **FR3a:** Add `purchaseCategory` enum to `ShopItem`: `medicines`, `isf_shop`, `repair`, `infra`, `consumables`, `other`.
+*   **FR3b:** Add `priority` field to `PurchaseRequest`: `high`, `medium`, `low` (default: `medium`).
 
 ### Admin Governance (Strict Mode)
 *   **FR4:** **RESTRICT** `createPendingProduct` endpoint to Admin role only (disable for Coach/PM).
@@ -223,9 +244,17 @@ This feature is built as a responsive Web Application module embedded within the
 ### Role-Based Dashboards
 *   **FR17:** Admins can view a "Master Inventory" report showing stock levels (In Store vs. Deployed).
 *   **FR18:** Purchase Managers can view an "Operational Dashboard" filtered by status and Priority Level.
+*   **FR18a:** Purchase Managers can toggle between "List View" and "Bunched View" where same items are grouped across all requests with total quantities.
+*   **FR18b:** In Bunched View, PM sees aggregated totals (e.g., "Paracetamol - 150 tablets from 5 requests") with expandable details.
 *   **FR19:** Coaches can view a "My Requests" dashboard showing their requisitions AND "Digital Orders" placed by children in their Balagruha.
 *   **FR20:** The system must restrict "New Item" and "New Vendor" actions to Admin users only.
 *   **FR24 (Scorecard):** System must calculate and display a "Performance Score" for Purchase Managers based on completed requests.
+
+### Purchase Request Categories
+*   **FR25:** Staff must select a Purchase Category before viewing items (Medicines, ISF Shop, Repair, Infra, Consumables, Other).
+*   **FR26:** Item dropdown is filtered by selected category to reduce list size and prevent overwhelm.
+*   **FR27:** Multiple category requests require separate purchase request submissions.
+*   **FR28:** Category badges are displayed on PM dashboard for quick visual identification.
 
 ### Inventory Control
 *   **FR21:** Purchase Managers can access a "Stock Reconciliation" tool to manually override physical stock counts.

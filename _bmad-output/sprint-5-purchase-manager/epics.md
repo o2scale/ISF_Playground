@@ -34,12 +34,19 @@ date: '2025-12-22'
 *   **FR16:** Purchase Managers can flag a request as "Rejected" or "On Hold" with a mandatory reason note.
 *   **FR17:** Admins can view a "Master Inventory" report showing stock levels (In Store vs. Deployed).
 *   **FR18:** Purchase Managers can view an "Operational Dashboard" filtered by status and Priority Level.
+*   **FR18a:** (NEW) Purchase Managers can toggle between "List View" and "Bunched View" where same items are grouped across all requests with total quantities.
+*   **FR18b:** (NEW) In Bunched View, PM sees aggregated totals (e.g., "Paracetamol - 150 tablets from 5 requests") with expandable details.
 *   **FR19:** Coaches can view a "My Requests" dashboard showing their requisitions AND "Digital Orders" placed by children in their Balagruha.
 *   **FR20:** The system must restrict "New Item" and "New Vendor" actions to Admin users only.
 *   **FR21:** Purchase Managers can access a "Stock Reconciliation" tool to manually override physical stock counts.
 *   **FR22:** All manual stock overrides must require a reason code and be logged.
 *   **FR23:** (Smart Shortcut) If `PurchaseRequest` item has sufficient `ShopItem.stock`, PM can "Assign from Stock" to skip procurement steps.
 *   **FR24:** System calculates "Performance Score" for Purchase Managers based on completed requests.
+*   **FR25:** (NEW) Staff must select a Purchase Category before viewing items (Medicines, ISF Shop, Repairs, Infra, Consumables, Others).
+*   **FR26:** (NEW) Item dropdown is filtered by selected category to reduce list size.
+*   **FR27:** (NEW) Multiple category requests require separate purchase request submissions.
+*   **FR28:** (NEW) Category badges are displayed on PM dashboard for quick visual identification.
+*   **FR29:** (NEW) Purchase requests must include a Priority Level (High/Medium/Low).
 
 ### Non-Functional Requirements
 *   **NFR1:** Dashboard data tables must load in under 500ms.
@@ -62,9 +69,9 @@ date: '2025-12-22'
 
 *   **FR1-FR9, FR20:** Epic 1 (Inventory Governance & Vendor Management)
 
-*   **FR10, FR11, FR13-FR16, FR23:** Epic 2 (Purchase Request Workflow Engine)
+*   **FR10, FR11, FR13-FR16, FR23, FR25-FR27, FR29:** Epic 2 (Purchase Request Workflow Engine)
 
-*   **FR12, FR17-FR19, FR24:** Epic 3 (Operational Dashboards & Analytics)
+*   **FR12, FR17-FR19, FR18a, FR18b, FR24, FR28:** Epic 3 (Operational Dashboards & Analytics)
 
 *   **FR21-FR22:** Epic 4 (Inventory Control & Audit)
 
@@ -142,7 +149,7 @@ So that I can easily enforce the strict data requirements.
 **And** The Vendor slots are dropdowns populated from the Vendor API
 ## Epic 2: Purchase Request Workflow Engine
 **Goal:** Enable a transparent, role-based 4-step procurement lifecycle that tracks every item from request to final handoff.
-**FRs covered:** FR10, FR11, FR13, FR14, FR15, FR16, FR23
+**FRs covered:** FR10, FR11, FR13, FR14, FR15, FR16, FR23, FR25-FR27, FR29
 
 ### Story 2.1: Purchase Request Schema & State Machine
 As a Developer,
@@ -181,9 +188,38 @@ So that items are ordered and received into the store.
 **Then** The status updates to `ordered`
 **When** I click "Mark Received at Store"
 **Then** The status updates to `delivered_store`
+
+### Story 2.4: Request Priority & Deadline (NEW - Client Correction)
+As a Staff member creating a purchase request,
+I want to set a priority level (High/Medium/Low) and deadline,
+So that the Purchase Manager can prioritize and fulfill on time.
+
+**Acceptance Criteria:**
+**Given** I am creating a purchase request
+**When** I fill the form
+**Then** I must select a **Priority Level** (High, Medium, Low - default: Medium)
+**And** I must provide a **Deadline** (date) for the request
+**And** PM dashboard shows requests sorted by priority (High first)
+**And** Priority is displayed as colored badge (Red=High, Yellow=Medium, Green=Low)
+
+**File:** `_bmad-output/sprint-5-purchase-manager/2-4-request-priority-deadline.md`
+
+### Story 2.5: Six Purchase Categories (NEW - Client Correction)
+As a requester (Coach/Medical/etc.),
+I want to choose a purchase category before selecting items,
+So that I don't have to scroll through a massive combined item list.
+
+**Acceptance Criteria:**
+**Given** I am creating a purchase request
+**When** I open the category dropdown
+**Then** I see exactly 6 options: ISF Shop, Medicines, Repairs, Consumables, Infra, Others
+**And** Item dropdown is filtered to only show items from selected category
+**And** I must create separate requests if I need items from multiple categories
+
+**File:** `_bmad-output/sprint-5-purchase-manager/2-5-six-purchase-categories-enhanced.md`
 ## Epic 3: Operational Dashboards & Analytics
 **Goal:** Provide specialized views for Admins, PMs, and Coaches to track priorities, status, and performance metrics.
-**FRs covered:** FR12, FR17, FR18, FR19, FR24
+**FRs covered:** FR12, FR17, FR18, FR18a, FR18b, FR19, FR24, FR28
 
 ### Story 3.1: Purchase Manager Operational Dashboard
 As a Purchase Manager,
@@ -218,6 +254,121 @@ So that I can spot shortages or anomalies.
 **Given** I am an Admin
 **When** I view the Inventory Report
 **Then** I see "In Store" stock vs "Deployed" stock (calculated from delivery history)
+
+### Story 3.4: PM Category Tabs & Status Buckets (NEW - Client Correction)
+As a Purchase Manager,
+I want to switch between purchase categories and workflow buckets using tabs,
+So that I can see pending work quickly with minimal filters.
+
+**Acceptance Criteria:**
+**Given** I am on the Purchase Manager dashboard
+**When** I select a category tab (ISF Shop / Medicines / Repairs / Consumables / Infra / Others)
+**Then** The list is filtered to that category
+**When** I select a status bucket tab (Purchase Requests / On Going Order / Reached ISF Store / Delivered)
+**Then** I see only requests in that status bucket
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-4-pm-tabs-and-buckets.md`
+
+### Story 3.5: PM Bunched/Grouped View (NEW - Client Correction)
+As a Purchase Manager,
+I want to see the same items bunched together across all pending requests,
+So that I can quickly know the total quantity needed and make bulk orders efficiently.
+
+**Acceptance Criteria:**
+**Given** I am a Purchase Manager on the dashboard
+**When** I toggle to "Bunched View"
+**Then** I see items grouped with total quantities (e.g., "Paracetamol - 150 tablets from 5 requests")
+**And** I can expand each group to see individual requests with requester details
+**And** The highest priority among grouped requests is displayed
+**And** I can "Order All" to mark all requests for an item as ordered at once
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-5-pm-bunched-view.md`
+
+### Story 3.6: Additional PM Dashboard Status Tabs (NEW - Client Correction Jan 2026)
+As a Purchase Manager,
+I want additional status tabs beyond the 4 workflow statuses (Present Stock, Supplier List, Most Consumed),
+So that I can quickly access inventory insights and vendor information without navigating away.
+
+**Acceptance Criteria:**
+**Given** I am a Purchase Manager on the dashboard
+**When** I click the "Present Stock" tab
+**Then** I see a list of all products with their current stock levels
+**When** I click the "Supplier List" tab
+**Then** I see a list of all approved vendors with product counts
+**When** I click the "Most Consumed" tab
+**Then** I see a ranked list of products by consumption frequency
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-6-additional-status-tabs.md`
+
+### Story 3.7: Shorten Request ID to 5 Digits (NEW - Client Correction Jan 2026)
+As a user viewing purchase requests,
+I want to see a short, human-readable Request ID (5 digits),
+So that I can easily reference and communicate about specific requests.
+
+**Acceptance Criteria:**
+**Given** a new purchase request is created
+**When** it is saved to the database
+**Then** a unique 5-digit shortId is generated (e.g., PR-00001)
+**And** the short ID is displayed everywhere instead of MongoDB ObjectId
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-7-shorten-request-id.md`
+
+### Story 3.8: Add Coach Filter to PM Dashboard (NEW - Client Correction Jan 2026)
+As a Purchase Manager,
+I want to filter purchase requests by the requesting Coach,
+So that I can see all requests from a specific coach at a glance.
+
+**Acceptance Criteria:**
+**Given** I am a Purchase Manager on the dashboard
+**When** I look at the filter row
+**Then** I see a "Coach" dropdown filter listing all coaches who have created requests
+**And** filtering by coach shows only their requests
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-8-coach-filter.md`
+
+### Story 3.9: PM Navigation Pending Badge (NEW - Client Correction Jan 2026)
+As a Purchase Manager,
+I want to see a badge in my navigation showing the number of pending tasks,
+So that I can quickly know how much work is waiting without opening the dashboard.
+
+**Acceptance Criteria:**
+**Given** I am logged in as a Purchase Manager
+**When** I view the sidebar/navigation
+**Then** I see a badge next to the PM menu item showing pending task count
+**And** the badge is red/orange and clearly visible
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-9-pm-navigation-badge.md`
+
+### Story 3.10: Column Reorder & UI Cleanup (NEW - Client Correction Jan 2026)
+As a Purchase Manager,
+I want the table columns in a logical order and old dashboard elements removed,
+So that the interface is clean and information is easy to scan.
+
+**Acceptance Criteria:**
+**Given** I am viewing the purchase requests table
+**When** I look at the columns
+**Then** Date of Request is in position 2 (after ID, not at end)
+**And** "Tasks" label is removed
+**And** Old stat cards (Active repairs, Pending orders, etc.) are removed
+
+**File:** `_bmad-output/sprint-5-purchase-manager/3-10-column-reorder-cleanup.md`
+
+## Epic 2 Additions
+
+### Story 2.6: Repair Technician & Delivered By Coach Tracking (NEW - Client Correction Jan 2026)
+As an organization,
+We want to track the Repair Technician name for repair items AND which Coach delivered items to Balagruha,
+So that we have accountability and can reference this information if anything goes wrong.
+
+**Acceptance Criteria:**
+**Given** a purchase request is in the "Repairs" category
+**When** the PM marks it as "Delivered to Store"
+**Then** the PM must enter the Repair Technician Name
+**Given** a Coach marks request as "Delivered to Balagruha"
+**Then** the system automatically captures which Coach made the delivery
+
+**File:** `_bmad-output/sprint-5-purchase-manager/2-6-repair-technician-tracking.md`
+
 ## Epic 4: Inventory Control & Audit
 **Goal:** Allow Purchase Managers to reconcile physical stock with digital records, ensuring system accuracy.
 **FRs covered:** FR21, FR22

@@ -1,0 +1,35 @@
+[21:43, 13/12/2025] Tony Bro: We have listed 6 types of purchases. 
+Eg medicines
+Isf shop
+Repair items
+Infra items
+Consumables.
+[21:43, 13/12/2025] Tony Bro: If a coach needs some medicines , some isf shop items and some consumables like hair oil or vaseline, he will create 3 different task even though balgruh is same.
+[21:43, 13/12/2025] Tony Bro: The point of splitting purchased into 6 categories (we already had 3 viz repair, shop and purchase)
+Is that he doesn't have a thousand items list.
+[21:43, 13/12/2025] Tony Bro: Which will be very cumbersome.
+[21:43, 13/12/2025] Tony Bro: S is sending u shortly a unified "purchase task" form which all stake holders will use. Whether coach, medical, repair, sports or music coach will use
+[21:43, 13/12/2025] Tony Bro: Once a coach selects medical purchase for his balgruh, a drop down menu of all meds purchased so far will appear allowing him to simply select and type in the quantity.
+[21:43, 13/12/2025] Tony Bro: Only if a completely new item is to be purchased , admin is the sole authority to create it. In which the supplier names and price approved is keyed in only by admin
+[21:43, 13/12/2025] Tony Bro: Tony, a basic principle which we at isf follow is -
+1. Minimum clicks to get your work done 
+2. Minimum page changes so that navigation is simple and intuitive 
+3. Max info in a single page/screen .. no wasted screen space. 
+4. Cut the clutter . Each stake holder can see and work on just his own domain.
+[21:43, 13/12/2025] Tony Bro: PURCHASE
+1. As a rule, purM doesn't generate or make new purchases. He FULFILS purchase requests from everyone ie all kinds of coaches and medical incharge and Amma's. We hv still retained "new purchase task" button on his page. 
+2. There are 6 categories of purchase as shown in ui. We could hv made it just one. But then there would be hundreds of not thousand items. 
+3. The work flow is as follows -
+A  purchase request :  B order placed:
+C Recd at isf store:
+D Delivered to balgruh
+[21:43, 13/12/2025] Tony Bro: 4. Each item also has a priority as in high medium or low. 
+5. Items can be purchased either for a particular balgruh or child OR for stock.
+6. On purM page , he should be able to see at a glance his pending work. First wrt priority. 2nd wrt present status of the purchase (out of 4 listed above), coachwise, balgruh wise and oldest or latest .
+[21:43, 13/12/2025] Tony Bro: 7. On his task bar, a badge should tell him quickly the number of tasks pending. 
+8. ALL is the default setting within each category. 
+9. If no filters are used then each and every task is in the list. BUT if there r common items such as paracitamol or socks or hair oil , then he should be able to see all tasks of the same items bunches Together so he gets an immediate idea of total paracitamol tablets to be bought rather than applying filter after filter and manually adding all tablets from all coaches in all balgruhs.
+
+[21:43, 13/12/2025] Tony Bro: Hi. Here is the + New Purchase Request form with explanation & filled up purchase request form for your reference 😊
+[21:43, 13/12/2025] Tony Bro: Now only 1 form remains... 
+Admin fills a form for a totally new item which has never been purchased before.

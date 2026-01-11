@@ -23,7 +23,7 @@ const SidebarContext = createContext();
 export const useSidebar = () => {
   const context = useContext(SidebarContext);
   if (!context) {
-    return { isSidebarCollapsed: false, toggleSidebar: () => {} };
+    return { isSidebarCollapsed: false, toggleSidebar: () => { } };
   }
   return context;
 };
@@ -84,7 +84,7 @@ const Layout = () => {
         "amma",
       ],
     },
-    { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach", "purchase-manager", "student"] },
+    { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach", "student"] },
     {
       id: 5,
       name: "Attendance",
@@ -97,7 +97,7 @@ const Layout = () => {
       id: 8,
       name: "Repairs",
       link: "/repair",
-      roles: ["admin", "purchase-manager"],
+      roles: ["admin"],
     },
     {
       id: 9,
@@ -110,7 +110,7 @@ const Layout = () => {
       id: 10,
       name: "Shop",
       link: "/shop",
-      roles: ["student", "admin", "coach", "purchase-manager", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
+      roles: ["student", "admin", "coach", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
     },
     {
       id: 11,
@@ -273,9 +273,8 @@ const Layout = () => {
             notificationsList.map((notification) => (
               <div
                 key={notification._id}
-                className={`notification-item ${
-                  !notification.isRead ? "unread" : ""
-                }`}
+                className={`notification-item ${!notification.isRead ? "unread" : ""
+                  }`}
                 onClick={() => handleMarkAsRead(notification._id)}
                 style={{ cursor: "pointer" }}
               >
@@ -490,7 +489,7 @@ const Layout = () => {
                   {menu.name}
                   {/* Story 3.9: PM pending badge for Purchases menu */}
                   {isPurchases && role === "purchase-manager" && pendingPurchaseCount.total > 0 && (
-                    <span 
+                    <span
                       className="pm-pending-badge"
                       title={`${pendingPurchaseCount.total} pending requests${pendingPurchaseCount.highPriority > 0 ? ` (${pendingPurchaseCount.highPriority} high priority)` : ''}`}
                     >

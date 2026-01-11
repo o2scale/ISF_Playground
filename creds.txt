@@ -1,6 +1,6 @@
 Use the user login page - click user login
 
-Admin 
+Admin
 UN : tony.loui.thomas@gmail.com
 PW : 5322148
 
