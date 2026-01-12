@@ -1966,10 +1966,23 @@ export const markOrderDelivered = async (orderId, deliveryNotes = '') => {
 // ========================================
 
 // Get low-stock products for Purchase Manager (BUG-S17-004 FIX)
-export const getLowStockProducts = async () => {
+export const getLowStockProducts = async (balagruhaId) => {
   try {
-    const response = await api.get('/api/v2/shop/admin/purchase-requests/products/low-stock');
-    return response.data;
+    const response = await api.get('/api/v2/shop/products', {
+      params: {
+        stockStatus: 'low',
+        balagruhaIds: balagruhaId
+      }
+    });
+
+    // Ensure we return data in the expected format (array of products)
+    // The products endpoint likely returns { success: true, products: [...] }
+    const products = response.data.products || response.data || [];
+
+    return {
+      success: true,
+      data: products
+    };
   } catch (error) {
     console.error("Error fetching low-stock products:", error);
     throw error;
@@ -2153,5 +2166,6 @@ export const createPendingProduct = async (productData) => {
     throw error;
   }
 };
+
 
 

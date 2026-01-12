@@ -17,7 +17,9 @@ exports.getProducts = async (req, res, next) => {
       inStock,
       page,
       limit,
-      sort
+      sort,
+      stockStatus,
+      balagruhaIds
     } = req.query;
 
     const filters = {
@@ -27,8 +29,17 @@ exports.getProducts = async (req, res, next) => {
       minPrice,
       maxPrice,
       inStock,
-      sort
+      sort,
+      stockStatus
     };
+
+    if (balagruhaIds) {
+      if (Array.isArray(balagruhaIds)) {
+        filters.balagruhaIds = balagruhaIds.filter(id => id); // Remove null/empty
+      } else if (typeof balagruhaIds === 'string' && balagruhaIds.trim() !== '') {
+        filters.balagruhaIds = balagruhaIds.split(',').map(id => id.trim()).filter(id => id);
+      }
+    }
 
     const pagination = {
       page: parseInt(page) || 1,

@@ -113,6 +113,12 @@ const Layout = () => {
       roles: ["student", "admin", "coach", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
     },
     {
+      id: 12,
+      name: "Low Stock",
+      link: "/purchase-manager/low-stock",
+      roles: ["purchase-manager"],
+    },
+    {
       id: 11,
       name: "WTF",
       link: "/wtf",

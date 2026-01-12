@@ -22,7 +22,8 @@ export default function CreatePurchaseRequestModal({
   onSuccess,
   userBalagruhas,
   balagruhas,
-  userRole
+  userRole,
+  initialProduct // { product, balagruhaId }
 }) {
   const isAdmin = normalizeUserRole(userRole) === UserTypes.ADMIN;
 
@@ -237,19 +238,70 @@ export default function CreatePurchaseRequestModal({
       setFormData(prev => ({ ...prev, balagruhaId: defaultBalagruha._id }));
       fetchProducts(defaultBalagruha._id);
     }
-  }, [userBalagruhas, balagruhas]);
+    // Handle initial product selection (Reorder flow)
+    else if (initialProduct && initialProduct.balagruhaId) {
+      // Sprint5-Story-20: Valid purchase categories
+      const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
+      const productCategory = initialProduct.product?.category;
+
+      // Determine safe category: Use specific category if valid, otherwise default to 'ISF Shop'
+      const safeCategory = validCategories.includes(productCategory) ? productCategory : 'ISF Shop';
+
+      setFormData(prev => ({
+        ...prev,
+        balagruhaId: initialProduct.balagruhaId,
+        category: safeCategory
+      }));
+
+      // Use the determining safe category for fetching
+      fetchProducts(initialProduct.balagruhaId, safeCategory);
+
+      // Let's just set the state. The second useEffect depends on `formData.category`. 
+      // But wait! `formData.balagruhaId` is also a dependency for determining if it runs? 
+      // No, `[formData.category]` is the dependency.
+
+      // If we set category, it triggers. If we don't (same category), it doesn't.
+      // If we only set BalagruhaId, the category hook does NOT run (it only watches category).
+
+      // So we MUST call fetchProducts here. BUT `formData` is stale.
+      // We should use the values we just determined.
+
+      // Refactor fetchProducts to accept category as arg?
+      // Or just assume stale state is fine (empty category) -> fetch all -> then re-filter?
+
+      // Let's rely on passing the category to fetchProducts if needed.
+      // But fetchProducts definition uses formData.category.
+
+      // Fix: Update fetchProducts to accept optional overrides.
+      fetchProducts(initialProduct.balagruhaId, initialProduct.product?.category);
+    } else {
+    }
+  }, [userBalagruhas, balagruhas, initialProduct]);
+
+  // Effect to auto-select the product once products are loaded
+  useEffect(() => {
+    if (initialProduct && products.length > 0 && !selectedProducts.has(initialProduct.product._id)) {
+      const productToSelect = products.find(p => p._id === initialProduct.product._id);
+
+      if (productToSelect) {
+        handleProductToggle(productToSelect);
+      }
+    }
+  }, [products, initialProduct]);
 
   // ============================================================================
   // PRODUCT FETCHING
   // ============================================================================
 
-  const fetchProducts = async (balagruhaId) => {
+  const fetchProducts = async (balagruhaId, categoryOverride) => {
     try {
       setFetchingProducts(true);
 
+      const categoryToUse = categoryOverride !== undefined ? categoryOverride : formData.category;
+
       // Story 2.5: Reduce product list size by filtering products based on selected purchase category.
-      const response = shouldScopeByPurchaseCategory(formData.category)
-        ? await getShopItemsByCategory({ purchaseCategory: formData.category, limit: 1000 })
+      const response = shouldScopeByPurchaseCategory(categoryToUse)
+        ? await getShopItemsByCategory({ purchaseCategory: categoryToUse, limit: 1000 })
         : await getAllShopItems();
 
       if (response.success) {

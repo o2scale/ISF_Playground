@@ -58,14 +58,51 @@ class ShopService {
       }
 
       // Stock filter - Sprint5-Story-25: Don't filter out pending products by stock
-      if (inStock === true || inStock === 'true') {
-        // Pending products should always appear regardless of stock level
-        // Only apply stock filter to non-pending products
+      // Updated to support granular stockStatus (low, out, high)
+      const stockStatus = filters.stockStatus; // 'low', 'out', 'high', 'in_stock'
+
+      if (stockStatus) {
+        if (stockStatus === 'out') {
+          query.stock = 0;
+        } else if (stockStatus === 'low') {
+          query.$expr = {
+            $and: [
+              { $gt: ['$stock', 0] },
+              { $lte: ['$stock', '$lowStockThreshold'] }
+            ]
+          };
+        } else if (stockStatus === 'high') {
+          query.$expr = { $gt: ['$stock', '$lowStockThreshold'] };
+        } else if (stockStatus === 'in_stock' || inStock === true || inStock === 'true') {
+          // Default in_stock logic
+          query.$and = query.$and || [];
+          query.$and.push({
+            $or: [
+              { isPendingProduct: true },
+              { stock: { $gt: 0 } }
+            ]
+          });
+        }
+      } else if (inStock === true || inStock === 'true') {
+        // Fallback to legacy boolean check if stockStatus not provided
         query.$and = query.$and || [];
         query.$and.push({
           $or: [
             { isPendingProduct: true },      // Pending products: include regardless of stock
             { stock: { $gt: 0 } }            // Regular products: only if stock > 0
+          ]
+        });
+      }
+
+      // Balagruha Scoping (for filtered views like PM Low Stock)
+      // supports passing array of IDs. Includes shop-wide items (null/undefined balagruhaId)
+      if (filters.balagruhaIds && Array.isArray(filters.balagruhaIds) && filters.balagruhaIds.length > 0) {
+        query.$and = query.$and || [];
+        query.$and.push({
+          $or: [
+            { balagruhaId: { $in: filters.balagruhaIds } },
+            { balagruhaId: null },
+            { balagruhaId: { $exists: false } }
           ]
         });
       }
