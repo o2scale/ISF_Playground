@@ -326,7 +326,7 @@ const PurchaseDashboard = () => {
     setShowPurchaseModal(true);
   };
 
-  const calculateDashboardStats = (repairs, purchases) => {
+  const calculateDashboardStats = (repairs, purchases, overviewData = {}) => {
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
@@ -336,7 +336,9 @@ const PurchaseDashboard = () => {
       completedThisWeek: repairs.filter(
         (r) => r.status === "completed" && new Date(r.dateReported) > weekAgo
       ).length,
+      lowStockItems: overviewData.lowStockItems || 0,
       budgetUsed: purchases.reduce((sum, p) => sum + Number(p.costEstimate), 0),
+
       repairStats: {
         pending: repairs.filter((r) => r.status === "pending").length,
         inProgress: repairs.filter((r) => r.status === "in-progress").length,
@@ -470,8 +472,9 @@ const PurchaseDashboard = () => {
       });
       setError(null);
 
-      const dashboardStats = calculateDashboardStats(repairs, purchases);
+      const dashboardStats = calculateDashboardStats(repairs, purchases, data);
       setDashboardData(dashboardStats);
+
       setError(null);
     } catch (err) {
       setError("Failed to load dashboard data");
@@ -567,7 +570,7 @@ const PurchaseDashboard = () => {
         ? balagruhaIdsFromStorage.includes(bal.balagruhaId)
         : bal.balagruhaId === filterBalagruha;
 
-        
+
     const searchFilter = !repairSearch || repairSearch && bal?.issueName?.toLowerCase().includes(repairSearch?.toLowerCase())
 
     const statusFilter = filterStatus === "all" || bal.status === filterStatus;
@@ -675,9 +678,9 @@ const PurchaseDashboard = () => {
 
   const filteredPurchaseOrders = purchaseOrders.filter((bal) => {
     const createdDate = dayjs(bal.createdAt);
-  
+
     let passesDateFilter = true;
-  
+
     if (selectDatePurchase === 'today') {
       passesDateFilter = createdDate.isSame(dayjs(), 'day');
     } else if (selectDatePurchase === 'thisWeek') {
@@ -694,56 +697,56 @@ const PurchaseDashboard = () => {
         createdDate.isSameOrAfter(dayjs(fromDatePurchase)) &&
         createdDate.isSameOrBefore(dayjs(toDatePurchase).endOf('day'));
     }
-  
+
     let passesBalagruhaFilter =
       filterBalagruha === "all"
         ? balagruhaIdsFromStorage.includes(bal.balagruhaId)
         : bal.balagruhaId === filterBalagruha;
 
-        const searchFilter = !purchaseSearch || purchaseSearch && bal?.machineDetails?.toLowerCase().includes(purchaseSearch?.toLowerCase()) ||  purchaseSearch && bal?.vendorDetails?.toLowerCase().includes(purchaseSearch?.toLowerCase()) ||  purchaseSearch && bal?.requiredParts?.toLowerCase().includes(purchaseSearch?.toLowerCase())
+    const searchFilter = !purchaseSearch || purchaseSearch && bal?.machineDetails?.toLowerCase().includes(purchaseSearch?.toLowerCase()) || purchaseSearch && bal?.vendorDetails?.toLowerCase().includes(purchaseSearch?.toLowerCase()) || purchaseSearch && bal?.requiredParts?.toLowerCase().includes(purchaseSearch?.toLowerCase())
 
-        const searchStatus = filterStatusPurchase === 'all' || bal.status === filterStatusPurchase
-  
+    const searchStatus = filterStatusPurchase === 'all' || bal.status === filterStatusPurchase
+
     return passesDateFilter && passesBalagruhaFilter && searchFilter && searchStatus;
   });
 
   const exportPurchaseOrdersToPDF = () => {
     const doc = new jsPDF();
-  
+
     // --- 1. Add Title & Date Filter Info ---
     doc.setFontSize(14);
     doc.text("Purchase Order Report", 14, 15);
-  
-  // Format filter info
-  let filterInfo = "";
-  const today = dayjs();
-  
-  if (selectDatePurchase === 'custom' && fromDatePurchase && toDatePurchase) {
-    filterInfo = `Date Range: ${dayjs(fromDatePurchase).format('DD-MM-YYYY')} to ${dayjs(toDatePurchase).format('DD-MM-YYYY')}`;
-  } else if (selectDatePurchase === 'today') {
-    filterInfo = `Date: ${today.format('DD-MM-YYYY')}`;
-  } else if (selectDatePurchase === 'thisWeek') {
-    const startOfWeek = today.startOf('week');
-    // Adjust the end of the week: if today is before the week's Sunday, use today as the end date.
-    const endOfWeek = today.isBefore(today.endOf('week')) ? today : today.endOf('week');
-    filterInfo = `Date Range: ${startOfWeek.format('DD-MM-YYYY')} to ${endOfWeek.format('DD-MM-YYYY')}`;
-  } else if (selectDatePurchase === 'thisMonth') {
-    const startOfMonth = today.startOf('month');
-    const endOfMonth = today.endOf('month');
-    filterInfo = `Date Range: ${startOfMonth.format('DD-MM-YYYY')} to ${endOfMonth.format('DD-MM-YYYY')}`;
-  } else if (selectDatePurchase === 'lastMonth') {
-    const startOfLastMonth = today.subtract(1, 'month').startOf('month');
-    const endOfLastMonth = today.subtract(1, 'month').endOf('month');
-    filterInfo = `Date Range: ${startOfLastMonth.format('DD-MM-YYYY')} to ${endOfLastMonth.format('DD-MM-YYYY')}`;
-  } else {
-    filterInfo = "Date Filter: All";
-  }
-  
-  doc.setFontSize(10);
-  doc.text(filterInfo, 14, 25);
-  
-  
-  
+
+    // Format filter info
+    let filterInfo = "";
+    const today = dayjs();
+
+    if (selectDatePurchase === 'custom' && fromDatePurchase && toDatePurchase) {
+      filterInfo = `Date Range: ${dayjs(fromDatePurchase).format('DD-MM-YYYY')} to ${dayjs(toDatePurchase).format('DD-MM-YYYY')}`;
+    } else if (selectDatePurchase === 'today') {
+      filterInfo = `Date: ${today.format('DD-MM-YYYY')}`;
+    } else if (selectDatePurchase === 'thisWeek') {
+      const startOfWeek = today.startOf('week');
+      // Adjust the end of the week: if today is before the week's Sunday, use today as the end date.
+      const endOfWeek = today.isBefore(today.endOf('week')) ? today : today.endOf('week');
+      filterInfo = `Date Range: ${startOfWeek.format('DD-MM-YYYY')} to ${endOfWeek.format('DD-MM-YYYY')}`;
+    } else if (selectDatePurchase === 'thisMonth') {
+      const startOfMonth = today.startOf('month');
+      const endOfMonth = today.endOf('month');
+      filterInfo = `Date Range: ${startOfMonth.format('DD-MM-YYYY')} to ${endOfMonth.format('DD-MM-YYYY')}`;
+    } else if (selectDatePurchase === 'lastMonth') {
+      const startOfLastMonth = today.subtract(1, 'month').startOf('month');
+      const endOfLastMonth = today.subtract(1, 'month').endOf('month');
+      filterInfo = `Date Range: ${startOfLastMonth.format('DD-MM-YYYY')} to ${endOfLastMonth.format('DD-MM-YYYY')}`;
+    } else {
+      filterInfo = "Date Filter: All";
+    }
+
+    doc.setFontSize(10);
+    doc.text(filterInfo, 14, 25);
+
+
+
     // --- 2. Table Data ---
     const tableColumn = [
       "Machine Details",
@@ -754,7 +757,7 @@ const PurchaseDashboard = () => {
       "Date",
       "Status"
     ];
-  
+
     const tableRows = filteredPurchaseOrders.map((req) => [
       req.machineDetails,
       req.vendorDetails,
@@ -764,7 +767,7 @@ const PurchaseDashboard = () => {
       dayjs(req.createdAt).format('DD-MM-YYYY'),
       req.status,
     ]);
-  
+
     // Add table below date info
     autoTable(doc, {
       head: [tableColumn],
@@ -773,18 +776,18 @@ const PurchaseDashboard = () => {
       styles: { fontSize: 9 },
       headStyles: { fillColor: [120, 153, 248] }
     });
-  
+
     // --- 3. Total Cost Summary ---
     const totalCost = filteredPurchaseOrders.reduce((acc, curr) => acc + (curr.costEstimate || 0), 0);
     const finalY = doc.lastAutoTable.finalY || 30;
-  
+
     doc.setFontSize(11);
     doc.text(`Total Estimated Cost: ₹${totalCost}`, 14, finalY + 10);
-  
+
     // --- 4. Save ---
     doc.save('PurchaseOrders.pdf');
   };
-  
+
 
   return (
     <div className="purchase-dashboard">
@@ -792,112 +795,128 @@ const PurchaseDashboard = () => {
       <div className="purchase-main-content">
         {/* Dashboard Content */}
         <div className="purchase-dashboard-content">
-            <div className="purchase-dashboard-overview">
-              {/* Stats Cards */}
-              <div className="purchase-stats-cards">
-                <div className="purchase-stat-card">
-                  <div className="purchase-stat-icon">🔧</div>
-                  <div className="purchase-stat-info">
-                    <h3>{dashboardData.activeRepairs}</h3>
-                    <p>Active Repairs</p>
-                  </div>
+          <div className="purchase-dashboard-overview">
+            {/* Stats Cards */}
+            <div className="purchase-stats-cards">
+              <div className="purchase-stat-card">
+                <div className="purchase-stat-icon">🔧</div>
+                <div className="purchase-stat-info">
+                  <h3>{dashboardData.activeRepairs}</h3>
+                  <p>Active Repairs</p>
                 </div>
-                <div className="purchase-stat-card">
-                  <div className="purchase-stat-icon">🛒</div>
-                  <div className="purchase-stat-info">
-                    <h3>{dashboardData.pendingOrders}</h3>
-                    <p>Pending Orders</p>
-                  </div>
+              </div>
+              <div className="purchase-stat-card">
+                <div className="purchase-stat-icon">🛒</div>
+                <div className="purchase-stat-info">
+                  <h3>{dashboardData.pendingOrders}</h3>
+                  <p>Pending Orders</p>
                 </div>
-                <div className="purchase-stat-card">
-                  <div className="purchase-stat-icon">✅</div>
-                  <div className="purchase-stat-info">
-                    <h3>{dashboardData.completedThisWeek}</h3>
-                    <p>Completed This Week</p>
-                  </div>
-                </div>
-                <div className="purchase-stat-card">
-                  <div className="purchase-stat-icon">💰</div>
-                  <div className="purchase-stat-info">
-                    <h3>₹{dashboardData.budgetUsed.toLocaleString()}</h3>
-                    <p>Total Expenditure</p>
-                  </div>
+              </div>
+              <div className="purchase-stat-card">
+                <div className="purchase-stat-icon" style={{ color: '#d97706' }}>⚠️</div>
+                <div className="purchase-stat-info">
+                  <h3>{dashboardData.lowStockItems || 0}</h3>
+                  <p>Low Stock Items</p>
                 </div>
               </div>
 
-              {/* Detailed Statistics */}
-              <div className="dashboard-detailed-stats">
-                {/* Purchase Requests (Sprint5) */}
-                <div className="dashboard-card recent-activities">
-                  <h3>Purchase Requests</h3>
-                  <div className="purchase-data-table" style={{ padding: '0', boxShadow: 'none', border: 'none' }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>Req Date</th>
-                          <th>Item Name</th>
-                          <th>Qty</th>
-                          <th>Requested by</th>
-                          <th>Priority</th>
-                          <th>Deadline</th>
-                          <th>Status</th>
-                          <th>Special Instructions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {pmPurchaseRequests.length === 0 && (
-                          <tr>
-                            <td colSpan={8} style={{ padding: '16px', color: '#6b7280' }}>
-                              No purchase requests found.
-                            </td>
-                          </tr>
-                        )}
-
-                        {pmPurchaseRequests.map((req) => {
-                          const firstItem = Array.isArray(req.items) && req.items.length > 0 ? req.items[0] : null;
-                          const itemName = firstItem?.productName || '—';
-                          const qty = Array.isArray(req.items)
-                            ? req.items.reduce((sum, item) => sum + Number(item.requestedQuantity || 0), 0)
-                            : 0;
-
-                          const requestedBy = req.requestedBy?.name || req.requestedBy?.email || '—';
-                          const priority = getPriorityLabel(req);
-
-                          return (
-                            <tr key={req._id || req.requestId}>
-                              <td>{req.createdAt ? dayjs(req.createdAt).format('DD/MM/YY') : '—'}</td>
-                              <td>{itemName}</td>
-                              <td>{qty}</td>
-                              <td>{requestedBy}</td>
-                              <td>
-                                <span
-                                  className={`purchase-tag ${
-                                    priority === 'High'
-                                      ? 'purchase-high'
-                                      : priority === 'Low'
-                                        ? 'purchase-low'
-                                        : 'purchase-medium'
-                                  }`}
-                                >
-                                  {priority}
-                                </span>
-                              </td>
-                              <td>{req.deadline ? dayjs(req.deadline).format('DD/MM/YY') : '—'}</td>
-                              <td>
-                                <span className={`purchase-tag purchase-status-${(req.status || '').toString().replace('_', '-')}`}>
-                                  {req.status || '—'}
-                                </span>
-                              </td>
-                              <td>{req.justification || req.reason || '—'}</td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
+              <div className="purchase-stat-card">
+                <div className="purchase-stat-icon">✅</div>
+                <div className="purchase-stat-info">
+                  <h3>{dashboardData.completedThisWeek}</h3>
+                  <p>Completed This Week</p>
+                </div>
+              </div>
+              <div className="purchase-stat-card">
+                <div className="purchase-stat-icon">💰</div>
+                <div className="purchase-stat-info">
+                  <h3>₹{dashboardData.budgetUsed.toLocaleString()}</h3>
+                  <p>Total Expenditure</p>
                 </div>
               </div>
             </div>
+
+            {/* Detailed Statistics */}
+            <div className="dashboard-detailed-stats">
+              {/* Purchase Requests (Sprint5) */}
+              <div className="dashboard-card recent-activities">
+                <h3>Purchase Requests</h3>
+                <div className="purchase-data-table" style={{ padding: '0', boxShadow: 'none', border: 'none' }}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Req Date</th>
+                        <th>Item Name</th>
+                        <th>Qty</th>
+                        <th>Requested by</th>
+                        <th>Priority</th>
+                        <th>Deadline</th>
+                        <th>Status</th>
+                        <th>Special Instructions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pmPurchaseRequests.length === 0 && (
+                        <tr>
+                          <td colSpan={8} style={{ padding: '16px', color: '#6b7280' }}>
+                            No purchase requests found.
+                          </td>
+                        </tr>
+                      )}
+
+                      {pmPurchaseRequests.map((req) => {
+                        const firstItem = Array.isArray(req.items) && req.items.length > 0 ? req.items[0] : null;
+                        const itemName = firstItem?.productName || '—';
+                        const qty = Array.isArray(req.items)
+                          ? req.items.reduce((sum, item) => sum + Number(item.requestedQuantity || 0), 0)
+                          : 0;
+
+                        const requestedBy = req.requestedBy?.name || req.requestedBy?.email || '—';
+                        const priority = getPriorityLabel(req);
+
+                        return (
+                          <tr key={req._id || req.requestId}>
+                            <td>{req.createdAt ? dayjs(req.createdAt).format('DD/MM/YY') : '—'}</td>
+                            <td>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <span>{itemName}</span>
+                                {firstItem?.currentStock === 0 ? (
+                                  <span className="stock-badge out-of-stock">Out</span>
+                                ) : firstItem?.currentStock <= (firstItem?.lowStockThreshold || 0) ? (
+                                  <span className="stock-badge low-stock">Low</span>
+                                ) : null}
+                              </div>
+                            </td>
+                            <td>{qty}</td>
+                            <td>{requestedBy}</td>
+                            <td>
+                              <span
+                                className={`purchase-tag ${priority === 'High'
+                                  ? 'purchase-high'
+                                  : priority === 'Low'
+                                    ? 'purchase-low'
+                                    : 'purchase-medium'
+                                  }`}
+                              >
+                                {priority}
+                              </span>
+                            </td>
+                            <td>{req.deadline ? dayjs(req.deadline).format('DD/MM/YY') : '—'}</td>
+                            <td>
+                              <span className={`purchase-tag purchase-status-${(req.status || '').toString().replace('_', '-')}`}>
+                                {req.status || '—'}
+                              </span>
+                            </td>
+                            <td>{req.justification || req.reason || '—'}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

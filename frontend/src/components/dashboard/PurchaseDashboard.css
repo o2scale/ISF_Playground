@@ -1018,3 +1018,23 @@ input[type="file"] {
     position: relative;
     z-index: 1;
 }
+
+/* Stock Badges */
+.stock-badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-weight: 600;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.stock-badge.out-of-stock {
+    background-color: #fee2e2;
+    color: #dc2626;
+}
+
+.stock-badge.low-stock {
+    background-color: #fef3c7;
+    color: #d97706;
+}

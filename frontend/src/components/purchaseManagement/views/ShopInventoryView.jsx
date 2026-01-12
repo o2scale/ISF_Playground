@@ -1629,12 +1629,18 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                           <div className="product-name">{request.items.length} product{request.items.length > 1 ? 's' : ''}</div>
                           <div className="product-sku">
                             {request.items.slice(0, 2).map((item, idx) => (
-                              <span key={idx}>
-                                {item.productName}
-                                {idx < 1 && idx < request.items.length - 1 && ', '}
-                              </span>
+                              <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
+                                <span>{item.productName}</span>
+                                {item.currentStock === 0 ? (
+                                  <span className="stock-badge out-of-stock">Out</span>
+                                ) : item.currentStock <= (item.lowStockThreshold || 0) ? (
+                                  <span className="stock-badge low-stock">Low</span>
+                                ) : null}
+                                {idx < 1 && idx < request.items.length - 1 && request.items.length === 2 && <span style={{ color: '#9ca3af' }}>, </span>}
+                              </div>
                             ))}
-                            {request.items.length > 2 && ` +${request.items.length - 2} more`}
+                            {request.items.length > 2 && <div className="more-items" style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>+{request.items.length - 2} more</div>}
+
                           </div>
                         </>
                       ) : (

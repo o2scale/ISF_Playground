@@ -6,6 +6,8 @@ const {
   getRecentRepairRequests,
 } = require("../../data-access/repairRequests");
 const { getUploadedFilesFullPath } = require("../../utils/helper");
+const ShopItem = require("../../models/shopItem");
+const User = require("../../models/user");
 
 class PurchaseOrder {
   constructor(obj) {
@@ -167,9 +169,39 @@ class PurchaseOrder {
     return await purchaseOrdersDA.count(query);
   }
 
-  // Overview details
-  static async getPurchaseManagerOverview(query = {}, options = {}) {
+  // Overview details - Updated to include low stock count
+  static async getPurchaseManagerOverview(userId, options = {}) {
     try {
+      // Get user context for scoping (assigned balagruhas)
+      const user = await User.findById(userId).select('role balagruhaIds');
+      const isPm = user?.role === 'purchase-manager';
+      const balagruhaIds = user?.balagruhaIds || [];
+
+      // Calculate Low Stock Count
+      // Condition: stock <= lowStockThreshold (includes out of stock)
+      const lowStockQuery = {
+        isActive: true,
+        $or: [
+          { stock: 0 },
+          { $expr: { $lte: ["$stock", "$lowStockThreshold"] } }
+        ]
+      };
+
+      // Scope to assigned balagruhas if PM (including shop-wide/STOCK items)
+      if (isPm) {
+        lowStockQuery.$and = [
+          {
+            $or: [
+              { balagruhaId: { $in: balagruhaIds } },
+              { balagruhaId: null },
+              { balagruhaId: { $exists: false } }
+            ]
+          }
+        ];
+      }
+
+      const lowStockCount = await ShopItem.countDocuments(lowStockQuery);
+
       // get active repair counts.
       let activeRepairs = await findAllPendingAndInProgressCount();
       // pending orders
@@ -188,20 +220,20 @@ class PurchaseOrder {
       // get the last 10 records
       mergedData = mergedData.slice(0, 10);
 
-      console.log("query", query);
-
       return {
         activeRepairs: activeRepairs,
         pendingOrders: pendingPurchaseOrders,
         completedThisWeek: completedThisWeek,
+        lowStockItems: lowStockCount, // New field for dashboard card
         budgetUsed: 1000 || 0,
         recentActivities: mergedData || [],
       };
     } catch (error) {
       console.error("Error getting purchase manager overview:", error);
-      return { success: false, data: {}, message: error.message };
+      throw error;
     }
   }
 }
+
 
 module.exports = PurchaseOrder;
