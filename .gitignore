@@ -149,7 +149,7 @@ dist
 creds
 
 # Database backups
-scripts/backups/
+# scripts/backups/ (Removed to allow safekeeping in git)
 
 # Private keys (do not commit)
 /isfplayground.pem
