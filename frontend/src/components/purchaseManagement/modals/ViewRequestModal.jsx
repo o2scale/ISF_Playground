@@ -170,8 +170,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                     <th style={{ padding: '10px', textAlign: 'center' }}>Requested Qty</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Current Stock</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Threshold</th>
-                    <th style={{ padding: '10px', textAlign: 'right' }}>Unit Cost</th>
-                    <th style={{ padding: '10px', textAlign: 'right' }}>Total Cost</th>
+                    <th style={{ padding: '10px', textAlign: 'center' }}>Threshold</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -193,8 +192,6 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                           )}
                         </td>
                         <td style={{ padding: '10px', textAlign: 'center', color: '#999' }}>{item.lowStockThreshold}</td>
-                        <td style={{ padding: '10px', textAlign: 'right' }}>₹{item.estimatedUnitCost?.toLocaleString()}</td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>₹{item.estimatedTotalCost?.toLocaleString()}</td>
                       </tr>
                     ))
                   ) : (
@@ -205,14 +202,11 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #ddd', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
-                    <td colSpan="2" style={{ padding: '10px' }}>Total</td>
+                    <td colSpan="2" style={{ padding: '10px' }}>Total Units Requested</td>
                     <td style={{ padding: '10px', textAlign: 'center', color: '#0066cc' }}>
                       {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0} units
                     </td>
                     <td colSpan="3"></td>
-                    <td style={{ padding: '10px', textAlign: 'right', color: '#28a745', fontSize: '16px' }}>
-                      ₹{request.totalEstimatedCost?.toLocaleString()}
-                    </td>
                   </tr>
                 </tfoot>
               </table>
@@ -373,12 +367,6 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                     </span>
                   </div>
                 )}
-                {request.actualTotalCost !== undefined && (
-                  <div className="detail-item">
-                    <span className="detail-label">Actual Total Cost:</span>
-                    <span className="detail-value strong">₹{request.actualTotalCost.toFixed(2)}</span>
-                  </div>
-                )}
                 {request.completedBy && (
                   <div className="detail-item">
                     <span className="detail-label">Completed By:</span>
@@ -409,8 +397,7 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                       <th style={{ padding: '10px', textAlign: 'left' }}>Product</th>
                       <th style={{ padding: '10px', textAlign: 'center' }}>Requested</th>
                       <th style={{ padding: '10px', textAlign: 'center' }}>Received</th>
-                      <th style={{ padding: '10px', textAlign: 'right' }}>Unit Cost</th>
-                      <th style={{ padding: '10px', textAlign: 'right' }}>Total Cost</th>
+                      <th style={{ padding: '10px', textAlign: 'center' }}>Received</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -421,25 +408,16 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                         <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold', color: '#28a745' }}>
                           {item.receivedQuantity !== undefined ? item.receivedQuantity : '-'}
                         </td>
-                        <td style={{ padding: '10px', textAlign: 'right' }}>
-                          {item.actualUnitCost !== undefined ? `₹${item.actualUnitCost.toFixed(2)}` : '-'}
-                        </td>
-                        <td style={{ padding: '10px', textAlign: 'right', fontWeight: 'bold' }}>
-                          {item.actualTotalCost !== undefined ? `₹${item.actualTotalCost.toFixed(2)}` : '-'}
-                        </td>
                       </tr>
                     ))}
                   </tbody>
                   <tfoot>
                     <tr style={{ backgroundColor: '#f8f9fa', borderTop: '2px solid #dee2e6', fontWeight: 'bold' }}>
-                      <td colSpan="2" style={{ padding: '12px', textAlign: 'right' }}>TOTALS:</td>
+                      <td colSpan="2" style={{ padding: '12px', textAlign: 'right' }}>TOTAL RECEIVED:</td>
                       <td style={{ padding: '12px', textAlign: 'center', color: '#6366f1' }}>
                         {request.items?.reduce((sum, item) => sum + (item.receivedQuantity || 0), 0)}
                       </td>
                       <td></td>
-                      <td style={{ padding: '12px', textAlign: 'right', color: '#6366f1', fontSize: '16px' }}>
-                        ₹{request.actualTotalCost?.toFixed(2) || '0.00'}
-                      </td>
                     </tr>
                   </tfoot>
                 </table>

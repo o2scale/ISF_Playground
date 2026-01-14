@@ -28,10 +28,10 @@ exports.createPurchaseRequest = async (req, res) => {
 
     // Sprint5-Story-24: Role-based access control
     const user = await User.findById(userId).select('role balagruhaIds');
-    if (!user.canCreatePurchaseRequest()) {
+    if (user && typeof user.canCreatePurchaseRequest === 'function' && !user.canCreatePurchaseRequest()) {
       return res.status(403).json({
         success: false,
-        message: 'You do not have permission to create purchase requests. Only Coach, Medical Incharge, Admin, and Purchase Manager can create requests.'
+        message: 'You do not have permission to create purchase requests.'
       });
     }
 
@@ -136,12 +136,6 @@ exports.createPurchaseRequest = async (req, res) => {
         });
       }
 
-      if (item.estimatedUnitCost === undefined || item.estimatedUnitCost < 0) {
-        return res.status(400).json({
-          success: false,
-          message: `Invalid cost for product: ${product.name}`
-        });
-      }
 
       // Sprint5-Story-25: Track pending products
       const isPendingProduct = product.isPendingProduct === true;
@@ -153,8 +147,8 @@ exports.createPurchaseRequest = async (req, res) => {
         requestedQuantity: parseInt(item.requestedQuantity),
         currentStock: product.stock,
         lowStockThreshold: product.lowStockThreshold,
-        estimatedUnitCost: parseFloat(item.estimatedUnitCost),
-        estimatedTotalCost: parseInt(item.requestedQuantity) * parseFloat(item.estimatedUnitCost),
+        estimatedUnitCost: parseFloat(item.estimatedUnitCost) || 0,
+        estimatedTotalCost: (parseInt(item.requestedQuantity) || 1) * (parseFloat(item.estimatedUnitCost) || 0),
         isPendingProduct  // Sprint5-Story-25: Mark if this is a pending product
       });
     }
@@ -229,7 +223,8 @@ exports.createPurchaseRequest = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error creating purchase request',
-      error: error.message
+      error: error.message,
+      stack: error.stack
     });
   }
 };
@@ -1337,4 +1332,234 @@ exports.getPendingCount = async (req, res) => {
   }
 };
 
-module.exports = exports;
+/**
+ * @route   PUT /api/v2/shop/admin/purchase-requests/:id
+ * @desc    Update an existing purchase request (Only allowed if status is 'pending')
+ * @access  Private
+ */
+exports.updatePurchaseRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { balagruhaId, category, items, reason, justification, deadline, priority } = req.body;
+    const userId = req.user._id;
+
+    const request = await PurchaseRequest.findById(id);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase request not found'
+      });
+    }
+
+    // Story 2.1 strict lifecycle: Only allow updates if status is 'pending'
+    if (request.status !== 'pending') {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot update request with status: ${request.status}. Only pending requests can be edited.`
+      });
+    }
+
+    // Permission check: Only requester or Admin can edit
+    if (req.user.role !== 'admin' && String(request.requestedBy) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to update this request'
+      });
+    }
+
+    // Validate category if provided
+    if (category) {
+      const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
+      if (!validCategories.includes(category)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid category'
+        });
+      }
+      request.category = category;
+    }
+
+    // Validate balagruhaId if provided
+    if (balagruhaId) {
+      if (balagruhaId !== 'STOCK' && !mongoose.Types.ObjectId.isValid(balagruhaId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid Balagruha ID format'
+        });
+      }
+      request.balagruhaId = balagruhaId;
+    }
+
+    // Update basic fields
+    if (reason !== undefined) request.reason = reason.trim();
+    if (justification !== undefined) request.justification = justification.trim();
+    if (priority !== undefined) {
+      const normalizedPriority = priority.toLowerCase().trim();
+      const allowedPriorities = new Set(['low', 'medium', 'high']);
+      if (allowedPriorities.has(normalizedPriority)) {
+        request.priority = normalizedPriority;
+      }
+    }
+
+    // Update deadline if provided
+    if (deadline !== undefined) {
+      if (!deadline) {
+        request.deadline = null;
+      } else {
+        let parsedDeadline;
+        if (typeof deadline === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(deadline)) {
+          const [y, m, d] = deadline.split('-').map((v) => Number(v));
+          parsedDeadline = new Date(y, m - 1, d);
+        } else {
+          parsedDeadline = new Date(deadline);
+        }
+
+        if (Number.isNaN(parsedDeadline.getTime())) {
+          return res.status(400).json({
+            success: false,
+            message: 'Invalid deadline format'
+          });
+        }
+        request.deadline = parsedDeadline;
+      }
+    }
+
+    // Update items if provided
+    if (items) {
+      const parsedItems = typeof items === 'string' ? JSON.parse(items) : items;
+      if (!Array.isArray(parsedItems) || parsedItems.length === 0) {
+        return res.status(400).json({
+          success: false,
+          message: 'At least one product is required'
+        });
+      }
+
+      const validatedItems = [];
+      for (const item of parsedItems) {
+        const product = await ShopItem.findById(item.productId);
+        if (!product) {
+          return res.status(404).json({
+            success: false,
+            message: `Product ${item.productId} not found`
+          });
+        }
+
+        validatedItems.push({
+          productId: product._id,
+          productName: product.name,
+          productSKU: product.sku,
+          requestedQuantity: parseInt(item.requestedQuantity) || 1,
+          currentStock: product.stock,
+          lowStockThreshold: product.lowStockThreshold,
+          estimatedUnitCost: parseFloat(item.estimatedUnitCost) || 0,
+          estimatedTotalCost: (parseInt(item.requestedQuantity) || 1) * (parseFloat(item.estimatedUnitCost) || 0),
+          isPendingProduct: product.isPendingProduct === true
+        });
+      }
+      request.items = validatedItems;
+
+      // Recalculate threshold analysis
+      const maxItemCost = Math.max(...validatedItems.map(item => item.estimatedUnitCost));
+      const totalOrderCost = validatedItems.reduce((sum, item) => sum + item.estimatedTotalCost, 0);
+      const ITEM_THRESHOLD = 1000;
+      const ORDER_THRESHOLD = 25000;
+      const isSmallPurchase = (maxItemCost <= ITEM_THRESHOLD) && (totalOrderCost <= ORDER_THRESHOLD);
+
+      request.thresholdAnalysis = {
+        maxItemCost,
+        totalOrderCost,
+        itemThreshold: ITEM_THRESHOLD,
+        orderThreshold: ORDER_THRESHOLD,
+        requiresApproval: !isSmallPurchase
+      };
+    }
+
+    // Handle new attachments if uploaded
+    const uploadedFiles = req.files || [];
+    if (uploadedFiles.length > 0) {
+      const newAttachments = uploadedFiles.map(file => ({
+        filename: file.originalname,
+        fileUrl: `/uploads/${file.filename}`,
+        uploadedAt: new Date()
+      }));
+      request.attachments = [...request.attachments, ...newAttachments];
+    }
+
+    await request.save();
+
+    // Populate for response
+    await request.populate('requestedBy', 'name email role');
+    await request.populate('items.productId', 'name sku stock lowStockThreshold');
+    if (request.balagruhaId && request.balagruhaId !== 'STOCK') {
+      await request.populate('balagruhaId', 'name');
+    }
+
+    res.json({
+      success: true,
+      message: 'Purchase request updated successfully',
+      data: { purchaseRequest: request }
+    });
+
+  } catch (error) {
+    console.error('Error updating purchase request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating purchase request',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   DELETE /api/v2/shop/admin/purchase-requests/:id
+ * @desc    Hard delete a purchase request (Only allowed if status is 'pending' or 'cancelled')
+ * @access  Private
+ */
+exports.deletePurchaseRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id;
+
+    const request = await PurchaseRequest.findById(id);
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: 'Purchase request not found'
+      });
+    }
+
+    // Only allow deletion if status is 'pending' or 'cancelled'
+    const allowedStatuses = ['pending', 'cancelled', 'pending_approval'];
+    if (!allowedStatuses.includes(request.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot delete request with status: ${request.status}`
+      });
+    }
+
+    // Permission check: Only requester or Admin can delete
+    if (req.user.role !== 'admin' && String(request.requestedBy) !== String(userId)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You do not have permission to delete this request'
+      });
+    }
+
+    await PurchaseRequest.findByIdAndDelete(id);
+
+    res.json({
+      success: true,
+      message: 'Purchase request deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting purchase request:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting purchase request',
+      error: error.message
+    });
+  }
+};

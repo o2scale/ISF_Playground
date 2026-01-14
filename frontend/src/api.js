@@ -130,6 +130,8 @@ export const createTask = async (data) => {
   return response.data;
 };
 
+
+
 export const addComment = async (id, data) => {
   const response = await api.post(`/api/tasks/comment/${id}`, data, {
     headers,
@@ -1992,10 +1994,32 @@ export const getLowStockProducts = async (balagruhaId) => {
 // Create new purchase request (Purchase Manager)
 export const createPurchaseRequest = async (data) => {
   try {
-    const response = await api.post('/api/v2/shop/admin/purchase-requests', data);
+    const response = await api.post('/api/v2/shop/admin/purchase-requests', data, { headers });
     return response.data;
   } catch (error) {
     console.error("Error creating purchase request:", error);
+    throw error;
+  }
+};
+
+// Sprint5-Story-EditDelete: Update an existing purchase request
+export const updatePurchaseRequest = async (id, data) => {
+  try {
+    const response = await api.put(`/api/v2/shop/admin/purchase-requests/${id}`, data, { headers });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating purchase request:", error);
+    throw error;
+  }
+};
+
+// Sprint5-Story-EditDelete: Delete a purchase request
+export const deletePurchaseRequest = async (id) => {
+  try {
+    const response = await api.delete(`/api/v2/shop/admin/purchase-requests/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting purchase request:", error);
     throw error;
   }
 };

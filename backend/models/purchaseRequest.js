@@ -109,12 +109,14 @@ const purchaseRequestSchema = new mongoose.Schema(
         },
         estimatedUnitCost: {
           type: Number,
-          required: true,
+          required: false,
+          default: 0,
           min: [0, 'Cost cannot be negative']
         },
         estimatedTotalCost: {
           type: Number,
-          required: true
+          required: false,
+          default: 0
         },
         // Per-Product Purchase Details (filled during stock update)
         receivedQuantity: {

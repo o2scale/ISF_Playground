@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   api,
   createPurchaseRequest,
+  updatePurchaseRequest, // Sprint5-Story-EditDelete
   getLowStockProducts,
   getAllShopItems,
   getShopItemsByCategory,
@@ -23,7 +24,8 @@ export default function CreatePurchaseRequestModal({
   userBalagruhas,
   balagruhas,
   userRole,
-  initialProduct // { product, balagruhaId }
+  initialProduct, // { product, balagruhaId }
+  requestToEdit // Sprint5-Story-EditDelete
 }) {
   const isAdmin = normalizeUserRole(userRole) === UserTypes.ADMIN;
 
@@ -36,7 +38,7 @@ export default function CreatePurchaseRequestModal({
     category: '',  // NEW - Sprint5-Story-20
     deadline: '',
     priority: 'medium',
-    items: [],  // Array of {productId, productName, productSKU, requestedQuantity, estimatedUnitCost}
+    items: [],  // Array of {productId, productName, productSKU, requestedQuantity}
     attachments: []  // NEW - File array
   });
 
@@ -274,9 +276,30 @@ export default function CreatePurchaseRequestModal({
 
       // Fix: Update fetchProducts to accept optional overrides.
       fetchProducts(initialProduct.balagruhaId, initialProduct.product?.category);
-    } else {
     }
-  }, [userBalagruhas, balagruhas, initialProduct]);
+    // Sprint5-Story-EditDelete: Handle request editing
+    else if (requestToEdit) {
+      setFormData({
+        balagruhaId: requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId || '',
+        category: requestToEdit.category || '',
+        deadline: requestToEdit.deadline ? new Date(requestToEdit.deadline).toISOString().split('T')[0] : '',
+        priority: requestToEdit.priority || 'medium',
+        items: requestToEdit.items.map(item => ({
+          productId: item.productId?._id || item.productId,
+          productName: item.productName,
+          productSKU: item.productSKU,
+          requestedQuantity: item.requestedQuantity,
+          isPendingProduct: item.isPendingProduct || false
+        })),
+        attachments: [] // We don't edit existing attachments here, just allow adding new ones
+      });
+
+      setSelectedProducts(new Set(requestToEdit.items.map(item => item.productId?._id || item.productId)));
+      fetchProducts(requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId, requestToEdit.category);
+    }
+    else {
+    }
+  }, [userBalagruhas, balagruhas, initialProduct, requestToEdit]);
 
   // Effect to auto-select the product once products are loaded
   useEffect(() => {
@@ -390,7 +413,6 @@ export default function CreatePurchaseRequestModal({
           productName: product.name,
           productSKU: product.sku,
           requestedQuantity: 1,  // Default quantity
-          estimatedUnitCost: 0,  // User must fill in
           isPendingProduct: product.isPendingProduct || false  // Sprint5-Story-25: Track if pending
         }]
       }));
@@ -412,14 +434,6 @@ export default function CreatePurchaseRequestModal({
     }));
   };
 
-  const updateItemCost = (index, cost) => {
-    setFormData(prev => ({
-      ...prev,
-      items: prev.items.map((item, i) =>
-        i === index ? { ...item, estimatedUnitCost: Math.max(0, parseFloat(cost) || 0) } : item
-      )
-    }));
-  };
 
   const removeItem = (index) => {
     const removedProductId = formData.items[index].productId;
@@ -565,7 +579,6 @@ export default function CreatePurchaseRequestModal({
             productName: newProduct.name,
             productSKU: newProduct.sku,
             requestedQuantity: 1,
-            estimatedUnitCost: 0,
             isPendingProduct: true  // Mark as pending
           }]
         }));
@@ -599,9 +612,7 @@ export default function CreatePurchaseRequestModal({
   // ============================================================================
 
   const calculateTotalCost = () => {
-    return formData.items.reduce((sum, item) => {
-      return sum + (item.requestedQuantity * item.estimatedUnitCost);
-    }, 0);
+    return 0;
   };
 
   const getStockBadge = (product) => {
@@ -642,12 +653,11 @@ export default function CreatePurchaseRequestModal({
 
     // Validation - All items must have valid quantity and cost
     const invalidItems = formData.items.filter(
-      item => !item.requestedQuantity || item.requestedQuantity < 1 ||
-        item.estimatedUnitCost < 0
+      item => !item.requestedQuantity || item.requestedQuantity < 1
     );
 
     if (invalidItems.length > 0) {
-      showToast('Please enter valid quantity (≥1) and cost (≥0) for all products', 'error');
+      showToast('Please enter valid quantity (≥1) for all products', 'error');
       return;
     }
 
@@ -676,13 +686,15 @@ export default function CreatePurchaseRequestModal({
       });
 
       // Send request
-      const response = await createPurchaseRequest(submitData);
+      const response = requestToEdit
+        ? await updatePurchaseRequest(requestToEdit._id, submitData)
+        : await createPurchaseRequest(submitData);
 
       if (response.success) {
-        showToast('Purchase request created successfully', 'success');
+        showToast(requestToEdit ? 'Purchase request updated successfully' : 'Purchase request created successfully', 'success');
         onSuccess();
       } else {
-        showToast(response.message || 'Error creating request', 'error');
+        showToast(response.message || `Error ${requestToEdit ? 'updating' : 'creating'} request`, 'error');
       }
     } catch (error) {
       console.error('Error creating request:', error);
@@ -700,7 +712,7 @@ export default function CreatePurchaseRequestModal({
     <div className="modal-overlay" onClick={onClose}>
       <div className="modal-container large" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h3>📝 New Purchase Request (Multi-Product)</h3>
+          <h3>{requestToEdit ? '✏️ Edit Purchase Request' : '📝 New Purchase Request (Multi-Product)'}</h3>
           <button className="modal-close-btn" onClick={onClose}>×</button>
         </div>
 
@@ -1289,8 +1301,6 @@ export default function CreatePurchaseRequestModal({
                         <th>Product</th>
                         <th>SKU</th>
                         <th style={{ width: '120px' }}>Quantity *</th>
-                        <th style={{ width: '140px' }}>Unit Cost (₹) *</th>
-                        <th style={{ width: '120px' }}>Total (₹)</th>
                         <th style={{ width: '60px' }}>Action</th>
                       </tr>
                     </thead>
@@ -1326,21 +1336,6 @@ export default function CreatePurchaseRequestModal({
                             />
                           </td>
                           <td>
-                            <input
-                              type="number"
-                              className="table-input"
-                              value={item.estimatedUnitCost}
-                              onChange={(e) => updateItemCost(index, e.target.value)}
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              required
-                            />
-                          </td>
-                          <td className="total-cell">
-                            ₹{(item.requestedQuantity * item.estimatedUnitCost).toFixed(2)}
-                          </td>
-                          <td>
                             <button
                               type="button"
                               className="btn-icon-remove"
@@ -1353,20 +1348,10 @@ export default function CreatePurchaseRequestModal({
                         </tr>
                       ))}
                     </tbody>
-                    <tfoot>
-                      <tr className="total-row">
-                        <td colSpan="4" className="total-label">
-                          <strong>Total Estimated Cost:</strong>
-                        </td>
-                        <td colSpan="2" className="total-amount">
-                          <strong>₹{calculateTotalCost().toFixed(2)}</strong>
-                        </td>
-                      </tr>
-                    </tfoot>
                   </table>
                 </div>
                 <p className="form-hint">
-                  * Fill in quantity and estimated unit cost for all products before submitting
+                  * Fill in quantity for all products before submitting
                 </p>
               </div>
             )}

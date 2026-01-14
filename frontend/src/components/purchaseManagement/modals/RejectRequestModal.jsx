@@ -62,7 +62,6 @@ export default function RejectRequestModal({ request, onClose, onSuccess }) {
                       <th style={{ padding: '8px', textAlign: 'left' }}>Product</th>
                       <th style={{ padding: '8px', textAlign: 'center' }}>SKU</th>
                       <th style={{ padding: '8px', textAlign: 'center' }}>Qty</th>
-                      <th style={{ padding: '8px', textAlign: 'right' }}>Cost</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -72,7 +71,6 @@ export default function RejectRequestModal({ request, onClose, onSuccess }) {
                           <td style={{ padding: '8px' }}>{item.productName}</td>
                           <td style={{ padding: '8px', textAlign: 'center', color: '#666' }}>{item.productSKU}</td>
                           <td style={{ padding: '8px', textAlign: 'center', fontWeight: 'bold' }}>{item.requestedQuantity}</td>
-                          <td style={{ padding: '8px', textAlign: 'right' }}>₹{item.estimatedTotalCost?.toLocaleString()}</td>
                         </tr>
                       ))
                     ) : (
@@ -83,13 +81,11 @@ export default function RejectRequestModal({ request, onClose, onSuccess }) {
                   </tbody>
                   <tfoot>
                     <tr style={{ borderTop: '2px solid #ddd', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
-                      <td colSpan="2" style={{ padding: '8px' }}>Total</td>
+                      <td colSpan="2" style={{ padding: '8px' }}>Total Units</td>
                       <td style={{ padding: '8px', textAlign: 'center' }}>
                         {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0}
                       </td>
-                      <td style={{ padding: '8px', textAlign: 'right', color: '#dc3545' }}>
-                        ₹{request.totalEstimatedCost?.toLocaleString()}
-                      </td>
+                      <td colSpan="2"></td>
                     </tr>
                   </tfoot>
                 </table>

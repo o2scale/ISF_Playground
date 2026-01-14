@@ -3,6 +3,8 @@ import {
   getMyPurchaseRequests,
   getAllPurchaseRequests,
   cancelPurchaseRequest,
+  deletePurchaseRequest,      // Sprint5-Story-EditDelete
+  updatePurchaseRequest,      // Sprint5-Story-EditDelete
   updatePurchaseRequestStatus,
   getUserBalagruhas,  // Sprint5-Story-24: Get user's assigned Balagruhas
   getStockLevels,     // Story 3.6: Present Stock tab
@@ -647,6 +649,33 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const handleViewRequest = (request) => {
     setSelectedRequest(request);
     setShowViewModal(true);
+  };
+
+  // Sprint5-Story-EditDelete: Handle editing a pending request
+  const handleEditRequest = (request) => {
+    setSelectedRequest(request);
+    setShowCreateModal(true);
+  };
+
+  // Sprint5-Story-EditDelete: Handle hard deleting a request
+  const handleDeleteRequest = async (request) => {
+    const requestId = request.requestId || request._id;
+    if (!window.confirm(`Are you sure you want to PERMANENTLY delete request ${requestId}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const response = await deletePurchaseRequest(request._id);
+      if (response.success) {
+        showToast('Purchase request deleted successfully', 'success');
+        fetchPurchaseRequests();
+      } else {
+        showToast(response.message || 'Error deleting request', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      showToast(error.response?.data?.message || 'Error deleting request', 'error');
+    }
   };
 
   const handleApprove = (request) => {
@@ -1720,13 +1749,33 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                   </td>
                   {/* Column 9: Actions */}
                   <td className="actions-cell">
-                    <button
-                      className="btn-icon"
-                      onClick={() => handleViewRequest(request)}
-                      title="View Details"
-                    >
-                      👁️
-                    </button>
+                    {/* Sprint5-Story-EditDelete: Context-aware actions */}
+                    {request.status === PurchaseRequestStatuses.PENDING && (normalizedRole === UserTypes.ADMIN || String(request.requestedBy?._id || request.requestedBy) === String(userId)) ? (
+                      <>
+                        <button
+                          className="btn-icon"
+                          onClick={() => handleEditRequest(request)}
+                          title="Edit Request"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          className="btn-icon btn-reject"
+                          onClick={() => handleDeleteRequest(request)}
+                          title="Delete Request"
+                        >
+                          🗑️
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="btn-icon"
+                        onClick={() => handleViewRequest(request)}
+                        title="View Details"
+                      >
+                        👁️
+                      </button>
+                    )}
 
                     {/* Admin Actions - Story 18 */}
                     {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.ADMIN && (
@@ -1845,16 +1894,22 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       )}
 
       {/* Modals */}
+      {/* Modal for Creating/Editing Purchase Request */}
       {showCreateModal && (
         <CreatePurchaseRequestModal
-          onClose={() => setShowCreateModal(false)}
+          onClose={() => {
+            setShowCreateModal(false);
+            setSelectedRequest(null);
+          }}
           onSuccess={() => {
             setShowCreateModal(false);
+            setSelectedRequest(null);
             fetchPurchaseRequests();
           }}
           userBalagruhas={userBalagruhas}
-          balagruhas={getFilteredBalagruhas()}
+          balagruhas={balagruhas}
           userRole={userRole}
+          requestToEdit={selectedRequest} // Sprint5-Story-EditDelete
         />
       )}
 

@@ -51,6 +51,27 @@ router.get(
   purchaseRequestController.getMyPurchaseRequests
 );
 
+// Update existing request
+// Sprint5-Story-EditDelete: Allow editing pending requests
+router.put(
+  '/:id',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  upload.array('attachments', 5),
+  validateRequestId,
+  purchaseRequestController.updatePurchaseRequest
+);
+
+// Delete request
+// Sprint5-Story-EditDelete: Allow hard delete for pending/cancelled requests
+router.delete(
+  '/:id',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  validateRequestId,
+  purchaseRequestController.deletePurchaseRequest
+);
+
 // Cancel pending request
 // Sprint5-Story-24: Changed to multi-role access
 router.put(
