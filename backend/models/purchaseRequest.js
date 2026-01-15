@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { SHOP_CATEGORIES } = require('../constants/shopCategories');
 
 const PURCHASE_REQUEST_STATUSES = [
   // Story 2.1 strict lifecycle
@@ -18,14 +19,7 @@ const PURCHASE_REQUEST_STATUSES = [
   'on_hold'
 ];
 
-const PURCHASE_REQUEST_CATEGORIES = [
-  'ISF Shop',
-  'Medicines',
-  'Consumables',
-  'Repairs',
-  'Infra',
-  'Others'
-];
+const PURCHASE_REQUEST_CATEGORIES = SHOP_CATEGORIES;
 
 const PURCHASE_REQUEST_PRIORITIES = ['low', 'medium', 'high'];
 

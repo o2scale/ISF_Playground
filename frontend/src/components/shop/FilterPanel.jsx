@@ -8,12 +8,12 @@ import { X } from 'lucide-react';
  */
 const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
   const categories = [
-    { value: 'stationery', label: 'Stationery' },
-    { value: 'sports', label: 'Sports' },
-    { value: 'books', label: 'Books' },
-    { value: 'uniforms', label: 'Uniforms' },
-    { value: 'digital', label: 'Digital' },
-    { value: 'other', label: 'Other' }
+    { value: 'ISF Shop', label: 'ISF Shop' },
+    { value: 'Medicines', label: 'Medicines' },
+    { value: 'Consumables', label: 'Consumables' },
+    { value: 'Repairs', label: 'Repairs' },
+    { value: 'Infra', label: 'Infra' },
+    { value: 'Others', label: 'Others' }
   ];
 
   const handleSearchChange = (e) => {

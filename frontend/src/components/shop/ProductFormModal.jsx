@@ -29,7 +29,7 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
     sku: '',
     name: '',
     description: '',
-    category: 'stationery',
+    category: 'ISF Shop',
     price: '',
     discountPrice: '',
     maxPrice: '',
@@ -78,7 +78,7 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
         sku: product.sku || '',
         name: product.name || '',
         description: product.description || '',
-        category: product.category || 'stationery',
+        category: product.category || 'ISF Shop',
         price: product.price?.toString() || '',
         discountPrice: product.discountPrice?.toString() || '',
         maxPrice: product.maxPrice?.toString() || '',
@@ -319,9 +319,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
               onChange={handleChange}
               disabled={isEditing}
               placeholder="e.g., STAT-001"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.sku ? 'border-red-500' : 'border-slate-300'
-              } ${isEditing ? 'bg-slate-100 cursor-not-allowed' : ''}`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.sku ? 'border-red-500' : 'border-slate-300'
+                } ${isEditing ? 'bg-slate-100 cursor-not-allowed' : ''}`}
             />
             {errors.sku && <p className="mt-1 text-sm text-red-600">{errors.sku}</p>}
             {isEditing && <p className="mt-1 text-xs text-slate-500">SKU cannot be changed</p>}
@@ -338,9 +337,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
               value={formData.name}
               onChange={handleChange}
               placeholder="e.g., Premium Notebook A4"
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.name ? 'border-red-500' : 'border-slate-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.name ? 'border-red-500' : 'border-slate-300'
+                }`}
             />
             {errors.name && <p className="mt-1 text-sm text-red-600">{errors.name}</p>}
           </div>
@@ -356,9 +354,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
               onChange={handleChange}
               rows={3}
               placeholder="Detailed product description..."
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                errors.description ? 'border-red-500' : 'border-slate-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.description ? 'border-red-500' : 'border-slate-300'
+                }`}
             />
             {errors.description && <p className="mt-1 text-sm text-red-600">{errors.description}</p>}
             <p className="mt-1 text-xs text-slate-500">{formData.description.length}/500 characters</p>
@@ -375,12 +372,12 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
               onChange={handleChange}
               className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
-              <option value="stationery">Stationery</option>
-              <option value="sports">Sports</option>
-              <option value="books">Books</option>
-              <option value="uniforms">Uniforms</option>
-              <option value="digital">Digital</option>
-              <option value="other">Other</option>
+              <option value="ISF Shop">ISF Shop</option>
+              <option value="Medicines">Medicines</option>
+              <option value="Consumables">Consumables</option>
+              <option value="Repairs">Repairs</option>
+              <option value="Infra">Infra</option>
+              <option value="Others">Others</option>
             </select>
           </div>
 
@@ -397,9 +394,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
                 onChange={handleChange}
                 min="0"
                 placeholder="50"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.maxPrice ? 'border-red-500' : 'border-slate-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.maxPrice ? 'border-red-500' : 'border-slate-300'
+                  }`}
               />
               {errors.maxPrice && <p className="mt-1 text-sm text-red-600">{errors.maxPrice}</p>}
             </div>
@@ -415,9 +411,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
                 onChange={handleChange}
                 min="1"
                 placeholder="100"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.price ? 'border-red-500' : 'border-slate-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.price ? 'border-red-500' : 'border-slate-300'
+                  }`}
               />
               {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
             </div>
@@ -433,9 +428,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
                 onChange={handleChange}
                 min="0"
                 placeholder="80"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.discountPrice ? 'border-red-500' : 'border-slate-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.discountPrice ? 'border-red-500' : 'border-slate-300'
+                  }`}
               />
               {errors.discountPrice && <p className="mt-1 text-sm text-red-600">{errors.discountPrice}</p>}
             </div>
@@ -521,9 +515,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
                 onChange={handleChange}
                 min="0"
                 placeholder="50"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.stock ? 'border-red-500' : 'border-slate-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.stock ? 'border-red-500' : 'border-slate-300'
+                  }`}
               />
               {errors.stock && <p className="mt-1 text-sm text-red-600">{errors.stock}</p>}
             </div>
@@ -539,9 +532,8 @@ export default function ProductFormModal({ product, onClose, onSubmit, onRefresh
                 onChange={handleChange}
                 min="0"
                 placeholder="10"
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${
-                  errors.lowStockThreshold ? 'border-red-500' : 'border-slate-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent ${errors.lowStockThreshold ? 'border-red-500' : 'border-slate-300'
+                  }`}
               />
               {errors.lowStockThreshold && <p className="mt-1 text-sm text-red-600">{errors.lowStockThreshold}</p>}
             </div>

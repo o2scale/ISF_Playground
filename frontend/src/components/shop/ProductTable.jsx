@@ -13,12 +13,12 @@ export default function ProductTable({ products, onEdit, onDelete }) {
 
   const getCategoryBadgeColor = (category) => {
     const colors = {
-      stationery: 'bg-blue-100 text-blue-800',
-      sports: 'bg-red-100 text-red-800',
-      books: 'bg-green-100 text-green-800',
-      uniforms: 'bg-purple-100 text-purple-800',
-      digital: 'bg-indigo-100 text-indigo-800',
-      other: 'bg-gray-100 text-gray-800'
+      'ISF Shop': 'bg-indigo-100 text-indigo-800',
+      'Medicines': 'bg-red-100 text-red-800',
+      'Consumables': 'bg-blue-100 text-blue-800',
+      'Repairs': 'bg-amber-100 text-amber-800',
+      'Infra': 'bg-green-100 text-green-800',
+      'Others': 'bg-gray-100 text-gray-800'
     };
     return colors[category] || colors.other;
   };

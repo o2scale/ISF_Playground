@@ -1,4 +1,5 @@
 const { body, param, query, validationResult } = require('express-validator');
+const { SHOP_CATEGORIES } = require('../../constants/shopCategories');
 
 /**
  * Admin Product Validation Middleware - Sprint5-Story-05
@@ -29,8 +30,8 @@ const validateProductCreate = [
 
   body('category')
     .notEmpty().withMessage('Category is required')
-    .isIn(['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'])
-    .withMessage('Invalid category. Must be one of: stationery, sports, books, uniforms, digital, other'),
+    .isIn(SHOP_CATEGORIES)
+    .withMessage(`Invalid category. Must be one of: ${SHOP_CATEGORIES.join(', ')}`),
 
   body('purchaseCategory')
     .optional()
@@ -117,7 +118,7 @@ const validateProductUpdate = [
 
   body('category')
     .optional()
-    .isIn(['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'])
+    .isIn(SHOP_CATEGORIES)
     .withMessage('Invalid category'),
 
   body('purchaseCategory')
@@ -204,7 +205,7 @@ const validateProductId = [
 const validateProductQuery = [
   query('category')
     .optional()
-    .isIn(['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'])
+    .isIn(SHOP_CATEGORIES)
     .withMessage('Invalid category'),
 
   query('purchaseCategory')

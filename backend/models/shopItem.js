@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { SHOP_CATEGORIES } = require('../constants/shopCategories');
 
 const shopItemSchema = new mongoose.Schema(
   {
@@ -25,7 +26,7 @@ const shopItemSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Category is required'],
       enum: {
-        values: ['stationery', 'sports', 'books', 'uniforms', 'digital', 'other'],
+        values: SHOP_CATEGORIES,
         message: '{VALUE} is not a valid category'
       },
       index: true
@@ -56,7 +57,7 @@ const shopItemSchema = new mongoose.Schema(
       default: null,
       min: [0, 'Discount price cannot be negative'],
       validate: {
-        validator: function(value) {
+        validator: function (value) {
           return value === null || Number.isInteger(value);
         },
         message: 'Discount price must be a whole number (coins)'
@@ -188,22 +189,22 @@ shopItemSchema.index({ createdAt: -1 });
 shopItemSchema.index({ isPendingProduct: 1, isActive: 1 }); // Sprint5-Story-25: Pending products
 
 // Virtual: inStock
-shopItemSchema.virtual('inStock').get(function() {
+shopItemSchema.virtual('inStock').get(function () {
   return this.stock > 0;
 });
 
 // Virtual: lowStock
-shopItemSchema.virtual('lowStock').get(function() {
+shopItemSchema.virtual('lowStock').get(function () {
   return this.stock > 0 && this.stock <= this.lowStockThreshold;
 });
 
 // Virtual: currentPrice (returns discountPrice if available, otherwise price)
-shopItemSchema.virtual('currentPrice').get(function() {
+shopItemSchema.virtual('currentPrice').get(function () {
   return this.discountPrice !== null ? this.discountPrice : this.price;
 });
 
 // Virtual: primaryImageUrl (returns primary image or first image or legacy imageUrl)
-shopItemSchema.virtual('primaryImageUrl').get(function() {
+shopItemSchema.virtual('primaryImageUrl').get(function () {
   if (this.images && this.images.length > 0) {
     const primaryImage = this.images.find(img => img.isPrimary);
     return primaryImage ? primaryImage.url : this.images[0].url;
@@ -212,7 +213,7 @@ shopItemSchema.virtual('primaryImageUrl').get(function() {
 });
 
 // Pre-save hook: Validate discount price is less than regular price
-shopItemSchema.pre('save', function(next) {
+shopItemSchema.pre('save', function (next) {
   if (this.discountPrice !== null && this.discountPrice >= this.price) {
     return next(new Error('Discount price must be less than regular price'));
   }
@@ -220,18 +221,18 @@ shopItemSchema.pre('save', function(next) {
 });
 
 // Instance method: Check if product is available for a user role
-shopItemSchema.methods.isAvailableFor = function(userRole) {
+shopItemSchema.methods.isAvailableFor = function (userRole) {
   return this.availableFor.includes('all') || this.availableFor.includes(userRole);
 };
 
 // Static method: Find products by category
-shopItemSchema.statics.findByCategory = function(category, options = {}) {
+shopItemSchema.statics.findByCategory = function (category, options = {}) {
   const query = { category, isActive: true, stock: { $gt: 0 } };
   return this.find(query, null, options);
 };
 
 // Static method: Search products
-shopItemSchema.statics.search = function(searchTerm, options = {}) {
+shopItemSchema.statics.search = function (searchTerm, options = {}) {
   const query = {
     $text: { $search: searchTerm },
     isActive: true
