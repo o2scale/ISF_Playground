@@ -242,15 +242,10 @@ class Student {
       }
 
       let descriptorArray = null;
-<<<<<<< HEAD
-      let facialDataUrl = null;
-
-=======
       // REMOVED - Task 1: FR Rebuild
       // Face detection during registration temporarily disabled
       // Will be reimplemented with @vladmandic/human in Task 2-8
       /* COMMENTED OUT - Old face-api.js detection in registerStudentNew
->>>>>>> feature/sprint-2
       if (payload.facialData) {
         let imagePath = payload.facialData.path;
         let fileName = payload.facialData.filename;
@@ -315,13 +310,7 @@ class Student {
           createdAt: new Date(),
         };
       }
-<<<<<<< HEAD
-      if (facialDataUrl) {
-        payload.facialDataUrl = facialDataUrl;
-      }
-=======
       */ // END COMMENTED OUT - Face detection in registration
->>>>>>> feature/sprint-2
 
       let assignedMachinesList = [];
       // check the key balagruhaId is an array or string

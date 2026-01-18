@@ -18,23 +18,10 @@ const { isRequestFromLocalhost } = require("../utils/helper");
 
 exports.getAllUsers = async (req, res) => {
   try {
-<<<<<<< HEAD
-    // Non-admin users can only view students from their assigned Balagruhas
-    if (req?.user?.role && req.user.role !== UserTypes.ADMIN) {
-      const scopedUsers = await getUserListByAssignedBalagruhaByRole({
-        role: req.user.role,
-        userId: req.user._id,
-      });
-      return res.status(200).json(scopedUsers || []);
-    }
-
-    let users = await User.find()
-=======
     // RBAC: Apply scope filtering based on user's permission scope
     let users = await User.find({
       ...(req.scopeFilter || {}), // Inject scope filter from middleware
     })
->>>>>>> feature/sprint-2
       .lean()
       .select("-facialData -password")
       .populate("balagruhaIds")
@@ -598,8 +585,7 @@ exports.getUsersByRoleAndBalagruhaId = async (req, res) => {
         api: req.originalUrl,
         data: { role, balagruhaId },
       },
-      `Request received for finding users by role: ${role} and balagruhaId: ${
-        balagruhaId || "not specified"
+      `Request received for finding users by role: ${role} and balagruhaId: ${balagruhaId || "not specified"
       }`
     );
 
@@ -884,28 +870,28 @@ exports.updateUserDetails = async (req, res) => {
     // check the request if from localhost/ offline case
     let isOfflineReq = isRequestFromLocalhost(req);
     req.body.isOfflineReq = isOfflineReq;
-    
+
     // Handle facial data if uploaded
     if (req.files && req.files.length > 0) {
       req.body.facialData = req.files.filter(
         (file) => file.fieldname === "facialData"
       )[0];
     }
-    
+
     // Handle medical history extraction from request
     try {
       const medicalHistory = extractMedicalHistory(req);
-      
+
       // Check if we need to update medical records
       // If medicalHistory fields were sent (even if empty), or if there's an explicit clear flag
-      const shouldUpdateMedicalRecords = req.body.clearMedicalHistory === 'true' || 
-                                         Object.keys(req.body).some(key => key.startsWith('medicalHistory')) ||
-                                         medicalHistory.length > 0;
-      
+      const shouldUpdateMedicalRecords = req.body.clearMedicalHistory === 'true' ||
+        Object.keys(req.body).some(key => key.startsWith('medicalHistory')) ||
+        medicalHistory.length > 0;
+
       if (shouldUpdateMedicalRecords) {
         const MedicalRecord = require("../models/medical");
         const existingRecord = await MedicalRecord.findOne({ studentId: userId });
-        
+
         if (medicalHistory.length > 0) {
           // Process medical history (upload files to S3)
           req.body.medicalHistory = medicalHistory;
@@ -915,7 +901,7 @@ exports.updateUserDetails = async (req, res) => {
           // Empty medical history - clear it
           req.body.medicalHistory = [];
         }
-        
+
         if (existingRecord) {
           // Update existing medical record (including clearing if empty)
           existingRecord.medicalHistory = req.body.medicalHistory;
@@ -937,7 +923,7 @@ exports.updateUserDetails = async (req, res) => {
             createdBy: req.user._id,
           };
           const medicalRecordsSaveResult = await createMedicalRecords(medicalRecordsEntry);
-          
+
           if (medicalRecordsSaveResult && medicalRecordsSaveResult.success) {
             // Update user's medicalRecords reference
             const User = require("../models/user");

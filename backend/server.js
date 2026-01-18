@@ -37,12 +37,12 @@ const inventoryRoutes = require("./routes/v2/inventory"); // Sprint 5: Inventory
 const analyticsRoutes = require("./routes/v2/analytics"); // Sprint 5: Shop Analytics
 const reportsRoutes = require("./routes/v2/reports"); // Sprint 5: Transaction Reports
 const coachDeliveryRoutes = require("./routes/v2/coachDelivery"); // Sprint 5: Coach Delivery Management
-<<<<<<< HEAD
+
+// MERGED: Sprint 5 (HEAD) and Sprint 2 (LMS/FR)
 const purchaseRequestRoutes = require("./routes/v2/purchase-requests"); // Sprint 5: Purchase Request Management
 const vendorRoutes = require("./routes/v2/vendor"); // Sprint 5: Vendor Management
 const uploadRoutes = require("./routes/v2/upload"); // Sprint 5: Generic Uploads
 
-=======
 const frRoutes = require("./routes/v2/facialRecognition"); // Sprint 1.1: FR Rebuild
 const lmsAdminCoursesRoutes = require("./routes/v2/lms/admin/courses"); // Sprint 2: LMS Admin Course Management
 const lmsAdminContentRoutes = require("./routes/v2/lms/admin/content"); // Sprint 2: LMS Content Management
@@ -56,7 +56,7 @@ const lmsStudentSpokenEnglishRoutes = require("./routes/v2/lms/student/spokenEng
 const lmsStudentLifeSkillsRoutes = require("./routes/v2/lms/student/lifeSkills"); // Sprint 2 Epic 01: Life Skills Course
 const lmsCoachAssignmentsRoutes = require("./routes/v2/lms/coach/assignments"); // Sprint 2 Epic 03: Coach Course Assignments
 const lmsCoachGradingRoutes = require("./routes/v2/lms/coach/grading"); // Sprint 2 Epic 03: Coach Grading Interface
->>>>>>> feature/sprint-2
+
 const { exec } = require("child_process"); // For executing shell commands
 const fs = require("fs"); // For file system operations
 const path = require("path");
@@ -166,11 +166,12 @@ app.use("/api/v2/shop/admin/inventory", inventoryRoutes); // Sprint 5: Inventory
 app.use("/api/v2/shop/admin/analytics", analyticsRoutes); // Sprint 5: Shop Analytics routes (requires admin auth)
 app.use("/api/v2/shop/admin/reports", reportsRoutes); // Sprint 5: Transaction Reports routes (requires admin auth)
 app.use("/api/v2/shop/coach/deliveries", coachDeliveryRoutes); // Sprint 5: Coach Delivery Management routes (requires coach auth)
-<<<<<<< HEAD
+
+// MERGED: Sprint 5 and Sprint 2 Routes
 app.use("/api/v2/shop/admin/purchase-requests", purchaseRequestRoutes); // Sprint 5: Purchase Request Management routes (requires auth)
 app.use("/api/v2/vendors", vendorRoutes); // Sprint 5: Vendor Management routes (requires admin auth)
 app.use("/api/v2/upload", uploadRoutes); // Sprint 5: Generic Upload routes
-=======
+
 app.use("/api/v2/fr", frRoutes); // Sprint 1.1: FR Rebuild - Facial Recognition routes
 app.use("/api/v2/lms/admin/courses", lmsAdminCoursesRoutes); // Sprint 2: LMS Admin Course Management (requires admin auth)
 app.use("/api/v2/lms/admin/content", lmsAdminContentRoutes); // Sprint 2: LMS Content Management (requires admin auth)
@@ -184,7 +185,6 @@ app.use("/api/v2/lms/student/:studentId/courses/spoken-english", lmsStudentSpoke
 app.use("/api/v2/lms/student/:studentId/courses/life-skills", lmsStudentLifeSkillsRoutes); // Sprint 2 Epic 01: Life Skills Course (requires student auth)
 app.use("/api/v2/lms/coach", lmsCoachAssignmentsRoutes); // Sprint 2 Epic 03: Coach Course Assignments (requires coach auth)
 app.use("/api/v2/lms/coach/grading", lmsCoachGradingRoutes); // Sprint 2 Epic 03: Coach Grading Interface (requires coach auth)
->>>>>>> feature/sprint-2
 
 const dbConnection =
   process.env.NODE_ENV === "local"
@@ -195,11 +195,10 @@ mongoose
   .connect(dbConnection, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(async () => {
     console.log(
-      `✅ MongoDB connected to ${
-        process.env.NODE_ENV === "local" ? "local database" : "remote database"
+      `✅ MongoDB connected to ${process.env.NODE_ENV === "local" ? "local database" : "remote database"
       }`
     );
-    
+
     // Initialize WTF scheduler automatically after database connection
     try {
       await schedulerService.initialize();
@@ -208,7 +207,7 @@ mongoose
       console.error("❌ Failed to initialize WTF Scheduler:", error.message);
       console.log("⚠️ Pin expiration will not run automatically. Admin must manually initialize scheduler.");
     }
-    
+
     // loadMongoDump();
     // load the database with the dump into the local db if the node_env is local and dbConnection string have the localhost db connection
     if (

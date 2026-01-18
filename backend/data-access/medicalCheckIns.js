@@ -44,16 +44,10 @@ exports.getAllMedicalCheckIns = async (filters = {}, pagination = {}, scopeFilte
 // RBAC: Added scopeFilter parameter for Balagruh-level filtering
 exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}, scopeFilter = {}) => {
   const { page = 1, limit = 10 } = pagination;
-<<<<<<< HEAD
-  // Sprint6-Story-02-Phase4-BUG-FIX: Changed 'student' to 'studentId' to match schema field name
-  return await MedicalCheckIn.find({ studentId: studentId })
-    .populate("studentId", "firstName lastName studentId")
-=======
-  const query = { ...scopeFilter, student: studentId };  // Merge scope filter with student filter
+  const query = { ...scopeFilter, studentId: studentId };  // Merge scope filter with studentId filter (HEAD field name + Sprint 2 RBAC)
 
   return await MedicalCheckIn.find(query)
-    .populate("student", "firstName lastName studentId")
->>>>>>> feature/sprint-2
+    .populate("studentId", "firstName lastName studentId") // Used HEAD's field name 'studentId'
     .populate("createdBy", "name email")
     .populate("followUp.assignedCoaches", "name email")
     .sort({ createdAt: -1 })
@@ -61,13 +55,7 @@ exports.getMedicalCheckInsByStudentId = async (studentId, pagination = {}, scope
     .limit(parseInt(limit))
     .lean()
     .then(async (results) => {
-<<<<<<< HEAD
-      const totalCount = await MedicalCheckIn.countDocuments({
-        studentId: studentId,
-      });
-=======
       const totalCount = await MedicalCheckIn.countDocuments(query);
->>>>>>> feature/sprint-2
       return {
         success: true,
         data: results,
