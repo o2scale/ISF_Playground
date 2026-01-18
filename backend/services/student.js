@@ -15,15 +15,16 @@ const MedicalRecords = require("../services/medicalRecords");
 const { dateToString, getUploadedFilesFullPath } = require("../utils/helper");
 const { uploadFileToS3 } = require("./aws/s3");
 const { cleanupLocalFile } = require("../utils/fileCleanup");
-const canvas = require("canvas");
-const faceapi = require("face-api.js");
+// const canvas = require("canvas"); // REMOVED - Task 1: FR Rebuild
+// const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 const path = require("path");
 const jwt = require("jsonwebtoken");
 const { fetchMachinesByIds } = require("../data-access/machines");
 const { default: mongoose } = require("mongoose");
 
-const { Canvas, Image, ImageData } = canvas;
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+// REMOVED - Task 1: FR Rebuild
+// const { Canvas, Image, ImageData } = canvas;
+// faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 class Student {
   constructor(obj) {
@@ -241,8 +242,15 @@ class Student {
       }
 
       let descriptorArray = null;
+<<<<<<< HEAD
       let facialDataUrl = null;
 
+=======
+      // REMOVED - Task 1: FR Rebuild
+      // Face detection during registration temporarily disabled
+      // Will be reimplemented with @vladmandic/human in Task 2-8
+      /* COMMENTED OUT - Old face-api.js detection in registerStudentNew
+>>>>>>> feature/sprint-2
       if (payload.facialData) {
         let imagePath = payload.facialData.path;
         let fileName = payload.facialData.filename;
@@ -307,9 +315,13 @@ class Student {
           createdAt: new Date(),
         };
       }
+<<<<<<< HEAD
       if (facialDataUrl) {
         payload.facialDataUrl = facialDataUrl;
       }
+=======
+      */ // END COMMENTED OUT - Face detection in registration
+>>>>>>> feature/sprint-2
 
       let assignedMachinesList = [];
       // check the key balagruhaId is an array or string
@@ -615,7 +627,19 @@ class Student {
     }
   }
 
+  // REMOVED - Task 1: FR Rebuild
+  // Old face-api.js implementation removed
+  // Will be replaced with @vladmandic/human in Task 2-8
   static async faceLogin(payload) {
+    return {
+      success: false,
+      code: 503,
+      message: "Facial recognition system is being rebuilt. Please use manual login temporarily.",
+    };
+  }
+
+  /* COMMENTED OUT - Old face-api.js faceLogin implementation
+  static async faceLogin_OLD(payload) {
     try {
       let macAddress = payload.macAddress;
       if (!payload.facialData) {
@@ -796,6 +820,7 @@ class Student {
       throw error;
     }
   }
+  */ // END COMMENTED OUT - Old faceLogin
 
   // handle student medical record update
   static handleStudentMedicalRecordUpdate = async (payload) => {

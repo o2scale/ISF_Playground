@@ -97,6 +97,7 @@ const userSchema = new mongoose.Schema(
     assignedMachines: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Machine" },
     ],
+<<<<<<< HEAD
     facialData: {
       faceDescriptor: Array, // Store face descriptor array
       createdAt: { type: Date, default: Date.now },
@@ -105,6 +106,14 @@ const userSchema = new mongoose.Schema(
       type: String, // S3 URL or local path to the actual photo for display
       required: false,
     },
+=======
+    // REMOVED - Task 1: FR Rebuild
+    // Will be recreated with encryption in Task 3 (new FaceEmbedding model)
+    // facialData: {
+    //   faceDescriptor: Array, // Store face descriptor array
+    //   createdAt: { type: Date, default: Date.now },
+    // },
+>>>>>>> feature/sprint-2
   },
   { timestamps: true }
 );
@@ -160,6 +169,7 @@ userSchema.methods.resetLoginAttempts = async function () {
   });
 };
 
+<<<<<<< HEAD
 // Sprint5-Story-24: Check if user can create purchase requests
 userSchema.methods.canCreatePurchaseRequest = function () {
   const allowedRoles = ['coach', 'medical_incharge', 'admin', 'purchase_manager'];
@@ -169,5 +179,29 @@ userSchema.methods.canCreatePurchaseRequest = function () {
 };
 
 const User = mongoose.models.User || mongoose.model("User", userSchema);
+=======
+// RBAC Refactor: Helper methods for Balagruh access control
+userSchema.methods.hasBalagruhaAccess = function (balagruhaId) {
+  if (!this.balagruhaIds || this.balagruhaIds.length === 0) {
+    return false;
+  }
+  return this.balagruhaIds.some(
+    (id) => id.toString() === balagruhaId.toString()
+  );
+};
+
+userSchema.methods.getAllBalagruhaIds = function () {
+  return this.balagruhaIds || [];
+};
+
+userSchema.methods.getBalagruhaIdsAsStrings = function () {
+  return (this.balagruhaIds || []).map((id) => id.toString());
+};
+
+// RBAC Refactor: Add index on balagruhaIds for performance
+userSchema.index({ balagruhaIds: 1 });
+
+const User = mongoose.model("User", userSchema);
+>>>>>>> feature/sprint-2
 
 module.exports = User;

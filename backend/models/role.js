@@ -9,6 +9,11 @@ const roleSchema = new mongoose.Schema(
         actions: [
           { type: String, enum: ["Create", "Read", "Update", "Delete", "Manage"] }, // Allowed actions (Manage added for shop module)
         ],
+        scope: {
+          type: String,
+          enum: ["own", "balagruh", "all"],
+          default: "own"
+        }, // Scope: own (user's own data), balagruh (assigned Balagruh), all (global access)
       },
     ],
   },

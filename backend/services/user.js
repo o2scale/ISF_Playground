@@ -6,8 +6,8 @@ const bcrypt = require("bcryptjs");
 const User = require("../models/user");
 const path = require("path");
 
-const canvas = require("canvas");
-const faceapi = require("face-api.js");
+// const canvas = require("canvas"); // REMOVED - Task 1: FR Rebuild
+// const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 const { default: mongoose } = require("mongoose");
 const { getAllBalagruhaIds } = require("../data-access/balagruha");
 const { uploadFileToS3 } = require("./aws/s3");
@@ -15,8 +15,9 @@ const { getUploadedFilesFullPath } = require("../utils/helper");
 const { cleanupLocalFile } = require("../utils/fileCleanup");
 const { isRequestFromLocalhost } = require("../utils/helper");
 
-const { Canvas, Image, ImageData } = canvas;
-faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+// REMOVED - Task 1: FR Rebuild
+// const { Canvas, Image, ImageData } = canvas;
+// faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
 const enrichUsersWithMedicalHistory = (users = []) => {
   if (!Array.isArray(users)) {
@@ -356,6 +357,9 @@ exports.updateUserDetailsById = async (userId, payload) => {
     }
 
     // Process facial data if uploaded
+    // REMOVED - Task 1: FR Rebuild
+    // Face detection during update temporarily disabled
+    /* COMMENTED OUT - Old face-api.js detection in updateUser
     if (updateData.facialData) {
       let descriptorArray = null;
       let facialDataUrl = null;
@@ -420,6 +424,7 @@ exports.updateUserDetailsById = async (userId, payload) => {
         updateData.facialDataUrl = facialDataUrl;
       }
     }
+    */ // END COMMENTED OUT - Face detection in updateUser
 
     // Check for the password key is present with any value
     if (updateData.password && updateData.password !== "") {

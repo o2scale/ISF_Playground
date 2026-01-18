@@ -1,0 +1,915 @@
+schema: 1
+story: 'sprint-2-epic-01.story-05'
+story_title: 'Life Skills Voice Responses'
+gate: PENDING
+status_reason: 'Awaiting QA testing - Implementation complete (Phase 1 + Phase 2)'
+reviewer: 'QA Agent (Quinn)'
+updated: '2025-10-28 13:41:36'  # Updated via date '+%Y-%m-%d %H:%M:%S'
+
+# Quality Criteria
+quality_criteria:
+  test_coverage_required: 80  # Minimum % of code coverage
+  critical_acs: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 33, 34, 35, 36, 37, 38, 39, 40, 41]  # Must-pass ACs for MVP (excludes offline mode AC-29 to AC-32)
+  e2e_scenarios_path: 'docs/qa/e2e/epic-01-story-05-life-skills.md'
+  qa_report_path: 'docs/qa/reports/sprint-2-epic-01-story-05-qa-report.md'
+  total_test_cases: 68
+  executed_test_cases: 0
+  passed_test_cases: 0
+  failed_test_cases: 0
+  blocked_test_cases: 0
+  manual_testing_required: 0
+  test_coverage_percent: 0
+
+# Acceptance Criteria Mapping (Total: 41 ACs)
+acceptance_criteria_map:
+  # 2.1 Voice Recording Interface (14 ACs: VR-01 to VR-14)
+  - ac_number: 1
+    ac_id: 'VR-01'
+    description: 'Audio question autoplays when task loads (MediaRecorder API)'
+    test_cases: ['TC 1.1', 'TC 1.2', 'TC 1.3']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'HTML5 audio with autoplay attribute. If audioUrl is null, fallback to text display'
+    files:
+      - 'frontend/src/components/student/lifeskills/AudioQuestionCard.jsx'
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 2
+    ac_id: 'VR-02'
+    description: 'Submit button remains disabled until audio playback completes'
+    test_cases: ['TC 1.2', 'TC 1.3']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Audio enforcement - Submit button enabled only after audio.onended event'
+    files:
+      - 'frontend/src/components/student/lifeskills/AudioQuestionCard.jsx'
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 3
+    ac_id: 'VR-03'
+    description: 'Record button displays "🎤 Hold to Record" with green border in idle state'
+    test_cases: ['TC 2.1']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Green border (border-green-500, 3px), bg-green-100, 120x120px desktop, 80x80px mobile'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 4
+    ac_id: 'VR-04'
+    description: 'Pressing and holding record button changes border to red (4px pulse) and displays "🔴 Recording..."'
+    test_cases: ['TC 2.2', 'TC 2.3', 'TC 2.8']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Red border (border-red-500, 4px with pulsing animation), bg-red-100. Supports onMouseDown and onTouchStart'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 5
+    ac_id: 'VR-05'
+    description: 'Waveform visualization displays real-time audio levels during recording'
+    test_cases: ['TC 2.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Canvas-based waveform with Web Audio API AnalyserNode. Updates at 30 FPS minimum'
+    files:
+      - 'frontend/src/components/student/lifeskills/WaveformVisualizer.jsx'
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 6
+    ac_id: 'VR-06'
+    description: 'Timer shows elapsed time during recording (00:12 / 60:00 format)'
+    test_cases: ['TC 2.5']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'MM:SS format, updates every second via setInterval'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 7
+    ac_id: 'VR-07'
+    description: 'Recording auto-stops at 60-second limit with visual + audio feedback'
+    test_cases: ['TC 2.6']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Timeout at 60 seconds, toast notification, automatic state transition to recorded'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 8
+    ac_id: 'VR-08'
+    description: 'Releasing record button stops recording and transitions to "Recorded" state (blue border)'
+    test_cases: ['TC 2.7']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Blue border (border-blue-500, 3px), bg-blue-100, text "✅ Hold to Record", static waveform'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 9
+    ac_id: 'VR-09'
+    description: 'Play button plays recorded audio with waveform progress animation (yellow border during playback)'
+    test_cases: ['TC 3.1', 'TC 3.2', 'TC 3.5']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Yellow border (border-yellow-500, 3px) during playback, waveform progress animation synced with audio.timeupdate'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/components/student/lifeskills/WaveformVisualizer.jsx'
+
+  - ac_number: 10
+    ac_id: 'VR-10'
+    description: 'Pause button stops playback and returns to "Recorded" state'
+    test_cases: ['TC 3.3', 'TC 3.5']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Pause button (⏸️) appears during playback, clicking pauses and returns to blue recorded state'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 11
+    ac_id: 'VR-11'
+    description: 'Re-Record button clears current recording and resets to "Idle" state'
+    test_cases: ['TC 3.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Confirmation modal, clears blob, resets state to idle (green border), waveform and timer reset'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 12
+    ac_id: 'VR-12'
+    description: 'Submit button uploads voice file to S3 with progress bar (0-100%)'
+    test_cases: ['TC 4.1', 'TC 4.2']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'FormData upload with file, taskId, duration, fileSize. Progress bar via XMLHttpRequest.upload.onprogress'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'backend/controllers/lms/student/lifeSkillsController.js'
+
+  - ac_number: 13
+    ac_id: 'VR-13'
+    description: 'Success toast notification shows "Great work! +20 coins earned!" after upload'
+    test_cases: ['TC 4.3', 'TC 4.5']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'react-hot-toast with success message, auto-dismiss after 5 seconds, auto-navigate to dashboard/next task after 3s'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 14
+    ac_id: 'VR-14'
+    description: 'Coin balance updates in Title Bar within 2 seconds of submission'
+    test_cases: ['TC 4.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Coin balance increments from API response, optional coin flying animation'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/components/student/TitleBar.jsx'
+
+  # 2.2 MCQ Quiz Interface (10 ACs: MCQ-01 to MCQ-10)
+  - ac_number: 15
+    ac_id: 'MCQ-01'
+    description: 'Quiz displays progress indicator (e.g., "Question 7 of 10") with visual progress bar'
+    test_cases: ['TC 5.1']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Progress text + progress bar (e.g., 70% fill for Question 7/10), green bg-green-500'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 16
+    ac_id: 'MCQ-02'
+    description: 'Audio question autoplays on question load'
+    test_cases: ['TC 5.2']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'HTML5 audio autoplay on question load, same as voice recording audio enforcement'
+    files:
+      - 'frontend/src/components/student/lifeskills/AudioQuestionCard.jsx'
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 17
+    ac_id: 'MCQ-03'
+    description: 'Submit button disabled until audio playback completes'
+    test_cases: ['TC 5.3']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Audio enforcement - Submit enabled only after audio.onended event fires'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 18
+    ac_id: 'MCQ-04'
+    description: 'Radio buttons selectable during audio playback (doesn\'t block interaction)'
+    test_cases: ['TC 5.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Radio buttons remain interactive while audio plays, only Submit button is disabled'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 19
+    ac_id: 'MCQ-05'
+    description: 'Exactly one radio option can be selected per question'
+    test_cases: ['TC 5.5']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Standard HTML radio input behavior - single selection per name group'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 20
+    ac_id: 'MCQ-06'
+    description: 'Submit button remains disabled if no option selected'
+    test_cases: ['TC 5.6']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Submit enabled only when: audioFinished === true AND selectedOption !== null'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 21
+    ac_id: 'MCQ-07'
+    description: 'Clicking "Submit Answer" saves answer locally (no correctness feedback shown)'
+    test_cases: ['TC 6.1']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Delayed feedback - answer saved to state array, no green/red visual feedback, no toast'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 22
+    ac_id: 'MCQ-08'
+    description: 'Next question loads automatically after submitting current answer'
+    test_cases: ['TC 6.2', 'TC 6.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Auto-navigate to next question, progress updates, audio autoplays on new question'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 23
+    ac_id: 'MCQ-09'
+    description: 'Last question shows "Finish Quiz" button instead of "Next"'
+    test_cases: ['TC 6.5']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Conditional button text/behavior on Question 10 - triggers quiz grading instead of navigation'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 24
+    ac_id: 'MCQ-10'
+    description: 'Results page displays ONLY after all 10 questions answered (delayed feedback)'
+    test_cases: ['TC 6.6']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Cannot finish quiz if any question unanswered, validation before grading'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  # 2.3 Quiz Results & Grading (8 ACs: QR-01 to QR-08)
+  - ac_number: 25
+    ac_id: 'QR-01'
+    description: 'Results page shows overall score (e.g., "85% - Great job!")'
+    test_cases: ['TC 7.1']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Large score circle (180px diameter), score % in 48px font, color-coded (green ≥80%, yellow 50-79%, red <50%)'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+
+  - ac_number: 26
+    ac_id: 'QR-02'
+    description: 'Per-question breakdown displays ✅ (correct) or ❌ (incorrect) with coins earned'
+    test_cases: ['TC 7.2']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Results breakdown section - 10 rows, each showing question number, ✅/❌, coins earned'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+
+  - ac_number: 27
+    ac_id: 'QR-03'
+    description: 'Total coins earned displayed prominently (e.g., "+120 coins")'
+    test_cases: ['TC 7.3']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Total coins with breakdown: correct answers coins + bonus coins'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+
+  - ac_number: 28
+    ac_id: 'QR-04'
+    description: 'Bonus coins awarded for 80%+ score (+24 coins for exceeding threshold)'
+    test_cases: ['TC 7.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Backend grading logic: if score >= 80%, add +24 bonus coins'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+      - 'backend/controllers/lms/student/lifeSkillsController.js'
+
+  - ac_number: 29
+    ac_id: 'QR-05'
+    description: 'Coin animation flies from results page to Title Bar coin balance'
+    test_cases: ['TC 7.5']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'Lottie or CSS animation - coin icon flies from center to Title Bar (1-2s duration, curved path)'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+      - 'frontend/src/components/common/CoinAnimation.jsx'
+
+  - ac_number: 30
+    ac_id: 'QR-06'
+    description: 'Time taken displayed in results (e.g., "6 minutes 30 seconds")'
+    test_cases: ['TC 7.7']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'Calculate from startedAt to completedAt timestamps'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+
+  - ac_number: 31
+    ac_id: 'QR-07'
+    description: '"Retry Quiz" button resets quiz and returns to Question 1'
+    test_cases: ['TC 7.8']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Confirmation modal, clears all answers, resets state, navigates to Question 1'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+
+  - ac_number: 32
+    ac_id: 'QR-08'
+    description: '"Back to Dashboard" button navigates to student homepage'
+    test_cases: ['TC 7.9']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Direct navigation to /student/dashboard, no confirmation modal'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+
+  # 2.4 Offline Support (7 ACs: OFF-01 to OFF-07) - DEFERRED
+  - ac_number: 33
+    ac_id: 'OFF-01'
+    description: 'Voice recordings save to local SQLite if offline (offline_submissions table)'
+    test_cases: []
+    priority: 'P1'
+    status: 'deferred'
+    notes: 'DEFERRED - Offline mode not implemented in Phase 1+2. Future enhancement'
+    files: []
+
+  - ac_number: 34
+    ac_id: 'OFF-02'
+    description: 'MCQ quiz answers save to local SQLite if offline (offline_progress table)'
+    test_cases: []
+    priority: 'P1'
+    status: 'deferred'
+    notes: 'DEFERRED - Offline mode not implemented. Future enhancement'
+    files: []
+
+  - ac_number: 35
+    ac_id: 'OFF-03'
+    description: 'Coin transactions save to local SQLite if offline (offline_coins table)'
+    test_cases: []
+    priority: 'P1'
+    status: 'deferred'
+    notes: 'DEFERRED - Offline mode not implemented. Future enhancement'
+    files: []
+
+  - ac_number: 36
+    ac_id: 'OFF-04'
+    description: 'Offline submissions queue automatically syncs when internet reconnects'
+    test_cases: []
+    priority: 'P1'
+    status: 'deferred'
+    notes: 'DEFERRED - Offline sync not implemented. Future enhancement'
+    files: []
+
+  - ac_number: 37
+    ac_id: 'OFF-05'
+    description: 'Sync status indicator shows "Syncing..." during upload'
+    test_cases: []
+    priority: 'P1'
+    status: 'deferred'
+    notes: 'DEFERRED - Offline sync UI not implemented. Future enhancement'
+    files: []
+
+  - ac_number: 38
+    ac_id: 'OFF-06'
+    description: 'Failed uploads retry with exponential backoff (3 attempts max)'
+    test_cases: ['TC 9.3']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'Retry logic for voice upload failures - 3 attempts with exponential backoff (1s, 3s, 9s)'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 39
+    ac_id: 'OFF-07'
+    description: 'User can continue to next task while previous submission syncs in background'
+    test_cases: []
+    priority: 'P1'
+    status: 'deferred'
+    notes: 'DEFERRED - Background sync not implemented. Currently blocks during upload'
+    files: []
+
+  # 2.5 Child-Friendly UX (6 ACs: UX-01 to UX-06)
+  - ac_number: 40
+    ac_id: 'UX-01'
+    description: 'All instructions use encouraging, simple language (e.g., "Great! Let me hear your thoughts!")'
+    test_cases: ['TC 10.1']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'Positive, child-friendly copy throughout - no negative language'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 41
+    ac_id: 'UX-02'
+    description: 'Patrick Hand font applied to all text elements'
+    test_cases: ['TC 10.2']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'Child-friendly handwritten font loaded from Google Fonts, fallback: Comic Sans MS'
+    files:
+      - 'frontend/src/index.css'
+      - 'frontend/src/App.jsx'
+
+  - ac_number: 42
+    ac_id: 'UX-03'
+    description: 'Large touch targets: Record button (120px desktop, 80px mobile), Radio options (72px height)'
+    test_cases: ['TC 10.3']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'WCAG AA compliant touch targets (minimum 44x44px), child-friendly large sizes'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 43
+    ac_id: 'UX-04'
+    description: 'Color-coded states clearly distinguish recording stages (green → red → blue → yellow)'
+    test_cases: ['TC 10.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Distinct colors for each state with WCAG AA contrast ratios'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 44
+    ac_id: 'UX-05'
+    description: 'Error messages are child-friendly (e.g., "Oops! Recording didn\'t work. Let\'s try again!")'
+    test_cases: ['TC 10.5']
+    priority: 'P1'
+    status: 'pending'
+    notes: 'Friendly error messages instead of technical jargon'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 45
+    ac_id: 'UX-06'
+    description: 'Success animations include coin flying effect with sound (optional)'
+    test_cases: ['TC 10.6']
+    priority: 'P2'
+    status: 'pending'
+    notes: 'Lottie animation or CSS keyframes, optional sound effect'
+    files:
+      - 'frontend/src/components/common/CoinAnimation.jsx'
+
+  # 2.6 Performance & Accessibility (6 ACs: PERF-01 to PERF-04, ACC-01 to ACC-02)
+  - ac_number: 46
+    ac_id: 'PERF-01'
+    description: 'Voice recording interface loads within 2 seconds'
+    test_cases: ['TC 11.1']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Time to Interactive (TTI) < 2000ms, Largest Contentful Paint (LCP) < 1500ms'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 47
+    ac_id: 'PERF-02'
+    description: 'Audio playback starts within 1 second of clicking Play button'
+    test_cases: ['TC 11.2']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Audio preloaded, ready state: HAVE_ENOUGH_DATA'
+    files:
+      - 'frontend/src/components/student/lifeskills/AudioQuestionCard.jsx'
+
+  - ac_number: 48
+    ac_id: 'PERF-03'
+    description: 'Waveform visualization renders at 30 FPS minimum'
+    test_cases: ['TC 11.3']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Canvas animation with requestAnimationFrame, CPU usage < 50%'
+    files:
+      - 'frontend/src/components/student/lifeskills/WaveformVisualizer.jsx'
+
+  - ac_number: 49
+    ac_id: 'PERF-04'
+    description: 'Voice file upload completes within 10 seconds (for 60-second recordings)'
+    test_cases: ['TC 11.4']
+    priority: 'P0'
+    status: 'pending'
+    notes: '60-second recording ≈ 2-3 MB, upload time < 10s on 5 Mbps connection'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+
+  - ac_number: 50
+    ac_id: 'ACC-01'
+    description: 'Keyboard navigation supported (Tab to navigate, Space to toggle radio, Enter to submit)'
+    test_cases: ['TC 12.1']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'Full keyboard accessibility, logical tab order, visible focus indicators'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+  - ac_number: 51
+    ac_id: 'ACC-02'
+    description: 'ARIA labels for screen readers (e.g., "Recording button, currently idle state")'
+    test_cases: ['TC 12.2']
+    priority: 'P0'
+    status: 'pending'
+    notes: 'ARIA attributes: aria-label, aria-describedby, role, aria-live for dynamic states'
+    files:
+      - 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+      - 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+
+# Pass Criteria
+pass_criteria:
+  - 'All P0 (critical) acceptance criteria pass (AC 1-32, 38, 40, 43-51) - excludes deferred offline ACs 33-37, 39'
+  - 'All critical test cases (TC 1.1-7.9) pass'
+  - 'Voice recording works: press-and-hold → waveform → 60s limit → playback → submit'
+  - 'MCQ quiz works: audio enforcement → delayed feedback → results page with grading'
+  - 'Audio question playback works (autoplay, play/pause controls, progress bar)'
+  - 'Waveform visualization works (real-time during recording, progress during playback)'
+  - 'All 6 API endpoints return 200/201 with correct data structure'
+  - 'Coin rewards work: earn coins → Title Bar balance updates'
+  - 'No console errors during test execution'
+  - 'Desktop layout (1366x768) works correctly'
+  - 'Child-friendly UX: encouraging language, large touch targets, color-coded states'
+
+# Fail Criteria
+fail_criteria:
+  - 'ANY P0 acceptance criteria fails (except deferred offline ACs 33-37, 39)'
+  - 'ANY critical test case fails'
+  - 'Microphone access broken (cannot record voice)'
+  - 'Audio question enforcement broken (Submit enabled before audio finishes)'
+  - 'Quiz grading broken (incorrect score calculation or coin rewards)'
+  - 'Voice recording broken (cannot record, waveform not working, timer not working)'
+  - 'Playback broken (cannot play recorded audio)'
+  - 'Submission broken (cannot upload voice file or submit quiz)'
+  - 'Delayed feedback broken (correctness shown before finishing quiz)'
+  - 'Console errors present (critical errors only)'
+  - 'API endpoints return 4xx or 5xx errors'
+  - 'Navigation broken (cannot access pages)'
+  - 'Waveform visualization broken (no animation or < 30 FPS)'
+
+# Deferred Criteria (Acceptable for PASS)
+deferred_criteria:
+  - 'Offline mode voice recording queue (AC-33) - Future enhancement'
+  - 'Offline mode quiz answer queue (AC-34) - Future enhancement'
+  - 'Offline mode coin transaction queue (AC-35) - Future enhancement'
+  - 'Offline sync on reconnection (AC-36) - Future enhancement'
+  - 'Sync status indicator (AC-37) - Future enhancement'
+  - 'Background sync while continuing to next task (AC-39) - Currently blocks during upload'
+  - 'Coin flying animation sound effect (AC-45 UX-06) - Optional enhancement'
+  - 'Real S3 file upload - Mock S3 URLs acceptable for MVP'
+  - 'Audio URLs - Null/undefined acceptable (shows "Audio not available" message)'
+
+# Evidence Storage
+evidence:
+  screenshots_path: '.playwright-mcp/sprint-2/epic-01-story-05/'
+  e2e_tests: 'docs/qa/e2e/epic-01-story-05-life-skills.md'
+  qa_report: 'docs/qa/reports/sprint-2-epic-01-story-05-qa-report.md'
+  screenshots:
+    - 'TC-1.1-audio-autoplay.png'
+    - 'TC-2.1-record-button-idle.png'
+    - 'TC-2.2-recording-state.png'
+    - 'TC-2.4-waveform-visualization.png'
+    - 'TC-3.1-playback-state.png'
+    - 'TC-4.2-upload-progress.png'
+    - 'TC-5.1-quiz-progress.png'
+    - 'TC-7.1-quiz-results.png'
+  console_logs: 'Pending QA testing'
+
+# QA Review
+qa_review:
+  execution_date: null
+  initial_test_date: null
+  duration: null
+  quality_score: null
+
+  test_summary:
+    total_executed: 0
+    passed: 0
+    failed: 0
+    blocked: 0
+    not_tested: 68
+
+  critical_acs_status:
+    total_critical: 37  # P0 ACs (excludes deferred AC-33 to AC-37, AC-39, and P1/P2 ACs)
+    passed: 0
+    failed: 0
+    deferred: 5  # AC-33, AC-34, AC-35, AC-36, AC-37, AC-39
+    not_tested: 37
+    pass_rate: 'Pending'
+
+  test_cases_to_execute:
+    - tc: 'TC 1.1'
+      name: 'Audio Question Autoplays on Task Load'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 2.1'
+      name: 'Record Button Displays Correct Idle State'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 2.2'
+      name: 'Pressing and Holding Button Starts Recording (Desktop)'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 2.4'
+      name: 'Waveform Visualization Displays Real-Time Audio Levels'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 3.1'
+      name: 'Play Button Plays Recorded Audio'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 4.2'
+      name: 'Clicking Submit Uploads Voice File with Progress Bar'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 5.1'
+      name: 'Quiz Displays Progress Indicator'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 5.3'
+      name: 'Submit Button Disabled Until Audio Completes'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 6.1'
+      name: 'Submitting Answer Saves Locally Without Feedback'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 7.1'
+      name: 'Results Page Shows Overall Score'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+    - tc: 'TC 8.1 to 8.6'
+      name: 'API Endpoint Testing (6 endpoints)'
+      status: 'NOT_TESTED'
+      priority: 'P0'
+
+  issues_found: []
+
+  recommendations:
+    - title: 'Begin QA testing'
+      priority: 'P0_CRITICAL'
+      description: 'Implementation complete (Phase 1 + Phase 2), ready for comprehensive E2E testing with 68 test scenarios'
+
+    - title: 'Test with physical microphone'
+      priority: 'P0_CRITICAL'
+      description: 'Voice recording requires real microphone hardware. MediaRecorder API cannot be fully tested in headless mode.'
+
+    - title: 'Test browser compatibility'
+      priority: 'P1_HIGH'
+      description: 'Test in Chrome, Edge, and Firefox to verify MediaRecorder API and Web Audio API support. Check audio codec compatibility (WebM/Opus).'
+
+    - title: 'Test waveform performance'
+      priority: 'P1_HIGH'
+      description: 'Monitor Canvas rendering FPS during recording. Ensure 30 FPS minimum with CPU usage < 50%.'
+
+    - title: 'Implement offline mode'
+      priority: 'P2_FUTURE'
+      description: 'Add offline submission queueing and sync (AC-33 to AC-37, AC-39). Future enhancement for rural connectivity.'
+
+  console_errors: []
+
+  api_endpoints_tested: []
+
+  pass_fail_analysis:
+    pass_criteria_met: []
+    fail_criteria_triggered: []
+
+  final_verdict:
+    status: 'PENDING'
+    summary: |
+      Epic 01 Story 05 (Life Skills Voice Responses) has completed Phase 1 + Phase 2 implementation and is ready for QA testing.
+
+      IMPLEMENTATION STATUS:
+      - Backend: 6 API endpoints with mock data
+        1. GET /tasks (voice + quiz tasks list)
+        2. GET /voice/:taskId (single voice task details)
+        3. POST /voice-submissions (voice file upload)
+        4. GET /quiz/:quizId (quiz questions)
+        5. POST /quiz-submissions (quiz grading)
+        6. GET /submissions/history (past submissions)
+      - Frontend: 5 main components created
+        1. LifeSkillsVoiceTaskPage.jsx - Voice recording interface
+        2. LifeSkillsQuizPage.jsx - MCQ quiz interface
+        3. LifeSkillsQuizResults.jsx - Quiz results with grading
+        4. AudioQuestionCard.jsx - Audio playback component
+        5. WaveformVisualizer.jsx - Canvas-based waveform
+      - Total Lines of Code: ~1,200 lines
+      - Technology: MediaRecorder API, Web Audio API, HTML5 Audio, Canvas API, React Hooks
+
+      FEATURES IMPLEMENTED:
+      ✅ Voice Recording:
+      - WhatsApp-style press-and-hold recording (60-second max)
+      - Real-time waveform visualization with Web Audio API
+      - Timer display (MM:SS format)
+      - Play/Pause/Re-Record controls
+      - File upload with progress bar
+      - Microphone permission handling
+      - Color-coded states (green → red → blue → yellow)
+
+      ✅ MCQ Quiz:
+      - 10-question quiz with progress indicator
+      - Audio question enforcement (Submit disabled until audio ends)
+      - Radio button selection (single choice per question)
+      - Delayed feedback (no correctness shown until all questions answered)
+      - Auto-navigation between questions
+      - "Finish Quiz" button on last question
+
+      ✅ Quiz Results & Grading:
+      - Auto-grading with score calculation (%)
+      - Per-question breakdown (✅/❌ with coins)
+      - Bonus coins for 80%+ score (+24 coins)
+      - Coin balance update in Title Bar
+      - Time taken calculation
+      - Retry Quiz and Back to Dashboard buttons
+
+      ✅ Child-Friendly UX:
+      - Large touch targets (120px record button, 72px radio options)
+      - Encouraging language ("Great! Let me hear your thoughts!")
+      - Patrick Hand font (handwritten style)
+      - Color-coded visual states
+
+      DEFERRED FEATURES (Acceptable for MVP):
+      ❌ Offline mode (AC-33 to AC-37, AC-39):
+      - Offline voice recording queue (IndexedDB/SQLite)
+      - Offline quiz answer queue
+      - Offline coin transaction queue
+      - Auto-sync on reconnection
+      - Sync status indicator
+      - Background sync while continuing to next task
+
+      READY FOR QA:
+      - 68 test scenarios prepared in docs/qa/e2e/epic-01-story-05-life-skills.md
+      - 51 acceptance criteria mapped (46 implemented, 5 deferred)
+      - 37 P0 critical ACs to be tested
+      - Physical microphone required for voice recording tests
+      - Browser compatibility testing needed (Chrome, Edge, Firefox)
+
+    deployment_recommendation: 'PENDING QA - Ready for testing. Recommend physical microphone for accurate MediaRecorder API testing. Offline mode deferred to future sprint.'
+    re_test_required: false
+    re_test_scope: 'Full test suite execution required (68 scenarios)'
+
+# Backend API Endpoints
+api_endpoints:
+  - endpoint: 'GET /api/v2/lms/student/:studentId/courses/life-skills/tasks'
+    description: 'Fetch all Life Skills tasks (voice + quiz)'
+    implemented: true
+    tested: false
+    test_status: 'NOT_TESTED'
+    file: 'backend/controllers/lms/student/lifeSkillsController.js'
+    mock_data: true
+
+  - endpoint: 'GET /api/v2/lms/student/:studentId/courses/life-skills/voice/:taskId'
+    description: 'Fetch specific voice task details'
+    implemented: true
+    tested: false
+    test_status: 'NOT_TESTED'
+    file: 'backend/controllers/lms/student/lifeSkillsController.js'
+    mock_data: true
+
+  - endpoint: 'POST /api/v2/lms/student/:studentId/courses/life-skills/voice-submissions'
+    description: 'Submit voice recording (multipart form-data)'
+    implemented: true
+    tested: false
+    test_status: 'NOT_TESTED'
+    file: 'backend/controllers/lms/student/lifeSkillsController.js'
+    mock_data: true
+
+  - endpoint: 'GET /api/v2/lms/student/:studentId/courses/life-skills/quiz/:quizId'
+    description: 'Fetch quiz questions (10 MCQ questions)'
+    implemented: true
+    tested: false
+    test_status: 'NOT_TESTED'
+    file: 'backend/controllers/lms/student/lifeSkillsController.js'
+    mock_data: true
+
+  - endpoint: 'POST /api/v2/lms/student/:studentId/courses/life-skills/quiz-submissions'
+    description: 'Submit quiz answers for auto-grading'
+    implemented: true
+    tested: false
+    test_status: 'NOT_TESTED'
+    file: 'backend/controllers/lms/student/lifeSkillsController.js'
+    mock_data: true
+
+  - endpoint: 'GET /api/v2/lms/student/:studentId/courses/life-skills/submissions/history'
+    description: 'Fetch student submission history (voice + quiz)'
+    implemented: true
+    tested: false
+    test_status: 'NOT_TESTED'
+    file: 'backend/controllers/lms/student/lifeSkillsController.js'
+    mock_data: true
+
+# Frontend Components
+frontend_components:
+  - component: 'LifeSkillsVoiceTaskPage'
+    path: 'frontend/src/pages/student/LifeSkillsVoiceTaskPage.jsx'
+    lines: ~450
+    description: 'Main voice recording page with MediaRecorder API, waveform, timer, playback'
+    status: 'complete'
+
+  - component: 'LifeSkillsQuizPage'
+    path: 'frontend/src/pages/student/LifeSkillsQuizPage.jsx'
+    lines: ~350
+    description: 'MCQ quiz page with audio enforcement, radio buttons, navigation'
+    status: 'complete'
+
+  - component: 'LifeSkillsQuizResults'
+    path: 'frontend/src/pages/student/LifeSkillsQuizResults.jsx'
+    lines: ~280
+    description: 'Quiz results page with score, breakdown, coin animation'
+    status: 'complete'
+
+  - component: 'AudioQuestionCard'
+    path: 'frontend/src/components/student/lifeskills/AudioQuestionCard.jsx'
+    lines: ~120
+    description: 'HTML5 audio player with autoplay, progress bar, volume control'
+    status: 'complete'
+
+  - component: 'WaveformVisualizer'
+    path: 'frontend/src/components/student/lifeskills/WaveformVisualizer.jsx'
+    lines: ~180
+    description: 'Canvas-based waveform with Web Audio API AnalyserNode, 30 FPS animation'
+    status: 'complete'
+
+# Implementation Notes
+implementation_notes:
+  node_version: 'v22.14.0'
+  backend_status: 'Complete - 6 endpoints with mock data'
+  frontend_status: 'Complete - 5 components created (Phase 1 + Phase 2)'
+  compilation_status: 'Not yet tested'
+
+  key_features:
+    - 'MediaRecorder API for voice recording (audio/webm codec)'
+    - 'Web Audio API for waveform visualization (AnalyserNode)'
+    - 'Press-and-hold recording pattern (WhatsApp-style)'
+    - 'Real-time Canvas waveform animation (30 FPS minimum)'
+    - 'HTML5 audio player with autoplay enforcement'
+    - 'MCQ quiz with delayed feedback (no correctness shown until completion)'
+    - 'Auto-grading with coin rewards (12 coins/correct + 24 bonus for 80%+)'
+    - 'Color-coded states: green (idle), red (recording), blue (recorded), yellow (playing)'
+    - 'Large touch targets (120px record button, 72px radio options)'
+    - 'Patrick Hand font for child-friendly UX'
+
+  known_limitations:
+    - 'Offline mode not implemented (AC-33 to AC-37, AC-39 deferred)'
+    - 'Mock S3 upload URLs (real S3 integration pending)'
+    - 'Audio URLs may be null in mock data (fallback to text display)'
+    - 'Coin flying animation may not have sound effect (optional)'
+    - 'Background sync not implemented (upload blocks navigation)'
+    - 'Requires physical microphone for voice recording (cannot test in headless mode)'
+    - 'Browser compatibility: Chrome/Edge (full support), Firefox (may use different codec)'
+
+  technical_details:
+    - 'MediaRecorder: Uses getUserMedia() for microphone access, Blob storage for recordings'
+    - 'Waveform: Canvas API with requestAnimationFrame, AnalyserNode for frequency data'
+    - 'Audio enforcement: Submit button disabled until audio.onended event fires'
+    - 'State management: Single recordingState variable (idle/recording/recorded/playing/uploading)'
+    - 'Quiz grading: Backend calculates score, correctAnswer NOT sent to frontend (prevents cheating)'
+    - 'Delayed feedback: Answers saved to state array, no visual feedback until quiz complete'
+    - 'Cleanup: MediaRecorder stopped on unmount, timers cleared, audio elements paused'
+
+# Story File Reference
+story_file: 'docs/stories/sprint2/epic-01-story-05-life-skills-voice-responses.md'
+last_story_update: '2025-10-24 14:48:08'
+dev_commits:
+  - 'e5c0444 - Phase 1: Backend API + Landing Page'
+  - '1f73e17 - Phase 2: MCQ Quiz + Voice Recording Interface'

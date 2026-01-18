@@ -17,8 +17,13 @@ exports.saveAttendance = async (payload) => {
 };
 
 // Function for fetch the attendance by student id and date string
-exports.getAttendanceByStudentIdAndDate = async ({ studentId, dateString }) => {
-  return await Attendance.findOne({ studentId, dateString })
+// RBAC: Added scopeFilter parameter for Balagruh-level filtering
+exports.getAttendanceByStudentIdAndDate = async ({ studentId, dateString, scopeFilter = {} }) => {
+  return await Attendance.findOne({
+    ...scopeFilter,  // Apply scope filter (Admin: {}, Coach: {balagruhaId: ...}, Student: {_id: ...})
+    studentId,
+    dateString
+  })
     .lean()
     .then((result) => {
       return {

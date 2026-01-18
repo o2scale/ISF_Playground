@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Testing - ISF Playground</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        h1 {
+            color: #333;
+            border-bottom: 3px solid #6366f1;
+            padding-bottom: 10px;
+        }
+        .status {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            border-left: 4px solid #10b981;
+        }
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            border-left: 4px solid #ef4444;
+        }
+        .warning {
+            background: #fef3c7;
+            color: #92400e;
+            border-left: 4px solid #f59e0b;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .endpoint {
+            margin: 15px 0;
+            padding: 15px;
+            background: #f9fafb;
+            border-radius: 6px;
+            border-left: 4px solid #e5e7eb;
+        }
+        .endpoint.working {
+            border-left-color: #10b981;
+            background: #f0fdf4;
+        }
+        .endpoint.failing {
+            border-left-color: #ef4444;
+            background: #fef2f2;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        button:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+        .log div {
+            margin: 5px 0;
+        }
+        .success-icon { color: #10b981; }
+        .error-icon { color: #ef4444; }
+        pre {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 CORS Testing Dashboard</h1>
+
+    <div class="status warning">
+        <strong>⚠️ IMPORTANT:</strong> This page tests if CORS is working correctly from an actual browser environment.
+        <br>Open your browser's DevTools (F12) → Network tab to see the actual requests.
+    </div>
+
+    <div class="test-section">
+        <h2>Backend Status</h2>
+        <div id="backend-status">Checking...</div>
+    </div>
+
+    <div class="test-section">
+        <h2>CORS Endpoint Tests</h2>
+        <button id="runTests" onclick="runAllTests()">🚀 Run All Tests</button>
+        <button onclick="clearLog()">🗑️ Clear Log</button>
+        <button onclick="location.reload()">🔄 Refresh Page</button>
+
+        <div id="results"></div>
+        <div id="log" class="log"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Instructions</h2>
+        <ol>
+            <li>Make sure backend is running on <code>http://localhost:5001</code></li>
+            <li>Click "Run All Tests" button above</li>
+            <li>Check the results below</li>
+            <li>Open browser DevTools (F12) → Network tab to see actual CORS headers</li>
+        </ol>
+
+        <h3>If Tests Fail:</h3>
+        <ul>
+            <li><strong>Clear browser cache:</strong> Press Ctrl+Shift+Delete → Clear cached images and files</li>
+            <li><strong>Hard refresh:</strong> Press Ctrl+F5 (Windows) or Cmd+Shift+R (Mac)</li>
+            <li><strong>Try incognito mode:</strong> Open this page in an incognito/private window</li>
+        </ul>
+    </div>
+
+    <script>
+        const log = [];
+
+        function addLog(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+            const className = type === 'success' ? 'success-icon' : type === 'error' ? 'error-icon' : '';
+            log.push({ timestamp, message, type });
+
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = className;
+            entry.innerHTML = `<span style="color: #64748b;">[${timestamp}]</span> ${icon} ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+            log.length = 0;
+        }
+
+        async function checkBackendStatus() {
+            const statusDiv = document.getElementById('backend-status');
+            try {
+                addLog('Checking backend status...');
+                const response = await fetch('http://localhost:5001/', { method: 'GET' });
+                if (response.ok) {
+                    statusDiv.innerHTML = '<div class="status success">✅ Backend is running on http://localhost:5001</div>';
+                    addLog('Backend is running', 'success');
+                    return true;
+                } else {
+                    throw new Error('Backend returned non-200 status');
+                }
+            } catch (error) {
+                statusDiv.innerHTML = `<div class="status error">❌ Backend is NOT running on http://localhost:5001<br>Error: ${error.message}</div>`;
+                addLog(`Backend check failed: ${error.message}`, 'error');
+                return false;
+            }
+        }
+
+        async function testEndpoint(path, description) {
+            addLog(`Testing: ${description} (${path})`);
+
+            try {
+                const response = await fetch(`http://localhost:5001${path}`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    mode: 'cors',
+                    credentials: 'include'
+                });
+
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('access-control-allow-origin'),
+                    'Access-Control-Allow-Credentials': response.headers.get('access-control-allow-credentials')
+                };
+
+                const hasCORS = !!corsHeaders['Access-Control-Allow-Origin'];
+
+                addLog(`${description}: ${response.status} ${response.statusText} | CORS: ${hasCORS ? 'YES' : 'NO'}`, hasCORS ? 'success' : 'error');
+
+                return {
+                    path,
+                    description,
+                    status: response.status,
+                    statusText: response.statusText,
+                    cors: hasCORS,
+                    corsHeaders,
+                    success: true
+                };
+            } catch (error) {
+                addLog(`${description}: FAILED - ${error.message}`, 'error');
+                return {
+                    path,
+                    description,
+                    error: error.message,
+                    cors: false,
+                    success: false
+                };
+            }
+        }
+
+        async function runAllTests() {
+            const button = document.getElementById('runTests');
+            button.disabled = true;
+            button.textContent = '🔄 Testing...';
+
+            clearLog();
+            addLog('========================================');
+            addLog('Starting CORS Test Suite');
+            addLog('========================================');
+
+            // Check backend first
+            const backendRunning = await checkBackendStatus();
+            if (!backendRunning) {
+                button.disabled = false;
+                button.textContent = '🚀 Run All Tests';
+                addLog('Tests aborted: Backend not running', 'error');
+                return;
+            }
+
+            const endpoints = [
+                { path: '/api/auth/login', desc: '🔐 Authentication Login' },
+                { path: '/api/v2/lms/admin/courses', desc: '📚 LMS Admin Courses' },
+                { path: '/api/roles/getAllRolePermissions', desc: '🔑 RBAC Roles' },
+                { path: '/api/users', desc: '👤 User Management' },
+                { path: '/api/v1/machines', desc: '🖥️ Machine Management' },
+                { path: '/api/tasks/all/list', desc: '📋 Task Management' }
+            ];
+
+            addLog('');
+            addLog('Running tests on all endpoints...');
+            addLog('');
+
+            const results = [];
+            for (const endpoint of endpoints) {
+                const result = await testEndpoint(endpoint.path, endpoint.desc);
+                results.push(result);
+                await new Promise(resolve => setTimeout(resolve, 200)); // Small delay between tests
+            }
+
+            // Display results
+            const resultsDiv = document.getElementById('results');
+            const working = results.filter(r => r.success && r.cors);
+            const failing = results.filter(r => !r.success || !r.cors);
+
+            let html = '<h3>Test Results:</h3>';
+
+            html += `<div style="margin: 20px 0; padding: 15px; background: ${failing.length === 0 ? '#d1fae5' : '#fee2e2'}; border-radius: 6px;">`;
+            html += `<strong style="font-size: 18px;">${failing.length === 0 ? '✅ ALL TESTS PASSED!' : '❌ SOME TESTS FAILED'}</strong><br>`;
+            html += `Working: ${working.length}/${results.length} | Failing: ${failing.length}/${results.length}`;
+            html += `</div>`;
+
+            if (working.length > 0) {
+                html += '<h4>✅ Working Endpoints:</h4>';
+                working.forEach(r => {
+                    html += `<div class="endpoint working">`;
+                    html += `<strong>${r.description}</strong><br>`;
+                    html += `<code>${r.path}</code><br>`;
+                    html += `Status: ${r.status} ${r.statusText} | CORS: ✅ Enabled`;
+                    html += `</div>`;
+                });
+            }
+
+            if (failing.length > 0) {
+                html += '<h4>❌ Failing Endpoints:</h4>';
+                failing.forEach(r => {
+                    html += `<div class="endpoint failing">`;
+                    html += `<strong>${r.description}</strong><br>`;
+                    html += `<code>${r.path}</code><br>`;
+                    html += `${r.error ? `Error: ${r.error}` : `Status: ${r.status} | CORS: ❌ Missing`}`;
+                    html += `</div>`;
+                });
+
+                html += '<div class="status warning">';
+                html += '<strong>Troubleshooting Steps:</strong><br>';
+                html += '1. Clear browser cache (Ctrl+Shift+Delete)<br>';
+                html += '2. Try hard refresh (Ctrl+F5)<br>';
+                html += '3. Open in incognito/private window<br>';
+                html += '4. Check browser console (F12) for specific errors';
+                html += '</div>';
+            } else {
+                html += '<div class="status success">';
+                html += '<strong>🎉 Excellent!</strong> All CORS endpoints are working correctly.<br>';
+                html += 'The backend CORS configuration is properly set up.<br>';
+                html += 'You should now be able to use the application without CORS errors.';
+                html += '</div>';
+            }
+
+            resultsDiv.innerHTML = html;
+
+            button.disabled = false;
+            button.textContent = '🚀 Run All Tests';
+
+            addLog('');
+            addLog('========================================');
+            addLog(`Test Suite Complete: ${working.length}/${results.length} passing`);
+            addLog('========================================');
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                checkBackendStatus();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

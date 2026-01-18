@@ -11,6 +11,7 @@ import TaskManagement from "./components/TaskManagement/taskmanagement";
 import AccessDenied from "./components/AccessDenied";
 import NotFound from "./components/NotFound";
 import Layout from "./components/Layout";
+import StudentLayout from "./components/student/StudentLayout";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { RBACProvider } from "./contexts/RBACContext";
@@ -36,7 +37,6 @@ import OrderDetail from "./pages/OrderDetail";
 import OrderReceipt from "./pages/OrderReceipt";
 import ProductManagement from "./pages/ProductManagement";
 import InventoryManagement from "./pages/InventoryManagement";
-import PMLowStock from "./pages/PMLowStock";
 import LowStockReport from "./pages/LowStockReport";
 import OutOfStockReport from "./pages/OutOfStockReport";
 import MasterInventoryReport from "./pages/MasterInventoryReport";
@@ -47,6 +47,24 @@ import TransactionReports from "./pages/TransactionReports";
 import CoachDeliveries from "./pages/CoachDeliveries";
 import CoachRequestsDashboard from "./pages/CoachRequestsDashboard";
 import StudentProfile from "./pages/StudentProfile";
+import AdminCourseDashboard from "./pages/admin/AdminCourseDashboard";
+import CourseStructureBuilder from "./pages/admin/CourseStructureBuilder";
+import ContentLibrary from "./pages/admin/ContentLibrary";
+import QuizDashboard from "./pages/admin/QuizDashboard";
+import QuizBuilder from "./pages/admin/QuizBuilder";
+import TranslationDashboard from "./pages/admin/TranslationDashboard";
+import TranslationEditor from "./pages/admin/TranslationEditor";
+import TranslationQueue from "./pages/admin/TranslationQueue";
+import StudentDashboardPage from "./pages/student/StudentDashboardPage";
+import ComputerAppsPage from "./pages/student/ComputerAppsPage";
+import ArtCoursePage from "./pages/student/ArtCoursePage";
+import SpokenEnglishPage from "./pages/student/SpokenEnglishPage";
+import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
+import LifeSkillsQuizPage from "./pages/student/LifeSkillsQuizPage";
+import LifeSkillsQuizResults from "./pages/student/LifeSkillsQuizResults";
+import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
+import CoachAssignmentsPage from "./pages/coach/CoachAssignmentsPage";
+import GradingDashboard from "./pages/coach/GradingDashboard";
 import { UserTypes, normalizeUserRole } from "./constants/userTypes";
 
 const CoachOrAdminRoute = ({ children }) => {
@@ -73,6 +91,93 @@ const App = () => {
                 {/* Public route for login */}
                 <Route path="/login" element={<StudentLogin />} />
                 <Route path="/admin/login" element={<LoginCard />} />
+
+                {/* Student LMS Routes - Epic 01 (Uses StudentLayout with TitleBar) */}
+                <Route element={<StudentLayout />}>
+                  <Route
+                    path="/student/dashboard"
+                    element={
+                      <ProtectedRoute>
+                        <StudentDashboardPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/computer-apps"
+                    element={
+                      <ProtectedRoute>
+                        <ComputerAppsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/art"
+                    element={
+                      <ProtectedRoute>
+                        <ArtCoursePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/spoken-english"
+                    element={
+                      <ProtectedRoute>
+                        <SpokenEnglishPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/spoken-english/:taskId"
+                    element={
+                      <ProtectedRoute>
+                        <SpokenEnglishPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/life-skills"
+                    element={
+                      <ProtectedRoute>
+                        <LifeSkillsCoursePage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/life-skills/quiz/:quizId"
+                    element={
+                      <ProtectedRoute>
+                        <LifeSkillsQuizPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/life-skills/quiz/results"
+                    element={
+                      <ProtectedRoute>
+                        <LifeSkillsQuizResults />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/life-skills/voice/:taskId"
+                    element={
+                      <ProtectedRoute>
+                        <LifeSkillsVoiceTaskPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/homework"
+                    element={
+                      <ProtectedRoute>
+                        {/* Placeholder - Epic 05 */}
+                        <div className="flex items-center justify-center min-h-screen">
+                          <h1 className="text-2xl">Homework - Coming Soon</h1>
+                        </div>
+                      </ProtectedRoute>
+                    }
+                  />
+                </Route>
 
                 {/* Routes inside the layout */}
                 <Route element={<Layout />}>
@@ -145,27 +250,9 @@ const App = () => {
                       // </ProtectedRoute>
                     }
                   />
-
-                  {/* Course, Repair, and Purchase Management Routes */}
                   <Route path="/course" element={<CourseManagement />} />
                   <Route path="/repair" element={<RepairManagement />} />
-                  {/* Sprint5-Story-24 + S24-BUG-005: Purchase Management accessible to all roles except students */}
-                  <Route
-                    path="/purchase"
-                    element={
-                      <ProtectedRoute>
-                        <PurchaseManagement />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/purchase-manager/low-stock"
-                    element={
-                      <ProtectedRoute>
-                        <PMLowStock />
-                      </ProtectedRoute>
-                    }
-                  />
+                  <Route path="/purchase" element={<PurchaseManagement />} />
 
                   {/* WTF (Wall of Fame) Route */}
                   <Route
@@ -328,6 +415,102 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <StudentProfile />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* LMS Admin Routes - Sprint 2 Epic 02 */}
+                  <Route
+                    path="/admin/courses"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <AdminCourseDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/courses/:courseId/structure"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <CourseStructureBuilder />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/content"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <ContentLibrary />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/quizzes"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <QuizDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/quizzes/create"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <QuizBuilder />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/quizzes/:quizId/edit"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <QuizBuilder />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Translation Management - Sprint 2 Epic 02 Story 04 */}
+                  <Route
+                    path="/admin/translations"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <TranslationDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Coach Course Assignments - Sprint 2 Epic 03 Story 01 */}
+                  <Route
+                    path="/coach/assignments"
+                    element={
+                      <ProtectedRoute>
+                        <CoachAssignmentsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Coach Grading Dashboard - Sprint 2 Epic 03 Story 02 */}
+                  <Route
+                    path="/coach/grading"
+                    element={
+                      <ProtectedRoute>
+                        <GradingDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/translations/:courseId/queue"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <TranslationQueue />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/admin/translations/:courseId/editor"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <TranslationEditor />
                       </ProtectedRoute>
                     }
                   />

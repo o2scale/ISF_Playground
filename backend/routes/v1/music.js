@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { authorize, authenticate } = require("../../middleware/auth");
+const { validateBalagruhaAccess } = require("../../middleware/checkPermission");
 const {
   updateSportsTask,
   getSportsTasks,
@@ -74,6 +75,7 @@ router.get(
   "/overview/:balagruhaId",
   authenticate,
   authorize("Task Management", "Read"),
+  validateBalagruhaAccess,
   getSportsInsights
 );
 // API for fetch the list of sports training sessions by balagruhaId
@@ -81,6 +83,7 @@ router.get(
   "/training-sessions/:balagruhaId",
   authenticate,
   authorize("Task Management", "Read"),
+  validateBalagruhaAccess,
   getAllTrainingSessions
 );
 // API for get student list with sports task by balagruhaId

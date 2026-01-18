@@ -92,22 +92,23 @@ const Layout = () => {
       roles: ["admin", "coach"],
     },
     { id: 6, name: "Balagruhas", link: "/balagruha", roles: ["admin"] },
-    { id: 7, name: "Access", link: "/rbac", roles: ["admin"] },
+    { id: 7, name: "Courses", link: "/admin/courses", roles: ["admin"] },
+    { id: 8, name: "Access", link: "/rbac", roles: ["admin"] },
     {
-      id: 8,
+      id: 9,
       name: "Repairs",
       link: "/repair",
       roles: ["admin"],
     },
     {
-      id: 9,
+      id: 10,
       name: "Purchases",
       link: "/purchase",
       // Sprint5-Story-24 + S24-BUG-005: All roles except students can access Purchase Management
       roles: ["admin", "purchase-manager", "coach", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
     },
     {
-      id: 10,
+      id: 11,
       name: "Shop",
       link: "/shop",
       roles: ["student", "admin", "coach", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
@@ -119,7 +120,7 @@ const Layout = () => {
       roles: ["purchase-manager"],
     },
     {
-      id: 11,
+      id: 13,
       name: "WTF",
       link: "/wtf",
       roles: [

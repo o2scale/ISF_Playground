@@ -38,6 +38,22 @@ exports.getTransactionLog = async (req, res) => {
     if (studentId) filters.studentId = studentId;
     if (status) filters.status = status;
 
+    // RBAC: Pass user context for scope-based filtering
+    // Admin sees all, Coach sees only assigned Balagruhs, Student sees own
+    filters.requestingUser = req.user;
+    filters.permissionScope = req.permissionScope || 'own';
+
+    // DEBUG: Log scope filter info
+    console.log('🔍 [RBAC DEBUG] reportsController.getTransactionLog:', {
+      userId: req.user?._id,
+      userRole: req.user?.role,
+      permissionScope: req.permissionScope,
+      filtersPassedToService: {
+        hasRequestingUser: !!filters.requestingUser,
+        permissionScope: filters.permissionScope
+      }
+    });
+
     const result = await AnalyticsService.getTransactionLog(filters, pageNum, limitNum);
 
     res.status(200).json({
@@ -85,7 +101,25 @@ exports.getStudentLeaderboard = async (req, res) => {
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
 
+    // RBAC: Pass user context for scope-based filtering
+    filters.requestingUser = req.user;
+    filters.permissionScope = req.permissionScope || 'own';
+
+    // DEBUG: Log leaderboard request
+    console.log('🔍 [RBAC DEBUG] reportsController.getStudentLeaderboard:', {
+      type,
+      limit: limitNum,
+      userRole: req.user?.role,
+      permissionScope: req.permissionScope
+    });
+
     const leaderboard = await AnalyticsService.getStudentLeaderboard(type, limitNum, filters);
+
+    // DEBUG: Log result
+    console.log('🔍 [RBAC DEBUG] Leaderboard result:', {
+      isArray: Array.isArray(leaderboard),
+      length: leaderboard?.length || 0
+    });
 
     res.status(200).json({
       success: true,
@@ -137,6 +171,22 @@ exports.getZeroPurchaseStudents = async (req, res) => {
     if (startDate) filters.startDate = startDate;
     if (endDate) filters.endDate = endDate;
     if (minBalance) filters.minBalance = minBalance;
+
+    // RBAC: Pass user context for scope-based filtering
+    filters.requestingUser = req.user;
+    filters.permissionScope = req.permissionScope || 'own';
+
+    // DEBUG: Log scope filter info
+    console.log('🔍 [RBAC DEBUG] reportsController.getZeroPurchaseStudents:', {
+      userId: req.user?._id,
+      userRole: req.user?.role,
+      permissionScope: req.permissionScope,
+      balagruhaIdsCount: req.user?.balagruhaIds?.length,
+      filtersPassedToService: {
+        hasRequestingUser: !!filters.requestingUser,
+        permissionScope: filters.permissionScope
+      }
+    });
 
     const result = await AnalyticsService.getZeroPurchaseStudents(filters, pageNum, limitNum);
 

@@ -2,6 +2,7 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 const Role = require("../models/role");
 const Machine = require("../models/machine");
+const { getScopeFilter } = require("./checkPermission");
 exports.authenticate = async (req, res, next) => {
   try {
     const token = req.header("Authorization")?.replace("Bearer ", "");
@@ -95,17 +96,8 @@ exports.authorize = (module, action) => {
       console.log("auth res: ", req.user);
       const userRole = req.user.role;
 
-      // DEVELOPMENT BYPASS: Skip role checks in development mode
-      if (
-        process.env.NODE_ENV === "development" ||
-        process.env.NODE_ENV === "local"
-      ) {
-        console.log(
-          `🚀 DEV MODE: Bypassing role check for ${module}:${action}`
-        );
-        console.log(`👤 User: ${req.user.name} (${userRole})`);
-        return next();
-      }
+      // RBAC Refactor: Development bypass REMOVED for production security
+      // All environments now enforce permission checks
 
       const role = await Role.findOne({ roleName: userRole });
 
@@ -116,18 +108,26 @@ exports.authorize = (module, action) => {
         });
       }
 
-      const hasPermission = role.permissions.some((permission) => {
+      // Find the permission that matches module and action
+      const permission = role.permissions.find((permission) => {
         return (
           permission.module === module && permission.actions.includes(action)
         );
       });
 
-      if (!hasPermission) {
+      if (!permission) {
         return res.status(403).json({
           success: false,
           message: `Role ${userRole} is not authorized to perform ${action} on ${module}`,
         });
       }
+
+      // RBAC Refactor: Inject scope-based filter for data access control
+      // Controllers will use req.scopeFilter to filter queries by Balagruh/User
+      req.scopeFilter = getScopeFilter(req.user, permission.scope);
+
+      // Store the permission scope for debugging/logging
+      req.permissionScope = permission.scope || 'own';
 
       next();
     } catch (err) {

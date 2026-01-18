@@ -54,6 +54,7 @@ exports.createBalagruha = async (req, res) => {
 };
 
 // Get all balagruhas
+// Updated to use req.scopeFilter for RBAC (RBAC-001 fix)
 exports.getAllBalagruha = async (req, res) => {
   try {
     logger.info(
@@ -61,18 +62,21 @@ exports.getAllBalagruha = async (req, res) => {
         clientIP: req.socket.remoteAddress,
         method: req.method,
         api: req.originalUrl,
+        scope: req.permissionScope,
       },
       `Request received to fetch all balagruhas`
     );
-    const result = await Balagruha.getAll();
+    // Apply scope filter: Admin sees all, Coach sees assigned, Student sees none
+    const result = await Balagruha.getAll(req.scopeFilter);
     if (result.success) {
       logger.info(
         {
           clientIP: req.socket.remoteAddress,
           method: req.method,
           api: req.originalUrl,
+          count: result.data.balagruhas.length,
         },
-        `Successfully fetched all balagruhas`
+        `Successfully fetched balagruhas (scope-filtered)`
       );
       res.status(HTTP_STATUS_CODE.OK).json(result);
     } else {

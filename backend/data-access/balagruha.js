@@ -19,9 +19,20 @@ exports.createBalagruha = async (payload) => {
 };
 
 // Function to get all balagruhas
-exports.getAllBalagruha = async () => {
+// Updated to support scope filtering (RBAC-001 fix, RBAC-002 fix)
+exports.getAllBalagruha = async (scopeFilter = {}) => {
   try {
-    const result = await Balagruha.find({}).populate("assignedMachines").lean();
+    // RBAC-002 FIX: Transform balagruhaId → _id for Balagruha collection queries
+    // The getScopeFilter() middleware generates { balagruhaId: { $in: [...] } } for coach users
+    // But Balagruha collection uses _id field, not balagruhaId (which exists in other collections)
+    // This transformation ensures coaches see only their assigned Balagruhas
+    const transformedFilter = { ...scopeFilter };
+    if (transformedFilter.balagruhaId) {
+      transformedFilter._id = transformedFilter.balagruhaId;
+      delete transformedFilter.balagruhaId;
+    }
+
+    const result = await Balagruha.find(transformedFilter).populate("assignedMachines").lean();
     return {
       success: true,
       data: result,
