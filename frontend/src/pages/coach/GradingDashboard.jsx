@@ -143,7 +143,7 @@ export default function GradingDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 w-full">
       {/* Header */}
       <div className="bg-blue-600 text-white px-6 py-4 border-b border-blue-700">
         <h1 className="text-2xl font-bold">Syllabus Tracker & Grading</h1>
@@ -154,7 +154,7 @@ export default function GradingDashboard() {
       </div>
 
       {/* Quick Stats Cards */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <div className="text-3xl mb-2">📝</div>

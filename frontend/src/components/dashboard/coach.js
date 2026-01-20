@@ -116,32 +116,32 @@ function CoachDashboard() {
     const fetchSchedules = async (balagruha, startDate, endDate) => {
         try {
             console.log(balagruha, "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
-          let dataToSend;
-          if (balagruha) {
-            dataToSend = {
-              balagruhaIds: [balagruha],
-              assignedTo: localStorage.getItem('userId'),
-              startDate: startDate,
-              endDate: endDate,
-              status: [],
-            };
-          } else {
-            dataToSend = {
-              balagruhaIds: [selectedBalagruha],
-              assignedTo: localStorage.getItem('userId'),
-              startDate: startDate,
-              endDate: endDate,
-              status: [],
-            };
-          }
-    
-          const response = await getSchedulesCoach(dataToSend);
-          console.log(response, "JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
-          setSchedules(response?.data?.schedules);
+            let dataToSend;
+            if (balagruha) {
+                dataToSend = {
+                    balagruhaIds: [balagruha],
+                    assignedTo: localStorage.getItem('userId'),
+                    startDate: startDate,
+                    endDate: endDate,
+                    status: [],
+                };
+            } else {
+                dataToSend = {
+                    balagruhaIds: [selectedBalagruha],
+                    assignedTo: localStorage.getItem('userId'),
+                    startDate: startDate,
+                    endDate: endDate,
+                    status: [],
+                };
+            }
+
+            const response = await getSchedulesCoach(dataToSend);
+            console.log(response, "JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
+            setSchedules(response?.data?.schedules);
         } catch (error) {
-          console.error("Error in fetching schedules", error);
+            console.error("Error in fetching schedules", error);
         }
-      };
+    };
 
     const getTaskDetailsByTaskId = async (id) => {
         try {
@@ -334,7 +334,7 @@ function CoachDashboard() {
     };
 
     return (
-        <div className="coach-dashboard">
+        <div className="coach-dashboard w-full">
             {/* Sticky Chat Buttons */}
             {showTaskModal && selectedTask && (
                 <TaskDetailsModal
@@ -457,41 +457,41 @@ function CoachDashboard() {
                         {coachMenuSelected === 1 && (
                             <div className='full-calendar'>
                                 <WeeklyCalendar
-                                currentWeekOffset={currentWeekOffset}
-                                setCurrentWeekOffset={setCurrentWeekOffset}
-                                // calendarEvents={tasks.length > 0 ? tasks : [
-                                //     // Fallback dummy data if no tasks are loaded
-                                //     {
-                                //         id: 1,
-                                //         title: "Visit to Sampare",
-                                //         location: "Shelpimplegaon",
-                                //         date: "2025-03-20",
-                                //         time: "09:00-11:00",
-                                //         type: "visit",
-                                //         description: "Regular visit to check on children's progress",
-                                //         attendees: ["Coach 1", "Admin", "Local Volunteer"],
-                                //         status: "Confirmed",
-                                //         taskData: {
-                                //             _id: "1",
-                                //             title: "Visit to Sampare",
-                                //             description: "Regular visit to check on children's progress",
-                                //             status: "pending",
-                                //             priority: "High",
-                                //             deadline: "2025-03-20T11:00:00",
-                                //             createdAt: "2025-03-15T09:00:00",
-                                //             assignedUser: "1",
-                                //             createdBy: "2",
-                                //             comments: [],
-                                //             attachments: []
-                                //         }
-                                //     }
-                                // ]}
-                                calendarEvents={schedules}
-                                users={users}
-                                onEventClick={handleEventClick}
-                                fetchSchedules={fetchSchedules}
-                                selectedBalagruhaOfCoach={selectedBalagruha}
-                            />
+                                    currentWeekOffset={currentWeekOffset}
+                                    setCurrentWeekOffset={setCurrentWeekOffset}
+                                    // calendarEvents={tasks.length > 0 ? tasks : [
+                                    //     // Fallback dummy data if no tasks are loaded
+                                    //     {
+                                    //         id: 1,
+                                    //         title: "Visit to Sampare",
+                                    //         location: "Shelpimplegaon",
+                                    //         date: "2025-03-20",
+                                    //         time: "09:00-11:00",
+                                    //         type: "visit",
+                                    //         description: "Regular visit to check on children's progress",
+                                    //         attendees: ["Coach 1", "Admin", "Local Volunteer"],
+                                    //         status: "Confirmed",
+                                    //         taskData: {
+                                    //             _id: "1",
+                                    //             title: "Visit to Sampare",
+                                    //             description: "Regular visit to check on children's progress",
+                                    //             status: "pending",
+                                    //             priority: "High",
+                                    //             deadline: "2025-03-20T11:00:00",
+                                    //             createdAt: "2025-03-15T09:00:00",
+                                    //             assignedUser: "1",
+                                    //             createdBy: "2",
+                                    //             comments: [],
+                                    //             attachments: []
+                                    //         }
+                                    //     }
+                                    // ]}
+                                    calendarEvents={schedules}
+                                    users={users}
+                                    onEventClick={handleEventClick}
+                                    fetchSchedules={fetchSchedules}
+                                    selectedBalagruhaOfCoach={selectedBalagruha}
+                                />
                             </div>
                         )}
                     </div>

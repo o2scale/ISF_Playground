@@ -121,7 +121,7 @@ const corsOptions = {
   },
   credentials: true, // Allow cookies and auth headers
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'MAC-Address'],
+  // allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'MAC-Address'], // Commented out to allow all requested headers
   exposedHeaders: ['X-Total-Count'], // For pagination
   maxAge: 86400, // 24 hours - cache preflight requests
   preflightContinue: false,

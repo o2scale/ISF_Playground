@@ -468,6 +468,14 @@ const App = () => {
                       </ProtectedRoute>
                     }
                   />
+                  <Route
+                    path="/admin/courses/:courseId/quizzes/create"
+                    element={
+                      <ProtectedRoute module="LMS Management" action="Manage">
+                        <QuizBuilder />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* Translation Management - Sprint 2 Epic 02 Story 04 */}
                   <Route

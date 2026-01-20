@@ -123,7 +123,7 @@ export default function AdminCourseDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full">
       {/* Admin Header - Purple Theme */}
       <div className="bg-purple-600 shadow-md">
         <div className="px-6 py-4">
@@ -144,9 +144,7 @@ export default function AdminCourseDashboard() {
                 <Plus size={20} />
                 Create New Course
               </button>
-              <div className="text-white text-sm">
-                <span className="font-medium">Admin:</span> {user?.name || 'User'}
-              </div>
+              {/* Admin info removed */}
             </div>
           </div>
         </div>

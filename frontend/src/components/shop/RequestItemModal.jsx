@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Package } from "lucide-react";
 import useShopStore from "../../store/shopStore";
 import { useAuth } from "../../contexts/AuthContext";
+import { getBalagruhaById } from "../../api";
 import toast from "react-hot-toast";
 
 /**
@@ -12,23 +13,44 @@ export default function RequestItemModal({ product, onClose }) {
   const { user } = useAuth();
   const { createPurchaseRequest, assignFromStock } = useShopStore();
   const [submitting, setSubmitting] = useState(false);
-  
+  const [balagruhas, setBalagruhas] = useState([]);
+
   // Default to "STOCK" if PM, otherwise first assigned Balagruha
   const isPM = user?.role?.toLowerCase() === "purchase-manager";
-  const defaultBalagruha = isPM ? "STOCK" : (user?.balagruhaIds?.[0] || "");
+
+  // Fetch Balagruha names
+  useEffect(() => {
+    const fetchBalagruhas = async () => {
+      if (user?._id) {
+        try {
+          const response = await getBalagruhaById(user._id);
+          if (response?.data?.balagruhas) {
+            setBalagruhas(response.data.balagruhas);
+          }
+        } catch (error) {
+          console.error("Error fetching balagruhas:", error);
+        }
+      }
+    };
+    fetchBalagruhas();
+  }, [user]);
 
   const [formData, setFormData] = useState({
     quantity: 1,
     priority: "Normal",
     reason: "",
-    balagruhaId: defaultBalagruha,
+    balagruhaId: isPM ? "STOCK" : "",
     assignShortcut: false // PM Only shortcut
   });
 
-  const [error, setError] = useState(null);
+  // Auto-select first Balagruha when loaded if not PM and no selection
+  useEffect(() => {
+    if (!isPM && !formData.balagruhaId && balagruhas.length > 0) {
+      setFormData(prev => ({ ...prev, balagruhaId: balagruhas[0]._id }));
+    }
+  }, [balagruhas, isPM, formData.balagruhaId]);
 
-  // Balagruha Options
-  const balagruhaOptions = user?.balagruhaIds || [];
+  const [error, setError] = useState(null);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -64,7 +86,7 @@ export default function RequestItemModal({ product, onClose }) {
     try {
       // 1. Prepare Data
       const baseReason = formData.reason.trim() || `Requesting ${product.name}`;
-      const reasonWithPriority = formData.priority === "High" 
+      const reasonWithPriority = formData.priority === "High"
         ? `[HIGH PRIORITY] ${baseReason}`
         : baseReason;
 
@@ -116,8 +138,8 @@ export default function RequestItemModal({ product, onClose }) {
 
         <div className="p-4 bg-slate-50 flex gap-3 border-b border-slate-200">
           <div className="w-16 h-16 bg-white rounded border border-slate-200 flex-shrink-0 overflow-hidden">
-            <img 
-              src={product.primaryImageUrl || product.imageUrl || "/placeholder-product.png"} 
+            <img
+              src={product.primaryImageUrl || product.imageUrl || "/placeholder-product.png"}
               alt={product.name}
               className="w-full h-full object-cover"
             />
@@ -149,9 +171,9 @@ export default function RequestItemModal({ product, onClose }) {
             >
               <option value="">Select Balagruha...</option>
               {isPM && <option value="STOCK">General Stock (Inventory)</option>}
-              {balagruhaOptions.map((bgId, index) => (
-                <option key={index} value={bgId}>
-                  Balagruha {bgId.substring(0, 6)}...
+              {balagruhas.map((bg) => (
+                <option key={bg._id} value={bg._id}>
+                  {bg.name}
                 </option>
               ))}
             </select>

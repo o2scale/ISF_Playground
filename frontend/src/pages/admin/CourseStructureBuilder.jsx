@@ -233,7 +233,7 @@ export default function CourseStructureBuilder() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full">
       {/* Course Header - Purple Theme */}
       <div className="bg-purple-100 border-b border-purple-200">
         <div className="px-6 py-6">
@@ -296,6 +296,13 @@ export default function CourseStructureBuilder() {
               )}
 
               <button
+                onClick={() => navigate(`/admin/courses/${courseId}/quizzes/create`)}
+                className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50"
+              >
+                <Plus size={18} />
+                Manage Quizzes
+              </button>
+              <button
                 onClick={() => fetchCourse()}
                 className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50"
               >
@@ -318,7 +325,7 @@ export default function CourseStructureBuilder() {
       </div>
 
       {/* Structure Builder */}
-      <div className="max-w-7xl mx-auto px-6 py-6">
+      <div className="w-full px-6 py-6">
         {/* Add Module Button */}
         <div className="mb-6">
           <button

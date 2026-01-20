@@ -154,10 +154,9 @@ export default function QuizDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      {/* Header */}
-      <div className="bg-purple-600 text-white p-6 rounded-t-lg shadow-md">
-        <div className="flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 w-full pb-12">
+      <div className="bg-purple-600 text-white p-6 shadow-md">
+        <div className="flex justify-between items-center py-6 px-6">
           <div>
             <h1 className="text-3xl font-bold">Quiz Management</h1>
             <p className="text-purple-100 mt-1">Create and manage quizzes for your courses</p>
@@ -172,186 +171,188 @@ export default function QuizDashboard() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      {stats && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm text-gray-500">Total Quizzes</div>
-            <div className="text-3xl font-bold text-gray-800 mt-2">{stats.totalQuizzes}</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm text-gray-500">Published</div>
-            <div className="text-3xl font-bold text-green-600 mt-2">{stats.publishedQuizzes}</div>
-          </div>
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="text-sm text-gray-500">Drafts</div>
-            <div className="text-3xl font-bold text-gray-600 mt-2">{stats.draftQuizzes}</div>
-          </div>
-        </div>
-      )}
+      <div className="px-6">
 
-      {/* Filters and Search */}
-      <div className="bg-white p-4 rounded-lg shadow mt-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
-          {/* Status Filter */}
-          <div className="flex items-center space-x-2">
-            <Filter size={20} className="text-gray-400" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="all">All Quizzes</option>
-              <option value="draft">Draft</option>
-              <option value="published">Published</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-
-          {/* Search */}
-          <div className="flex-1 md:mx-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
-              <input
-                type="text"
-                placeholder="Search quizzes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-              />
+        {/* Stats Cards */}
+        {stats && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="text-sm text-gray-500">Total Quizzes</div>
+              <div className="text-3xl font-bold text-gray-800 mt-2">{stats.totalQuizzes}</div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="text-sm text-gray-500">Published</div>
+              <div className="text-3xl font-bold text-green-600 mt-2">{stats.publishedQuizzes}</div>
+            </div>
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="text-sm text-gray-500">Drafts</div>
+              <div className="text-3xl font-bold text-gray-600 mt-2">{stats.draftQuizzes}</div>
             </div>
           </div>
+        )}
 
-          {/* Sort */}
-          <div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-            >
-              <option value="newest">Newest First</option>
-              <option value="oldest">Oldest First</option>
-              <option value="title_az">Title A-Z</option>
-              <option value="title_za">Title Z-A</option>
-              <option value="most_questions">Most Questions</option>
-            </select>
-          </div>
-        </div>
-      </div>
+        {/* Filters and Search */}
+        <div className="bg-white p-4 rounded-lg shadow mt-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0">
+            {/* Status Filter */}
+            <div className="flex items-center space-x-2">
+              <Filter size={20} className="text-gray-400" />
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="all">All Quizzes</option>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
 
-      {/* Quiz List */}
-      <div className="mt-6 space-y-4">
-        {loading ? (
-          <div className="bg-white p-12 rounded-lg shadow text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
-            <p className="text-gray-500 mt-4">Loading quizzes...</p>
-          </div>
-        ) : quizzes.length === 0 ? (
-          <div className="bg-white p-12 rounded-lg shadow text-center">
-            <p className="text-gray-500 text-lg">No quizzes found</p>
-            <button
-              onClick={handleCreateQuiz}
-              className="mt-4 text-purple-600 hover:text-purple-700 font-semibold"
-            >
-              Create your first quiz
-            </button>
-          </div>
-        ) : (
-          quizzes.map((quiz) => (
-            <div key={quiz._id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-3">
-                    <h3 className="text-xl font-bold text-gray-800">{quiz.title}</h3>
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(quiz.status)}`}>
-                      {quiz.status.charAt(0).toUpperCase() + quiz.status.slice(1)}
-                    </span>
-                  </div>
-
-                  <p className="text-gray-600 mt-2">{quiz.description || 'No description'}</p>
-
-                  <div className="flex items-center space-x-6 mt-4 text-sm text-gray-500">
-                    <span>{quiz.questions.length} Questions</span>
-                    {quiz.settings.timeLimit && !quiz.settings.noTimeLimit && (
-                      <span>⏱️ {quiz.settings.timeLimit} min time limit</span>
-                    )}
-                    <span>📊 {quiz.settings.passingScore}% passing score</span>
-                  </div>
-
-                  {quiz.chapter && (
-                    <div className="mt-2 text-sm text-gray-600">
-                      <span className="font-semibold">Course:</span> {quiz.course?.title} › {quiz.chapter?.title}
-                    </div>
-                  )}
-
-                  <div className="flex items-center space-x-4 mt-3 text-xs text-gray-400">
-                    <span>Created: {formatDate(quiz.createdAt)}</span>
-                    {quiz.updatedAt !== quiz.createdAt && (
-                      <span>Last Edited: {formatDate(quiz.updatedAt)}</span>
-                    )}
-                    <span>By: {quiz.createdBy?.name}</span>
-                  </div>
-                </div>
-
-                {/* Actions Dropdown */}
-                <div className="relative">
-                  <button
-                    onClick={() => setOpenDropdown(openDropdown === quiz._id ? null : quiz._id)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  >
-                    <MoreVertical size={20} className="text-gray-600" />
-                  </button>
-
-                  {openDropdown === quiz._id && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                      <button
-                        onClick={() => handleEditQuiz(quiz._id)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-gray-700"
-                      >
-                        <Edit size={16} />
-                        <span>Edit</span>
-                      </button>
-                      <button
-                        onClick={() => handleDuplicateQuiz(quiz._id)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-gray-700"
-                      >
-                        <Copy size={16} />
-                        <span>Duplicate</span>
-                      </button>
-                      <button
-                        onClick={() => handleTogglePublish(quiz._id, quiz.status)}
-                        className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-gray-700"
-                      >
-                        <Eye size={16} />
-                        <span>{quiz.status === 'published' ? 'Unpublish' : 'Publish'}</span>
-                      </button>
-                      <button
-                        onClick={() => handleDeleteQuiz(quiz._id)}
-                        className="w-full px-4 py-2 text-left hover:bg-red-50 flex items-center space-x-2 text-red-600"
-                      >
-                        <Trash2 size={16} />
-                        <span>Delete</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+            {/* Search */}
+            <div className="flex-1 md:mx-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+                <input
+                  type="text"
+                  placeholder="Search quizzes..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
               </div>
             </div>
-          ))
+
+            {/* Sort */}
+            <div>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="title_az">Title A-Z</option>
+                <option value="title_za">Title Z-A</option>
+                <option value="most_questions">Most Questions</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Quiz List */}
+        <div className="mt-6 space-y-4">
+          {loading ? (
+            <div className="bg-white p-12 rounded-lg shadow text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600 mx-auto"></div>
+              <p className="text-gray-500 mt-4">Loading quizzes...</p>
+            </div>
+          ) : quizzes.length === 0 ? (
+            <div className="bg-white p-12 rounded-lg shadow text-center">
+              <p className="text-gray-500 text-lg">No quizzes found</p>
+              <button
+                onClick={handleCreateQuiz}
+                className="mt-4 text-purple-600 hover:text-purple-700 font-semibold"
+              >
+                Create your first quiz
+              </button>
+            </div>
+          ) : (
+            (quizzes || []).map((quiz) => (
+              <div key={quiz._id} className="bg-white p-6 rounded-lg shadow hover:shadow-lg transition-shadow">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-3">
+                      <h3 className="text-xl font-bold text-gray-800">{quiz.title}</h3>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(quiz.status)}`}>
+                        {quiz.status.charAt(0).toUpperCase() + quiz.status.slice(1)}
+                      </span>
+                    </div>
+
+                    <p className="text-gray-600 mt-2">{quiz.description || 'No description'}</p>
+
+                    <div className="flex items-center space-x-6 mt-4 text-sm text-gray-500">
+                      <span>{quiz.questions.length} Questions</span>
+                      {quiz.settings.timeLimit && !quiz.settings.noTimeLimit && (
+                        <span>⏱️ {quiz.settings.timeLimit} min time limit</span>
+                      )}
+                      <span>📊 {quiz.settings.passingScore}% passing score</span>
+                    </div>
+
+                    {quiz.chapter && (
+                      <div className="mt-2 text-sm text-gray-600">
+                        <span className="font-semibold">Course:</span> {quiz.course?.title} › {quiz.chapter?.title}
+                      </div>
+                    )}
+
+                    <div className="flex items-center space-x-4 mt-3 text-xs text-gray-400">
+                      <span>Created: {formatDate(quiz.createdAt)}</span>
+                      {quiz.updatedAt !== quiz.createdAt && (
+                        <span>Last Edited: {formatDate(quiz.updatedAt)}</span>
+                      )}
+                      <span>By: {quiz.createdBy?.name}</span>
+                    </div>
+                  </div>
+
+                  {/* Actions Dropdown */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setOpenDropdown(openDropdown === quiz._id ? null : quiz._id)}
+                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    >
+                      <MoreVertical size={20} className="text-gray-600" />
+                    </button>
+
+                    {openDropdown === quiz._id && (
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                        <button
+                          onClick={() => handleEditQuiz(quiz._id)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-gray-700"
+                        >
+                          <Edit size={16} />
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDuplicateQuiz(quiz._id)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-gray-700"
+                        >
+                          <Copy size={16} />
+                          <span>Duplicate</span>
+                        </button>
+                        <button
+                          onClick={() => handleTogglePublish(quiz._id, quiz.status)}
+                          className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-gray-700"
+                        >
+                          <Eye size={16} />
+                          <span>{quiz.status === 'published' ? 'Unpublish' : 'Publish'}</span>
+                        </button>
+                        <button
+                          onClick={() => handleDeleteQuiz(quiz._id)}
+                          className="w-full px-4 py-2 text-left hover:bg-red-50 flex items-center space-x-2 text-red-600"
+                        >
+                          <Trash2 size={16} />
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {hasMore && (
+          <div className="mt-6 text-center">
+            <button
+              onClick={fetchQuizzes}
+              className="px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
+            >
+              Load More
+            </button>
+          </div>
         )}
       </div>
-
-      {/* Load More */}
-      {hasMore && (
-        <div className="mt-6 text-center">
-          <button
-            onClick={fetchQuizzes}
-            className="px-6 py-3 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-semibold"
-          >
-            Load More
-          </button>
-        </div>
-      )}
     </div>
   );
 }

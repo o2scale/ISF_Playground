@@ -112,7 +112,7 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 w-full">
       {/* Header */}
       <div className="bg-blue-600 text-white px-6 py-4 border-b border-blue-700">
         <div className="flex items-center justify-between">
@@ -133,8 +133,8 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
       </div>
 
       {/* Filters */}
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="bg-white shadow-sm border-b w-full">
+        <div className="w-full px-6 py-4">
           <div className="flex items-center gap-4">
             {/* Search */}
             <input
@@ -162,7 +162,7 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
       </div>
 
       {/* Assignment Cards */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="w-full px-6 py-8">
         {filteredAssignments.length === 0 ? (
           <div className="text-center py-12">
             <div className="text-6xl mb-4">📚</div>
@@ -235,7 +235,7 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
                           {Math.round(
                             (assignment.progress.studentsStarted /
                               assignment.progress.totalStudents) *
-                              100
+                            100
                           ) || 0}
                           %)
                         </span>
@@ -248,9 +248,8 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
                         <div
                           className="bg-blue-600 h-2 rounded-full transition-all"
                           style={{
-                            width: `${
-                              assignment.progress.averageCompletionPercentage || 0
-                            }%`,
+                            width: `${assignment.progress.averageCompletionPercentage || 0
+                              }%`,
                           }}
                         ></div>
                       </div>

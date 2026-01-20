@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Trash2 } from 'lucide-react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
+import useFileUpload from '../../hooks/useFileUpload';
 
 /**
  * CourseCreationModal - Sprint 2 Epic 02 Story 01
@@ -27,6 +28,8 @@ export default function CourseCreationModal({
   const [thumbnailFile, setThumbnailFile] = useState(null);
   const [thumbnailPreview, setThumbnailPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  const { uploadFile } = useFileUpload();
 
   const isEditMode = !!courseToEdit;
 
@@ -137,12 +140,28 @@ export default function CourseCreationModal({
     try {
       setLoading(true);
 
-      // TODO: Upload thumbnail to S3 if file selected
-      // For now, using placeholder URL
       let thumbnailUrl = formData.thumbnail;
       if (thumbnailFile) {
-        // Placeholder - implement S3 upload
-        thumbnailUrl = `https://via.placeholder.com/1280x720/6366f1/ffffff?text=${encodeURIComponent(formData.title)}`;
+        try {
+          const uploadResult = await uploadFile({
+            file: thumbnailFile,
+            fileType: 'image',
+            id: 'course-thumbnail'
+          });
+
+          if (uploadResult.success) {
+            thumbnailUrl = uploadResult.cdnUrl;
+          } else {
+            toast.error('Thumbnail upload failed: ' + (uploadResult.error || 'Unknown error'));
+            setLoading(false);
+            return;
+          }
+        } catch (uploadError) {
+          console.error('Thumbnail upload exception:', uploadError);
+          toast.error('Thumbnail upload failed');
+          setLoading(false);
+          return;
+        }
       }
 
       const courseData = {
@@ -203,9 +222,8 @@ export default function CourseCreationModal({
               type="text"
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                errors.title ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="e.g., Advanced Computer Apps"
               maxLength={100}
             />
@@ -225,9 +243,8 @@ export default function CourseCreationModal({
             <textarea
               value={formData.description}
               onChange={(e) => handleChange('description', e.target.value)}
-              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none ${
-                errors.description ? 'border-red-500' : 'border-gray-300'
-              }`}
+              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 resize-none ${errors.description ? 'border-red-500' : 'border-gray-300'
+                }`}
               rows={4}
               placeholder="Describe the course content and learning objectives..."
               maxLength={500}
@@ -250,9 +267,8 @@ export default function CourseCreationModal({
               <select
                 value={formData.category}
                 onChange={(e) => handleChange('category', e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${
-                  errors.category ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-purple-500 ${errors.category ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select category</option>
                 <option value="Computer Apps">Computer Apps</option>
@@ -301,7 +317,7 @@ export default function CourseCreationModal({
           {/* Thumbnail Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Course Thumbnail
+              Course Thumbnail <span className="text-red-500 font-bold">* (Required for publishing)</span>
             </label>
 
             {!thumbnailPreview ? (
@@ -379,8 +395,8 @@ export default function CourseCreationModal({
                   ? 'Updating...'
                   : 'Creating...'
                 : isEditMode
-                ? 'Update Course'
-                : 'Create Course as Draft'}
+                  ? 'Update Course'
+                  : 'Create Course as Draft'}
             </button>
           </div>
         </form>

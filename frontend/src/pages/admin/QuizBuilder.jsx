@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Save, Eye, ArrowLeft, Plus, GripVertical } from 'lucide-react';
 import { api } from '../../api';
@@ -16,14 +16,14 @@ import QuizPreview from '../../components/admin/QuizPreview';
 
 export default function QuizBuilder() {
   const navigate = useNavigate();
-  const { quizId } = useParams();
+  const { quizId, courseId } = useParams();
   const isEditMode = !!quizId;
 
   // Quiz State
   const [quiz, setQuiz] = useState({
     title: '',
     description: '',
-    course: '',
+    course: courseId || '',
     module: '',
     chapter: '',
     questions: [],
@@ -60,29 +60,9 @@ export default function QuizBuilder() {
   const [showPreview, setShowPreview] = useState(false);
   const [showAddMenu, setShowAddMenu] = useState(false);
 
-  // Load quiz if editing
-  useEffect(() => {
-    if (isEditMode) {
-      loadQuiz();
-    }
-    loadCourses();
-  }, [quizId]);
 
-  // Load modules when course changes
-  useEffect(() => {
-    if (quiz.course) {
-      loadModules(quiz.course);
-    }
-  }, [quiz.course]);
 
-  // Load chapters when module changes
-  useEffect(() => {
-    if (quiz.module) {
-      loadChapters(quiz.module);
-    }
-  }, [quiz.module]);
-
-  const loadQuiz = async () => {
+  const loadQuiz = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get(`/api/v2/lms/admin/quizzes/${quizId}`);
@@ -95,9 +75,9 @@ export default function QuizBuilder() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [quizId]);
 
-  const loadCourses = async () => {
+  const loadCourses = useCallback(async () => {
     try {
       const response = await api.get('/api/v2/lms/admin/courses');
       if (response.data.success) {
@@ -106,9 +86,9 @@ export default function QuizBuilder() {
     } catch (error) {
       console.error('Error loading courses:', error);
     }
-  };
+  }, []);
 
-  const loadModules = async (courseId) => {
+  const loadModules = useCallback(async (courseId) => {
     try {
       const response = await api.get(`/api/v2/lms/admin/courses/${courseId}/modules`);
       if (response.data.success) {
@@ -117,9 +97,9 @@ export default function QuizBuilder() {
     } catch (error) {
       console.error('Error loading modules:', error);
     }
-  };
+  }, []);
 
-  const loadChapters = async (moduleId) => {
+  const loadChapters = useCallback(async (moduleId) => {
     try {
       const response = await api.get(`/api/v2/lms/admin/modules/${moduleId}/chapters`);
       if (response.data.success) {
@@ -128,7 +108,29 @@ export default function QuizBuilder() {
     } catch (error) {
       console.error('Error loading chapters:', error);
     }
-  };
+  }, []);
+
+  // Load quiz if editing
+  useEffect(() => {
+    if (isEditMode) {
+      loadQuiz();
+    }
+    loadCourses();
+  }, [quizId, isEditMode, loadQuiz, loadCourses]);
+
+  // Load modules when course changes
+  useEffect(() => {
+    if (quiz.course) {
+      loadModules(quiz.course);
+    }
+  }, [quiz.course, loadModules]);
+
+  // Load chapters when module changes
+  useEffect(() => {
+    if (quiz.module) {
+      loadChapters(quiz.module);
+    }
+  }, [quiz.module, loadChapters]);
 
   // Save quiz
   const handleSave = async (publish = false) => {
@@ -282,10 +284,10 @@ export default function QuizBuilder() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 w-full pb-12">
       {/* Header */}
-      <div className="bg-purple-600 text-white p-6 rounded-lg shadow-md mb-6">
-        <div className="flex justify-between items-center">
+      <div className="bg-purple-600 text-white p-6 shadow-md mb-6">
+        <div className="flex justify-between items-center py-6 px-6">
           <div className="flex items-center space-x-4">
             <button
               onClick={() => navigate('/admin/quizzes')}
@@ -328,446 +330,448 @@ export default function QuizBuilder() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Column - Quiz Metadata & Questions */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Quiz Metadata */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <h2 className="text-xl font-bold mb-4">Quiz Information</h2>
+      <div className="px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Column - Quiz Metadata & Questions */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Quiz Metadata */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4">Quiz Information</h2>
 
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Quiz Title *
-                </label>
-                <input
-                  type="text"
-                  value={quiz.title}
-                  onChange={(e) => setQuiz({ ...quiz, title: e.target.value })}
-                  placeholder="Enter quiz title"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={quiz.description}
-                  onChange={(e) => setQuiz({ ...quiz, description: e.target.value })}
-                  placeholder="Enter quiz description"
-                  rows={3}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Course
+                    Quiz Title *
                   </label>
-                  <select
-                    value={quiz.course}
-                    onChange={(e) => setQuiz({ ...quiz, course: e.target.value, module: '', chapter: '' })}
+                  <input
+                    type="text"
+                    value={quiz.title}
+                    onChange={(e) => setQuiz({ ...quiz, title: e.target.value })}
+                    placeholder="Enter quiz title"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="">Select Course</option>
-                    {courses.map(course => (
-                      <option key={course._id} value={course._id}>{course.title}</option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Module
+                    Description
                   </label>
-                  <select
-                    value={quiz.module}
-                    onChange={(e) => setQuiz({ ...quiz, module: e.target.value, chapter: '' })}
-                    disabled={!quiz.course}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
-                  >
-                    <option value="">Select Module</option>
-                    {modules.map(module => (
-                      <option key={module._id} value={module._id}>{module.title}</option>
-                    ))}
-                  </select>
+                  <textarea
+                    value={quiz.description}
+                    onChange={(e) => setQuiz({ ...quiz, description: e.target.value })}
+                    placeholder="Enter quiz description"
+                    rows={3}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Chapter
-                  </label>
-                  <select
-                    value={quiz.chapter}
-                    onChange={(e) => setQuiz({ ...quiz, chapter: e.target.value })}
-                    disabled={!quiz.module}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
-                  >
-                    <option value="">Select Chapter</option>
-                    {chapters.map(chapter => (
-                      <option key={chapter._id} value={chapter._id}>{chapter.title}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Questions Section */}
-          <div className="bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold">Questions ({quiz.questions.length})</h2>
-              <div className="relative">
-                <button
-                  onClick={() => setShowAddMenu(!showAddMenu)}
-                  className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
-                >
-                  <Plus size={20} />
-                  <span>Add Question</span>
-                </button>
-
-                {showAddMenu && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
-                    <button
-                      onClick={() => handleAddQuestion('mcq_single')}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Course
+                    </label>
+                    <select
+                      value={quiz.course}
+                      onChange={(e) => setQuiz({ ...quiz, course: e.target.value, module: '', chapter: '' })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                     >
-                      <div className="font-semibold">MCQ - Single Answer</div>
-                      <div className="text-xs text-gray-500">One correct option</div>
-                    </button>
-                    <button
-                      onClick={() => handleAddQuestion('mcq_multiple')}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      <div className="font-semibold">MCQ - Multiple Answers</div>
-                      <div className="text-xs text-gray-500">Multiple correct options</div>
-                    </button>
-                    <button
-                      onClick={() => handleAddQuestion('true_false')}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      <div className="font-semibold">True / False</div>
-                      <div className="text-xs text-gray-500">Statement verification</div>
-                    </button>
-                    <button
-                      onClick={() => handleAddQuestion('fill_blank')}
-                      className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
-                    >
-                      <div className="font-semibold">Fill in the Blank</div>
-                      <div className="text-xs text-gray-500">Text input matching</div>
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowQuestionBank(true);
-                        setShowAddMenu(false);
-                      }}
-                      className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-semibold"
-                    >
-                      Browse Question Bank
-                    </button>
+                      <option value="">Select Course</option>
+                      {(courses || []).map(course => (
+                        <option key={course._id} value={course._id}>{course.title}</option>
+                      ))}
+                    </select>
                   </div>
-                )}
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Module
+                    </label>
+                    <select
+                      value={quiz.module}
+                      onChange={(e) => setQuiz({ ...quiz, module: e.target.value, chapter: '' })}
+                      disabled={!quiz.course}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    >
+                      <option value="">Select Module</option>
+                      {(modules || []).map(module => (
+                        <option key={module._id} value={module._id}>{module.title}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Chapter
+                    </label>
+                    <select
+                      value={quiz.chapter}
+                      onChange={(e) => setQuiz({ ...quiz, chapter: e.target.value })}
+                      disabled={!quiz.module}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                    >
+                      <option value="">Select Chapter</option>
+                      {(chapters || []).map(chapter => (
+                        <option key={chapter._id} value={chapter._id}>{chapter.title}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 
-            {quiz.questions.length === 0 ? (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-lg">No questions added yet</p>
-                <p className="text-sm mt-2">Click "Add Question" to get started</p>
+            {/* Questions Section */}
+            <div className="bg-white p-6 rounded-lg shadow">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Questions ({quiz.questions.length})</h2>
+                <div className="relative">
+                  <button
+                    onClick={() => setShowAddMenu(!showAddMenu)}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                  >
+                    <Plus size={20} />
+                    <span>Add Question</span>
+                  </button>
+
+                  {showAddMenu && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-10">
+                      <button
+                        onClick={() => handleAddQuestion('mcq_single')}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
+                      >
+                        <div className="font-semibold">MCQ - Single Answer</div>
+                        <div className="text-xs text-gray-500">One correct option</div>
+                      </button>
+                      <button
+                        onClick={() => handleAddQuestion('mcq_multiple')}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
+                      >
+                        <div className="font-semibold">MCQ - Multiple Answers</div>
+                        <div className="text-xs text-gray-500">Multiple correct options</div>
+                      </button>
+                      <button
+                        onClick={() => handleAddQuestion('true_false')}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
+                      >
+                        <div className="font-semibold">True / False</div>
+                        <div className="text-xs text-gray-500">Statement verification</div>
+                      </button>
+                      <button
+                        onClick={() => handleAddQuestion('fill_blank')}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 border-b border-gray-100"
+                      >
+                        <div className="font-semibold">Fill in the Blank</div>
+                        <div className="text-xs text-gray-500">Text input matching</div>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowQuestionBank(true);
+                          setShowAddMenu(false);
+                        }}
+                        className="w-full px-4 py-3 text-left hover:bg-purple-50 text-purple-600 font-semibold"
+                      >
+                        Browse Question Bank
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {quiz.questions.map((question, index) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
-                    <div className="flex items-start space-x-3">
-                      <div className="cursor-move text-gray-400 hover:text-gray-600">
-                        <GripVertical size={20} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="font-semibold text-gray-800">
-                              Q{index + 1}. {question.questionText}
+
+              {quiz.questions.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <p className="text-lg">No questions added yet</p>
+                  <p className="text-sm mt-2">Click "Add Question" to get started</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {(quiz.questions || []).map((question, index) => (
+                    <div key={index} className="border border-gray-200 rounded-lg p-4 hover:border-purple-300 transition-colors">
+                      <div className="flex items-start space-x-3">
+                        <div className="cursor-move text-gray-400 hover:text-gray-600">
+                          <GripVertical size={20} />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-semibold text-gray-800">
+                                Q{index + 1}. {question.questionText}
+                              </div>
+                              <div className="text-sm text-gray-500 mt-1">
+                                {getQuestionTypeLabel(question.type)} • {question.points} points
+                              </div>
                             </div>
-                            <div className="text-sm text-gray-500 mt-1">
-                              {getQuestionTypeLabel(question.type)} • {question.points} points
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleEditQuestion(index)}
+                                className="text-blue-600 hover:text-blue-700 px-3 py-1 rounded hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDeleteQuestion(index)}
+                                className="text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50"
+                              >
+                                Delete
+                              </button>
                             </div>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <button
-                              onClick={() => handleEditQuestion(index)}
-                              className="text-blue-600 hover:text-blue-700 px-3 py-1 rounded hover:bg-blue-50"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteQuestion(index)}
-                              className="text-red-600 hover:text-red-700 px-3 py-1 rounded hover:bg-red-50"
-                            >
-                              Delete
-                            </button>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Settings Column */}
-        <div className="space-y-6">
-          <div className="bg-white p-6 rounded-lg shadow sticky top-6">
-            <h2 className="text-xl font-bold mb-4">Quiz Settings</h2>
+          {/* Settings Column */}
+          <div className="space-y-6">
+            <div className="bg-white p-6 rounded-lg shadow sticky top-6">
+              <h2 className="text-xl font-bold mb-4">Quiz Settings</h2>
 
-            <div className="space-y-4">
-              {/* Time Limit */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Time Limit (minutes)
-                </label>
-                <input
-                  type="number"
-                  value={quiz.settings.timeLimit}
-                  onChange={(e) => setQuiz({
-                    ...quiz,
-                    settings: { ...quiz.settings, timeLimit: parseInt(e.target.value) || 0 }
-                  })}
-                  disabled={quiz.settings.noTimeLimit}
-                  min="1"
-                  max="180"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
-                />
-                <label className="flex items-center mt-2">
+              <div className="space-y-4">
+                {/* Time Limit */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Time Limit (minutes)
+                  </label>
                   <input
-                    type="checkbox"
-                    checked={quiz.settings.noTimeLimit}
+                    type="number"
+                    value={quiz.settings.timeLimit}
                     onChange={(e) => setQuiz({
                       ...quiz,
-                      settings: { ...quiz.settings, noTimeLimit: e.target.checked }
+                      settings: { ...quiz.settings, timeLimit: parseInt(e.target.value) || 0 }
                     })}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    disabled={quiz.settings.noTimeLimit}
+                    min="1"
+                    max="180"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
                   />
-                  <span className="ml-2 text-sm text-gray-600">No time limit</span>
-                </label>
-              </div>
-
-              {/* Passing Score */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Passing Score (%)
-                </label>
-                <input
-                  type="number"
-                  value={quiz.settings.passingScore}
-                  onChange={(e) => setQuiz({
-                    ...quiz,
-                    settings: { ...quiz.settings, passingScore: parseInt(e.target.value) || 0 }
-                  })}
-                  min="0"
-                  max="100"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Randomization */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Randomization
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
+                  <label className="flex items-center mt-2">
                     <input
                       type="checkbox"
-                      checked={quiz.settings.randomizeQuestions}
+                      checked={quiz.settings.noTimeLimit}
                       onChange={(e) => setQuiz({
                         ...quiz,
-                        settings: { ...quiz.settings, randomizeQuestions: e.target.checked }
+                        settings: { ...quiz.settings, noTimeLimit: e.target.checked }
                       })}
                       className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                     />
-                    <span className="ml-2 text-sm text-gray-600">Randomize question order</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={quiz.settings.randomizeOptions}
-                      onChange={(e) => setQuiz({
-                        ...quiz,
-                        settings: { ...quiz.settings, randomizeOptions: e.target.checked }
-                      })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">Randomize option order (MCQ)</span>
+                    <span className="ml-2 text-sm text-gray-600">No time limit</span>
                   </label>
                 </div>
-              </div>
 
-              {/* Show Results */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Show Results
-                </label>
-                <select
-                  value={quiz.settings.showResults}
-                  onChange={(e) => setQuiz({
-                    ...quiz,
-                    settings: { ...quiz.settings, showResults: e.target.value }
-                  })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                >
-                  <option value="immediate">Immediately after submission</option>
-                  <option value="after_all_complete">After all students complete</option>
-                  <option value="manual">Manual release</option>
-                </select>
-              </div>
-
-              {/* Results Display */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Display to Students
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={quiz.settings.showScore}
-                      onChange={(e) => setQuiz({
-                        ...quiz,
-                        settings: { ...quiz.settings, showScore: e.target.checked }
-                      })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">Score</span>
+                {/* Passing Score */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Passing Score (%)
                   </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={quiz.settings.showCorrectness}
-                      onChange={(e) => setQuiz({
-                        ...quiz,
-                        settings: { ...quiz.settings, showCorrectness: e.target.checked }
-                      })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">Correct/Incorrect</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={quiz.settings.showAnswers}
-                      onChange={(e) => setQuiz({
-                        ...quiz,
-                        settings: { ...quiz.settings, showAnswers: e.target.checked }
-                      })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">Correct answers</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input
-                      type="checkbox"
-                      checked={quiz.settings.showExplanations}
-                      onChange={(e) => setQuiz({
-                        ...quiz,
-                        settings: { ...quiz.settings, showExplanations: e.target.checked }
-                      })}
-                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-600">Explanations</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Attempts */}
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Max Attempts
-                </label>
-                <input
-                  type="number"
-                  value={quiz.settings.maxAttempts}
-                  onChange={(e) => setQuiz({
-                    ...quiz,
-                    settings: { ...quiz.settings, maxAttempts: parseInt(e.target.value) || 1 }
-                  })}
-                  disabled={quiz.settings.unlimitedAttempts}
-                  min="1"
-                  max="10"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
-                />
-                <label className="flex items-center mt-2">
                   <input
-                    type="checkbox"
-                    checked={quiz.settings.unlimitedAttempts}
+                    type="number"
+                    value={quiz.settings.passingScore}
                     onChange={(e) => setQuiz({
                       ...quiz,
-                      settings: { ...quiz.settings, unlimitedAttempts: e.target.checked }
+                      settings: { ...quiz.settings, passingScore: parseInt(e.target.value) || 0 }
                     })}
-                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    min="0"
+                    max="100"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   />
-                  <span className="ml-2 text-sm text-gray-600">Unlimited attempts</span>
-                </label>
+                </div>
+
+                {/* Randomization */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Randomization
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={quiz.settings.randomizeQuestions}
+                        onChange={(e) => setQuiz({
+                          ...quiz,
+                          settings: { ...quiz.settings, randomizeQuestions: e.target.checked }
+                        })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Randomize question order</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={quiz.settings.randomizeOptions}
+                        onChange={(e) => setQuiz({
+                          ...quiz,
+                          settings: { ...quiz.settings, randomizeOptions: e.target.checked }
+                        })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Randomize option order (MCQ)</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Show Results */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Show Results
+                  </label>
+                  <select
+                    value={quiz.settings.showResults}
+                    onChange={(e) => setQuiz({
+                      ...quiz,
+                      settings: { ...quiz.settings, showResults: e.target.value }
+                    })}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  >
+                    <option value="immediate">Immediately after submission</option>
+                    <option value="after_all_complete">After all students complete</option>
+                    <option value="manual">Manual release</option>
+                  </select>
+                </div>
+
+                {/* Results Display */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Display to Students
+                  </label>
+                  <div className="space-y-2">
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={quiz.settings.showScore}
+                        onChange={(e) => setQuiz({
+                          ...quiz,
+                          settings: { ...quiz.settings, showScore: e.target.checked }
+                        })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Score</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={quiz.settings.showCorrectness}
+                        onChange={(e) => setQuiz({
+                          ...quiz,
+                          settings: { ...quiz.settings, showCorrectness: e.target.checked }
+                        })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Correct/Incorrect</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={quiz.settings.showAnswers}
+                        onChange={(e) => setQuiz({
+                          ...quiz,
+                          settings: { ...quiz.settings, showAnswers: e.target.checked }
+                        })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Correct answers</span>
+                    </label>
+                    <label className="flex items-center">
+                      <input
+                        type="checkbox"
+                        checked={quiz.settings.showExplanations}
+                        onChange={(e) => setQuiz({
+                          ...quiz,
+                          settings: { ...quiz.settings, showExplanations: e.target.checked }
+                        })}
+                        className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-600">Explanations</span>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Attempts */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Max Attempts
+                  </label>
+                  <input
+                    type="number"
+                    value={quiz.settings.maxAttempts}
+                    onChange={(e) => setQuiz({
+                      ...quiz,
+                      settings: { ...quiz.settings, maxAttempts: parseInt(e.target.value) || 1 }
+                    })}
+                    disabled={quiz.settings.unlimitedAttempts}
+                    min="1"
+                    max="10"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:bg-gray-100"
+                  />
+                  <label className="flex items-center mt-2">
+                    <input
+                      type="checkbox"
+                      checked={quiz.settings.unlimitedAttempts}
+                      onChange={(e) => setQuiz({
+                        ...quiz,
+                        settings: { ...quiz.settings, unlimitedAttempts: e.target.checked }
+                      })}
+                      className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+                    />
+                    <span className="ml-2 text-sm text-gray-600">Unlimited attempts</span>
+                  </label>
+                </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Question Editor Modals */}
+        {questionType === 'mcq_single' || questionType === 'mcq_multiple' ? (
+          <MCQEditor
+            question={editingQuestion}
+            onSave={handleSaveQuestion}
+            onCancel={() => {
+              setEditingQuestion(null);
+              setQuestionType(null);
+            }}
+          />
+        ) : null}
+
+        {questionType === 'true_false' && (
+          <TrueFalseEditor
+            question={editingQuestion}
+            onSave={handleSaveQuestion}
+            onCancel={() => {
+              setEditingQuestion(null);
+              setQuestionType(null);
+            }}
+          />
+        )}
+
+        {questionType === 'fill_blank' && (
+          <FillBlankEditor
+            question={editingQuestion}
+            onSave={handleSaveQuestion}
+            onCancel={() => {
+              setEditingQuestion(null);
+              setQuestionType(null);
+            }}
+          />
+        )}
+
+        {/* Question Bank Modal */}
+        {showQuestionBank && (
+          <QuestionBankModal
+            onClose={() => setShowQuestionBank(false)}
+            onAddQuestions={handleAddFromBank}
+          />
+        )}
+
+        {/* Quiz Preview */}
+        {showPreview && (
+          <QuizPreview
+            quiz={quiz}
+            onClose={() => setShowPreview(false)}
+          />
+        )}
       </div>
-
-      {/* Question Editor Modals */}
-      {questionType === 'mcq_single' || questionType === 'mcq_multiple' ? (
-        <MCQEditor
-          question={editingQuestion}
-          onSave={handleSaveQuestion}
-          onCancel={() => {
-            setEditingQuestion(null);
-            setQuestionType(null);
-          }}
-        />
-      ) : null}
-
-      {questionType === 'true_false' && (
-        <TrueFalseEditor
-          question={editingQuestion}
-          onSave={handleSaveQuestion}
-          onCancel={() => {
-            setEditingQuestion(null);
-            setQuestionType(null);
-          }}
-        />
-      )}
-
-      {questionType === 'fill_blank' && (
-        <FillBlankEditor
-          question={editingQuestion}
-          onSave={handleSaveQuestion}
-          onCancel={() => {
-            setEditingQuestion(null);
-            setQuestionType(null);
-          }}
-        />
-      )}
-
-      {/* Question Bank Modal */}
-      {showQuestionBank && (
-        <QuestionBankModal
-          onClose={() => setShowQuestionBank(false)}
-          onAddQuestions={handleAddFromBank}
-        />
-      )}
-
-      {/* Quiz Preview */}
-      {showPreview && (
-        <QuizPreview
-          quiz={quiz}
-          onClose={() => setShowPreview(false)}
-        />
-      )}
     </div>
   );
 }

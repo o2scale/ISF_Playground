@@ -336,7 +336,7 @@ const TranslationEditor = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full">
       {/* Screen Reader Announcements (ACC-03) */}
       <div
         role="status"
@@ -351,8 +351,8 @@ const TranslationEditor = () => {
       </div>
 
       {/* Header */}
-      <div className="bg-purple-600 text-white py-4 px-8 shadow-lg" role="banner">
-        <div className="flex justify-between items-center">
+      <div className="bg-purple-600 text-white shadow-lg" role="banner">
+        <div className="flex justify-between items-center py-4 px-6">
           <div>
             <h1 className="text-2xl font-bold">Translation Editor</h1>
             <p className="text-purple-100 text-sm mt-1" aria-label={progress && `Translation progress: ${progress.translatedItems} of ${progress.totalItems} items, ${progress.percentage}% complete`}>
@@ -378,25 +378,27 @@ const TranslationEditor = () => {
 
       {/* Progress Bar */}
       {progress && (
-        <div className="bg-white border-b-2 border-gray-200 px-8 py-4">
-          <div className="flex justify-between items-center mb-2">
-            <span className="text-gray-700 font-medium">Progress</span>
-            <div className="flex items-center gap-4">
-              {getSaveStatusDisplay()}
+        <div className="bg-white border-b-2 border-gray-200 py-4">
+          <div className="px-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-gray-700 font-medium">Progress</span>
+              <div className="flex items-center gap-4">
+                {getSaveStatusDisplay()}
+              </div>
             </div>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-4">
-            <div
-              className="bg-purple-600 h-4 rounded-full transition-all duration-500"
-              style={{ width: `${progress.percentage}%` }}
-            />
+            <div className="w-full bg-gray-200 rounded-full h-4">
+              <div
+                className="bg-purple-600 h-4 rounded-full transition-all duration-500"
+                style={{ width: `${progress.percentage}%` }}
+              />
+            </div>
           </div>
         </div>
       )}
 
       {/* Current Item Breadcrumb */}
-      <div className="bg-gray-100 border-b-2 border-gray-200 px-8 py-3">
-        <div className="flex justify-between items-center">
+      <div className="bg-gray-100 border-b-2 border-gray-200 py-3">
+        <div className="px-6 flex justify-between items-center">
           <p className="text-gray-700 font-medium">
             Translating: {currentItem.breadcrumb}
           </p>
@@ -407,7 +409,7 @@ const TranslationEditor = () => {
       </div>
 
       {/* Side-by-Side Editor */}
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="p-6">
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="grid grid-cols-2 divide-x-2 divide-gray-200">
             {/* English Column (Read-only) */}

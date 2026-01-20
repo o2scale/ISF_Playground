@@ -137,10 +137,10 @@ const TranslationQueue = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 w-full">
       {/* Header */}
-      <div className="bg-purple-600 text-white py-6 px-8 shadow-lg">
-        <div className="flex justify-between items-center">
+      <div className="bg-purple-600 text-white shadow-lg">
+        <div className="py-6 px-6 flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold">Translation Queue</h1>
             <p className="text-purple-100 mt-2">Browse and manage all translatable items</p>
@@ -154,7 +154,7 @@ const TranslationQueue = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-8">
+      <div className="p-6">
         {/* Filters */}
         <div className="bg-white rounded-xl shadow-md p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -274,13 +274,12 @@ const TranslationQueue = () => {
                   {/* Action Button */}
                   <div className="ml-4">
                     <button
-                      className={`px-6 py-3 rounded-lg font-bold transition-colors ${
-                        item.translationStatus === 'translated'
-                          ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                          : item.translationStatus === 'in_progress'
+                      className={`px-6 py-3 rounded-lg font-bold transition-colors ${item.translationStatus === 'translated'
+                        ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : item.translationStatus === 'in_progress'
                           ? 'bg-orange-500 text-white hover:bg-orange-600'
                           : 'bg-purple-600 text-white hover:bg-purple-700'
-                      }`}
+                        }`}
                     >
                       {item.translationStatus === 'translated' ? 'Review' : item.translationStatus === 'in_progress' ? 'Continue' : 'Translate'}
                     </button>

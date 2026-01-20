@@ -28,6 +28,7 @@ export default function CourseListView({
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [courseToEdit, setCourseToEdit] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
+  const [imageErrors, setImageErrors] = useState({});
 
   // Epic 02 Story 05: Publish validation modal
   const [isPublishModalOpen, setIsPublishModalOpen] = useState(false);
@@ -284,11 +285,10 @@ export default function CourseListView({
       {courses.map((course) => (
         <div
           key={course._id}
-          className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-colors ${
-            selectedCourseIds.includes(course._id)
+          className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-colors ${selectedCourseIds.includes(course._id)
               ? 'border-purple-400 bg-purple-50'
               : 'border-gray-200 hover:border-purple-300'
-          }`}
+            }`}
         >
           <div className="flex items-start gap-4">
             {/* Checkbox */}
@@ -303,15 +303,16 @@ export default function CourseListView({
             </div>
 
             {/* Thumbnail */}
-            <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden">
-              {course.thumbnail ? (
+            <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
+              {course.thumbnail && !imageErrors[course._id] ? (
                 <img
                   src={course.thumbnail}
                   alt={course.title}
                   className="w-full h-full object-cover"
+                  onError={() => setImageErrors(prev => ({ ...prev, [course._id]: true }))}
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center text-4xl">
+                <div className="text-4xl">
                   {course.icon || '📚'}
                 </div>
               )}
