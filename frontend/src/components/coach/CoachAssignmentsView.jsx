@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import config from '../../config';
 import CourseAssignmentModal from './CourseAssignmentModal';
 
 export default function CoachAssignmentsView({ coachId, coachName, balagruhaName }) {
@@ -19,7 +20,7 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5001/api/v2/lms/coach/${coachId}/assignments`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/${coachId}/assignments`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -46,7 +47,7 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
     try {
       const token = localStorage.getItem('token');
       await axios.delete(
-        `http://localhost:5001/api/v2/lms/coach/assignments/${assignmentId}`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/assignments/${assignmentId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }

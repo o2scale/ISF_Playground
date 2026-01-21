@@ -2,6 +2,7 @@
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import config from '../../../config';
 import GradingPanel from './GradingPanel';
 
 export default function VideoGradingInterface({ submission, onClose, coachId, onNavigate, onSkip, onFlag, currentIndex, totalCount }) {
@@ -13,7 +14,7 @@ export default function VideoGradingInterface({ submission, onClose, coachId, on
       const token = localStorage.getItem('token');
 
       await axios.post(
-        `http://localhost:5001/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
         gradeData,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -114,11 +115,10 @@ export default function VideoGradingInterface({ submission, onClose, coachId, on
                 <button
                   key={speed}
                   onClick={() => handleSpeedChange(speed)}
-                  className={`px-3 py-1 rounded-lg text-sm ${
-                    playbackSpeed === speed
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                  }`}
+                  className={`px-3 py-1 rounded-lg text-sm ${playbackSpeed === speed
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                 >
                   {speed}x
                 </button>

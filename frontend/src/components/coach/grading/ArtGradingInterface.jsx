@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import config from '../../../config';
 import GradingPanel from './GradingPanel';
 
 export default function ArtGradingInterface({ submission, onClose, coachId, onNavigate, onSkip, onFlag, currentIndex, totalCount }) {
@@ -13,7 +14,7 @@ export default function ArtGradingInterface({ submission, onClose, coachId, onNa
       const token = localStorage.getItem('token');
 
       await axios.post(
-        `http://localhost:5001/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
         gradeData,
         {
           headers: { Authorization: `Bearer ${token}` },

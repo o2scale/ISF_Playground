@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import config from '../../config';
 import StudentMultiSelect from './StudentMultiSelect';
 
 export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssignmentCreated }) {
@@ -29,7 +30,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        'http://localhost:5001/api/v2/lms/coach/courses/published',
+        `${config.API_BASE_URL}/api/v2/lms/coach/courses/published`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -45,7 +46,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(
-        `http://localhost:5001/api/v2/lms/coach/${coachId}/students`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/${coachId}/students`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -103,7 +104,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
       };
 
       const response = await axios.post(
-        'http://localhost:5001/api/v2/lms/coach/assignments',
+        `${config.API_BASE_URL}/api/v2/lms/coach/assignments`,
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -205,11 +206,10 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
             {/* Entire Balagruha Option */}
             <div
               onClick={() => setAssignmentType('balagruha')}
-              className={`border-2 rounded-lg p-4 cursor-pointer mb-3 transition ${
-                assignmentType === 'balagruha'
+              className={`border-2 rounded-lg p-4 cursor-pointer mb-3 transition ${assignmentType === 'balagruha'
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-300 hover:border-blue-300'
-              }`}
+                }`}
             >
               <div className="flex items-center">
                 <input
@@ -232,11 +232,10 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
             {/* Specific Students Option */}
             <div
               onClick={() => setAssignmentType('students')}
-              className={`border-2 rounded-lg p-4 cursor-pointer transition ${
-                assignmentType === 'students'
+              className={`border-2 rounded-lg p-4 cursor-pointer transition ${assignmentType === 'students'
                   ? 'border-blue-500 bg-blue-50'
                   : 'border-gray-300 hover:border-blue-300'
-              }`}
+                }`}
             >
               <div className="flex items-center">
                 <input

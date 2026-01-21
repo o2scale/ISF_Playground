@@ -1,4 +1,5 @@
 import axios from "axios";
+import config from "../config";
 
 export const ReqSource = {
   ELECTRON: "electron",
@@ -20,9 +21,7 @@ export const getApiInstance = () => {
   const instance = axios.create();
   instance.interceptors.request.use(async (config) => {
     const isOnline = await checkOnlineStatus();
-    config.baseURL = isOnline
-      ? "https://playground.initiativesewafoundation.com/server"
-      : "http://localhost:5001";
+    config.baseURL = config.API_BASE_URL;
     const macAddress = localStorage.getItem("macAddress");
     if (macAddress) config.headers["MAC-Address"] = macAddress;
     if (!config.headers["Content-Type"])
@@ -65,9 +64,7 @@ export const getApiWithoutContentTypeInstance = () => {
   const instance = axios.create();
   instance.interceptors.request.use(async (config) => {
     const isOnline = await checkOnlineStatus();
-    config.baseURL = isOnline
-      ? "https://playground.initiativesewafoundation.com/server"
-      : "http://localhost:5001";
+    config.baseURL = config.API_BASE_URL;
     const macAddress = localStorage.getItem("macAddress");
     if (macAddress) config.headers["MAC-Address"] = macAddress;
     config.headers["Content-Type"] = "multipart/form-data";

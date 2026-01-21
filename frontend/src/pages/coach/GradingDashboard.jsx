@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import config from '../../config';
 import SubmissionQueue from '../../components/coach/grading/SubmissionQueue';
 import ArtGradingInterface from '../../components/coach/grading/ArtGradingInterface';
 import VideoGradingInterface from '../../components/coach/grading/VideoGradingInterface';
@@ -45,7 +46,7 @@ export default function GradingDashboard() {
       });
 
       const response = await axios.get(
-        `http://localhost:5001/api/v2/lms/coach/grading/${user.id}/submissions?${queryParams}`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/grading/${user.id}/submissions?${queryParams}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -99,7 +100,7 @@ export default function GradingDashboard() {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5001/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/skip`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/skip`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -118,7 +119,7 @@ export default function GradingDashboard() {
       if (!reason) return;
 
       await axios.put(
-        `http://localhost:5001/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/flag`,
+        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/flag`,
         { reason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
