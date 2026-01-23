@@ -92,15 +92,18 @@ export default function ModuleCard({
 
     try {
       setDeleting(true);
-      // Note: Need to implement delete endpoint in backend
-      // For now, showing toast
-      toast.error('Delete module endpoint not yet implemented');
-      setShowMenu(false);
+      const response = await api.delete(`/api/v2/lms/admin/courses/${courseId}/modules/${module._id}`);
+
+      if (response.data.success) {
+        toast.success('Module deleted successfully');
+        onModuleUpdated();
+      }
     } catch (error) {
       console.error('Error deleting module:', error);
       toast.error('Failed to delete module');
     } finally {
       setDeleting(false);
+      setShowMenu(false);
     }
   };
 
@@ -302,6 +305,7 @@ export default function ModuleCard({
         <EditModuleModal
           isOpen={isEditModalOpen}
           module={module}
+          courseId={courseId}
           onClose={() => setIsEditModalOpen(false)}
           onUpdated={onModuleUpdated}
         />

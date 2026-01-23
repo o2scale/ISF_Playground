@@ -75,6 +75,18 @@ router.put('/quizzes/:quizId/publish', quizController.publishQuiz);
 router.put('/quizzes/:quizId/unpublish', quizController.unpublishQuiz);
 
 /**
+ * PUT /api/v2/lms/admin/quizzes/:quizId/archive
+ * Archive quiz
+ */
+router.put('/quizzes/:quizId/archive', quizController.archiveQuiz);
+
+/**
+ * PUT /api/v2/lms/admin/quizzes/:quizId/restore
+ * Restore archived quiz
+ */
+router.put('/quizzes/:quizId/restore', quizController.restoreQuiz);
+
+/**
  * PUT /api/v2/lms/admin/quizzes/:quizId/questions/reorder
  * Reorder questions within quiz
  * Body: { questionIds: [array of question _ids in new order] }

@@ -92,6 +92,30 @@ router.post(
 );
 
 /**
+ * @route PUT /api/v2/lms/admin/courses/:courseId/modules/:moduleId
+ * @desc Update module
+ * @access Private (Admin only)
+ */
+router.put(
+  '/:courseId/modules/:moduleId',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.updateModule
+);
+
+/**
+ * @route DELETE /api/v2/lms/admin/courses/:courseId/modules/:moduleId
+ * @desc Delete module
+ * @access Private (Admin only)
+ */
+router.delete(
+  '/:courseId/modules/:moduleId',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.deleteModule
+);
+
+/**
  * @route POST /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters
  * @desc Add chapter to module
  * @access Private (Admin only)
@@ -104,6 +128,30 @@ router.post(
 );
 
 /**
+ * @route PUT /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId
+ * @desc Update chapter
+ * @access Private (Admin only)
+ */
+router.put(
+  '/:courseId/modules/:moduleId/chapters/:chapterId',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.updateChapter
+);
+
+/**
+ * @route DELETE /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId
+ * @desc Delete chapter
+ * @access Private (Admin only)
+ */
+router.delete(
+  '/:courseId/modules/:moduleId/chapters/:chapterId',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.deleteChapter
+);
+
+/**
  * @route POST /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId/content
  * @desc Add content item to chapter
  * @access Private (Admin only)
@@ -113,6 +161,30 @@ router.post(
   authenticate,
   authorize('LMS Management', 'Manage'),
   courseController.addContentItem
+);
+
+/**
+ * @route PUT /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId/content/:contentId
+ * @desc Update content item
+ * @access Private (Admin only)
+ */
+router.put(
+  '/:courseId/modules/:moduleId/chapters/:chapterId/content/:contentId',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.updateContentItem
+);
+
+/**
+ * @route DELETE /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId/content/:contentId
+ * @desc Delete content item
+ * @access Private (Admin only)
+ */
+router.delete(
+  '/:courseId/modules/:moduleId/chapters/:chapterId/content/:contentId',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.deleteContentItem
 );
 
 /**

@@ -67,7 +67,20 @@ export default function QuizBuilder() {
       setLoading(true);
       const response = await api.get(`/api/v2/lms/admin/quizzes/${quizId}`);
       if (response.data.success) {
-        setQuiz(response.data.quiz);
+        const loadedQuiz = response.data.quiz;
+
+        // Normalize location data (handle populated objects)
+        const normalizeId = (field) => {
+          if (!field) return '';
+          return typeof field === 'object' ? field._id : field;
+        };
+
+        setQuiz({
+          ...loadedQuiz,
+          course: normalizeId(loadedQuiz.course),
+          module: normalizeId(loadedQuiz.module),
+          chapter: normalizeId(loadedQuiz.chapter)
+        });
       }
     } catch (error) {
       console.error('Error loading quiz:', error);
@@ -81,7 +94,7 @@ export default function QuizBuilder() {
     try {
       const response = await api.get('/api/v2/lms/admin/courses');
       if (response.data.success) {
-        setCourses(response.data.courses);
+        setCourses(response.data.data);
       }
     } catch (error) {
       console.error('Error loading courses:', error);
@@ -122,6 +135,8 @@ export default function QuizBuilder() {
   useEffect(() => {
     if (quiz.course) {
       loadModules(quiz.course);
+    } else {
+      setModules([]);
     }
   }, [quiz.course, loadModules]);
 
@@ -129,6 +144,8 @@ export default function QuizBuilder() {
   useEffect(() => {
     if (quiz.module) {
       loadChapters(quiz.module);
+    } else {
+      setChapters([]);
     }
   }, [quiz.module, loadChapters]);
 
@@ -303,6 +320,14 @@ export default function QuizBuilder() {
             </div>
           </div>
           <div className="flex items-center space-x-3">
+            {/* Status Badge */}
+            <div className={`px-3 py-1 rounded-full text-sm font-semibold ${quiz.status === 'published' ? 'bg-green-100 text-green-800' :
+              quiz.status === 'archived' ? 'bg-red-100 text-red-800' :
+                'bg-yellow-100 text-yellow-800'
+              }`}>
+              {quiz.status ? quiz.status.charAt(0).toUpperCase() + quiz.status.slice(1) : 'Draft'}
+            </div>
+
             <button
               onClick={() => setShowPreview(true)}
               disabled={quiz.questions.length === 0}

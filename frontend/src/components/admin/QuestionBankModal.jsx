@@ -78,7 +78,7 @@ export default function QuestionBankModal({ onClose, onAddQuestions }) {
 
         <div className="p-6">
           {/* Filters */}
-          <div className="flex space-x-3 mb-4">
+          <div className="flex items-center space-x-3 mb-4">
             <select
               value={typeFilter}
               onChange={(e) => setTypeFilter(e.target.value)}
@@ -121,9 +121,8 @@ export default function QuestionBankModal({ onClose, onAddQuestions }) {
                   <div
                     key={question._id}
                     onClick={() => toggleSelect(question)}
-                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${
-                      isSelected ? 'bg-purple-50 border-purple-300' : 'border-gray-200 hover:border-gray-300'
-                    }`}
+                    className={`p-4 border-2 rounded-lg cursor-pointer transition-colors ${isSelected ? 'bg-purple-50 border-purple-300' : 'border-gray-200 hover:border-gray-300'
+                      }`}
                   >
                     <div className="flex items-start space-x-3">
                       <input

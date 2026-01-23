@@ -669,11 +669,14 @@ exports.uploadLMSContent = async (fileContent, fileName, fileType, mimeType) => 
       },
     });
 
+    const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
+    console.log(`🚀 Starting S3 Upload - Bucket: ${bucketName}, Key: ${s3Key}, Content-Type: ${mimeType}`);
+
     await s3Client.send(command);
 
     // Construct CDN URL
     const region = await s3Client.config.region();
-    const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
+    // bucketName is already declared above
     const cdnUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
 
     console.log(`LMS content uploaded successfully: ${cdnUrl}`);
@@ -688,7 +691,8 @@ exports.uploadLMSContent = async (fileContent, fileName, fileType, mimeType) => 
       mimeType,
     };
   } catch (error) {
-    console.error('Error uploading LMS content:', error);
+    console.error('❌ Error uploading LMS content:', error.message);
+    if (error.$metadata) console.error('AWS Metadata:', error.$metadata);
     return {
       success: false,
       message: 'LMS content upload failed',

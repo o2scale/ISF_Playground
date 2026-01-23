@@ -17,6 +17,9 @@ import {
 import toast from 'react-hot-toast';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { api } from '../../api';
+import { useNavigate } from 'react-router-dom';
+import EditContentItemModal from './EditContentItemModal';
 
 /**
  * ContentItemCard - Sprint 2 Epic 02 Story 01
@@ -31,6 +34,8 @@ export default function ContentItemCard({
   onContentUpdated
 }) {
   const [showMenu, setShowMenu] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Drag-and-drop
   const {
@@ -99,9 +104,10 @@ export default function ContentItemCard({
       parts.push(`File Size: ${mb} MB`);
     }
 
-    if (contentItem.type === 'quiz' && contentItem.quizData?.questions) {
-      parts.push(`${contentItem.quizData.questions.length} Questions`);
-      if (contentItem.quizData.timeLimit) {
+    if (contentItem.type === 'quiz') {
+      const qCount = contentItem.quizRef?.questions?.length || contentItem.quizData?.questions?.length || 0;
+      parts.push(`${qCount} Questions`);
+      if (contentItem.quizData?.timeLimit) {
         parts.push(`Time Limit: ${contentItem.quizData.timeLimit} min`);
       }
     }
@@ -114,23 +120,63 @@ export default function ContentItemCard({
   };
 
   const handlePreview = () => {
-    toast('Preview feature not yet implemented');
+    if (contentItem.fileUrl) {
+      window.open(contentItem.fileUrl, '_blank');
+    } else if (contentItem.externalUrl) {
+      window.open(contentItem.externalUrl, '_blank');
+    } else if (contentItem.type === 'quiz' && contentItem.quizRef?._id) {
+      // Redirect to quiz builder or preview page
+      // Since we don't have a standalone preview page easily accessible for admins without builder,
+      // we'll redirect to the builder which has a preview mode.
+      // Actually, user asked for preview. Let's redirect to builder for now?
+      // Or if there is a preview route: /admin/quizzes/:id/preview
+      // Let's assume standard builder edit is best for now as "Preview" for admin usually implies checking content.
+      // Wait, the regular builder has a preview button.
+      // Let's try to find if there is a dedicated preview route.
+      // The user feedback mentioned "Preview not available".
+      // Let's open the quiz builder for now, or if possible a dedicated preview.
+      // Looking at routes file earlier might help, but let's stick to safe builder edit redirect or dedicated preview if I saw one.
+      // I recall `QuizDashboard` and `QuizBuilder`.
+      // Let's just use the builder for now, but maybe with a ?preview=true param if supported, or just let them click preview there.
+      // Actually, for "Preview" let's try to open the builder in a new tab?
+      // Or better, redirect to `/admin/quizzes/${contentItem.quizRef._id}/edit`
+      navigate(`/admin/quizzes/${contentItem.quizRef._id}/edit`);
+    } else {
+      toast('Preview not available for this item');
+    }
     setShowMenu(false);
   };
 
   const handleEdit = () => {
-    toast('Edit content item not yet implemented');
+    if (contentItem.type === 'quiz' && contentItem.quizRef?._id) {
+      navigate(`/admin/quizzes/${contentItem.quizRef._id}/edit`);
+    } else {
+      setIsEditModalOpen(true);
+    }
     setShowMenu(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (!window.confirm(`Are you sure you want to delete "${contentItem.title}"?`)) {
       setShowMenu(false);
       return;
     }
 
-    toast.error('Delete content item endpoint not yet implemented');
-    setShowMenu(false);
+    try {
+      const response = await api.delete(
+        `/api/v2/lms/admin/courses/${courseId}/modules/${moduleId}/chapters/${chapterId}/content/${contentItem._id}`
+      );
+
+      if (response.data.success) {
+        toast.success('Content item deleted successfully');
+        onContentUpdated();
+      }
+    } catch (error) {
+      console.error('Error deleting content item:', error);
+      toast.error('Failed to delete content item');
+    } finally {
+      setShowMenu(false);
+    }
   };
 
   return (
@@ -217,6 +263,19 @@ export default function ContentItemCard({
           )}
         </div>
       </div>
-    </div>
+
+      {isEditModalOpen && (
+        <EditContentItemModal
+          isOpen={isEditModalOpen}
+          contentItem={contentItem}
+          chapterId={chapterId}
+          moduleId={moduleId}
+          courseId={courseId}
+          onClose={() => setIsEditModalOpen(false)}
+          onUpdated={onContentUpdated}
+        />
+      )
+      }
+    </div >
   );
 }

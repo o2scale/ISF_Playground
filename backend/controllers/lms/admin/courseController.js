@@ -59,7 +59,13 @@ exports.getCourseById = async (req, res) => {
       return res.status(400).json({ error: "Invalid course ID" });
     }
 
-    const course = await Course.findById(id).populate("createdBy", "name email");
+    const course = await Course.findById(id)
+      .populate("createdBy", "name email")
+      .populate({
+        path: "modules.chapters.contentItems.quizRef",
+        model: "Quiz",
+        select: "title questions status description"
+      });
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
@@ -275,6 +281,72 @@ exports.addModule = async (req, res) => {
 };
 
 /**
+ * PUT /api/v2/lms/admin/courses/:courseId/modules/:moduleId
+ * Update module
+ */
+exports.updateModule = async (req, res) => {
+  try {
+    const { courseId, moduleId } = req.params;
+    const { title, description } = req.body;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    if (title) module.title = title.trim();
+    if (description !== undefined) module.description = description.trim();
+
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Module updated successfully",
+      data: module,
+    });
+  } catch (error) {
+    console.error("Error updating module:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * DELETE /api/v2/lms/admin/courses/:courseId/modules/:moduleId
+ * Delete module
+ */
+exports.deleteModule = async (req, res) => {
+  try {
+    const { courseId, moduleId } = req.params;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    module.deleteOne();
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Module deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting module:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * POST /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters
  * Add chapter to module
  */
@@ -324,6 +396,82 @@ exports.addChapter = async (req, res) => {
 };
 
 /**
+ * PUT /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId
+ * Update chapter
+ */
+exports.updateChapter = async (req, res) => {
+  try {
+    const { courseId, moduleId, chapterId } = req.params;
+    const { title, description } = req.body;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    const chapter = module.chapters.id(chapterId);
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+
+    if (title) chapter.title = title.trim();
+    if (description !== undefined) chapter.description = description.trim();
+
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Chapter updated successfully",
+      data: chapter,
+    });
+  } catch (error) {
+    console.error("Error updating chapter:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * DELETE /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId
+ * Delete chapter
+ */
+exports.deleteChapter = async (req, res) => {
+  try {
+    const { courseId, moduleId, chapterId } = req.params;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    const chapter = module.chapters.id(chapterId);
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+
+    chapter.deleteOne();
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Chapter deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting chapter:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
  * POST /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId/content
  * Add content item to chapter
  */
@@ -337,10 +485,14 @@ exports.addContentItem = async (req, res) => {
       fileUrl,
       metadata,
       quizData,
+      quizRef, // Add quizRef
       textContent,
       externalUrl,
       taskData,
     } = req.body;
+
+    console.log(`📦 Adding Content Item - Course: ${courseId}, Module: ${moduleId}, Chapter: ${chapterId}`);
+    console.log('📝 Payload:', JSON.stringify(req.body, null, 2));
 
     if (!type || !title) {
       return res.status(400).json({ error: "Type and title are required" });
@@ -388,6 +540,7 @@ exports.addContentItem = async (req, res) => {
       fileUrl,
       metadata,
       quizData,
+      quizRef: quizRef || undefined, // Sanitize quizRef: prevent empty string CastError
       textContent,
       externalUrl,
       taskData,
@@ -411,6 +564,113 @@ exports.addContentItem = async (req, res) => {
     });
   } catch (error) {
     console.error("Error adding content item:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * PUT /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId/content/:contentId
+ * Update content item
+ */
+exports.updateContentItem = async (req, res) => {
+  try {
+    const { courseId, moduleId, chapterId, contentId } = req.params;
+    const updates = req.body;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    const chapter = module.chapters.id(chapterId);
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+
+    const contentItem = chapter.contentItems.id(contentId);
+    if (!contentItem) {
+      return res.status(404).json({ error: "Content item not found" });
+    }
+
+    // Allowed updates
+    const allowed = [
+      "title",
+      "description",
+      "fileUrl",
+      "metadata",
+      "quizData",
+      "textContent",
+      "externalUrl",
+      "taskData",
+      "quizRef",
+    ];
+
+    Object.keys(updates).forEach((key) => {
+      if (allowed.includes(key) && updates[key] !== undefined) {
+        // Sanitize quizRef
+        if (key === 'quizRef' && !updates[key]) {
+          contentItem[key] = undefined;
+        } else {
+          contentItem[key] = updates[key];
+        }
+      }
+    });
+
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Content item updated successfully",
+      data: contentItem,
+    });
+  } catch (error) {
+    console.error("Error updating content item:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * DELETE /api/v2/lms/admin/courses/:courseId/modules/:moduleId/chapters/:chapterId/content/:contentId
+ * Delete content item
+ */
+exports.deleteContentItem = async (req, res) => {
+  try {
+    const { courseId, moduleId, chapterId, contentId } = req.params;
+
+    const course = await Course.findById(courseId);
+    if (!course) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    const module = course.modules.id(moduleId);
+    if (!module) {
+      return res.status(404).json({ error: "Module not found" });
+    }
+
+    const chapter = module.chapters.id(chapterId);
+    if (!chapter) {
+      return res.status(404).json({ error: "Chapter not found" });
+    }
+
+    const contentItem = chapter.contentItems.id(contentId);
+    if (!contentItem) {
+      return res.status(404).json({ error: "Content item not found" });
+    }
+
+    contentItem.deleteOne();
+    await course.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Content item deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting content item:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 };

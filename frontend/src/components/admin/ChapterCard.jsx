@@ -8,6 +8,7 @@ import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from 
 import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import ContentItemCard from './ContentItemCard';
 import AddContentItemModal from './AddContentItemModal';
+import EditChapterModal from './EditChapterModal';
 
 /**
  * ChapterCard - Sprint 2 Epic 02 Story 01
@@ -25,6 +26,7 @@ export default function ChapterCard({
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isAddContentModalOpen, setIsAddContentModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [localContentItems, setLocalContentItems] = useState(chapter.contentItems || []);
 
   // Drag-and-drop for chapter
@@ -59,6 +61,7 @@ export default function ChapterCard({
 
   const handleAddContentItem = async (contentData) => {
     try {
+      console.log('📦 ChapterCard: Adding content item:', contentData);
       const response = await api.post(
         `/api/v2/lms/admin/courses/${courseId}/modules/${moduleId}/chapters/${chapter._id}/content`,
         contentData
@@ -70,7 +73,10 @@ export default function ChapterCard({
         setIsAddContentModalOpen(false);
       }
     } catch (error) {
-      console.error('Error adding content item:', error);
+      console.error('❌ Error adding content item:', error);
+      if (error.response) {
+        console.error('Backend Error Response:', error.response.data);
+      }
       toast.error('Failed to add content item');
     }
   };
@@ -81,7 +87,25 @@ export default function ChapterCard({
       return;
     }
 
-    toast.error('Delete chapter endpoint not yet implemented');
+    try {
+      const response = await api.delete(
+        `/api/v2/lms/admin/courses/${courseId}/modules/${moduleId}/chapters/${chapter._id}`
+      );
+
+      if (response.data.success) {
+        toast.success('Chapter deleted successfully');
+        onChapterUpdated();
+      }
+    } catch (error) {
+      console.error('Error deleting chapter:', error);
+      toast.error('Failed to delete chapter');
+    } finally {
+      setShowMenu(false);
+    }
+  };
+
+  const handleEdit = () => {
+    setIsEditModalOpen(true);
     setShowMenu(false);
   };
 
@@ -190,10 +214,7 @@ export default function ChapterCard({
                 />
                 <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-20">
                   <button
-                    onClick={() => {
-                      toast('Edit chapter not yet implemented');
-                      setShowMenu(false);
-                    }}
+                    onClick={handleEdit}
                     className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
                   >
                     <Edit2 size={16} />
@@ -271,6 +292,18 @@ export default function ChapterCard({
           isOpen={isAddContentModalOpen}
           onClose={() => setIsAddContentModalOpen(false)}
           onAdd={handleAddContentItem}
+        />
+      )}
+
+      {/* Edit Chapter Modal */}
+      {isEditModalOpen && (
+        <EditChapterModal
+          isOpen={isEditModalOpen}
+          chapter={chapter}
+          moduleId={moduleId}
+          courseId={courseId}
+          onClose={() => setIsEditModalOpen(false)}
+          onUpdated={onChapterUpdated}
         />
       )}
     </div>

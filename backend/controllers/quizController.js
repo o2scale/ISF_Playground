@@ -1,5 +1,6 @@
 const Quiz = require('../models/Quiz');
 const QuestionBank = require('../models/QuestionBank');
+const Course = require('../models/course');
 
 /**
  * Quiz Controller - Sprint 2 Epic 02 Story 03
@@ -165,10 +166,23 @@ exports.createQuiz = async (req, res) => {
       });
     }
 
-    // Convert empty strings to undefined for ObjectId fields
-    const cleanedCourse = course && course.trim() !== '' ? course : undefined;
-    const cleanedModule = module && module.trim() !== '' ? module : undefined;
-    const cleanedChapter = chapter && chapter.trim() !== '' ? chapter : undefined;
+    // Helper to safely extract updated ID or undefined
+    const safeId = (val) => {
+      if (!val) return undefined;
+      // If it's an object with _id (populated), use that
+      if (typeof val === 'object' && val._id) return val._id.toString();
+      // If it's a string, trim it
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+      }
+      // If it's something else (e.g. toString-able), try stringify
+      return val.toString();
+    };
+
+    const cleanedCourse = safeId(course);
+    const cleanedModule = safeId(module);
+    const cleanedChapter = safeId(chapter);
 
     // Create quiz
     const quiz = new Quiz({
@@ -187,20 +201,38 @@ exports.createQuiz = async (req, res) => {
       createdBy: req.user?._id || req.user?.id
     });
 
-    // Debug logging
-    console.log('Creating quiz with user:', {
-      hasUser: !!req.user,
-      userId: req.user?._id,
-      userIdString: req.user?.id,
-      userType: typeof req.user
-    });
-
     await quiz.save();
 
-    // Populate references for response (only models, not subdocuments)
+    // Link to Course Structure
+    if (cleanedCourse && cleanedModule && cleanedChapter) {
+      try {
+        const courseDoc = await Course.findById(cleanedCourse);
+        if (courseDoc) {
+          const moduleDoc = courseDoc.modules.id(cleanedModule);
+          if (moduleDoc) {
+            const chapterDoc = moduleDoc.chapters.id(cleanedChapter);
+            if (chapterDoc) {
+              // Add new Content Item
+              chapterDoc.contentItems.push({
+                type: 'quiz',
+                title: quiz.title,
+                quizRef: quiz._id,
+                order: chapterDoc.contentItems.length // Append to end
+              });
+              await courseDoc.save();
+              console.log(`Linked Quiz ${quiz._id} to Course ${cleanedCourse}`);
+            }
+          }
+        }
+      } catch (linkError) {
+        console.error('Failed to link quiz to course:', linkError);
+        // Don't fail the request, just log it
+      }
+    }
+
+    // Populate references for response
     await quiz.populate([
       { path: 'course', select: 'title' },
-      // Note: module and chapter are subdocuments within Course, cannot populate
       { path: 'createdBy', select: 'name email' }
     ]);
 
@@ -212,12 +244,6 @@ exports.createQuiz = async (req, res) => {
 
   } catch (error) {
     console.error('Error creating quiz:', error);
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-      errors: error.errors // Mongoose validation errors
-    });
     res.status(500).json({
       success: false,
       message: 'Failed to create quiz',
@@ -260,16 +286,28 @@ exports.updateQuiz = async (req, res) => {
       'tags'
     ];
 
-    // Sanitize empty strings for optional ObjectId fields (same as createQuiz)
-    if (updates.course !== undefined && updates.course.trim && updates.course.trim() === '') {
-      updates.course = undefined;
-    }
-    if (updates.module !== undefined && updates.module.trim && updates.module.trim() === '') {
-      updates.module = undefined;
-    }
-    if (updates.chapter !== undefined && updates.chapter.trim && updates.chapter.trim() === '') {
-      updates.chapter = undefined;
-    }
+    // Helper to safely extract ID or undefined
+    const safeId = (val) => {
+      if (val === undefined) return undefined; // Don't update
+      if (val === null || val === '') return undefined; // Clear value
+      // If it's an object with _id (populated), use that
+      if (typeof val === 'object' && val._id) return val._id.toString();
+      if (typeof val === 'string') {
+        const trimmed = val.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+      }
+      return val.toString();
+    };
+
+    // Sanitize optional ObjectId fields
+    if (updates.course !== undefined) updates.course = safeId(updates.course);
+    if (updates.module !== undefined) updates.module = safeId(updates.module);
+    if (updates.chapter !== undefined) updates.chapter = safeId(updates.chapter);
+
+    // Check if location changed
+    const oldCourseId = quiz.course?.toString();
+    const oldModuleId = quiz.module?.toString();
+    const oldChapterId = quiz.chapter?.toString();
 
     allowedUpdates.forEach(field => {
       if (updates[field] !== undefined) {
@@ -281,10 +319,89 @@ exports.updateQuiz = async (req, res) => {
 
     await quiz.save();
 
+    // Sync with Course Structure if location changed
+    const newCourseId = quiz.course?.toString();
+    const newModuleId = quiz.module?.toString();
+    const newChapterId = quiz.chapter?.toString();
+
+    const locationChanged =
+      (oldCourseId !== newCourseId) ||
+      (oldModuleId !== newModuleId) ||
+      (oldChapterId !== newChapterId);
+
+    if (locationChanged || updates.title) {
+      try {
+        // 1. Remove from old location if it existed
+        if (oldCourseId && oldModuleId && oldChapterId) {
+          const oldCourseDoc = await Course.findById(oldCourseId);
+          if (oldCourseDoc) {
+            const oldModuleDoc = oldCourseDoc.modules.id(oldModuleId);
+            if (oldModuleDoc) {
+              const oldChapterDoc = oldModuleDoc.chapters.id(oldChapterId);
+              if (oldChapterDoc) {
+                // Remove content item with matching quizRef
+                oldChapterDoc.contentItems = oldChapterDoc.contentItems.filter(
+                  item => item.quizRef?.toString() !== quizId
+                );
+                await oldCourseDoc.save();
+                console.log(`Removed Quiz ${quizId} from old location`);
+              }
+            }
+          }
+        }
+
+        // 2. Add to new location (if fully defined)
+        // If location didn't change but Title did, we removed it above and now re-add it with new title
+        // Wait, if ONLY title changed and location didn't, we shouldn't remove/add?
+        // Actually, easiest way to update title in ContentItem is to Find and Update. 
+        // But Remove/Add works too and handles reordering (appends to end though).
+        // Let's optimize: If location SAME, update title. If location CHANGED, Remove/Add.
+
+        if (!locationChanged && updates.title && newCourseId && newModuleId && newChapterId) {
+          const courseDoc = await Course.findById(newCourseId);
+          if (courseDoc) {
+            const modDoc = courseDoc.modules.id(newModuleId);
+            if (modDoc) {
+              const chapDoc = modDoc.chapters.id(newChapterId);
+              if (chapDoc) {
+                const item = chapDoc.contentItems.find(i => i.quizRef?.toString() === quizId);
+                if (item) {
+                  item.title = updates.title;
+                  await courseDoc.save();
+                  console.log('Updated Quiz Title in Course ContentItem');
+                }
+              }
+            }
+          }
+        } else if (locationChanged && newCourseId && newModuleId && newChapterId) {
+          // Add to new location
+          const newCourseDoc = await Course.findById(newCourseId);
+          if (newCourseDoc) {
+            const newModuleDoc = newCourseDoc.modules.id(newModuleId);
+            if (newModuleDoc) {
+              const newChapterDoc = newModuleDoc.chapters.id(newChapterId);
+              if (newChapterDoc) {
+                newChapterDoc.contentItems.push({
+                  type: 'quiz',
+                  title: quiz.title,
+                  quizRef: quiz._id,
+                  order: newChapterDoc.contentItems.length
+                });
+                await newCourseDoc.save();
+                console.log(`Added Quiz ${quizId} to new location`);
+              }
+            }
+          }
+        }
+
+      } catch (syncError) {
+        console.error('Failed to sync quiz with course:', syncError);
+      }
+    }
+
     // Populate references (only models, not subdocuments)
     await quiz.populate([
       { path: 'course', select: 'title' },
-      // Note: module and chapter are subdocuments within Course, cannot populate
       { path: 'createdBy', select: 'name email' },
       { path: 'lastEditedBy', select: 'name email' }
     ]);
@@ -376,6 +493,28 @@ exports.deleteQuiz = async (req, res) => {
         { _id: { $in: questionBankIds } },
         { $pull: { usedInQuizzes: { quizId: quizId } }, $inc: { usageCount: -1 } }
       );
+    }
+
+    // Remove from Course Structure
+    if (quiz.course && quiz.module && quiz.chapter) {
+      try {
+        const courseDoc = await Course.findById(quiz.course);
+        if (courseDoc) {
+          const moduleDoc = courseDoc.modules.id(quiz.module);
+          if (moduleDoc) {
+            const chapterDoc = moduleDoc.chapters.id(quiz.chapter);
+            if (chapterDoc) {
+              chapterDoc.contentItems = chapterDoc.contentItems.filter(
+                item => item.quizRef?.toString() !== quizId
+              );
+              await courseDoc.save();
+              console.log(`Removed Quiz ${quizId} from Course ${quiz.course}`);
+            }
+          }
+        }
+      } catch (linkError) {
+        console.error('Failed to remove quiz from course:', linkError);
+      }
     }
 
     await quiz.deleteOne();
@@ -533,6 +672,81 @@ exports.reorderQuestions = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Failed to reorder questions',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/v2/lms/admin/quizzes/:quizId/archive
+ * Archive quiz (soft delete)
+ */
+exports.archiveQuiz = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+
+    quiz.status = 'archived';
+    quiz.lastEditedBy = req.user._id;
+    await quiz.save();
+
+    res.json({
+      success: true,
+      message: 'Quiz archived successfully',
+      quiz
+    });
+
+  } catch (error) {
+    console.error('Error archiving quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to archive quiz',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * PUT /api/v2/lms/admin/quizzes/:quizId/restore
+ * Restore archived quiz to draft
+ */
+exports.restoreQuiz = async (req, res) => {
+  try {
+    const { quizId } = req.params;
+
+    const quiz = await Quiz.findById(quizId);
+
+    if (!quiz) {
+      return res.status(404).json({
+        success: false,
+        message: 'Quiz not found'
+      });
+    }
+
+    // Restore to draft
+    quiz.status = 'draft';
+    quiz.lastEditedBy = req.user._id;
+    await quiz.save();
+
+    res.json({
+      success: true,
+      message: 'Quiz restored to draft',
+      quiz
+    });
+
+  } catch (error) {
+    console.error('Error restoring quiz:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to restore quiz',
       error: error.message
     });
   }

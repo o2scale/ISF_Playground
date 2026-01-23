@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { api } from '../api';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ import toast from 'react-hot-toast';
 export default function useFileUpload() {
   const [uploads, setUploads] = useState({});
   const [isUploading, setIsUploading] = useState(false);
+  const abortControllers = useRef({});
 
   /**
    * Retry logic with exponential backoff
@@ -20,6 +21,7 @@ export default function useFileUpload() {
       try {
         return await fn();
       } catch (error) {
+        if (axios.isCancel(error)) throw error; // Don't retry cancelled requests
         if (i === maxRetries - 1) throw error;
 
         const backoffDelay = delay * Math.pow(2, i);
@@ -34,6 +36,10 @@ export default function useFileUpload() {
    */
   const uploadFile = useCallback(async (fileObj, metadata = {}) => {
     const { file, fileType, id } = fileObj;
+
+    // Create AbortController for this upload
+    const controller = new AbortController();
+    abortControllers.current[id] = controller;
 
     try {
       // Update upload status
@@ -76,6 +82,7 @@ export default function useFileUpload() {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
+          signal: controller.signal, // Pass signal for cancellation
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
             setUploads(prev => ({
@@ -116,6 +123,20 @@ export default function useFileUpload() {
       };
 
     } catch (error) {
+      if (axios.isCancel(error)) {
+        console.log('Upload cancelled by user');
+        // Update status to cancelled
+        setUploads(prev => ({
+          ...prev,
+          [id]: {
+            ...prev[id],
+            status: 'cancelled',
+            error: 'Upload cancelled'
+          }
+        }));
+        return { success: false, cancelled: true };
+      }
+
       console.error('File upload error:', error);
 
       const errorMessage = error.response?.data?.message || error.message || 'Upload failed';
@@ -136,6 +157,9 @@ export default function useFileUpload() {
         success: false,
         error: errorMessage
       };
+    } finally {
+      // Clean up controller
+      delete abortControllers.current[id];
     }
   }, []);
 
@@ -172,10 +196,13 @@ export default function useFileUpload() {
    * Cancel an upload
    */
   const cancelUpload = useCallback((uploadId) => {
+    if (abortControllers.current[uploadId]) {
+      abortControllers.current[uploadId].abort();
+    }
     setUploads(prev => ({
       ...prev,
       [uploadId]: {
-        ...prev[uploadId],
+        ...(prev[uploadId] || {}), // Ensure object exists
         status: 'cancelled'
       }
     }));

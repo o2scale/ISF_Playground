@@ -134,7 +134,7 @@ const Layout = () => {
         "amma",
       ],
     },
-    { id: 14, name: "Quizzes", link: "/admin/quizzes", roles: ["admin"] },
+    // { id: 14, name: "Quizzes", link: "/admin/quizzes", roles: ["admin"] }, // Moved to Course Management page
     { id: 15, name: "Translations", link: "/admin/translations", roles: ["admin"] },
     { id: 16, name: "Courses", link: "/coach/grading", roles: ["coach"] },
     { id: 17, name: "Assignments", link: "/coach/assignments", roles: ["coach"] },

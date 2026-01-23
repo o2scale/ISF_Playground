@@ -1,25 +1,73 @@
-import React, { useState, useRef } from 'react';
-import { X, Upload, File, Loader, CheckCircle } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { X, Upload, File, Loader, CheckCircle, Search, Plus } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
 import useFileUpload from '../../hooks/useFileUpload';
 import toast from 'react-hot-toast';
+import { api } from '../../api';
 
 export default function AddContentItemModal({ isOpen, onClose, onAdd }) {
+  const { courseId } = useParams(); // Get courseId from URL for "Create New" redirect
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     type: 'video',
     title: '',
     description: '',
-    fileUrl: ''
+    fileUrl: '',
+    quizRef: '' // Store selected quiz ID
   });
 
   const { uploadFile, isUploading } = useFileUpload();
   const fileInputRef = useRef(null);
   const [dragActive, setDragActive] = useState(false);
 
+  // Quiz Selection State
+  const [quizMode, setQuizMode] = useState('existing'); // 'existing' or 'create'
+  const [quizzes, setQuizzes] = useState([]);
+  const [loadingQuizzes, setLoadingQuizzes] = useState(false);
+  const [startNewQuiz, setStartNewQuiz] = useState(false); // Flag to redirect after close
+  const [searchTerm, setSearchTerm] = useState('');
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
+    console.log('🚀 AddContentItemModal: Submitting form data:', formData);
     await onAdd(formData);
     setFormData({ type: 'video', title: '', description: '', fileUrl: '' });
+  };
+
+  // Fetch quizzes when type is 'quiz'
+  useEffect(() => {
+    if (isOpen && formData.type === 'quiz') {
+      fetchQuizzes();
+    }
+  }, [isOpen, formData.type]);
+
+  const fetchQuizzes = async () => {
+    try {
+      setLoadingQuizzes(true);
+      const response = await api.get('/api/v2/lms/admin/quizzes?status=published'); // Fetch published quizzes
+      // Or maybe allow drafts too? Let's show all for now, maybe filter in UI
+      // Actually endpoint usually returns all for admin.
+      if (response.data.success) {
+        setQuizzes(response.data.quizzes);
+      }
+    } catch (error) {
+      console.error('Error fetching quizzes:', error);
+      toast.error('Failed to load quizzes');
+    } finally {
+      setLoadingQuizzes(false);
+    }
+  };
+
+  const handleCreateNewQuiz = () => {
+    // We can't easily pass the open modal state, so we'll just redirect
+    // But we need to know the current module/chapter.
+    // The AddContentItemModal is called from ModuleCard -> ChapterItem
+    // It is passed an 'onAdd' but doesn't receive module/chapter IDs directly in props
+    // We might need to ask the user to fill those in QuizBuilder, or pass them if available.
+    // For now, let's just redirect to create page with courseId.
+    onClose();
+    navigate(`/admin/courses/${courseId}/quizzes/create`);
   };
 
   const handleDrag = (e) => {
@@ -45,6 +93,7 @@ export default function AddContentItemModal({ isOpen, onClose, onAdd }) {
   const handleFileSelect = (e) => {
     if (e.target.files && e.target.files[0]) {
       handleFile(e.target.files[0]);
+      e.target.value = ''; // Reset input so same file can be selected again
     }
   };
 
@@ -116,25 +165,126 @@ export default function AddContentItemModal({ isOpen, onClose, onAdd }) {
               <option value="task">✅ Task</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Title *</label>
-            <input
-              type="text"
-              value={formData.title}
-              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              placeholder="e.g., How to Create a Document"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full px-4 py-2 border rounded-lg"
-              rows={2}
-            />
-          </div>
+
+          {/* Quiz Selection UI */}
+          {formData.type === 'quiz' && (
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="flex gap-2 mb-4">
+                <button
+                  type="button"
+                  onClick={() => setQuizMode('existing')}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md ${quizMode === 'existing'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  Link Existing
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuizMode('create')}
+                  className={`flex-1 py-2 text-sm font-medium rounded-md ${quizMode === 'create'
+                    ? 'bg-purple-600 text-white shadow-sm'
+                    : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                    }`}
+                >
+                  Create New
+                </button>
+              </div>
+
+              {quizMode === 'existing' ? (
+                <div className="space-y-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Search quizzes..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm"
+                    />
+                  </div>
+
+                  <div className="max-h-48 overflow-y-auto border rounded-lg bg-white">
+                    {loadingQuizzes ? (
+                      <div className="p-4 text-center text-gray-500">Loading...</div>
+                    ) : quizzes.filter(q => q.title.toLowerCase().includes(searchTerm.toLowerCase())).length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">No quizzes found</div>
+                    ) : (
+                      <div className="divide-y">
+                        {quizzes
+                          .filter(q => q.title.toLowerCase().includes(searchTerm.toLowerCase()))
+                          .map(quiz => (
+                            <button
+                              key={quiz._id}
+                              type="button"
+                              onClick={() => setFormData({
+                                ...formData,
+                                quizRef: quiz._id,
+                                title: quiz.title, // Auto-fill title
+                                description: quiz.description || ''
+                              })}
+                              className={`w-full px-4 py-2 text-left text-sm hover:bg-purple-50 flex items-center justify-between ${formData.quizRef === quiz._id ? 'bg-purple-50 text-purple-700 font-medium' : 'text-gray-700'
+                                }`}
+                            >
+                              <span>{quiz.title}</span>
+                              {formData.quizRef === quiz._id && <CheckCircle size={16} />}
+                            </button>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                  {formData.quizRef && (
+                    <div className="text-xs text-green-600 font-medium flex items-center gap-1">
+                      <CheckCircle size={12} />
+                      Quiz selected. Click "Add Content" to link.
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-4">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Create a new quiz in the Quiz Builder.<br />
+                    You will be redirected away from this page.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleCreateNewQuiz}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 text-sm font-medium"
+                  >
+                    <Plus size={16} />
+                    Go to Quiz Builder
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Regular Inputs (Hidden for Quiz Create Mode) */}
+          {!(formData.type === 'quiz' && quizMode === 'create') && (
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">Title *</label>
+                <input
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="e.g., How to Create a Document"
+                  readOnly={formData.type === 'quiz'} // Read-only for quiz (auto-filled)
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  rows={2}
+                />
+              </div>
+            </>
+          )}
 
           {showUpload && (
             <div className="mb-4">

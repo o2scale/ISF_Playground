@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Filter, MoreVertical, Edit, Copy, Trash2, Eye } from 'lucide-react';
+import { Plus, Search, Filter, MoreVertical, Edit, Copy, Trash2, Eye, Archive, RotateCcw } from 'lucide-react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
 
@@ -130,6 +130,38 @@ export default function QuizDashboard() {
     } catch (error) {
       console.error('Error toggling publish:', error);
       toast.error(error.response?.data?.message || 'Failed to update quiz status');
+    }
+    setOpenDropdown(null);
+  };
+
+  // Archive quiz
+  const handleArchive = async (quizId) => {
+    try {
+      const response = await api.put(`/api/v2/lms/admin/quizzes/${quizId}/archive`);
+      if (response.data.success) {
+        toast.success('Quiz moved to archive');
+        fetchQuizzes();
+        fetchStats();
+      }
+    } catch (error) {
+      console.error('Error archiving quiz:', error);
+      toast.error('Failed to archive quiz');
+    }
+    setOpenDropdown(null);
+  };
+
+  // Restore quiz
+  const handleRestore = async (quizId) => {
+    try {
+      const response = await api.put(`/api/v2/lms/admin/quizzes/${quizId}/restore`);
+      if (response.data.success) {
+        toast.success('Quiz restored to draft');
+        fetchQuizzes();
+        fetchStats();
+      }
+    } catch (error) {
+      console.error('Error restoring quiz:', error);
+      toast.error('Failed to restore quiz');
     }
     setOpenDropdown(null);
   };
@@ -326,6 +358,25 @@ export default function QuizDashboard() {
                           <Eye size={16} />
                           <span>{quiz.status === 'published' ? 'Unpublish' : 'Publish'}</span>
                         </button>
+
+                        {quiz.status === 'archived' ? (
+                          <button
+                            onClick={() => handleRestore(quiz._id)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-blue-600"
+                          >
+                            <RotateCcw size={16} />
+                            <span>Restore</span>
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleArchive(quiz._id)}
+                            className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center space-x-2 text-orange-600"
+                          >
+                            <Archive size={16} />
+                            <span>Archive</span>
+                          </button>
+                        )}
+
                         <button
                           onClick={() => handleDeleteQuiz(quiz._id)}
                           className="w-full px-4 py-2 text-left hover:bg-red-50 flex items-center space-x-2 text-red-600"

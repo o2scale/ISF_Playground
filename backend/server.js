@@ -1,6 +1,7 @@
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+dotenv.config();
 const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const userV1Routes = require("./routes/v1/user");
@@ -83,8 +84,6 @@ const schedulerService = require("./services/scheduler");
 //     console.error('JWT_SECRET is not defined in environment variables');
 //     process.exit(1);
 // }
-
-dotenv.config();
 
 const app = express();
 

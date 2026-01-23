@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
+import { api } from '../../api';
+import toast from 'react-hot-toast';
 
-export default function EditModuleModal({ isOpen, module, onClose, onUpdated }) {
+export default function EditModuleModal({ isOpen, module, courseId, onClose, onUpdated }) {
   const [formData, setFormData] = useState({ title: '', description: '' });
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (module) {
@@ -13,11 +16,26 @@ export default function EditModuleModal({ isOpen, module, onClose, onUpdated }) 
     }
   }, [module]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // TODO: Implement update API call
-    onUpdated();
-    onClose();
+    try {
+      setLoading(true);
+      const response = await api.put(
+        `/api/v2/lms/admin/courses/${courseId}/modules/${module._id}`,
+        formData
+      );
+
+      if (response.data.success) {
+        toast.success('Module updated successfully');
+        onUpdated();
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error updating module:', error);
+      toast.error('Failed to update module');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -36,6 +54,7 @@ export default function EditModuleModal({ isOpen, module, onClose, onUpdated }) 
             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
             className="w-full px-4 py-2 border rounded-lg"
             placeholder="Module title"
+            required
           />
           <textarea
             value={formData.description}
@@ -45,8 +64,21 @@ export default function EditModuleModal({ isOpen, module, onClose, onUpdated }) 
             placeholder="Description"
           />
           <div className="flex justify-end gap-3">
-            <button type="button" onClick={onClose} className="px-4 py-2 bg-gray-300 rounded-lg">Cancel</button>
-            <button type="submit" className="px-4 py-2 bg-purple-600 text-white rounded-lg">Update</button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 bg-gray-300 rounded-lg"
+              disabled={loading}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg"
+              disabled={loading}
+            >
+              {loading ? 'Updating...' : 'Update'}
+            </button>
           </div>
         </form>
       </div>

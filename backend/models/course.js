@@ -47,6 +47,11 @@ const ContentItemSchema = new mongoose.Schema(
       timeLimit: { type: Number }, // seconds
       passingScore: { type: Number }, // percentage
     },
+    // Sprint 2: Reference to standalone Quiz (Story 03)
+    quizRef: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Quiz'
+    },
     // For text type
     textContent: { type: String },
     // For link type
