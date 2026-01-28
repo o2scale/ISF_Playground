@@ -3,6 +3,7 @@ const Coin = require('../../../models/coin');
 const Notification = require('../../../models/notification');
 const EmotionTracking = require('../../../models/EmotionTracking');
 const Course = require('../../../models/course');
+const StudentProgress = require('../../../models/StudentProgress');
 const mongoose = require('mongoose');
 
 /**
@@ -36,44 +37,72 @@ exports.getDashboard = async (req, res) => {
     }
 
     // Get all published courses
-    const allCourses = await Course.find({ status: 'Published' });
+    const allCourses = await Course.find({ status: 'published' }).lean();
 
-    // Build course progress data
-    // For now, using mock data - will be replaced with actual progress tracking in future stories
-    const courseProgressMap = {
-      'Computer Apps': { totalTasks: 15, completedTasks: 3 },
-      'Art': { totalTasks: 12, completedTasks: 5 },
-      'Spoken English': { totalTasks: 20, completedTasks: 0 },
-      'Life Skills': { totalTasks: 10, completedTasks: 2 }
-    };
+    // Get student progress for these courses
+    const progressRecords = await StudentProgress.find({
+      student: studentId,
+      course: { $in: allCourses.map(c => c._id) }
+    }).lean();
 
-    const courses = Object.entries(courseProgressMap).map(([courseType, progress]) => ({
-      courseType,
-      totalTasks: progress.totalTasks,
-      completedTasks: progress.completedTasks
-    }));
+    // build course map for easy lookup
+    const progressMap = new Map(progressRecords.map(p => [p.course.toString(), p]));
 
-    // Get last incomplete task (mock data for now)
-    // TODO: Replace with actual task progress query in Story 02-05
-    const lastActivity = {
-      courseType: 'Computer Apps',
-      taskTitle: 'Introduction to MS Word',
-      progress: 45,
-      taskId: new mongoose.Types.ObjectId()
-    };
+    // aggregated courses data
+    const courses = allCourses.map(course => {
+      const progress = progressMap.get(course._id.toString());
 
-    // Get stats (mock data for now)
-    // TODO: Replace with actual calculations from task completion data
+      // Calculate total tasks (content items)
+      let totalTasks = 0;
+      course.modules?.forEach(m => {
+        m.chapters?.forEach(c => {
+          totalTasks += c.contentItems?.length || 0;
+        });
+      });
+
+      const completedTasks = progress?.completedItems?.length || 0;
+
+      return {
+        courseId: course._id,
+        courseTitle: course.title,
+        courseType: course.category, // Mapped to 'courseType' in UI
+        thumbnail: course.thumbnail,
+        totalTasks,
+        completedTasks,
+        status: progress?.status || 'not_started',
+        progressPercentage: progress ? Math.round((completedTasks / (totalTasks || 1)) * 100) : 0
+      };
+    });
+
+    // Determine last activity
+    let lastActivity = null;
+    const sortedProgress = progressRecords.sort((a, b) => new Date(b.lastAccessedAt) - new Date(a.lastAccessedAt));
+
+    if (sortedProgress.length > 0) {
+      const lastProg = sortedProgress[0];
+      const lastCourse = allCourses.find(c => c._id.toString() === lastProg.course.toString());
+      if (lastCourse) {
+        lastActivity = {
+          courseId: lastCourse._id,
+          courseTitle: lastCourse.title,
+          courseType: lastCourse.category,
+          progress: lastProg.completionPercentage || 0,
+          taskId: null // Could find actual last item if needed
+        };
+      }
+    }
+
+    // Stats calculations
     const stats = {
-      totalTasksCompleted: 10,
-      currentStreak: 3,
-      coinsEarnedToday: 50
+      totalTasksCompleted: progressRecords.reduce((acc, p) => acc + (p.completedItems?.length || 0), 0),
+      currentStreak: student.streak || 0, // Assuming streak is on User model
+      coinsEarnedToday: 0 // Placeholder, requires Transaction log query if strictly 'today'
     };
 
     res.json({
       success: true,
       data: {
-        studentName: student.name || 'Student',
+        studentName: `${student.firstName} ${student.lastName}`,
         courses,
         lastActivity,
         stats

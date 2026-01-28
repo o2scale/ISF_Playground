@@ -1,68 +1,87 @@
+const Course = require('../../../models/course');
+const StudentProgress = require('../../../models/StudentProgress');
+const Submission = require('../../../models/Submission');
+const mongoose = require('mongoose');
+
 // backend/controllers/lms/student/spokenEnglishController.js
 // Epic 01 Story 04: Spoken English Video Recording
 
 /**
- * Get Spoken English Task Data
+ * Get Spoken English Task Data (Single Task - Mapped to a ContentItem)
  * GET /api/v2/lms/student/:studentId/courses/spoken-english/:taskId
- * Returns task details, audio instructions, and requirements
+ * Returns task details (ContentItem), audio instructions, and requirements
+ * Note: taskId here refers to the ContentItem ID
  */
 exports.getSpokenEnglishTask = async (req, res) => {
   try {
     const { studentId, taskId } = req.params;
 
-    // Mock data for Spoken English task
-    // In production, this would query the database for actual task data
-    const task = {
-      id: taskId || "task1",
-      title: "Recite 'Twinkle Twinkle Little Star'",
-      description: "Listen to the audio instructions and recite the poem clearly in front of the camera.",
-      instructionsAudioUrl: null, // Mock - no actual audio file
-      instructionsText: "Listen carefully to the poem. Practice once or twice before recording. Speak clearly and look at the camera. You can re-record as many times as needed.",
-      maxDuration: 120, // Maximum recording duration in seconds (2 minutes)
-      difficulty: "Beginner",
-      estimatedTime: 10, // Estimated time in minutes
-      poemText: `Twinkle, twinkle, little star,
-How I wonder what you are!
-Up above the world so high,
-Like a diamond in the sky.
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ success: false, message: 'Invalid Task ID' });
+    }
 
-When the blazing sun is gone,
-When he nothing shines upon,
-Then you show your little light,
-Twinkle, twinkle, all the night.`,
-      requirements: [
-        "Speak clearly and at a moderate pace",
-        "Look at the camera while reciting",
-        "Recite the complete poem without stopping",
-        "Maintain good posture and expression"
-      ],
-      rubric: {
-        pronunciation: {
-          weight: 30,
-          description: "Clear pronunciation and correct word stress"
-        },
-        fluency: {
-          weight: 25,
-          description: "Smooth delivery without hesitation"
-        },
-        expression: {
-          weight: 20,
-          description: "Appropriate emotion and tone"
-        },
-        confidence: {
-          weight: 15,
-          description: "Eye contact and body language"
-        },
-        completeness: {
-          weight: 10,
-          description: "Recited the entire poem"
-        }
-      }
+    // 1. Find the Course/Module/Chapter that contains this ContentItem
+    // This is expensive if we don't know the parent, but ContentItem IDs are unique in Mongo if they are subdocuments with _id.
+    // However, Mongoose subdoc search is tricky.
+    // Let's search for the Course containing this contentItem in 'modules.chapters.contentItems'
+
+    // Optimized query to find specific content item
+    const course = await Course.findOne(
+      { "modules.chapters.contentItems._id": taskId },
+      { "modules.chapters.contentItems.$": 1 }
+    ).lean();
+
+    // The projection "modules.chapters.contentItems.$" returns only the first matching array element, 
+    // but standard Mongo positional operator only works one level deep easily.
+    // We will do a broad search then filter in JS for reliability given deep nesting.
+
+    // Re-approach: Find course with the ID
+    const foundCourse = await Course.findOne({
+      "modules.chapters.contentItems._id": taskId
+    }).lean();
+
+    if (!foundCourse) {
+      return res.status(404).json({ success: false, message: 'Task not found' });
+    }
+
+    // Find the specific item
+    let task = null;
+    foundCourse.modules.forEach(m => {
+      m.chapters.forEach(c => {
+        const item = c.contentItems.find(i => i._id.toString() === taskId);
+        if (item) task = item;
+      });
+    });
+
+    if (!task) {
+      return res.status(404).json({ success: false, message: 'Task not found in course' });
+    }
+
+    // Get submission status
+    const submission = await Submission.findOne({
+      studentId: studentId,
+      taskId: taskId
+    }).sort({ submittedAt: -1 }).lean();
+
+    // Construct response
+    const taskResponse = {
+      id: task._id,
+      title: task.title,
+      description: task.description,
+      instructionsAudioUrl: task.fileUrl || null,
+      instructionsText: task.textContent || "Please complete the recording task.",
+      maxDuration: task.metadata?.maxDuration || 120,
+      difficulty: foundCourse.difficultyLevel || "Beginner",
+      estimatedTime: task.metadata?.estimatedTime || 10,
+      poemText: task.metadata?.poemText || "", // Specific for poetry
+      requirements: task.metadata?.requirements || [],
+      rubric: task.metadata?.rubric || {}
     };
 
     res.status(200).json({
       success: true,
-      task
+      task: taskResponse,
+      submissionStatus: submission ? submission.status : 'not_started'
     });
 
   } catch (error) {
@@ -76,69 +95,103 @@ Twinkle, twinkle, all the night.`,
 };
 
 /**
- * Get All Spoken English Tasks
+ * Get All Spoken English Tasks (Courses/Modules)
  * GET /api/v2/lms/student/:studentId/courses/spoken-english
- * Returns list of available tasks
+ * Returns list of available tasks (treated as ContentItems across Spoken English courses)
  */
 exports.getSpokenEnglishTasks = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    // Mock data for available tasks
-    const tasks = [
-      {
-        id: "task1",
-        title: "Recite 'Twinkle Twinkle Little Star'",
-        difficulty: "Beginner",
-        estimatedTime: 10,
-        type: "poetry",
-        status: "available", // available, in_progress, submitted, graded
-        thumbnailUrl: null
-      },
-      {
-        id: "task2",
-        title: "Introduce Yourself",
-        difficulty: "Beginner",
-        estimatedTime: 5,
-        type: "speech",
-        status: "available",
-        thumbnailUrl: null
-      },
-      {
-        id: "task3",
-        title: "Recite 'Humpty Dumpty'",
-        difficulty: "Beginner",
-        estimatedTime: 8,
-        type: "poetry",
-        status: "locked", // Locked until task1 is completed
-        thumbnailUrl: null
-      },
-      {
-        id: "task4",
-        title: "Tell About Your Family",
-        difficulty: "Intermediate",
-        estimatedTime: 15,
-        type: "speech",
-        status: "locked",
-        thumbnailUrl: null
-      },
-      {
-        id: "task5",
-        title: "Recite 'Mary Had a Little Lamb'",
-        difficulty: "Intermediate",
-        estimatedTime: 12,
-        type: "poetry",
-        status: "locked",
-        thumbnailUrl: null
+    // 1. Fetch Spoken English Courses
+    const courses = await Course.find({ category: 'Spoken English', status: 'published' }).lean();
+
+    if (!courses.length) {
+      return res.status(200).json({
+        success: true,
+        tasks: [],
+        totalTasks: 0,
+        availableTasks: 0,
+        completedTasks: 0
+      });
+    }
+
+    // 2. Fetch completed items from StudentProgress
+    const progressRecords = await StudentProgress.find({
+      student: studentId,
+      course: { $in: courses.map(c => c._id) }
+    }).lean();
+
+    const completedItemIds = new Set();
+    progressRecords.forEach(p => {
+      p.completedItems?.forEach(i => completedItemIds.add(i.itemId.toString()));
+    });
+
+    // 3. Flatten Tasks (Content Items)
+    // Locking logic: Sequential unlocking based on order in Module/Chapter?
+    // Let's assume sequential unlocking across the entire Course for simplicity, 
+    // or just mark everything available for now if logic is complex.
+    // Based on mocks: locked status exists.
+
+    let allTasks = [];
+
+    courses.forEach(course => {
+      let previousTaskCompleted = true; // First task is always unlocked
+
+      course.modules.forEach(m => {
+        m.chapters.forEach(c => {
+          c.contentItems.map(item => {
+            const isCompleted = completedItemIds.has(item._id.toString());
+            const isLocked = !previousTaskCompleted;
+
+            // Only include "Task" or "Video" or specific types relevant to Spoken English
+            // Assuming all content items here are tasks
+
+            allTasks.push({
+              id: item._id,
+              title: item.title,
+              difficulty: course.difficultyLevel,
+              estimatedTime: item.metadata?.estimatedTime || 10,
+              type: item.type || "speech",
+              status: isCompleted ? 'graded' : (isLocked ? 'locked' : 'available'),
+              // Note: 'graded' is simplified; real logic checks Submission model for 'under_review' vs 'graded'
+              // But 'completed' in StudentProgress usually implies passing grade or submission done.
+              thumbnailUrl: course.thumbnail
+            });
+
+            if (!isCompleted) previousTaskCompleted = false;
+          });
+        });
+      });
+    });
+
+    // Refine status with Submission data (to catch 'under_review')
+    // optimization: fetch all submissions for these tasks
+    const submissions = await Submission.find({
+      studentId,
+      taskId: { $in: allTasks.map(t => t.id) }
+    }).lean();
+
+    const submissionMap = new Map(submissions.map(s => [s.taskId.toString(), s]));
+
+    allTasks = allTasks.map(t => {
+      const sub = submissionMap.get(t.id.toString());
+      if (sub) {
+        if (sub.status === 'under_review' || sub.status === 'submitted') {
+          t.status = 'under_review'; // Override 'available'
+        } else if (sub.status === 'graded') {
+          t.status = 'graded';
+        }
       }
-    ];
+      return t;
+    });
 
     res.status(200).json({
       success: true,
-      tasks,
-      totalTasks: tasks.length,
-      availableTasks: tasks.filter(t => t.status === 'available').length,
-      completedTasks: tasks.filter(t => t.status === 'graded').length
+      tasks: allTasks,
+      totalTasks: allTasks.length,
+      availableTasks: allTasks.filter(t => t.status === 'available').length,
+      completedTasks: allTasks.filter(t => t.status === 'graded').length
     });
 
   } catch (error) {
@@ -160,7 +213,7 @@ exports.submitVideoRecording = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { taskId, duration, fileSize } = req.body;
-    // const videoFile = req.file; // Multer will handle file upload
+    // const videoFile = req.file; // Multer handled
 
     // Validate required fields
     if (!taskId) {
@@ -170,24 +223,55 @@ exports.submitVideoRecording = async (req, res) => {
       });
     }
 
-    // Mock S3 upload response
+    // 1. Verify Task exists (ContentItem)
+    const course = await Course.findOne({
+      "modules.chapters.contentItems._id": taskId
+    });
+
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Task not found." });
+    }
+
+    // Find item to get title
+    let taskTitle = "Spoken English Task";
+    let found = false;
+    course.modules.forEach(m => {
+      if (found) return;
+      m.chapters.forEach(c => {
+        if (found) return;
+        const item = c.contentItems.find(i => i._id.toString() === taskId);
+        if (item) {
+          taskTitle = item.title;
+          found = true;
+        }
+      });
+    });
+
+    // 2. S3 Upload (Mock for now, but integration point ready)
     // In production, upload video to S3 and get actual URL
     const mockS3Url = `https://isf-lms-videos.s3.amazonaws.com/spoken-english/${studentId}/${taskId}/${Date.now()}.webm`;
 
-    // Mock submission record
-    const submission = {
-      submissionId: `sub_${Date.now()}`,
+    // 3. Create Submission Record
+    const submission = new Submission({
       studentId,
+      courseId: course._id,
       taskId,
+      taskTitle,
       type: "video",
-      fileUrl: mockS3Url,
-      duration: duration || 0,
-      fileSize: fileSize || 0,
-      status: "submitted", // submitted, under_review, graded
-      submittedAt: new Date().toISOString(),
-      grade: null,
-      feedback: null
-    };
+      fileUrl: mockS3Url, // In real S3, this comes from req.file.location
+      thumbnailUrl: null,
+      metadata: {
+        duration: duration || 0,
+        fileSize: fileSize || 0
+      },
+      status: "submitted",
+      submittedAt: new Date()
+    });
+
+    await submission.save();
+
+    // 4. Update StudentProgress to mark as "in_progress" or "submitted"
+    // (Optional, usually we wait for grade to complete it)
 
     res.status(200).json({
       success: true,
@@ -214,44 +298,33 @@ exports.getStudentSubmissions = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    // Mock submission history
-    const submissions = [
-      {
-        submissionId: "sub_001",
-        taskId: "task1",
-        taskTitle: "Recite 'Twinkle Twinkle Little Star'",
-        fileUrl: "https://isf-lms-videos.s3.amazonaws.com/spoken-english/mock-video-1.webm",
-        duration: 45,
-        status: "graded",
-        grade: "A",
-        score: 92,
-        feedback: "Excellent pronunciation and expression! Great job.",
-        submittedAt: "2025-10-25T10:30:00Z",
-        gradedAt: "2025-10-25T14:20:00Z",
-        coachName: "Coach Priya"
-      },
-      {
-        submissionId: "sub_002",
-        taskId: "task2",
-        taskTitle: "Introduce Yourself",
-        fileUrl: "https://isf-lms-videos.s3.amazonaws.com/spoken-english/mock-video-2.webm",
-        duration: 30,
-        status: "under_review",
-        grade: null,
-        score: null,
-        feedback: null,
-        submittedAt: "2025-10-26T09:15:00Z",
-        gradedAt: null,
-        coachName: "Coach Amit"
-      }
-    ];
+    const submissions = await Submission.find({ studentId, type: 'video' }) // Video type specific to Spoken English here
+      .sort({ submittedAt: -1 })
+      .populate('courseId', 'title')
+      .lean();
+
+    // Map to response format
+    const formattedSubmissions = submissions.map(sub => ({
+      submissionId: sub._id,
+      taskId: sub.taskId,
+      taskTitle: sub.taskTitle,
+      fileUrl: sub.fileUrl,
+      duration: sub.metadata?.duration || 0,
+      status: sub.status,
+      grade: sub.grade?.quality || null,
+      score: sub.grade?.points || null,
+      feedback: sub.grade?.feedback || null,
+      submittedAt: sub.submittedAt,
+      gradedAt: sub.grade?.gradedAt || null,
+      coachName: "Coach" // Populate actual coach name if gradedBy exists
+    }));
 
     res.status(200).json({
       success: true,
-      submissions,
-      totalSubmissions: submissions.length,
-      gradedSubmissions: submissions.filter(s => s.status === 'graded').length,
-      pendingSubmissions: submissions.filter(s => s.status === 'under_review').length
+      submissions: formattedSubmissions,
+      totalSubmissions: formattedSubmissions.length,
+      gradedSubmissions: formattedSubmissions.filter(s => s.status === 'graded').length,
+      pendingSubmissions: formattedSubmissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length
     });
 
   } catch (error) {

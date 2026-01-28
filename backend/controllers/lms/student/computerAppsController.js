@@ -1,3 +1,5 @@
+const Course = require('../../../models/course');
+const StudentProgress = require('../../../models/StudentProgress');
 const mongoose = require('mongoose');
 
 /**
@@ -11,7 +13,7 @@ const mongoose = require('mongoose');
 // ==================== GET APPS LIST ====================
 
 /**
- * @desc Get all Computer Apps applications with progress
+ * @desc Get all Computer Apps applications (Modules/Courses) with progress
  * @route GET /api/v2/lms/student/:studentId/courses/computer-apps
  * @access Private
  */
@@ -19,50 +21,56 @@ exports.getComputerApps = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    // TODO: Replace with actual database query when Course model is enhanced
-    // For now, returning mock data with realistic progress
-    const apps = [
-      {
-        id: 'app-ms-word',
-        name: 'MS Word',
-        icon: '📝',
-        totalTasks: 20,
-        completedTasks: 20,
-        status: 'completed'
-      },
-      {
-        id: 'app-excel',
-        name: 'Excel',
-        icon: '📊',
-        totalTasks: 15,
-        completedTasks: 8,
-        status: 'in_progress'
-      },
-      {
-        id: 'app-powerpoint',
-        name: 'PowerPoint',
-        icon: '📽️',
-        totalTasks: 18,
-        completedTasks: 0,
-        status: 'not_started'
-      },
-      {
-        id: 'app-tux-typing',
-        name: 'Tux Typing',
-        icon: '⌨️',
-        totalTasks: 12,
-        completedTasks: 6,
-        status: 'in_progress'
-      },
-      {
-        id: 'app-gcompris',
-        name: 'GCompris',
-        icon: '🎮',
-        totalTasks: 10,
-        completedTasks: 3,
-        status: 'in_progress'
-      }
-    ];
+    // 1. Fetch the main "Computer Apps" Course
+    // Assuming there is one big course or multiple courses under 'Computer Apps' category.
+    // Based on mocks (MS Word, Excel, PPT), these look like MODULES inside a "Computer Apps" course, 
+    // OR separate courses in that category. 
+    // Let's assume they are MODULES of a single "Computer Apps" Master Course for now, 
+    // OR separate courses. Given the structure "getAppLevels" (appId -> levels), 
+    // it likely treats each "App" as a Module or a Course.
+    // Let's treat them as *Modules* within a course named "Computer Apps" OR query all courses with category "Computer Apps".
+
+    // Strategy: Find all courses with category "Computer Apps"
+    const appCourses = await Course.find({ category: 'Computer Apps', status: 'published' }).sort({ title: 1 }).lean();
+
+    // 2. Fetch Progress
+    const progressRecords = await StudentProgress.find({
+      student: studentId,
+      course: { $in: appCourses.map(c => c._id) }
+    }).lean();
+
+    const progressMap = new Map(progressRecords.map(p => [p.course.toString(), p]));
+
+    // 3. Map to response format
+    const apps = appCourses.map(course => {
+      const progress = progressMap.get(course._id.toString());
+
+      // Calculate tasks count recursively
+      let totalTasks = 0;
+      course.modules?.forEach(m => {
+        m.chapters?.forEach(c => {
+          totalTasks += c.contentItems?.length || 0;
+        });
+      });
+
+      const completedTasks = progress?.completedItems?.length || 0;
+      const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+      // Determine status from progress or default
+      let status = 'not_started';
+      if (progressPercent === 100) status = 'completed';
+      else if (progressPercent > 0) status = 'in_progress';
+
+      return {
+        id: course._id, // This is the "App ID"
+        name: course.title,
+        icon: course.icon || '💻',
+        totalTasks,
+        completedTasks,
+        status,
+        progressPercentage: progressPercent
+      };
+    });
 
     res.json({
       success: true,
@@ -81,179 +89,71 @@ exports.getComputerApps = async (req, res) => {
 // ==================== GET LEVELS LIST ====================
 
 /**
- * @desc Get all levels for selected Computer Apps application
+ * @desc Get all levels (Modules) for selected Computer Apps application (Course)
  * @route GET /api/v2/lms/student/:studentId/courses/computer-apps/:appId/levels
  * @access Private
  */
 exports.getAppLevels = async (req, res) => {
   try {
-    const { studentId, appId } = req.params;
+    const { studentId, appId } = req.params; // appId is actually courseId
 
-    // TODO: Replace with actual database query
-    // Mock data with sequential unlocking logic
-    const levelsMap = {
-      'app-ms-word': [
-        {
-          id: 'level-1',
-          name: 'Level 1: Basics',
-          totalTasks: 5,
-          completedTasks: 5,
-          status: 'completed',
-          coinsEarned: 250,
-          locked: false,
-          progressPercentage: 100
-        },
-        {
-          id: 'level-2',
-          name: 'Level 2: Formatting',
-          totalTasks: 5,
-          completedTasks: 5,
-          status: 'completed',
-          coinsEarned: 300,
-          locked: false,
-          progressPercentage: 100
-        },
-        {
-          id: 'level-3',
-          name: 'Level 3: Advanced',
-          totalTasks: 5,
-          completedTasks: 5,
-          status: 'completed',
-          coinsEarned: 350,
-          locked: false,
-          progressPercentage: 100
-        },
-        {
-          id: 'level-4',
-          name: 'Level 4: Tables & Lists',
-          totalTasks: 5,
-          completedTasks: 5,
-          status: 'completed',
-          coinsEarned: 400,
-          locked: false,
-          progressPercentage: 100
-        }
-      ],
-      'app-excel': [
-        {
-          id: 'level-1',
-          name: 'Level 1: Basics',
-          totalTasks: 5,
-          completedTasks: 5,
-          status: 'completed',
-          coinsEarned: 250,
-          locked: false,
-          progressPercentage: 100
-        },
-        {
-          id: 'level-2',
-          name: 'Level 2: Formulas',
-          totalTasks: 5,
-          completedTasks: 3,
-          status: 'in_progress',
-          coinsEarned: 0,
-          locked: false,
-          progressPercentage: 60
-        },
-        {
-          id: 'level-3',
-          name: 'Level 3: Charts',
-          totalTasks: 5,
-          completedTasks: 0,
-          status: 'locked',
-          locked: true,
-          unlockMessage: 'Complete Level 2 to unlock',
-          progressPercentage: 0
-        }
-      ],
-      'app-powerpoint': [
-        {
-          id: 'level-1',
-          name: 'Level 1: Basics',
-          totalTasks: 6,
-          completedTasks: 0,
-          status: 'not_started',
-          locked: false,
-          progressPercentage: 0
-        },
-        {
-          id: 'level-2',
-          name: 'Level 2: Animations',
-          totalTasks: 6,
-          completedTasks: 0,
-          status: 'locked',
-          locked: true,
-          unlockMessage: 'Complete Level 1 to unlock',
-          progressPercentage: 0
-        },
-        {
-          id: 'level-3',
-          name: 'Level 3: Advanced',
-          totalTasks: 6,
-          completedTasks: 0,
-          status: 'locked',
-          locked: true,
-          unlockMessage: 'Complete Level 2 to unlock',
-          progressPercentage: 0
-        }
-      ],
-      'app-tux-typing': [
-        {
-          id: 'level-1',
-          name: 'Level 1: Home Row',
-          totalTasks: 4,
-          completedTasks: 4,
-          status: 'completed',
-          coinsEarned: 200,
-          locked: false,
-          progressPercentage: 100
-        },
-        {
-          id: 'level-2',
-          name: 'Level 2: Top Row',
-          totalTasks: 4,
-          completedTasks: 2,
-          status: 'in_progress',
-          coinsEarned: 0,
-          locked: false,
-          progressPercentage: 50
-        },
-        {
-          id: 'level-3',
-          name: 'Level 3: Bottom Row',
-          totalTasks: 4,
-          completedTasks: 0,
-          status: 'locked',
-          locked: true,
-          unlockMessage: 'Complete Level 2 to unlock',
-          progressPercentage: 0
-        }
-      ],
-      'app-gcompris': [
-        {
-          id: 'level-1',
-          name: 'Level 1: Math Games',
-          totalTasks: 5,
-          completedTasks: 3,
-          status: 'in_progress',
-          coinsEarned: 0,
-          locked: false,
-          progressPercentage: 60
-        },
-        {
-          id: 'level-2',
-          name: 'Level 2: Logic Puzzles',
-          totalTasks: 5,
-          completedTasks: 0,
-          status: 'locked',
-          locked: true,
-          unlockMessage: 'Complete Level 1 to unlock',
-          progressPercentage: 0
-        }
-      ]
-    };
+    if (!mongoose.Types.ObjectId.isValid(appId)) {
+      return res.status(400).json({ success: false, message: 'Invalid App ID' });
+    }
 
-    const levels = levelsMap[appId] || [];
+    const course = await Course.findOne({ _id: appId, status: 'published' }).lean();
+    if (!course) {
+      return res.status(404).json({ success: false, message: 'Application course not found' });
+    }
+
+    const progress = await StudentProgress.findOne({ student: studentId, course: appId }).lean();
+    const completedItems = new Set(progress?.completedItems?.map(i => i.itemId.toString()) || []);
+
+    // Map Modules to "Levels"
+    // Locking logic: A level is unlocked if the previous level is completed.
+    let isLocked = false;
+
+    const levels = course.modules.map((module, index) => {
+      // Calculate module tasks
+      let moduleTasks = [];
+      module.chapters?.forEach(c => {
+        if (c.contentItems) moduleTasks.push(...c.contentItems);
+      });
+
+      const totalTasks = moduleTasks.length;
+      const completedCount = moduleTasks.filter(t => completedItems.has(t._id.toString())).length;
+      const progressPercentage = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
+
+      // Status
+      let status = 'not_started';
+      if (progressPercentage === 100) status = 'completed';
+      else if (progressPercentage > 0) status = 'in_progress';
+
+      // Lock check: If previous was not 100%, this one is locked (unless it's the first one)
+      // Actually, let's keep it simple: strict sequential.
+      // If we are already locked, this one is locked too.
+      // If we are not locked, check if this one is locked (i.e. strictly previous one finished?)
+      // For UX, Level 1 is always unlocked.
+
+      const currentLevelLocked = index > 0 && isLocked;
+
+      // Update lock state for NEXT level: if this one isn't done, next is locked.
+      if (status !== 'completed') {
+        isLocked = true;
+      }
+
+      return {
+        id: module._id,
+        name: module.title, // e.g., "Level 1: Basics"
+        totalTasks,
+        completedTasks: completedCount,
+        status: currentLevelLocked ? 'locked' : status,
+        locked: currentLevelLocked,
+        progressPercentage,
+        description: module.description,
+        unlockMessage: currentLevelLocked ? 'Complete previous level to unlock' : undefined
+      };
+    });
 
     res.json({
       success: true,
