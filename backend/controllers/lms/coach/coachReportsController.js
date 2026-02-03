@@ -1,6 +1,6 @@
-const User = require('../../models/user');
-const StudentProgress = require('../../models/StudentProgress');
-const Coin = require('../../models/coin');
+const User = require('../../../models/user');
+const StudentProgress = require('../../../models/StudentProgress');
+const Coin = require('../../../models/coin');
 const mongoose = require('mongoose');
 
 /**

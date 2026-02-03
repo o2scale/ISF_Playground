@@ -8,6 +8,7 @@ import { usePermission } from "./hooks/usePermission";
 import { useCoinBalance } from "../contexts/CoinBalanceContext";
 import CartIcon from "./shop/CartIcon";
 import FloatingDeliveriesButton from "./shop/FloatingDeliveriesButton";
+import StudentLayout from "./student/StudentLayout"; // Sprint 2 Fix: Unify Student Navigation
 import {
   getUserNotifications,
   getUnreadNotificationCount,
@@ -84,7 +85,7 @@ const Layout = () => {
         "amma",
       ],
     },
-    { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach", "student"] },
+    { id: 4, name: "Tasks", link: "/task", roles: ["admin", "coach"] },
     {
       id: 5,
       name: "Attendance",
@@ -138,6 +139,12 @@ const Layout = () => {
     { id: 15, name: "Translations", link: "/admin/translations", roles: ["admin"] },
     { id: 16, name: "Courses", link: "/coach/grading", roles: ["coach"] },
     { id: 17, name: "Assignments", link: "/coach/assignments", roles: ["coach"] },
+    {
+      id: 18,
+      name: "My Courses",
+      link: "/student/dashboard",
+      roles: ["student"],
+    },
   ];
 
   const sportCoachMenu = [
@@ -425,6 +432,24 @@ const Layout = () => {
     currentRole === "purchase-manager" ||
     currentRole === "balagruha-incharge" ||
     (hasCustomDashboard && !isOnDashboard);
+
+  // Sprint 2 Fix: Unify Student Navigation
+  // If user is a student, use the StudentLayout (with TitleBar) instead of the legacy header
+  // This ensures Shop, WTF, and other generic pages look consistent with the Dashboard
+  if (currentRole === "student") {
+    return (
+      <StudentLayout>
+        <SidebarContext.Provider
+          value={{
+            isSidebarCollapsed,
+            toggleSidebar: () => setIsSidebarCollapsed(!isSidebarCollapsed),
+          }}
+        >
+          <Outlet />
+        </SidebarContext.Provider>
+      </StudentLayout>
+    );
+  }
 
   return (
     <div className="app-layout">

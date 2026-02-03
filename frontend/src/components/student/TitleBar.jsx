@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { api } from '../../api';
 import TransactionHistoryModal from './coins/TransactionHistoryModal';
 import MilestoneCelebrationModal from './coins/MilestoneCelebrationModal';
@@ -156,13 +157,23 @@ export default function TitleBar() {
         <div className="flex items-center justify-between max-w-7xl mx-auto">
           {/* Left: Logo and Title */}
           <div className="flex items-center gap-3">
-            <div className="h-8 w-8 flex items-center justify-center bg-purple-600 rounded-lg text-white font-bold text-xl">
-              I
-            </div>
-            <h1 className="text-xl font-bold text-gray-900 hidden md:block">
-              ISF Playground
-            </h1>
+            <Link to="/student/dashboard" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+              <div className="h-8 w-8 flex items-center justify-center bg-purple-600 rounded-lg text-white font-bold text-xl">
+                I
+              </div>
+              <h1 className="text-xl font-bold text-gray-900 hidden md:block">
+                ISF Playground
+              </h1>
+            </Link>
           </div>
+
+          {/* Center: Navigation Menu */}
+          <nav className="hidden md:flex items-center gap-1 bg-gray-100 p-1 rounded-full">
+            <NavItem to="/student/dashboard" icon="🏠" label="Dashboard" />
+            <NavItem to="/student/dashboard" icon="📚" label="My Courses" />
+            <NavItem to="/shop" icon="🛒" label="Shop" />
+            <NavItem to="/wtf" icon="🏆" label="WTF" />
+          </nav>
 
           {/* Right: Coin Balance, Notifications, Session Timer */}
           <div className="flex items-center gap-4 md:gap-6">
@@ -228,5 +239,28 @@ export default function TitleBar() {
         onClose={closeCelebration}
       />
     </>
+  );
+}
+
+/**
+ * Helper component for navigation items
+ */
+function NavItem({ to, icon, label }) {
+  const location = useLocation();
+  const isActive = location.pathname === to || location.pathname.startsWith(to + '/');
+
+  return (
+    <Link
+      to={to}
+      className={`
+        flex items-center gap-2 px-4 py-1.5 rounded-full text-sm font-medium transition-all
+        ${isActive
+          ? 'bg-white text-purple-700 shadow-sm ring-1 ring-gray-200'
+          : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900'}
+      `}
+    >
+      <span>{icon}</span>
+      <span>{label}</span>
+    </Link>
   );
 }

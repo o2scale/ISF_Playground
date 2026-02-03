@@ -1,5 +1,5 @@
-const Coin = require('../../models/coin');
-const User = require('../../models/user');
+const Coin = require('../../../models/coin');
+const User = require('../../../models/user');
 
 /**
  * Manual Award Controller - Epic 03 Story 03

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
-import StudentLayout from '../../components/student/StudentLayout';
+// import StudentLayout from '../../components/student/StudentLayout';
 
 /**
  * Life Skills Course Page - Epic 01 Story 05
@@ -11,9 +11,12 @@ import StudentLayout from '../../components/student/StudentLayout';
 export default function LifeSkillsCoursePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [tasks, setTasks] = useState([]);
-  const [quizData, setQuizData] = useState(null);
+  const [courseName, setCourseName] = useState('Life Skills 🌱'); // Default fallback
+  const [courseId, setCourseId] = useState(null); // Store courseId
+  const [modules, setModules] = useState([]);
   const [error, setError] = useState(null);
+  const [activeVideo, setActiveVideo] = useState(null); // For playing video modal
+  const [activePdf, setActivePdf] = useState(null); // For viewing PDF modal
 
   useEffect(() => {
     fetchLifeSkillsTasks();
@@ -26,13 +29,9 @@ export default function LifeSkillsCoursePage() {
       const response = await api.get(`/api/v2/lms/student/${studentId}/courses/life-skills`);
 
       if (response.data.success) {
-        const allTasks = response.data.tasks;
-        // Separate voice tasks and quiz
-        const voiceTasks = allTasks.filter(t => t.taskType === 'voice');
-        const quiz = allTasks.find(t => t.taskType === 'quiz');
-
-        setTasks(voiceTasks);
-        setQuizData(quiz);
+        setModules(response.data.modules || []);
+        if (response.data.courseName) setCourseName(response.data.courseName);
+        if (response.data.courseId) setCourseId(response.data.courseId);
       } else {
         setError('Failed to load Life Skills tasks');
         toast.error('Failed to load tasks');
@@ -50,129 +49,224 @@ export default function LifeSkillsCoursePage() {
     navigate(`/student/life-skills/voice/${taskId}`);
   };
 
-  const handleQuizClick = () => {
-    navigate('/student/life-skills/quiz/quiz_1');
+  const handleQuizClick = (quizId) => {
+    // Assuming quizId is needed or fixed routes for now
+    navigate(`/student/life-skills/quiz/${quizId}`);
+  };
+
+  const markContentComplete = async (item) => {
+    try {
+      const studentId = localStorage.getItem('userId') || 'student1';
+      if (!courseId) return;
+
+      await api.post(`/api/v2/lms/student/${studentId}/courses/life-skills/mark-complete`, {
+        itemId: item.id,
+        itemType: item.type,
+        courseId: courseId
+      });
+      // Optionally refresh tasks to show updated progress? 
+      // For now, fire and forget to avoid UI jitter, or could update local state.
+    } catch (e) {
+      console.error("Failed to mark complete", e);
+    }
   };
 
   if (loading) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-xl text-gray-600">Loading Life Skills tasks...</p>
-        </div>
-      </StudentLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-xl text-gray-600">Loading Life Skills tasks...</p>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <p className="text-xl text-red-600 mb-4">{error}</p>
-            <button
-              onClick={() => navigate('/student/dashboard')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Return to Dashboard
-            </button>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-xl text-red-600 mb-4">{error}</p>
+          <button
+            onClick={() => navigate('/student/dashboard')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Return to Dashboard
+          </button>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   return (
-    <StudentLayout>
+    <>
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-blue-900 mb-2" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-            Life Skills 🌱
+            {courseName}
           </h1>
           <p className="text-lg text-gray-600">Learn about hygiene, emotions, and social skills!</p>
         </div>
 
-        {/* Voice Recording Tasks Section */}
-        <div className="mb-10">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-            🎤 Voice Recording Tasks
-          </h2>
-          <p className="text-gray-600 mb-6">Record your voice answers to these questions. Speak clearly and take your time!</p>
+        {/* Modules Hierarchy */}
+        <div className="space-y-12">
+          {modules.map((module) => (
+            <div key={module.id} className="module-section">
+              <h2 className="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-green-200 pb-2">
+                {module.title}
+              </h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {tasks.map(task => (
-              <div
-                key={task.id}
-                className="bg-white border-2 border-green-300 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
-                onClick={() => handleVoiceTaskClick(task.id)}
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full font-medium">
-                    {task.category}
-                  </span>
-                  <span className="text-2xl">🎤</span>
-                </div>
-                <h3 className="text-xl font-bold text-gray-800 mb-2" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-                  {task.title}
-                </h3>
-                <p className="text-gray-600 mb-4 text-sm line-clamp-2">
-                  {task.question}
-                </p>
-                <div className="flex items-center justify-between text-sm text-gray-500">
-                  <span>Max {task.maxRecordingDuration}s</span>
-                  <span className="text-yellow-600 font-medium">+{task.coinsForSubmission} coins</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+              <div className="space-y-8">
+                {module.chapters.map((chapter) => (
+                  <div key={chapter.id} className="chapter-section pl-4">
+                    <h3 className="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                      <span className="mr-2">📖</span> {chapter.title}
+                    </h3>
 
-        {/* MCQ Quiz Section */}
-        {quizData && (
-          <div className="mb-10">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-              📝 Life Skills Quiz
-            </h2>
-            <p className="text-gray-600 mb-6">Test your knowledge with multiple choice questions!</p>
-
-            <div
-              className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-300 rounded-xl p-8 hover:shadow-xl transition-shadow cursor-pointer"
-              onClick={handleQuizClick}
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <h3 className="text-2xl font-bold text-blue-900 mb-3" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-                    {quizData.title}
-                  </h3>
-                  <p className="text-gray-700 mb-4">{quizData.description}</p>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                    <div className="flex items-center">
-                      <span className="text-blue-600 mr-2">📚</span>
-                      <span>{quizData.totalQuestions} Questions</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-yellow-600 mr-2">💰</span>
-                      <span>Up to {quizData.totalCoins} coins</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-green-600 mr-2">🎁</span>
-                      <span>+{quizData.bonusCoins} bonus</span>
-                    </div>
-                    <div className="flex items-center">
-                      <span className="text-purple-600 mr-2">⏱️</span>
-                      <span>~10 minutes</span>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {chapter.contentItems.map((item) => {
+                        // Render based on Type
+                        if (item.type === 'video') {
+                          return (
+                            <div key={item.id} className="bg-white border-2 border-indigo-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
+                              <div className="bg-indigo-50 p-4 flex justify-center items-center h-48">
+                                <span className="text-6xl">🎬</span>
+                              </div>
+                              <div className="p-4">
+                                <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full font-medium mb-2 inline-block">
+                                  Video
+                                </span>
+                                <h4 className="text-lg font-bold text-gray-800 mb-2 leading-tight">{item.title}</h4>
+                                <button
+                                  onClick={() => {
+                                    setActiveVideo(item);
+                                    markContentComplete(item);
+                                  }}
+                                  className="w-full mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2"
+                                >
+                                  <span>▶️</span> Watch
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        } else if (item.type === 'pdf') {
+                          return (
+                            <div key={item.id} className="bg-white border-2 border-red-200 rounded-xl overflow-hidden hover:shadow-lg transition-shadow">
+                              <div className="bg-red-50 p-4 flex justify-center items-center h-48">
+                                <span className="text-6xl">📄</span>
+                              </div>
+                              <div className="p-4">
+                                <span className="px-3 py-1 bg-red-100 text-red-700 text-sm rounded-full font-medium mb-2 inline-block">
+                                  PDF
+                                </span>
+                                <h4 className="text-lg font-bold text-gray-800 mb-2 leading-tight">{item.title}</h4>
+                                <button
+                                  onClick={() => {
+                                    setActivePdf(item);
+                                    markContentComplete(item);
+                                  }}
+                                  className="w-full mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 block text-center"
+                                >
+                                  <span>👁️</span> View PDF
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        } else if (item.type === 'quiz') {
+                          return (
+                            <div
+                              key={item.id}
+                              className="bg-white border-2 border-purple-300 rounded-xl p-6 hover:shadow-lg transition-shadow relative overflow-hidden"
+                            >
+                              <div className="absolute top-0 right-0 p-2 opacity-10">
+                                <span className="text-8xl">📝</span>
+                              </div>
+                              <span className="px-3 py-1 bg-purple-100 text-purple-700 text-sm rounded-full font-medium mb-3 inline-block">
+                                Quiz
+                              </span>
+                              <h4 className="text-xl font-bold text-gray-800 mb-2">{item.title}</h4>
+                              <p className="text-gray-600 text-sm mb-4 line-clamp-2">{item.description}</p>
+                              <div className="flex items-center text-sm text-gray-500 mb-4">
+                                <span>{item.totalQuestions} Questions</span>
+                              </div>
+                              <button
+                                onClick={() => handleQuizClick(item.id)}
+                                className="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2"
+                              >
+                                <span>🚀</span> Start Quiz
+                              </button>
+                            </div>
+                          );
+                        } else {
+                          // Default to Voice/Task
+                          return (
+                            <div
+                              key={item.id}
+                              className="bg-white border-2 border-green-300 rounded-xl p-6 hover:shadow-lg transition-shadow cursor-pointer"
+                              onClick={() => handleVoiceTaskClick(item.id)}
+                            >
+                              <div className="flex items-center justify-between mb-3">
+                                <span className="px-3 py-1 bg-green-100 text-green-700 text-sm rounded-full font-medium">
+                                  {item.category}
+                                </span>
+                                <span className="text-2xl">🎤</span>
+                              </div>
+                              <h4 className="text-xl font-bold text-gray-800 mb-2">{item.title}</h4>
+                              <p className="text-gray-600 mb-4 text-sm line-clamp-2">
+                                {item.instructions || item.description}
+                              </p>
+                              <div className="flex items-center justify-between text-sm text-gray-500">
+                                <span className="text-yellow-600 font-medium">+{item.coinsForSubmission} coins</span>
+                              </div>
+                            </div>
+                          );
+                        }
+                      })}
                     </div>
                   </div>
-                </div>
-                <div className="text-6xl ml-8">
-                  📝
-                </div>
+                ))}
               </div>
-              <button className="mt-6 w-full px-8 py-4 bg-blue-600 text-white text-lg font-bold rounded-full hover:bg-blue-700 transition-colors"
-                style={{ fontFamily: 'Patrick Hand, cursive' }}>
-                Start Quiz →
-              </button>
+            </div>
+          ))}
+        </div>
+
+        {/* Video Viewer Modal */}
+        {activeVideo && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-4xl overflow-hidden shadow-2xl">
+              <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 className="text-lg font-bold">{activeVideo.title}</h3>
+                <button onClick={() => setActiveVideo(null)} className="text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+              </div>
+              <div className="aspect-video bg-black">
+                <video
+                  src={activeVideo.fileUrl}
+                  controls
+                  autoPlay
+                  className="w-full h-full"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              </div>
+            </div>
+          </div>
+        )}
+
+
+
+        {/* PDF Viewer Modal */}
+        {activePdf && (
+          <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-xl w-full max-w-4xl h-[90vh] overflow-hidden shadow-2xl flex flex-col">
+              <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+                <h3 className="text-lg font-bold">{activePdf.title}</h3>
+                <button onClick={() => setActivePdf(null)} className="text-gray-500 hover:text-red-500 text-2xl">&times;</button>
+              </div>
+              <div className="flex-1 bg-gray-100 p-0">
+                <iframe
+                  src={activePdf.fileUrl}
+                  className="w-full h-full"
+                  title={activePdf.title}
+                />
+              </div>
             </div>
           </div>
         )}
@@ -197,7 +291,7 @@ export default function LifeSkillsCoursePage() {
             </li>
           </ul>
         </div>
-      </div>
-    </StudentLayout>
+      </div >
+    </>
   );
 }

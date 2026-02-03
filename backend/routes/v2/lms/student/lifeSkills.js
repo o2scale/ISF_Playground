@@ -14,6 +14,7 @@ router.get('/', lifeSkillsController.getLifeSkillsTasks);
 // Voice Recording Routes
 router.get('/voice/:taskId', lifeSkillsController.getVoiceTask);
 router.post('/voice/submit', lifeSkillsController.submitVoiceRecording);
+router.post('/mark-complete', lifeSkillsController.markItemComplete);
 
 // MCQ Quiz Routes
 router.get('/quiz/:quizId', lifeSkillsController.getQuiz);

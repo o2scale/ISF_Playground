@@ -1,4 +1,4 @@
-import React from 'react';
+import { Outlet } from 'react-router-dom';
 import TitleBar from './TitleBar';
 import Toolbar from './Toolbar';
 
@@ -21,8 +21,8 @@ export default function StudentLayout({ children }) {
 
       {/* Main Content Area */}
       <main className="py-8 px-6">
-        <div className="max-w-7xl mx-auto">
-          {children}
+        <div className="w-full">
+          {children || <Outlet />}
         </div>
       </main>
     </div>

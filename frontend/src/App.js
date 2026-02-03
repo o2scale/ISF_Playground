@@ -56,12 +56,13 @@ import TranslationDashboard from "./pages/admin/TranslationDashboard";
 import TranslationEditor from "./pages/admin/TranslationEditor";
 import TranslationQueue from "./pages/admin/TranslationQueue";
 import StudentDashboardPage from "./pages/student/StudentDashboardPage";
-import ComputerAppsPage from "./pages/student/ComputerAppsPage";
+import ComputerAppsPage from './pages/student/ComputerAppsPage';
+import StudentQuizPage from './pages/student/StudentQuizPage';
+import StudentQuizResults from './pages/student/StudentQuizResults';
 import ArtCoursePage from "./pages/student/ArtCoursePage";
 import SpokenEnglishPage from "./pages/student/SpokenEnglishPage";
 import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
-import LifeSkillsQuizPage from "./pages/student/LifeSkillsQuizPage";
-import LifeSkillsQuizResults from "./pages/student/LifeSkillsQuizResults";
+
 import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
 import CoachAssignmentsPage from "./pages/coach/CoachAssignmentsPage";
 import GradingDashboard from "./pages/coach/GradingDashboard";
@@ -111,6 +112,30 @@ const App = () => {
                     }
                   />
                   <Route
+                    path="/student/computer-apps/quiz/results"
+                    element={
+                      <ProtectedRoute>
+                        <StudentQuizResults />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/computer-apps/quiz/:quizId"
+                    element={
+                      <ProtectedRoute>
+                        <StudentQuizPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/student/computer-apps/:courseId"
+                    element={
+                      <ProtectedRoute>
+                        <ComputerAppsPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
                     path="/student/art"
                     element={
                       <ProtectedRoute>
@@ -143,18 +168,18 @@ const App = () => {
                     }
                   />
                   <Route
-                    path="/student/life-skills/quiz/:quizId"
+                    path="/student/life-skills/quiz/results"
                     element={
                       <ProtectedRoute>
-                        <LifeSkillsQuizPage />
+                        <StudentQuizResults />
                       </ProtectedRoute>
                     }
                   />
                   <Route
-                    path="/student/life-skills/quiz/results"
+                    path="/student/life-skills/quiz/:quizId"
                     element={
                       <ProtectedRoute>
-                        <LifeSkillsQuizResults />
+                        <StudentQuizPage />
                       </ProtectedRoute>
                     }
                   />

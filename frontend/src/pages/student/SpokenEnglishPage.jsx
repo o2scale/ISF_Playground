@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
-import StudentLayout from '../../components/student/StudentLayout';
+// import StudentLayout from '../../components/student/StudentLayout';
 import AudioInstructions from '../../components/student/spoken-english/AudioInstructions';
 import WebcamPreview from '../../components/student/spoken-english/WebcamPreview';
 import RecordingControls from '../../components/student/spoken-english/RecordingControls';
@@ -244,35 +244,31 @@ export default function SpokenEnglishPage() {
   // Loading State
   if (loading) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <p className="text-xl text-gray-600">Loading task...</p>
-        </div>
-      </StudentLayout>
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-xl text-gray-600">Loading task...</p>
+      </div>
     );
   }
 
   // Error State
   if (error || !task) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <p className="text-xl text-red-600 mb-4">{error || 'Task not found'}</p>
-            <button
-              onClick={() => navigate('/student/dashboard')}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Return to Dashboard
-            </button>
-          </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-xl text-red-600 mb-4">{error || 'Task not found'}</p>
+          <button
+            onClick={() => navigate('/student/dashboard')}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            Return to Dashboard
+          </button>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   return (
-    <StudentLayout>
+    <>
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -333,13 +329,12 @@ export default function SpokenEnglishPage() {
 
         {/* Status Message */}
         <div className="mt-4 text-center">
-          <p className={`text-base font-medium ${
-            recordingState === 'recording' ? 'text-red-600' :
+          <p className={`text-base font-medium ${recordingState === 'recording' ? 'text-red-600' :
             recordingState === 'playing' ? 'text-blue-600' :
-            recordingState === 'uploading' ? 'text-orange-600' :
-            recordingState === 'recorded' ? 'text-green-600' :
-            'text-gray-600'
-          }`}>
+              recordingState === 'uploading' ? 'text-orange-600' :
+                recordingState === 'recorded' ? 'text-green-600' :
+                  'text-gray-600'
+            }`}>
             {recordingState === 'initial' && 'Ready to record. Click the red button when you\'re ready.'}
             {recordingState === 'recording' && `Recording... ${Math.floor(recordingDuration / 60)}:${(recordingDuration % 60).toString().padStart(2, '0')}`}
             {recordingState === 'recorded' && 'Recording complete. Preview or submit your video.'}
@@ -371,6 +366,6 @@ export default function SpokenEnglishPage() {
           />
         )}
       </div>
-    </StudentLayout>
+    </>
   );
 }

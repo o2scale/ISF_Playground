@@ -25,7 +25,7 @@ const SubmissionSchema = new mongoose.Schema(
     },
     submissionType: {
       type: String,
-      enum: ["art", "video", "audio"],
+      enum: ["art", "video", "audio", "quiz"],
       required: true,
       index: true,
     },

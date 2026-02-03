@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
-import StudentLayout from '../../components/student/StudentLayout';
+// import StudentLayout from '../../components/student/StudentLayout';
 import ResumeActivityCard from '../../components/student/ResumeActivityCard';
 import CourseCategoryCard from '../../components/student/CourseCategoryCard';
 
@@ -153,43 +153,39 @@ export default function StudentDashboardPage() {
   // Loading state
   if (loading) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-6xl mb-4 animate-pulse">⏳</div>
-            <p className="text-xl text-gray-600 font-medium">Loading your dashboard...</p>
-          </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="text-6xl mb-4 animate-pulse">⏳</div>
+          <p className="text-xl text-gray-600 font-medium">Loading your dashboard...</p>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   // No data state
   if (!dashboardData) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
-            <div className="text-6xl mb-4">📭</div>
-            <p className="text-xl text-gray-600 font-medium">No data available</p>
-            <button
-              onClick={fetchDashboardData}
-              className="mt-4 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
-            >
-              Retry
-            </button>
-          </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-center">
+          <div className="text-6xl mb-4">📭</div>
+          <p className="text-xl text-gray-600 font-medium">No data available</p>
+          <button
+            onClick={fetchDashboardData}
+            className="mt-4 px-6 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700"
+          >
+            Retry
+          </button>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   return (
-    <StudentLayout>
+    <>
       {/* Welcome Section */}
       <div className="mb-6">
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, {dashboardData.studentName || 'Student'}! 👋
+          Welcome back, {dashboardData.studentName || localStorage.getItem('name') || 'Student'}! 👋
         </h2>
         <p className="text-lg text-gray-600">
           Ready to continue your learning journey?
@@ -215,13 +211,16 @@ export default function StudentDashboardPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 gap-6">
           {courseCategories.map((category) => {
-            // Find course progress data from dashboard
-            const courseData = dashboardData.courses?.find(
+            // Find ALL courses matching this category
+            const categoryCourses = dashboardData.courses?.filter(
               c => c.courseType === category.courseType
-            ) || {
-              totalTasks: 0,
-              completedTasks: 0
-            };
+            ) || [];
+
+            // Aggregate progress
+            const courseData = categoryCourses.reduce((acc, curr) => ({
+              totalTasks: acc.totalTasks + (curr.totalTasks || 0),
+              completedTasks: acc.completedTasks + (curr.completedTasks || 0)
+            }), { totalTasks: 0, completedTasks: 0 });
 
             return (
               <CourseCategoryCard
@@ -266,6 +265,6 @@ export default function StudentDashboardPage() {
           </div>
         </div>
       )}
-    </StudentLayout>
+    </>
   );
 }

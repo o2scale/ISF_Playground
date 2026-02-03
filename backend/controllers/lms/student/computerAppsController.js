@@ -2,14 +2,6 @@ const Course = require('../../../models/course');
 const StudentProgress = require('../../../models/StudentProgress');
 const mongoose = require('mongoose');
 
-/**
- * Computer Apps Controller - Epic 01 Story 02
- * Handles Computer Apps course interactions:
- * - Get apps list with progress
- * - Get levels for selected app
- * - Get task details for selected level
- */
-
 // ==================== GET APPS LIST ====================
 
 /**
@@ -21,19 +13,10 @@ exports.getComputerApps = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    // 1. Fetch the main "Computer Apps" Course
-    // Assuming there is one big course or multiple courses under 'Computer Apps' category.
-    // Based on mocks (MS Word, Excel, PPT), these look like MODULES inside a "Computer Apps" course, 
-    // OR separate courses in that category. 
-    // Let's assume they are MODULES of a single "Computer Apps" Master Course for now, 
-    // OR separate courses. Given the structure "getAppLevels" (appId -> levels), 
-    // it likely treats each "App" as a Module or a Course.
-    // Let's treat them as *Modules* within a course named "Computer Apps" OR query all courses with category "Computer Apps".
-
     // Strategy: Find all courses with category "Computer Apps"
     const appCourses = await Course.find({ category: 'Computer Apps', status: 'published' }).sort({ title: 1 }).lean();
 
-    // 2. Fetch Progress
+    // Fetch Progress
     const progressRecords = await StudentProgress.find({
       student: studentId,
       course: { $in: appCourses.map(c => c._id) }
@@ -41,7 +24,7 @@ exports.getComputerApps = async (req, res) => {
 
     const progressMap = new Map(progressRecords.map(p => [p.course.toString(), p]));
 
-    // 3. Map to response format
+    // Map to response format
     const apps = appCourses.map(course => {
       const progress = progressMap.get(course._id.toString());
 
@@ -74,7 +57,8 @@ exports.getComputerApps = async (req, res) => {
 
     res.json({
       success: true,
-      apps
+      apps,
+      debug: progressRecords // TEMPORARY DEBUG
     });
   } catch (error) {
     console.error('Get Computer Apps Error:', error);
@@ -86,210 +70,443 @@ exports.getComputerApps = async (req, res) => {
   }
 };
 
-// ==================== GET LEVELS LIST ====================
+// ==================== GET COURSE HIERARCHY ====================
 
 /**
- * @desc Get all levels (Modules) for selected Computer Apps application (Course)
- * @route GET /api/v2/lms/student/:studentId/courses/computer-apps/:appId/levels
+ * @desc Get full course hierarchy (Modules -> Chapters -> Items) with progress
+ * @route GET /api/v2/lms/student/:studentId/courses/computer-apps/:courseId/hierarchy
  * @access Private
  */
-exports.getAppLevels = async (req, res) => {
+exports.getCourseHierarchy = async (req, res) => {
   try {
-    const { studentId, appId } = req.params; // appId is actually courseId
+    const { studentId, courseId } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(appId)) {
-      return res.status(400).json({ success: false, message: 'Invalid App ID' });
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ success: false, message: 'Invalid Course ID' });
     }
 
-    const course = await Course.findOne({ _id: appId, status: 'published' }).lean();
+    const course = await Course.findOne({ _id: courseId, status: 'published' })
+      .populate({
+        path: 'modules.chapters.contentItems',
+        model: 'ContentLibrary'
+      })
+      .lean();
+
     if (!course) {
-      return res.status(404).json({ success: false, message: 'Application course not found' });
+      return res.status(404).json({ success: false, message: 'Course not found' });
     }
 
-    const progress = await StudentProgress.findOne({ student: studentId, course: appId }).lean();
+    const progress = await StudentProgress.findOne({ student: studentId, course: courseId }).lean();
     const completedItems = new Set(progress?.completedItems?.map(i => i.itemId.toString()) || []);
 
-    // Map Modules to "Levels"
-    // Locking logic: A level is unlocked if the previous level is completed.
-    let isLocked = false;
+    // Map Hierarchy
+    const modules = course.modules.map(module => ({
+      id: module._id,
+      title: module.title,
+      chapters: module.chapters.map(chapter => ({
+        id: chapter._id,
+        title: chapter.title,
+        contentItems: chapter.contentItems.map(item => {
+          // Check if Item ID OR Quiz Ref is in completed items
+          const isCompleted = completedItems.has(item._id.toString()) ||
+            (item.quizRef && completedItems.has(item.quizRef.toString())) ||
+            (item.metadata?.quizId && completedItems.has(item.metadata.quizId.toString()));
 
-    const levels = course.modules.map((module, index) => {
-      // Calculate module tasks
-      let moduleTasks = [];
-      module.chapters?.forEach(c => {
-        if (c.contentItems) moduleTasks.push(...c.contentItems);
-      });
-
-      const totalTasks = moduleTasks.length;
-      const completedCount = moduleTasks.filter(t => completedItems.has(t._id.toString())).length;
-      const progressPercentage = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0;
-
-      // Status
-      let status = 'not_started';
-      if (progressPercentage === 100) status = 'completed';
-      else if (progressPercentage > 0) status = 'in_progress';
-
-      // Lock check: If previous was not 100%, this one is locked (unless it's the first one)
-      // Actually, let's keep it simple: strict sequential.
-      // If we are already locked, this one is locked too.
-      // If we are not locked, check if this one is locked (i.e. strictly previous one finished?)
-      // For UX, Level 1 is always unlocked.
-
-      const currentLevelLocked = index > 0 && isLocked;
-
-      // Update lock state for NEXT level: if this one isn't done, next is locked.
-      if (status !== 'completed') {
-        isLocked = true;
-      }
-
-      return {
-        id: module._id,
-        name: module.title, // e.g., "Level 1: Basics"
-        totalTasks,
-        completedTasks: completedCount,
-        status: currentLevelLocked ? 'locked' : status,
-        locked: currentLevelLocked,
-        progressPercentage,
-        description: module.description,
-        unlockMessage: currentLevelLocked ? 'Complete previous level to unlock' : undefined
-      };
-    });
+          return {
+            id: item._id,
+            title: item.title,
+            type: item.type || 'text',
+            fileUrl: item.fileUrl,
+            description: item.description,
+            isCompleted: isCompleted,
+            difficulty: item.metadata?.difficulty || 'beginner',
+            quizId: item.quizRef // Add Quiz Reference
+          };
+        })
+      }))
+    }));
 
     res.json({
       success: true,
-      appId,
-      levels
+      courseId,
+      courseTitle: course.title,
+      modules
     });
   } catch (error) {
-    console.error('Get App Levels Error:', error);
+    console.error('Get Course Hierarchy Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while fetching app levels',
+      message: 'Server error while fetching course hierarchy',
       error: error.message
     });
   }
 };
 
-// ==================== GET TASK DETAILS ====================
+// ==================== GET CONTENT DETAILS ====================
 
 /**
- * @desc Get task details for selected level
- * @route GET /api/v2/lms/student/:studentId/courses/computer-apps/:appId/levels/:levelId/task/:taskId
+ * @desc Get specific content item details
+ * @route GET /api/v2/lms/student/:studentId/courses/computer-apps/:courseId/content/:contentId
  * @access Private
  */
-exports.getTaskDetails = async (req, res) => {
+exports.getContentDetails = async (req, res) => {
   try {
-    const { studentId, appId, levelId, taskId } = req.params;
+    const { studentId, courseId, contentId } = req.params;
 
-    // TODO: Replace with actual database query
-    // Generate dynamic mock task details based on appId and levelId
-    const taskMap = {
-      'app-ms-word': {
-        'level-1': {
-          title: 'Create a Formal Letter',
-          tool: 'MS Word',
-          instructions: 'Open MS Word and create a formal letter with proper formatting.\n\nRequirements:\n1. Heading with name and address\n2. Date on the right\n3. Recipient details\n4. Professional greeting\n5. Three-paragraph body\n6. Closing signature'
-        },
-        'level-2': {
-          title: 'Format a Document with Styles',
-          tool: 'MS Word',
-          instructions: 'Apply formatting styles to a document.\n\nRequirements:\n1. Use Heading 1 and Heading 2 styles\n2. Apply bold and italic formatting\n3. Create a bulleted list\n4. Insert page numbers\n5. Add a table of contents'
-        },
-        'level-3': {
-          title: 'Create a Report with Images',
-          tool: 'MS Word',
-          instructions: 'Create a professional report.\n\nRequirements:\n1. Insert and format images\n2. Use text wrapping\n3. Add captions to images\n4. Create a title page\n5. Include headers and footers'
-        },
-        'level-4': {
-          title: 'Work with Tables and Charts',
-          tool: 'MS Word',
-          instructions: 'Create tables and insert charts.\n\nRequirements:\n1. Create a formatted table\n2. Insert a chart from Excel\n3. Format table borders\n4. Merge and split cells\n5. Add formulas to table'
-        }
-      },
-      'app-excel': {
-        'level-1': {
-          title: 'Create a Simple Spreadsheet',
-          tool: 'Excel',
-          instructions: 'Create a basic spreadsheet with data and formulas.\n\nRequirements:\n1. Enter data in rows and columns\n2. Use SUM function\n3. Apply cell formatting\n4. Create a simple chart\n5. Save your work'
-        },
-        'level-2': {
-          title: 'Use Excel Formulas',
-          tool: 'Excel',
-          instructions: 'Practice advanced Excel formulas.\n\nRequirements:\n1. Use IF function\n2. Use VLOOKUP\n3. Use AVERAGE and COUNT\n4. Create conditional formatting\n5. Sort and filter data'
-        },
-        'level-3': {
-          title: 'Create Charts and Graphs',
-          tool: 'Excel',
-          instructions: 'Visualize data with charts.\n\nRequirements:\n1. Create a column chart\n2. Create a pie chart\n3. Format chart elements\n4. Add chart titles and labels\n5. Export chart to image'
-        }
-      },
-      'app-powerpoint': {
-        'level-1': {
-          title: 'Create Your First Presentation',
-          tool: 'PowerPoint',
-          instructions: 'Build a simple presentation.\n\nRequirements:\n1. Create title slide\n2. Add 5 content slides\n3. Apply a theme\n4. Add transitions\n5. Practice presenting'
-        }
-      },
-      'app-tux-typing': {
-        'level-1': {
-          title: 'Practice Home Row Keys',
-          tool: 'Tux Typing',
-          instructions: 'Master the home row keys (ASDF JKL;).\n\nGoals:\n1. Accuracy: 90%+\n2. Speed: 20 WPM\n3. Complete all drills\n4. Unlock next level\n5. Earn bronze medal'
-        },
-        'level-2': {
-          title: 'Top Row Keys Practice',
-          tool: 'Tux Typing',
-          instructions: 'Learn the top row (QWERTY UIOP).\n\nGoals:\n1. Accuracy: 85%+\n2. Speed: 25 WPM\n3. Complete all drills\n4. Unlock next level\n5. Earn silver medal'
-        }
-      },
-      'app-gcompris': {
-        'level-1': {
-          title: 'Complete Math Games',
-          tool: 'GCompris',
-          instructions: 'Practice math with fun games.\n\nGames:\n1. Addition practice\n2. Subtraction drills\n3. Counting objects\n4. Number sequences\n5. Pattern recognition'
-        }
+    // Use mongoose.model to avoid require path guessing if not sure.
+    const ContentLibrary = mongoose.model('ContentLibrary');
+    const content = await ContentLibrary.findById(contentId).lean();
+
+    if (!content) {
+      return res.status(404).json({ success: false, message: 'Content not found' });
+    }
+
+    // Check completion status
+    const progress = await StudentProgress.findOne({ student: studentId, course: courseId }).lean();
+    const completedSet = new Set(progress?.completedItems?.map(i => i.itemId.toString()) || []);
+
+    const isCompleted = completedSet.has(contentId) ||
+      (content.quizRef && completedSet.has(content.quizRef.toString())) ||
+      (content.metadata?.quizId && completedSet.has(content.metadata.quizId.toString()));
+
+    let details = { ...content, isCompleted };
+
+    // Populate Quiz metadata if needed
+    if (content.type === 'quiz' && content.quizRef) {
+      // Use require for Model to be safe
+      const Quiz = require('../../../models/Quiz');
+      const quiz = await Quiz.findById(content.quizRef).select('-questions.correctOption').lean();
+      if (quiz) {
+        details.quizData = quiz;
       }
-    };
-
-    // Get task data or use default
-    const appTasks = taskMap[appId] || {};
-    const levelTask = appTasks[levelId] || {
-      title: `Task for ${appId} ${levelId}`,
-      tool: 'Computer App',
-      instructions: `Complete the task for ${levelId}.\n\nThis is a placeholder task. Please complete the assigned activities.`
-    };
-
-    const task = {
-      id: taskId,
-      title: levelTask.title,
-      instructions: levelTask.instructions,
-      taskType: 'external_tool',
-      toolName: levelTask.tool,
-      performanceMetrics: {
-        timeTaken: Math.floor(Math.random() * 10) + 8, // 8-17 mins
-        coinsEarned: Math.floor(Math.random() * 50) + 30, // 30-79 coins
-        ranking: Math.floor(Math.random() * 10) + 1, // 1-10
-        completed: true
-      },
-      leaderboard: [
-        { rank: 1, name: 'Priya Singh', coins: 1500, time: 10, isCurrentUser: false },
-        { rank: 2, name: 'Amit Patel', coins: 1250, time: 11, isCurrentUser: false },
-        { rank: 3, name: 'Ravi Kumar', coins: 1100, time: 12, isCurrentUser: true },
-        { rank: 4, name: 'Neha Gupta', coins: 980, time: 13, isCurrentUser: false },
-        { rank: 5, name: 'Suresh Kumar', coins: 850, time: 14, isCurrentUser: false }
-      ]
-    };
+    }
 
     res.json({
       success: true,
-      task
+      content: details
     });
+
   } catch (error) {
-    console.error('Get Task Details Error:', error);
+    console.error('Get Content Details Error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error while fetching task details',
+      message: 'Server error while fetching content details',
       error: error.message
     });
   }
 };
+
+exports.getQuiz = async (req, res) => {
+  try {
+    const { studentId, quizId } = req.params;
+    const Quiz = mongoose.model('Quiz');
+
+    // Fetch quiz without correct answers
+    const quiz = await Quiz.findById(quizId).select('-questions.correctOption').lean();
+
+    if (!quiz) {
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+
+    res.json({
+      success: true,
+      quiz
+    });
+  } catch (error) {
+    console.error('Get Quiz Error:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+exports.submitQuiz = async (req, res) => {
+  let debugInfo = {};
+  const fs = require('fs');
+  const path = require('path');
+  const logPath = path.join(__dirname, '../../../quiz_debug.log');
+
+  const log = (msg) => {
+    try { fs.appendFileSync(logPath, msg + '\n'); } catch (e) { }
+  };
+
+  try {
+    const { studentId } = req.params;
+    const { quizId, answers, courseId: bodyCourseId } = req.body;
+
+    const Quiz = require('../../../models/Quiz');
+    const Course = require('../../../models/course');
+    const StudentProgress = require('../../../models/StudentProgress');
+    const Submission = require('../../../models/Submission');
+    const Coin = require('../../../models/coin');
+    const User = require('../../../models/user');
+
+    log(`SubmitQuiz: Stud=${studentId}, Quiz=${quizId}, Course=${bodyCourseId}`);
+
+    const quiz = await Quiz.findById(quizId).lean();
+    if (!quiz) {
+      log('Quiz not found');
+      return res.status(404).json({ success: false, message: 'Quiz not found' });
+    }
+    log('Quiz Fetched');
+
+    // Course ID Resolution
+    let courseId = bodyCourseId || quiz.course;
+    if (!courseId) {
+      const fallback = await Course.findOne({
+        $or: [{ slug: 'computer-applications' }, { _id: '696d309b3da5d316feca6b11' }]
+      }).select('_id');
+      if (fallback) courseId = fallback._id;
+    }
+    debugInfo.courseId = courseId;
+    debugInfo.answersReceived = answers ? answers.length : 0;
+    log(`Resolved CourseID: ${courseId}`);
+
+    if (!answers || !Array.isArray(answers)) {
+      log('Invalid Answers Format');
+      throw new Error('Invalid answers format');
+    }
+    log(`Answers Count: ${answers.length}`);
+
+    // Grading Logic
+    log('Starting Grading');
+    let correctAnswers = 0;
+    let baseCoins = 0;
+    const breakdown = quiz.questions.map((q, idx) => {
+      try {
+        const qId = q._id.toString();
+        // log(`Grading Q ${idx}: ${qId}`);
+        const ans = answers.find(a => a.questionId === qId);
+
+        let isCorrect = false;
+        let studentAnsText = 'No Answer';
+        let correctAnsText = 'Unknown';
+        const points = q.points || 5;
+
+        // True/False
+        if (q.type === 'true_false') {
+          const userValStr = ans?.selectedOptionId; // "True"
+          const dbValBool = q.correctAnswer;
+          let userBool = null;
+          if (typeof userValStr === 'string') {
+            if (userValStr.toLowerCase() === 'true') userBool = true;
+            if (userValStr.toLowerCase() === 'false') userBool = false;
+          }
+          isCorrect = (userBool !== null) && (userBool === dbValBool);
+          studentAnsText = userValStr || 'No Answer';
+          correctAnsText = (dbValBool === true) ? 'True' : 'False';
+        } else {
+          // MCQ
+          const selectedOpt = q.options?.find(o => o._id.toString() === ans?.selectedOptionId);
+          const correctOpt = q.options?.find(o => o.isCorrect);
+          isCorrect = selectedOpt && selectedOpt.isCorrect;
+          studentAnsText = selectedOpt ? selectedOpt.text : 'No Answer';
+          correctAnsText = correctOpt ? correctOpt.text : 'Unknown';
+        }
+
+        if (isCorrect) {
+          correctAnswers++;
+          baseCoins += points;
+        }
+
+        return {
+          questionId: q._id,
+          question: q.questionText,
+          isCorrect,
+          studentAnswer: studentAnsText,
+          correctAnswer: correctAnsText,
+          explanation: q.explanation
+        };
+      } catch (err) {
+        log(`Error Grading Q ${idx}: ${err.message}`);
+        throw err;
+      }
+    });
+
+    log('Grading Done');
+
+    const totalQuestions = quiz.questions.length;
+    const score = Math.round((correctAnswers / totalQuestions) * 100);
+    const passed = score >= (quiz.minScore || 60);
+
+    // Check Previous Pass
+    let alreadyPassed = false;
+    if (courseId) {
+      try {
+        const record = await StudentProgress.findOne({
+          student: studentId,
+          course: courseId,
+          'completedItems.itemId': quizId,
+          'completedItems.score': { $gte: (quiz.minScore || 60) }
+        });
+        if (record) alreadyPassed = true;
+      } catch (e) { log('Progress Check Error: ' + e.message); }
+    }
+    log(`Passed: ${passed}, Already: ${alreadyPassed}`);
+
+    // Save Submission
+    const submission = new Submission({
+      studentId,
+      courseId: courseId || quizId,
+      taskId: quizId,
+      taskTitle: quiz.title,
+      submissionType: 'quiz',
+      fileUrl: 'quiz-submission',
+      status: 'graded',
+      grade: { score, points: (passed && !alreadyPassed) ? baseCoins : 0 },
+      metadata: { breakdown },
+      submittedAt: new Date()
+    });
+    if (courseId) await submission.save();
+    log('Submission Saved');
+
+    let coinsAwarded = 0;
+    if (passed && !alreadyPassed && baseCoins > 0) {
+      log('Awarding Coins');
+      try {
+        const coinRecord = await Coin.findOrCreateForUser(studentId);
+        const meta = { quizId: quiz._id, courseId: courseId };
+        await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'task', meta);
+        await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
+        coinsAwarded = baseCoins;
+        log('Coins Awarded');
+      } catch (e) {
+        log('Coin Error: ' + e.message);
+      }
+    }
+
+    // Update Progress
+    if (passed && courseId && !alreadyPassed) {
+      log('Updating Progress');
+      try {
+        await StudentProgress.findOneAndUpdate(
+          { student: studentId, course: courseId },
+          {
+            $push: {
+              completedItems: {
+                itemId: quizId,
+                itemType: 'quiz',
+                completedAt: new Date(),
+                quizId: quizId,
+                score: score
+              }
+            },
+            $set: { lastAccessedAt: new Date() }
+          },
+          { upsert: true, new: true }
+        );
+        log('Progress Updated');
+      } catch (e) {
+        log('Progress Error: ' + e.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      results: {
+        score,
+        correctAnswers,
+        totalQuestions,
+        passed,
+        coinsEarned: coinsAwarded,
+        breakdown
+      },
+      debug: debugInfo
+    });
+  } catch (error) {
+    log(`CRASH: ${error.message}\n${error.stack}`);
+    console.error('Submit Quiz Crash:', error);
+    const fs = require('fs');
+    try { fs.appendFileSync('quiz_crash.log', error.stack + '\n'); } catch (e) { }
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// ==================== MARK CONTENT COMPLETE ====================
+
+/**
+ * @desc Put/mark content item as complete
+ * @route POST /api/v2/lms/student/:studentId/courses/computer-apps/mark-complete
+ * @access Private
+ */
+exports.markComplete = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { itemId, itemType, courseId, quizId } = req.body;
+
+    console.log(`markComplete called for Student: ${studentId}, Course: ${courseId}, Item: ${itemId}`);
+
+    if (!itemId || !courseId) {
+      return res.status(400).json({ success: false, message: 'Missing itemId or courseId' });
+    }
+
+    // Explicitly cast to ObjectId
+    const studentObjectId = new mongoose.Types.ObjectId(studentId);
+    const courseObjectId = new mongoose.Types.ObjectId(courseId);
+
+    // Find existing progress
+    let progress = await StudentProgress.findOne({
+      student: studentObjectId,
+      course: courseObjectId
+    });
+
+    // Create if missing
+    if (!progress) {
+      console.log('No progress found, creating new record...');
+      progress = new StudentProgress({
+        student: studentObjectId, // Use casted ID
+        course: courseObjectId,   // Use casted ID
+        completedItems: [],
+        status: 'in_progress',
+        startedAt: new Date(),
+        lastAccessedAt: new Date()
+      });
+      // CRITICAL: Save it so it has an ID in DB
+      await progress.save();
+      console.log(`Created new progress record: ${progress._id}`);
+    } else {
+      console.log(`Found existing progress record: ${progress._id}`);
+    }
+
+    // Check if item exists (avoid duplicates)
+    // Note: completedItems might be missing if schema issue, so safe checks
+    const currentItems = progress.completedItems || [];
+    const itemExists = currentItems.some(i => String(i.itemId) === String(itemId));
+
+    if (!itemExists) {
+      const newItem = {
+        itemId: new mongoose.Types.ObjectId(itemId),
+        itemType: itemType || 'unknown',
+        completedAt: new Date(),
+        quizId: quizId ? new mongoose.Types.ObjectId(quizId) : null
+      };
+
+      // Atomic Update
+      progress = await StudentProgress.findByIdAndUpdate(
+        progress._id,
+        {
+          $push: { completedItems: newItem },
+          $set: { lastAccessedAt: new Date() }
+        },
+        { new: true } // Return UPDATED doc
+      );
+      console.log('Progress item pushed successfully.');
+    } else {
+      console.log('Item already completed.');
+    }
+
+    res.json({
+      success: true,
+      message: 'Content marked as complete',
+      progress: progress, // Send back updated progress
+      debug_item_count: progress.completedItems?.length
+    });
+
+  } catch (error) {
+    console.error('Mark Complete Error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error marking content complete',
+      error: error.message
+    });
+  }
+};
+

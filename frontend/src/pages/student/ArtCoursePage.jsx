@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import StudentLayout from '../../components/student/StudentLayout';
+// import StudentLayout from '../../components/student/StudentLayout';
 import WorkshopsMode from '../../components/student/art/WorkshopsMode';
 import FreeSketchMode from '../../components/student/art/FreeSketchMode';
 import ArtStoriesMode from '../../components/student/art/ArtStoriesMode';
@@ -74,19 +74,17 @@ export default function ArtCoursePage() {
 
   if (loading) {
     return (
-      <StudentLayout>
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading Art Course...</p>
-          </div>
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Art Course...</p>
         </div>
-      </StudentLayout>
+      </div>
     );
   }
 
   return (
-    <StudentLayout>
+    <>
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="mb-6">
@@ -162,6 +160,6 @@ export default function ArtCoursePage() {
           </div>
         </div>
       </div>
-    </StudentLayout>
+    </>
   );
 }

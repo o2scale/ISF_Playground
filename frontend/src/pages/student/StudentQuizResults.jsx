@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import StudentLayout from '../../components/student/StudentLayout';
+// StudentLayout removed (handled by App.js)
 
 /**
  * Life Skills Quiz Results Page - Epic 01 Story 05
@@ -10,34 +10,50 @@ import StudentLayout from '../../components/student/StudentLayout';
 export default function LifeSkillsQuizResults() {
   const navigate = useNavigate();
   const location = useLocation();
-  const results = location.state?.results;
+  // Results are nested in "results" key within the response object
+  const results = location.state?.results?.results;
+  const quizId = location.state?.results?.quizId;
 
   // If no results data, redirect back to Life Skills page
-  if (!results) {
-    navigate('/student/life-skills');
-    return null;
-  }
+  // If no results data, redirect back to Life Skills page
+  React.useEffect(() => {
+    if (!results) {
+      navigate('/student/life-skills');
+    }
+  }, [results, navigate]);
+
+  if (!results) return null;
 
   const {
-    score,
+    score: percentage, // Backend sends score as 0-100 percentage
+    correctAnswers,
     totalQuestions,
-    percentage,
-    coinsEarned,
-    bonusCoins,
-    totalCoinsEarned,
+    coinsEarned, // This is the total coins earned
     breakdown
   } = results;
+
+  const bonusCoins = 0; // Backend doesn't calculate bonus yet
+  const totalCoinsEarned = coinsEarned;
 
   const isPassing = percentage >= 80;
   const performanceLevel =
     percentage >= 90 ? { emoji: '🌟', text: 'Outstanding!', color: 'purple' } :
-    percentage >= 80 ? { emoji: '🎉', text: 'Excellent!', color: 'green' } :
-    percentage >= 60 ? { emoji: '👍', text: 'Good Job!', color: 'blue' } :
-    percentage >= 40 ? { emoji: '💪', text: 'Keep Trying!', color: 'yellow' } :
-    { emoji: '📚', text: 'Practice More!', color: 'orange' };
+      percentage >= 80 ? { emoji: '🎉', text: 'Excellent!', color: 'green' } :
+        percentage >= 60 ? { emoji: '👍', text: 'Good Job!', color: 'blue' } :
+          percentage >= 40 ? { emoji: '💪', text: 'Keep Trying!', color: 'yellow' } :
+            { emoji: '📚', text: 'Practice More!', color: 'orange' };
+
+  // Determine context
+  const isComputerApps = location.pathname.includes('computer-apps');
+  const baseRoute = isComputerApps ? '/student/computer-apps' : '/student/life-skills';
+  const returnLabel = isComputerApps ? 'Return to Computer Apps' : 'Return to Life Skills';
+
+  // Try to find courseId if available in debugInfo (Computer Apps)
+  const courseId = location.state?.results?.debugInfo?.courseId;
+  const returnPath = courseId ? `${baseRoute}/${courseId}` : baseRoute;
 
   return (
-    <StudentLayout>
+    <div className="bg-gray-50 min-h-screen font-sans">
       <div className="max-w-4xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="text-center mb-8">
@@ -56,7 +72,7 @@ export default function LifeSkillsQuizResults() {
               {percentage}%
             </div>
             <div className="text-xl text-gray-700">
-              {score} out of {totalQuestions} correct
+              {correctAnswers} out of {totalQuestions} correct
             </div>
           </div>
 
@@ -66,7 +82,7 @@ export default function LifeSkillsQuizResults() {
               💰 {totalCoinsEarned} Coins Earned!
             </div>
             <div className="text-sm text-gray-600 space-y-1">
-              <div>Base coins: {coinsEarned} (12 coins × {score} correct)</div>
+              <div>Base coins: {coinsEarned}</div>
               {bonusCoins > 0 && (
                 <div className="text-green-600 font-medium">
                   🎁 Bonus coins: +{bonusCoins} (scored 80% or above!)
@@ -108,11 +124,10 @@ export default function LifeSkillsQuizResults() {
             {breakdown && breakdown.map((item, index) => (
               <div
                 key={item.questionId}
-                className={`p-4 rounded-lg border-2 ${
-                  item.isCorrect
-                    ? 'bg-green-50 border-green-300'
-                    : 'bg-red-50 border-red-300'
-                }`}
+                className={`p-4 rounded-lg border-2 ${item.isCorrect
+                  ? 'bg-green-50 border-green-300'
+                  : 'bg-red-50 border-red-300'
+                  }`}
               >
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex items-start flex-1">
@@ -143,12 +158,11 @@ export default function LifeSkillsQuizResults() {
                       )}
                     </div>
                   </div>
-                  <div className={`ml-3 px-3 py-1 rounded-full text-sm font-medium ${
-                    item.isCorrect
-                      ? 'bg-green-200 text-green-800'
-                      : 'bg-red-200 text-red-800'
-                  }`}>
-                    {item.isCorrect ? '+12 coins' : '0 coins'}
+                  <div className={`ml-3 px-3 py-1 rounded-full text-sm font-medium ${item.isCorrect
+                    ? 'bg-green-200 text-green-800'
+                    : 'bg-red-200 text-red-800'
+                    }`}>
+                    {item.isCorrect ? `+${item.points || 5} coins` : '0 coins'}
                   </div>
                 </div>
               </div>
@@ -159,18 +173,18 @@ export default function LifeSkillsQuizResults() {
         {/* Action Buttons */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={() => navigate('/student/life-skills/quiz/quiz_1')}
+            onClick={() => navigate(`${baseRoute}/quiz/${quizId}`)}
             className="px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-bold text-lg transition-all shadow-md hover:shadow-lg"
             style={{ fontFamily: 'Patrick Hand, cursive' }}
           >
             🔄 Retry Quiz
           </button>
           <button
-            onClick={() => navigate('/student/life-skills')}
+            onClick={() => navigate(returnPath)}
             className="px-8 py-4 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-bold text-lg transition-all"
             style={{ fontFamily: 'Patrick Hand, cursive' }}
           >
-            ← Return to Life Skills
+            ← {returnLabel}
           </button>
         </div>
 
@@ -178,13 +192,13 @@ export default function LifeSkillsQuizResults() {
         <div className="mt-8 grid grid-cols-3 gap-4 text-center">
           <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4">
             <div className="text-3xl font-bold text-blue-900" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-              {score}
+              {correctAnswers}
             </div>
             <div className="text-sm text-gray-600">Correct</div>
           </div>
           <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
             <div className="text-3xl font-bold text-red-900" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-              {totalQuestions - score}
+              {totalQuestions - correctAnswers}
             </div>
             <div className="text-sm text-gray-600">Incorrect</div>
           </div>
@@ -221,6 +235,6 @@ export default function LifeSkillsQuizResults() {
           </ul>
         </div>
       </div>
-    </StudentLayout>
+    </div>
   );
 }

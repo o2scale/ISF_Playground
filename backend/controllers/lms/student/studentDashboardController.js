@@ -102,7 +102,7 @@ exports.getDashboard = async (req, res) => {
     res.json({
       success: true,
       data: {
-        studentName: `${student.firstName} ${student.lastName}`,
+        studentName: student.name || ((student.firstName || '') + ' ' + (student.lastName || '')).trim() || 'Student',
         courses,
         lastActivity,
         stats

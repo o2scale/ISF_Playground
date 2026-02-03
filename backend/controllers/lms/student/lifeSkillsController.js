@@ -16,7 +16,55 @@ const mongoose = require('mongoose');
 
 // Helper to find life skills course
 const getLifeSkillsCourse = async () => {
-  return await Course.findOne({ category: 'Life Skills', status: 'published' }).lean();
+  return await Course.findOne({ category: 'Life Skills', status: 'published' })
+    .populate({
+      path: 'modules.chapters.contentItems',
+      populate: { path: 'quizRef' } // Deep populate Quiz
+    })
+    .lean();
+};
+
+// Helper to update progress
+const updateProgress = async (studentId, courseId, itemId, itemType, score = null) => {
+  try {
+    let progress = await StudentProgress.findOne({ student: studentId, course: courseId });
+
+    if (!progress) {
+      progress = new StudentProgress({
+        student: studentId,
+        course: courseId,
+        startedAt: new Date(),
+        status: 'in_progress',
+        completedItems: []
+      });
+    }
+
+    // Add new item (or replace existing)
+    const newItem = {
+      itemId: itemId,
+      itemType: itemType,
+      completedAt: new Date(),
+      score: score
+    };
+
+    // Add to list
+    progress.completedItems.push(newItem);
+
+    // Deduplicate: Keep the LATEST entry for each itemId
+    // Logic: Reverse array -> Map sets key (itemId) -> First encountered (latest) wins -> Values -> Reverse back (optional, but Map insertion order is by first set)
+    // Simpler: Map key=itemId. Overwrites. Last one in array wins.
+    const uniqueItemsMap = new Map();
+    progress.completedItems.forEach(item => {
+      uniqueItemsMap.set(item.itemId.toString(), item);
+    });
+    progress.completedItems = Array.from(uniqueItemsMap.values());
+
+    progress.lastAccessedAt = new Date();
+    await progress.save();
+
+  } catch (err) {
+    console.error('Error updating progress:', err);
+  }
 };
 
 /**
@@ -36,46 +84,57 @@ exports.getLifeSkillsTasks = async (req, res) => {
     const progress = await StudentProgress.findOne({ student: studentId, course: course._id }).lean();
     const completedItems = new Set(progress?.completedItems?.map(i => i.itemId.toString()) || []);
 
-    // Create tasks list from Modules/Chapters/ContentItems
-    let allTasks = [];
-    course.modules.forEach(m => {
-      m.chapters.forEach(c => {
-        c.contentItems.map(item => {
-          // Determine type based on item metadata or type field
-          // Assuming item.type 'task' might be voice question or 'quiz' is quiz
+    // Map modules with completion status
+    const modules = course.modules.map(m => ({
+      id: m._id,
+      title: m.title,
+      chapters: m.chapters.map(c => ({
+        id: c._id,
+        title: c.title,
+        contentItems: c.contentItems.map(item => {
+          // Determine type
+          let type = item.type;
+          // Fallback logic if type is missing or generic 'task'
+          if (!type || type === 'task') {
+            if (item.metadata && item.metadata.taskType) {
+              type = item.metadata.taskType;
+            } else {
+              type = 'voice'; // Default fallback
+            }
+          }
 
-          let taskType = 'voice'; // Default
-          if (item.type === 'quiz') taskType = 'quiz';
-          else if (item.metadata && item.metadata.taskType) taskType = item.metadata.taskType;
-
-          allTasks.push({
+          return {
             id: item._id,
-            taskType,
+            type: type,
             title: item.title,
             description: item.description,
-            // For Quizzes
-            totalQuestions: item.metadata?.questions?.length || 0,
-            totalCoins: (item.metadata?.questions?.length || 0) * 12,
+            fileUrl: item.fileUrl,
+            // For Quizzes: Check quizRef first, then metadata
+            totalQuestions: item.quizRef?.questions?.length || item.metadata?.questions?.length || 0,
+            totalCoins: (item.quizRef?.questions?.length || item.metadata?.questions?.length || 0) * 12,
             bonusCoins: item.metadata?.bonusCoins || 24,
             // For Voice
             difficulty: item.metadata?.difficulty || 'medium',
             coinsForSubmission: item.metadata?.coins || 20,
             instructions: item.description,
             category: item.metadata?.category || 'general',
+            // For Video
+            duration: item.metadata?.duration,
             isCompleted: completedItems.has(item._id.toString())
-          });
-        });
-      });
-    });
+          };
+        })
+      }))
+    }));
 
     res.json({
       success: true,
       studentId,
       courseId: course._id,
       courseName: course.title,
-      tasks: allTasks,
-      completedTasks: allTasks.filter(t => t.isCompleted).length,
-      totalTasks: allTasks.length
+      modules: modules,
+      // Keep legacy counts for dashboard if needed
+      completedTasks: completedItems.size,
+      totalTasks: course.modules.reduce((acc, m) => acc + m.chapters.reduce((cAcc, c) => cAcc + c.contentItems.length, 0), 0)
     });
   } catch (error) {
     console.error('Error fetching Life Skills tasks:', error);
@@ -181,6 +240,8 @@ exports.submitVoiceRecording = async (req, res) => {
     // In production: Upload file to S3
     const mockS3Url = `https://isf-lms-voice.s3.amazonaws.com/students/${studentId}/lifeskills/${taskId}_${Date.now()}.webm`;
 
+    // ... submission logic
+
     // Save submission
     const submission = new Submission({
       studentId,
@@ -229,10 +290,53 @@ exports.getQuiz = async (req, res) => {
     // For Epic 1 simplicity and alignment with Admin Controller which uses `Quiz` model:
     // We should fetch the `Quiz` document.
     const Quiz = require('../../../models/Quiz');
+    const Course = require('../../../models/course');
 
-    const quiz = await Quiz.findById(quizId).populate('questions');
+    // Attempt to find by direct Quiz ID first
+    let quiz = null;
+    // Check if it's a valid ObjectId to avoid CastError if looking up strict model
+    if (mongoose.Types.ObjectId.isValid(quizId)) {
+      try {
+        quiz = await Quiz.findById(quizId).populate('questions');
+      } catch (err) {
+        // Ignore cast errors or similar, proceed to ContentItem lookup
+        console.log("Not a direct Quiz ID or not found, trying ContentItem...");
+      }
+    }
+
+    // If not found, it might be a ContentItem ID (from Course structure)
     if (!quiz) {
-      // Ideally we search by ContentItem ID and find linked quiz
+      // Find the Course containing this content item
+      // We don't use projection $ because deep nesting is tricky. catch the whole course (or specific fields if optimization needed)
+      const course = await Course.findOne(
+        { "modules.chapters.contentItems._id": quizId }
+      ).lean();
+
+      if (course) {
+        // Manually find the item in the nested arrays
+        let contentItem = null;
+        for (const m of course.modules) {
+          for (const c of m.chapters) {
+            const found = c.contentItems.find(i => i._id.toString() === quizId);
+            if (found) {
+              contentItem = found;
+              break;
+            }
+          }
+          if (contentItem) break;
+        }
+
+        if (contentItem) {
+          if (contentItem.quizRef) {
+            quiz = await Quiz.findById(contentItem.quizRef).populate('questions');
+          } else if (contentItem.metadata?.quizId) {
+            quiz = await Quiz.findById(contentItem.metadata.quizId).populate('questions');
+          }
+        }
+      }
+    }
+
+    if (!quiz) {
       return res.status(404).json({ success: false, error: 'Quiz not found' });
     }
 
@@ -240,9 +344,9 @@ exports.getQuiz = async (req, res) => {
     const questions = quiz.questions.map(q => ({
       id: q._id,
       type: q.type,
-      title: q.text, // "title" in UI
+      title: q.questionText, // "title" in UI
       audioUrl: q.audioUrl,
-      question: q.text,
+      question: q.questionText,
       options: q.options.map(o => ({ id: o._id, text: o.text })),
       coinsForCorrect: q.points || 10
     }));
@@ -279,11 +383,61 @@ exports.submitQuiz = async (req, res) => {
 
     // Load Quiz with answers
     const Quiz = require('../../../models/Quiz');
-    const quiz = await Quiz.findById(quizId).populate('questions');
+    const Course = require('../../../models/course');
+
+    let quiz = null;
+    let courseRef = null;
+    if (mongoose.Types.ObjectId.isValid(quizId)) {
+      quiz = await Quiz.findById(quizId).populate('questions');
+    }
+
+    if (!quiz) {
+      const course = await Course.findOne({ "modules.chapters.contentItems._id": quizId }).lean();
+      if (course) {
+        courseRef = course._id;
+        let contentItem = null;
+        for (const m of course.modules) {
+          for (const c of m.chapters) {
+            const found = c.contentItems.find(i => i._id.toString() === quizId);
+            if (found) { contentItem = found; break; }
+          }
+          if (contentItem) break;
+        }
+        if (contentItem) {
+          if (contentItem.quizRef) quiz = await Quiz.findById(contentItem.quizRef).populate('questions');
+          else if (contentItem.metadata?.quizId) quiz = await Quiz.findById(contentItem.metadata.quizId).populate('questions');
+        }
+      }
+    }
+
     if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
 
     let correctAnswers = 0;
+
     let baseCoins = 0;
+
+    // Check if user already passed this quiz (to prevent duplicate coins)
+    // 1. Check Submissions (Legacy)
+    const existingSubmission = await Submission.findOne({
+      studentId,
+      taskId: quizId,
+      submissionType: 'quiz',
+      'grade.score': { $gte: (quiz.minScore || 60) }
+    });
+
+    // 2. Check StudentProgress (Robust)
+    const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
+    let existingProgress = false;
+    if (courseIdToUse) {
+      const progress = await StudentProgress.findOne({
+        student: studentId,
+        course: courseIdToUse,
+        'completedItems.itemId': quizId
+      });
+      if (progress) existingProgress = true;
+    }
+
+    const alreadyPassed = !!existingSubmission || existingProgress;
 
     const breakdown = quiz.questions.map((question, index) => {
       const userAnswer = answers.find(a => a.questionId === question._id.toString());
@@ -293,13 +447,24 @@ exports.submitQuiz = async (req, res) => {
 
       if (isCorrect) {
         correctAnswers++;
-        baseCoins += (question.points || 10);
+        // Only award coins if not already passed
+        if (!alreadyPassed) {
+          baseCoins += (question.points || 10);
+        }
       }
+
+      // Find Option Texts
+      const selectedOption = question.options.find(o => o._id.toString() === userAnswer?.selectedOptionId);
 
       return {
         questionId: question._id,
+        question: question.text, // Return Question Text
         correct: isCorrect,
-        correctAnswer: correctOpt._id, // Send back ID
+        isCorrect: isCorrect, // MATCH FRONTEND PROPERTY
+        points: question.points || 10, // Pass points
+        studentAnswer: selectedOption ? selectedOption.text : 'No Answer', // Return Text
+        correctAnswer: correctOpt.text, // Return Text
+        correctAnswerId: correctOpt._id, // Keep ID just in case
         explanation: question.explanation
       };
     });
@@ -314,10 +479,12 @@ exports.submitQuiz = async (req, res) => {
     // Let's use Submission generic for now
     const submission = new Submission({
       studentId,
-      courseId: quiz.courseId, // Assuming quiz has reference
+      courseId: quiz.course || courseRef, // Use cached ref if quiz doesn't have it
       taskId: quizId,
-      type: 'quiz',
-      status: passed ? 'graded' : 'failed',
+      taskTitle: quiz.title || 'Quiz Submission',
+      submissionType: 'quiz',
+      fileUrl: 'quiz-submission', // Placeholder for required field
+      status: 'graded',
       grade: {
         score,
         points: baseCoins
@@ -327,11 +494,43 @@ exports.submitQuiz = async (req, res) => {
     });
     await submission.save();
 
+    // Award Coins
+    if (baseCoins > 0) {
+      try {
+        const Coin = require('../../../models/coin');
+        const User = require('../../../models/user');
+
+        const coinRecord = await Coin.findOrCreateForUser(studentId);
+
+        // Determine courseId (use quiz.course or courseRef)
+        const cId = quiz.course || courseRef;
+
+        await coinRecord.addCoins(
+          baseCoins,
+          'earned',
+          `Quiz Completed: ${quiz.title}`,
+          'task',
+          { quizId: quiz._id, courseId: cId }
+        );
+
+        // Update User Balance Legacy
+        await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
+      } catch (coinError) {
+        console.error('Error awarding coins in Life Skills:', coinError);
+        // Fallback to just User update if Coin model fails?
+        // Better to log and persist main balance at least
+        const User = require('../../../models/user');
+        await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
+      }
+    }
+
+    // Amount of coins logic handled earlier
+
     // Update Progress
-    // If passed, mark item as completed in StudentProgress
     if (passed) {
-      // Logic to update StudentProgress...
-      // await StudentProgress.markItemCompleted(...)
+      // Ensure we pass the ID, not the object
+      const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
+      await updateProgress(studentId, courseIdToUse, quizId, 'quiz', score);
     }
 
     res.json({
@@ -342,7 +541,9 @@ exports.submitQuiz = async (req, res) => {
         correctAnswers,
         totalQuestions,
         passed,
+        passed,
         coinsEarned: baseCoins,
+        alreadyPassed: alreadyPassed, // Debug info for client
         breakdown
       }
     });
@@ -385,5 +586,27 @@ exports.getSubmissionHistory = async (req, res) => {
       success: false,
       error: 'Failed to fetch submission history'
     });
+  }
+};
+
+/**
+ * Mark content item as complete (Video/PDF)
+ * POST /api/v2/lms/student/:studentId/courses/life-skills/mark-complete
+ */
+exports.markItemComplete = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { itemId, itemType, courseId } = req.body;
+
+    if (!itemId || !courseId) {
+      return res.status(400).json({ success: false, error: 'Missing required fields' });
+    }
+
+    await updateProgress(studentId, courseId, itemId, itemType || 'content');
+
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Error marking completion:', error);
+    res.status(500).json({ success: false, error: 'Failed' });
   }
 };
