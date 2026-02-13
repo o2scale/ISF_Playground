@@ -15,6 +15,7 @@ const CheckInForm = ({
   // Form state
   const [temperature, setTemperature] = useState("");
   const [symptoms, setSymptoms] = useState([]);
+  const [customSymptom, setCustomSymptom] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
   const [healthStatus, setHealthStatus] = useState("Healthy");
@@ -23,6 +24,16 @@ const CheckInForm = ({
   const [notes, setNotes] = useState("");
   const [attachmentImages, setAttachmentImages] = useState([]);
   const [attachmentPDFs, setAttachmentPDFs] = useState([]);
+
+  // Handle symptoms change from SymptomsSelector
+  const handleSymptomsUpdate = (updates) => {
+    if (updates.symptoms) {
+      setSymptoms(updates.symptoms);
+    }
+    if (updates.customSymptom !== undefined) {
+      setCustomSymptom(updates.customSymptom);
+    }
+  };
 
   // Get balagruha name from ID
   const getBalagruhaName = (balagruhaId) => {
@@ -45,6 +56,7 @@ const CheckInForm = ({
       // Editing existing check-in - populate all fields
       setTemperature(checkInData.temperature || "");
       setSymptoms(checkInData.symptoms || []);
+      setCustomSymptom(checkInData.customSymptom || "");
       setHealthStatus(checkInData.healthStatus || "Healthy");
       setNotes(checkInData.notes || "");
       setDoctorVisits(checkInData.doctorVisits || []);
@@ -76,7 +88,9 @@ const CheckInForm = ({
 
   // Handle form submission
   const handleSubmit = (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) {
+      e.preventDefault();
+    }
 
     // Validate required fields
     if (!temperature || !date || !time) {
@@ -94,6 +108,7 @@ const CheckInForm = ({
     formData.append("healthStatus", healthStatus);
     formData.append("notes", notes);
     formData.append("symptoms", JSON.stringify(symptoms));
+    formData.append("customSymptom", customSymptom);
     formData.append("doctorVisits", JSON.stringify(doctorVisits));
     formData.append("followUps", JSON.stringify(followUps));
 
@@ -208,7 +223,7 @@ const CheckInForm = ({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="checkin-form">
+      <div className="checkin-form">
         {/* Basic Information Section */}
         <div className="form-section">
           <h4>Basic Information</h4>
@@ -269,7 +284,11 @@ const CheckInForm = ({
         {/* Symptoms Section */}
         <div className="form-section">
           <h4>Symptoms</h4>
-          <SymptomsSelector symptoms={symptoms} setSymptoms={setSymptoms} />
+          <SymptomsSelector
+            symptoms={symptoms}
+            customSymptom={customSymptom}
+            onChange={handleSymptomsUpdate}
+          />
         </div>
 
         {/* Doctor Visits Section */}
@@ -277,7 +296,7 @@ const CheckInForm = ({
           <h4>Doctor Visits</h4>
           <MultipleDoctorVisitsSection
             doctorVisits={doctorVisits}
-            setDoctorVisits={setDoctorVisits}
+            onChange={setDoctorVisits}
           />
         </div>
 
@@ -286,7 +305,8 @@ const CheckInForm = ({
           <h4>Follow-ups</h4>
           <MultipleFollowUpsSection
             followUps={followUps}
-            setFollowUps={setFollowUps}
+            balagruhaId={balagruhaId}
+            onChange={setFollowUps}
           />
         </div>
 
@@ -367,11 +387,11 @@ const CheckInForm = ({
           <button type="button" onClick={onCancel} className="btn-cancel">
             Cancel
           </button>
-          <button type="submit" className="btn-save">
+          <button type="button" onClick={handleSubmit} className="btn-save">
             {mode === "create" ? "Create Check-in" : "Save Changes"}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 };

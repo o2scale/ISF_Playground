@@ -28,7 +28,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   const [removedAttachmentIds, setRemovedAttachmentIds] = useState([]);
 
   useEffect(() => {
-    if(studentData) {
+    if (studentData) {
       console.log('CheckInModal - studentData.attachments:', studentData.attachments);
       const images = studentData.attachments?.filter(att => att.fileType.startsWith("image/")) || [];
       const pdfs = studentData.attachments?.filter(att => att.fileType === "application/pdf") || [];
@@ -36,16 +36,28 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       console.log('CheckInModal - filtered pdfs:', pdfs);
 
       // S6-S2-BUG-002 FIX: Extract balagruha ID string from array (could be object or string)
-      const balagruhaId = studentData.balagruhaIds && studentData.balagruhaIds.length > 0
-        ? (typeof studentData.balagruhaIds[0] === 'object'
-            ? studentData.balagruhaIds[0]._id || studentData.balagruhaIds[0].id
-            : studentData.balagruhaIds[0])
-        : '';
+      let balagruhaId = '';
+      if (studentData.balagruhaIds && studentData.balagruhaIds.length > 0) {
+        balagruhaId = typeof studentData.balagruhaIds[0] === 'object'
+          ? studentData.balagruhaIds[0]._id || studentData.balagruhaIds[0].id
+          : studentData.balagruhaIds[0];
+      } else if (studentData.studentId && typeof studentData.studentId === 'object' && studentData.studentId.balagruhaIds && studentData.studentId.balagruhaIds.length > 0) {
+        // Fallback: Check if inside populated studentId object
+        const ids = studentData.studentId.balagruhaIds;
+        balagruhaId = typeof ids[0] === 'object'
+          ? ids[0]._id || ids[0].id
+          : ids[0];
+      }
 
       console.log('CheckInModal - extracted balagruhaId:', balagruhaId);
       setSelectedBalagruha(balagruhaId);
       fetchStudents(balagruhaId);
-      setSelectedStudent(studentData.studentId);
+
+      // Handle studentId setting (could be object or string)
+      const sId = studentData.studentId && typeof studentData.studentId === 'object'
+        ? studentData.studentId._id || studentData.studentId.id
+        : studentData.studentId;
+      setSelectedStudent(sId);
 
       // S6-S2-BUG-001 FIX: Check if date exists before converting (for new check-ins from Users tab)
       let dateString, timeString;
@@ -84,33 +96,33 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
         // BugFix: Convert visitDate from Date object to "YYYY-MM-DD" string for input field
         doctorVisits: studentData.doctorVisits && studentData.doctorVisits.length > 0
           ? studentData.doctorVisits.map(dv => ({
-              ...dv,
-              visitDate: dv.visitDate ? new Date(dv.visitDate).toISOString().split('T')[0] : "",
-            }))
+            ...dv,
+            visitDate: dv.visitDate ? new Date(dv.visitDate).toISOString().split('T')[0] : "",
+          }))
           : studentData.doctorVisit && (studentData.doctorVisit.doctorName || studentData.doctorVisit.hospitalName)
             ? [{
-                ...studentData.doctorVisit,
-                visitDate: studentData.doctorVisit.visitDate ? new Date(studentData.doctorVisit.visitDate).toISOString().split('T')[0] : ""
-              }]
+              ...studentData.doctorVisit,
+              visitDate: studentData.doctorVisit.visitDate ? new Date(studentData.doctorVisit.visitDate).toISOString().split('T')[0] : ""
+            }]
             : [],
         // Convert old single followUp to new followUps array
         // BugFix: Convert followUpDate from Date object to "YYYY-MM-DD" string for input field
         followUps: studentData.followUps && studentData.followUps.length > 0
           ? studentData.followUps.map(fu => ({
-              ...fu,
-              followUpDate: fu.followUpDate ? new Date(fu.followUpDate).toISOString().split('T')[0] : "",
-              // Also convert visitDate for doctor visits if present
-            }))
+            ...fu,
+            followUpDate: fu.followUpDate ? new Date(fu.followUpDate).toISOString().split('T')[0] : "",
+            // Also convert visitDate for doctor visits if present
+          }))
           : studentData.followUp && studentData.followUp.followUpDate
             ? [{
-                ...studentData.followUp,
-                followUpDate: new Date(studentData.followUp.followUpDate).toISOString().split('T')[0]
-              }]
+              ...studentData.followUp,
+              followUpDate: new Date(studentData.followUp.followUpDate).toISOString().split('T')[0]
+            }]
             : [],
       })
       // setSelectedStudent(studentData.balagruhaIds[0]);
       // setSelectedStudent(studentData.studentId)
-    } else{
+    } else {
       setFormData({
         studentId: "",
         studentName: "",
@@ -212,7 +224,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   const handleRemoveImage = (index) => {
     const fileToRemove = formData.uploadedImages[index];
     // If it's a database attachment (has _id), track it for deletion
-    if (fileToRemove && !( fileToRemove instanceof File) && fileToRemove._id) {
+    if (fileToRemove && !(fileToRemove instanceof File) && fileToRemove._id) {
       setRemovedAttachmentIds((prev) => [...prev, fileToRemove._id]);
     }
     setFormData((prev) => ({
@@ -261,7 +273,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>New Health Check-in</h3>
+          <h3>{editMode ? "Edit Health Check-in" : "New Health Check-in"}</h3>
           <button className="close-button" onClick={onClose}>
             &times;
           </button>
@@ -274,9 +286,9 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               onChange={(e) => fetchStudents(e.target.value)}
               required
             >
-              <option value="">Select Balagruha</option>  
+              <option value="">Select Balagruha</option>
               {balagruhas.map((bal) => (
-                <option key={bal.id} value={bal._id}>
+                <option key={bal._id} value={bal._id}>
                   {bal.name}
                 </option>
               ))}
@@ -431,28 +443,28 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
               ))}
             </div> */}
 
-           <div className="uploaded-files">
-             {formData.uploadedImages.map((file, index) => (
-               <div key={index} className="uploaded-item">
-                 {file instanceof File ? (
-                   // New file upload - show file name
-                   <span>{file.name}</span>
-                 ) : (
-                   // Existing database attachment - show image preview
-                   <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
-                     <img
-                       src={file.fileUrl}
-                       alt={file.fileName || "Uploaded image"}
-                       width="50"
-                       height="50"
-                       style={{ cursor: "pointer" }}
-                     />
-                   </a>
-                 )}
-                 <button type="button" onClick={() => handleRemoveImage(index)}>❌</button>
-               </div>
-             ))}
-           </div>
+            <div className="uploaded-files">
+              {formData.uploadedImages.map((file, index) => (
+                <div key={index} className="uploaded-item">
+                  {file instanceof File ? (
+                    // New file upload - show file name
+                    <span>{file.name}</span>
+                  ) : (
+                    // Existing database attachment - show image preview
+                    <a href={file.fileUrl} target="_blank" rel="noopener noreferrer">
+                      <img
+                        src={file.fileUrl}
+                        alt={file.fileName || "Uploaded image"}
+                        width="50"
+                        height="50"
+                        style={{ cursor: "pointer" }}
+                      />
+                    </a>
+                  )}
+                  <button type="button" onClick={() => handleRemoveImage(index)}>❌</button>
+                </div>
+              ))}
+            </div>
 
           </div>
 
@@ -474,7 +486,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
             </div> */}
 
             <label className="upload-button">
-            Upload PDFs (Max 10MB each)
+              Upload PDFs (Max 10MB each)
               <input
                 type="file"
                 accept="application/pdf"

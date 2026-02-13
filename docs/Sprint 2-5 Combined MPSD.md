@@ -92,7 +92,7 @@ To achieve the ambitious 30-day timeline, the development will be organized into
 **LMS - Admin & Coach Functionalities:**
 * **Course Management (Admin Only):** Full CRUD operations for courses with module/chapter structure
 * **Course Assignment (Admin & Coach):** Flexible assignment to Balagruhas and individual students
-* **Content Management Module (Admin Only):** Upload/manage Video, PDF, Document, Image, Audio, Text, Links
+* **Content Management Module (Admin Only):** Uplo![alt text](image.png)ad/manage Video, PDF, Document, Image, Audio, Text, Links
 * **Quiz System (Admin Only):** Create assessments with various question types and passing criteria
 * **Coach Grading (Coach Only):** Grade subjective submissions via "Syllabus Tracker" with manual coin awards
 * **Course Reporting System (Admin & Coach):** Performance dashboards with PDF/CSV export

@@ -99,9 +99,9 @@ const MultipleFollowUpsSection = ({ followUps, balagruhaId, onChange }) => {
     const updated = followUps.map((followUp, i) =>
       i === followUpIndex
         ? {
-            ...followUp,
-            [field]: (followUp[field] || []).filter((_, j) => j !== fileIndex),
-          }
+          ...followUp,
+          [field]: (followUp[field] || []).filter((_, j) => j !== fileIndex),
+        }
         : followUp
     );
     onChange(updated);
@@ -147,9 +147,9 @@ const MultipleFollowUpsSection = ({ followUps, balagruhaId, onChange }) => {
                 <label>Hospital/Location</label>
                 <HospitalNameDropdown
                   value={followUp.hospital || ""}
-                  onChange={(value) =>
-                    updateFollowUp(followUpIndex, "hospital", value)
-                  }
+                  onChange={(value) => {
+                    updateFollowUp(followUpIndex, "hospital", value);
+                  }}
                   placeholder="Search or add hospital name"
                 />
               </div>
@@ -158,9 +158,9 @@ const MultipleFollowUpsSection = ({ followUps, balagruhaId, onChange }) => {
                 <label>Doctor Name</label>
                 <DoctorNameDropdown
                   value={followUp.doctor || ""}
-                  onChange={(value) =>
-                    updateFollowUp(followUpIndex, "doctor", value)
-                  }
+                  onChange={(value) => {
+                    updateFollowUp(followUpIndex, "doctor", value);
+                  }}
                   placeholder="Search or add doctor name"
                 />
               </div>

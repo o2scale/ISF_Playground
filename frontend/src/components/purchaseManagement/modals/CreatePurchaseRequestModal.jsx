@@ -11,6 +11,7 @@ import {
 import showToast from '../../../utils/toast';
 import ImageUpload from '../../shop/ImageUpload';
 import { UserTypes, normalizeUserRole } from '../../../constants/userTypes';
+import VendorFormModal from '../../shop/VendorFormModal';
 import '../PurchaseManagement.css';
 
 /**
@@ -55,7 +56,7 @@ export default function CreatePurchaseRequestModal({
   const [showAddProductForm, setShowAddProductForm] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
     name: '',
-    category: 'stationery',
+    category: formData.category || 'ISF Shop',
     unit: 'pieces',
     sku: '',
     description: '',
@@ -67,6 +68,7 @@ export default function CreatePurchaseRequestModal({
     imageUrl: ''
   });
   const [newProductErrors, setNewProductErrors] = useState({});
+  const [showVendorModal, setShowVendorModal] = useState(false);
 
   const shouldScopeByPurchaseCategory = (requestCategory) => {
     // Selecting ISF Shop should not artificially hide items.
@@ -92,7 +94,7 @@ export default function CreatePurchaseRequestModal({
   const resetInlineProductForm = () => {
     setNewProductForm({
       name: '',
-      category: 'stationery',
+      category: formData.category || 'ISF Shop',
       unit: 'pieces',
       sku: '',
       description: '',
@@ -134,6 +136,31 @@ export default function CreatePurchaseRequestModal({
       setVendorsError(err.response?.data?.error || err.response?.data?.message || err.message || 'Failed to load vendors');
     } finally {
       setVendorsLoading(false);
+    }
+  };
+
+  const handleCreateVendor = async (vendorData) => {
+    try {
+      const response = await api.post('/api/v2/vendors', vendorData);
+      if (response.data.success) {
+        showToast("Vendor created successfully!", "success");
+        await fetchVendors(); // Refresh list
+        setShowVendorModal(false);
+
+        // Auto-select the new vendor in the first empty slot
+        const newVendorId = response.data.vendor._id;
+        setNewProductSelectedVendors(prev => {
+          const firstEmptyIndex = prev.findIndex(v => !v.vendorId);
+          if (firstEmptyIndex !== -1) {
+            const next = [...prev];
+            next[firstEmptyIndex] = { ...next[firstEmptyIndex], vendorId: newVendorId };
+            return next;
+          }
+          return prev;
+        });
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || "Failed to create vendor", "error");
     }
   };
 
@@ -498,13 +525,21 @@ export default function CreatePurchaseRequestModal({
     }
 
     const maxPrice = Number(newProductForm.maxPrice);
-    if (newProductForm.maxPrice === '' || Number.isNaN(maxPrice) || maxPrice < 0) {
-      errors.maxPrice = 'Max Price (₹) is required';
+    if (newProductForm.category === 'ISF Shop') {
+      if (newProductForm.maxPrice === '' || Number.isNaN(maxPrice) || maxPrice < 0) {
+        errors.maxPrice = 'Max Price (₹) is required for ISF Shop items';
+      }
+    } else if (newProductForm.maxPrice !== '' && (Number.isNaN(maxPrice) || maxPrice < 0)) {
+      errors.maxPrice = 'Max Price must be a non-negative number';
     }
 
     const sellingPrice = Number(newProductForm.sellingPrice);
-    if (newProductForm.sellingPrice === '' || Number.isNaN(sellingPrice) || sellingPrice < 0) {
-      errors.sellingPrice = 'Selling Price (coins) is required';
+    if (newProductForm.category === 'ISF Shop') {
+      if (newProductForm.sellingPrice === '' || Number.isNaN(sellingPrice) || sellingPrice < 0) {
+        errors.sellingPrice = 'Selling Price (coins) is required for ISF Shop items';
+      }
+    } else if (newProductForm.sellingPrice !== '' && (Number.isNaN(sellingPrice) || sellingPrice < 0)) {
+      errors.sellingPrice = 'Selling Price must be a non-negative number';
     }
 
     if (newProductForm.discountPrice !== '' && newProductForm.discountPrice !== null && newProductForm.discountPrice !== undefined) {
@@ -900,12 +935,12 @@ export default function CreatePurchaseRequestModal({
                         value={newProductForm.category}
                         onChange={(e) => handleNewProductFieldChange('category', e.target.value)}
                       >
-                        <option value="stationery">Stationery</option>
-                        <option value="sports">Sports</option>
-                        <option value="books">Books</option>
-                        <option value="uniforms">Uniforms</option>
-                        <option value="digital">Digital</option>
-                        <option value="other">Other</option>
+                        <option value="ISF Shop">ISF Shop</option>
+                        <option value="Medicines">Medicines</option>
+                        <option value="Consumables">Consumables</option>
+                        <option value="Repairs">Repairs</option>
+                        <option value="Infra">Infra</option>
+                        <option value="Others">Others</option>
                       </select>
                       {newProductErrors.category && (
                         <small style={{ color: 'red' }}>{newProductErrors.category}</small>
@@ -976,7 +1011,7 @@ export default function CreatePurchaseRequestModal({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                     <div>
                       <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                        Max Price (₹) <span style={{ color: 'red' }}>*</span>
+                        Max Price (₹) {newProductForm.category === 'ISF Shop' && <span style={{ color: 'red' }}>*</span>}
                       </label>
                       <input
                         type="number"
@@ -993,7 +1028,7 @@ export default function CreatePurchaseRequestModal({
 
                     <div>
                       <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                        Selling Price (coins) <span style={{ color: 'red' }}>*</span>
+                        Selling Price (coins) {newProductForm.category === 'ISF Shop' && <span style={{ color: 'red' }}>*</span>}
                       </label>
                       <input
                         type="number"
@@ -1028,9 +1063,26 @@ export default function CreatePurchaseRequestModal({
 
                   {/* Approved Vendors */}
                   <div style={{ marginBottom: '12px' }}>
-                    <label style={{ display: 'block', marginBottom: '4px', fontWeight: 'bold' }}>
-                      Approved Vendors (Ranked) <span style={{ color: 'red' }}>*</span>
-                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <label style={{ marginBottom: 0, fontWeight: 'bold' }}>
+                        Approved Vendors (Ranked) <span style={{ color: 'red' }}>*</span>
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setShowVendorModal(true)}
+                        style={{
+                          fontSize: '12px',
+                          color: '#007bff',
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          cursor: 'pointer',
+                          fontWeight: 'bold',
+                          padding: 0
+                        }}
+                      >
+                        + Create New Vendor
+                      </button>
+                    </div>
 
                     {vendorsLoading ? (
                       <small style={{ color: '#6c757d' }}>Loading vendors...</small>
@@ -1434,6 +1486,14 @@ export default function CreatePurchaseRequestModal({
           </div>
         </form>
       </div>
+
+      {/* Inline Vendor Creation Modal */}
+      {showVendorModal && (
+        <VendorFormModal
+          onClose={() => setShowVendorModal(false)}
+          onSubmit={handleCreateVendor}
+        />
+      )}
     </div>
   );
 }

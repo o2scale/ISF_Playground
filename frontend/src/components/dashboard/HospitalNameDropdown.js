@@ -38,8 +38,16 @@ const HospitalNameDropdown = ({ value, onChange, placeholder }) => {
           value: response.data.name,
           label: response.data.name,
         };
-        setHospitals([...hospitals, newOption]);
-        onChange(response.data.name);
+
+        // Update local state immediately
+        setHospitals((prev) => {
+          return [...prev, newOption];
+        });
+
+        // Pass value to parent
+        if (onChange && typeof onChange === 'function') {
+          onChange(response.data.name);
+        }
       }
     } catch (error) {
       console.error("Error creating hospital:", error);
@@ -49,7 +57,9 @@ const HospitalNameDropdown = ({ value, onChange, placeholder }) => {
   };
 
   const handleChange = (selectedOption) => {
-    onChange(selectedOption ? selectedOption.value : "");
+    if (onChange && typeof onChange === 'function') {
+      onChange(selectedOption ? selectedOption.value : "");
+    }
   };
 
   const selectedOption = value
@@ -67,6 +77,7 @@ const HospitalNameDropdown = ({ value, onChange, placeholder }) => {
       placeholder={placeholder || "Search or add hospital name"}
       formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
       noOptionsMessage={() => "Type to add new hospital"}
+      menuPortalTarget={document.body}
       styles={{
         control: (base) => ({
           ...base,
@@ -76,6 +87,10 @@ const HospitalNameDropdown = ({ value, onChange, placeholder }) => {
         menu: (base) => ({
           ...base,
           zIndex: 9999,
+        }),
+        menuPortal: (base) => ({
+          ...base,
+          zIndex: 9999
         }),
       }}
     />

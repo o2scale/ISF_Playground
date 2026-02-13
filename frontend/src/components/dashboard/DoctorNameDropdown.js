@@ -30,26 +30,44 @@ const DoctorNameDropdown = ({ value, onChange, placeholder }) => {
   };
 
   const handleCreate = async (inputValue) => {
+    console.log("[DoctorNameDropdown] handleCreate called with:", inputValue);
     try {
       setIsLoading(true);
       const response = await createDoctor(inputValue);
+      console.log("[DoctorNameDropdown] createDoctor response:", response);
+      
       if (response.success) {
         const newOption = {
           value: response.data.name,
           label: response.data.name,
         };
-        setDoctors([...doctors, newOption]);
-        onChange(response.data.name);
+
+        // Update local state immediately
+        setDoctors((prev) => {
+          const updated = [...prev, newOption];
+          console.log("[DoctorNameDropdown] Updated doctors list:", updated);
+          return updated;
+        });
+
+        // Pass value to parent
+        if (onChange && typeof onChange === 'function') {
+          console.log("[DoctorNameDropdown] Calling onChange with:", response.data.name);
+          onChange(response.data.name);
+        }
+      } else {
+        console.error("[DoctorNameDropdown] Failed to create doctor:", response.message);
       }
     } catch (error) {
-      console.error("Error creating doctor:", error);
+      console.error("[DoctorNameDropdown] Error creating doctor:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleChange = (selectedOption) => {
-    onChange(selectedOption ? selectedOption.value : "");
+    if (onChange && typeof onChange === 'function') {
+      onChange(selectedOption ? selectedOption.value : "");
+    }
   };
 
   const selectedOption = value
@@ -67,6 +85,10 @@ const DoctorNameDropdown = ({ value, onChange, placeholder }) => {
       placeholder={placeholder || "Search or add doctor name"}
       formatCreateLabel={(inputValue) => `Add "${inputValue}"`}
       noOptionsMessage={() => "Type to add new doctor"}
+      menuPortalTarget={document.body}
+      closeMenuOnSelect={true}
+      blurInputOnSelect={true}
+      captureMenuScroll={false}
       styles={{
         control: (base) => ({
           ...base,
@@ -76,6 +98,10 @@ const DoctorNameDropdown = ({ value, onChange, placeholder }) => {
         menu: (base) => ({
           ...base,
           zIndex: 9999,
+        }),
+        menuPortal: (base) => ({
+          ...base,
+          zIndex: 9999
         }),
       }}
     />

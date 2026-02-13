@@ -68,9 +68,9 @@ const MultipleDoctorVisitsSection = ({ doctorVisits, onChange }) => {
     const updated = doctorVisits.map((visit, i) =>
       i === visitIndex
         ? {
-            ...visit,
-            [field]: (visit[field] || []).filter((_, j) => j !== fileIndex),
-          }
+          ...visit,
+          [field]: (visit[field] || []).filter((_, j) => j !== fileIndex),
+        }
         : visit
     );
     onChange(updated);
@@ -104,9 +104,10 @@ const MultipleDoctorVisitsSection = ({ doctorVisits, onChange }) => {
                 <label>Doctor Name</label>
                 <DoctorNameDropdown
                   value={visit.doctorName || ""}
-                  onChange={(value) =>
-                    updateDoctorVisit(visitIndex, "doctorName", value)
-                  }
+                  onChange={(value) => {
+                    // console.log("Doctor Name changed:", value);
+                    updateDoctorVisit(visitIndex, "doctorName", value);
+                  }}
                   placeholder="Search or add doctor name"
                 />
               </div>
@@ -115,9 +116,10 @@ const MultipleDoctorVisitsSection = ({ doctorVisits, onChange }) => {
                 <label>Hospital Name</label>
                 <HospitalNameDropdown
                   value={visit.hospitalName || ""}
-                  onChange={(value) =>
-                    updateDoctorVisit(visitIndex, "hospitalName", value)
-                  }
+                  onChange={(value) => {
+                    // console.log("Hospital Name changed:", value);
+                    updateDoctorVisit(visitIndex, "hospitalName", value);
+                  }}
                   placeholder="Search or add hospital name"
                 />
               </div>

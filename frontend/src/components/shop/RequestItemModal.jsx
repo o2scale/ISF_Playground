@@ -94,7 +94,7 @@ export default function RequestItemModal({ product, onClose }) {
 
       const requestData = {
         balagruhaId: formData.balagruhaId,
-        category: "ISF Shop",
+        category: product.category || "ISF Shop",
         reason: reasonWithPriority,
         justification: `Requested via Shop Catalog. Priority: ${formData.priority}`,
         items: JSON.stringify([{

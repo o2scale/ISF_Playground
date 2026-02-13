@@ -19,7 +19,9 @@
       {
         "from": "resources/nodejs",
         "to": "nodejs",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "backend",
@@ -31,7 +33,9 @@
       {
         "from": "resources/mongodb/bin",
         "to": "resources/mongodb/bin",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "backend/db/dump",
@@ -49,7 +53,7 @@
     }
   },
   "scripts": {
-    "start": "electron .",
+    "start": "electron . --no-sandbox",
     "build-react": "cd frontend && npm run build && cp -r build ../build",
     "package": "electron-builder"
   },

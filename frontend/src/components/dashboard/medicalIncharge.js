@@ -6,7 +6,7 @@ import CheckInModal from "./CheckInModal";
 import ViewCheckInModal from "./ViewCheckInModal";
 import TaskManagement from "../TaskManagement/taskmanagement";
 import UserManagement from "../usermanagement/usermanagement";
-import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, deleteMedicalCheckinAttachment, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha } from "../../api";
+import { createMedicalCheckin, updateMedicalCheckin, deleteMedicalCheckin, addMedicalCheckinAttachments, deleteMedicalCheckinAttachment, getAnyUserBasedonRoleandBalagruha, getBalagruha, getMedicalConditionBasedOnBalagruha, getUserBalagruhas } from "../../api";
 import showToast from '../../utils/toast';
 import DateRangeSelector from "../shop/DateRangeSelector";
 import StudentDetailsTooltip from "./StudentDetailsTooltip";
@@ -779,26 +779,30 @@ const MedicInchargeDashboard = () => {
   };
 
   const fetchBalagruha = async () => {
-    const response = await getBalagruha();
-    if(response.success) {
-      // Parse the JSON stringified array from localStorage
-      const balagruhaIdsFromStorage = JSON.parse(localStorage.getItem('balagruhaIds') || '[]');
-
-      console.log("Balagruha IDs from storage:", balagruhaIdsFromStorage);
-      console.log("All balagruhas from API:", response.data.balagruhas);
-
-      const filteredBalagruhas = response.data.balagruhas.filter(balagruha => {
-        const includes = balagruhaIdsFromStorage.includes(balagruha._id);
-        console.log(`Checking ${balagruha.name} (${balagruha._id}): ${includes}`);
-        return includes;
-      });
-
-      console.log("Filtered Balagruha Data: ", filteredBalagruhas);
-      setBalagruhaData(filteredBalagruhas);
-    } else {
-      showToast("Error fetching balagruha", "error")
+    // Sprint6-Story-3-BugFix: Use getUserBalagruhas instead of getBalagruha
+    // getUserBalagruhas returns the current user's assigned balagruhas
+    try {
+      const response = await getUserBalagruhas();
+      console.log("getUserBalagruhas response:", response);
+      
+      // Backend returns { success: true, data: [balagruhas] }
+      // where data is the array directly
+      if(response.success && Array.isArray(response.data)) {
+        // Filter out the STOCK option, only keep actual balagruhas
+        const actualBalagruhas = response.data.filter(b => b._id !== 'STOCK');
+        
+        console.log("User's assigned balagruhas:", actualBalagruhas);
+        setBalagruhaData(actualBalagruhas);
+      } else {
+        console.error("Invalid response structure:", response);
+        showToast("Error fetching balagruha: Invalid data", "error");
+        setBalagruhaData([]);
+      }
+    } catch (error) {
+      console.error("Error in fetchBalagruha:", error);
+      showToast("Error fetching balagruha", "error");
+      setBalagruhaData([]);
     }
-
   }
 
   const fetchMedicalData = async() => {

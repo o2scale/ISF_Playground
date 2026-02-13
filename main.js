@@ -288,11 +288,11 @@ ipcMain.handle("get-mac-address", async () => {
 // App lifecycle
 app.whenReady().then(async () => {
   try {
-    await copyMongoBinariesIfNeeded();
-    await copyNodeBinaryIfNeeded();
-    await startMongoDB();
-    await restoreMongoIfEmpty();
-    await startBackendServer();
+    // await copyMongoBinariesIfNeeded();
+    // await copyNodeBinaryIfNeeded();
+    // await startMongoDB();
+    // await restoreMongoIfEmpty();
+    // await startBackendServer();
     createWindow();
   } catch (err) {
     console.error("App initialization failed:", err);
