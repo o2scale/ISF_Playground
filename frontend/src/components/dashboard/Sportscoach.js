@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import TaskManagement, { TaskDetailsModal } from '../TaskManagement/taskmanagement';
 import WeeklyCalendar from './WeeklyCalendar';
-import { getBalagruha, getTasks, updateTask, fetchUsers, getStudentListforAttendance, getMachines, getTaskBytaskId, createTraining, getTraining, updateTraining, deleteTrainign } from "../../api";
+import { getBalagruha, getTasks, updateTask, fetchUsers, getStudentListforAttendance, getMachines, getTaskBytaskId, createTraining, getTraining, updateTraining, deleteTrainign, getUserBalagruhas } from "../../api";
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { CSVLink } from 'react-csv';
@@ -1109,9 +1109,12 @@ const SportCoachDashboard = () => {
 
     const getBalagruhaList = async () => {
         try {
-            const response = await getBalagruha(JSON.stringify());
-            console.log('balagruha details', response?.data?.balagruhas);
-            setBalagruhas(response?.data?.balagruhas || []);
+            // Use getUserBalagruhas instead of getBalagruha - works for all roles
+            const response = await getUserBalagruhas();
+            console.log('balagruha details', response?.data);
+            // Filter out STOCK option
+            const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
+            setBalagruhas(actualBalagruhas);
         } catch (error) {
             console.error('Error fetching balagruha list:', error);
         }

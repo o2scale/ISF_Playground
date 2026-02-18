@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import './coach-styles.css';
 import WeeklyCalendar from './WeeklyCalendar';
-import { getBalagruha, getTasks, updateTask, fetchUsers, getTaskBytaskId, getBalagruhaById, getSchedulesCoach, getAssignableUsersForSchedule } from '../../api'
+import { getBalagruha, getTasks, updateTask, fetchUsers, getTaskBytaskId, getUserBalagruhas, getSchedulesCoach, getAssignableUsersForSchedule } from '../../api'
 import { TaskDetailsModal } from '../TaskManagement/taskmanagement';
 
 function CoachDashboard() {
@@ -48,10 +48,12 @@ function CoachDashboard() {
     // API function implementations
     const getBalagruhaList = async () => {
         try {
-            const id = localStorage.getItem('userId')
-            const response = await getBalagruhaById(id);
-            console.log('Balagruha details:', response?.data?.balagruhas);
-            setBalagruhas(response?.data?.balagruhas || []);
+            // Use getUserBalagruhas instead of getBalagruhaById - works for all roles
+            const response = await getUserBalagruhas();
+            console.log('Balagruha details:', response?.data);
+            // Filter out STOCK option
+            const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
+            setBalagruhas(actualBalagruhas);
         } catch (error) {
             console.error('Error fetching balagruha list:', error);
         }

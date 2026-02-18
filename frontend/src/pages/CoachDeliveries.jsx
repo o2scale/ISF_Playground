@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { getCoachDeliveryStats, getCoachDeliveries, markOrderDelivered, getBalagruha, fetchUsers } from '../api';
+import { getCoachDeliveryStats, getCoachDeliveries, markOrderDelivered, getUserBalagruhas, fetchUsers } from '../api';
 import ShopNavigation from '../components/shop/ShopNavigation';
 import Breadcrumbs from '../components/shop/Breadcrumbs';
 import { useAuth } from '../contexts/AuthContext';
@@ -52,20 +52,14 @@ export default function CoachDeliveries() {
     try {
       setFiltersLoading(true);
 
-      // Fetch balagruhas for both admin and coach
-      const balagruhasResponse = await getBalagruha();
-      const allBalagruhas = balagruhasResponse?.data?.balagruhas || [];
-
-      // Filter balagruhas based on user role
-      let filteredBalagruhas = allBalagruhas;
-      if (!isAdmin && user?.balagruhaIds) {
-        // For coaches, only show their assigned balagruhas
-        const coachBalagruhaIds = user.balagruhaIds.map(id => id.toString());
-        filteredBalagruhas = allBalagruhas.filter(b =>
-          coachBalagruhaIds.includes(b._id.toString())
-        );
-        console.log('Filtered balagruhas for coach:', filteredBalagruhas.length);
-      }
+      // Fetch balagruhas - use getUserBalagruhas for all roles (returns assigned balagruhas)
+      const balagruhasResponse = await getUserBalagruhas();
+      // getUserBalagruhas returns { success: true, data: [balagruhas] }
+      const allBalagruhas = balagruhasResponse?.data || [];
+      
+      // Filter out STOCK option if present
+      const filteredBalagruhas = allBalagruhas.filter(b => b._id !== 'STOCK');
+      console.log('Fetched balagruhas:', filteredBalagruhas.length);
 
       setBalagruhas(filteredBalagruhas);
 

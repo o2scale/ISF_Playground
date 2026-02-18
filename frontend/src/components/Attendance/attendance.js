@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './attendance.css';
-import { getBalagruha, getStudentListforAttendance, postmarkAttendance } from '../../api';
+import { getUserBalagruhas, getStudentListforAttendance, postmarkAttendance } from '../../api';
 
 const AttendanceComponent = () => {
     const [balagruhas, setBalagruhas] = useState([]);
@@ -15,8 +15,11 @@ const AttendanceComponent = () => {
 
     const getBalagruhaList = async () => {
         try {
-            const response = await getBalagruha();
-            setBalagruhas(response?.data?.balagruhas || []);
+            // Use getUserBalagruhas instead of getBalagruha - works for all roles
+            const response = await getUserBalagruhas();
+            // Filter out STOCK option
+            const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
+            setBalagruhas(actualBalagruhas);
         } catch (error) {
             console.error('Error fetching Balagruhas:', error);
         }

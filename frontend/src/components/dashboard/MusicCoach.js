@@ -18,6 +18,7 @@ import {
   getTraining,
   updateTraining,
   deleteTrainign,
+  getUserBalagruhas,
   coachBasedUsers,
 } from "../../api";
 import jsPDF from "jspdf";
@@ -1484,9 +1485,12 @@ const MusicCoachDashboard = () => {
 
   const getBalagruhaList = async () => {
     try {
-      const response = await getBalagruha(JSON.stringify());
-      console.log("balagruha details", response?.data?.balagruhas);
-      setBalagruhas(response?.data?.balagruhas || []);
+      // Use getUserBalagruhas instead of getBalagruha - works for all roles
+      const response = await getUserBalagruhas();
+      console.log("balagruha details", response?.data);
+      // Filter out STOCK option
+      const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
+      setBalagruhas(actualBalagruhas);
     } catch (error) {
       console.error("Error fetching balagruha list:", error);
     }

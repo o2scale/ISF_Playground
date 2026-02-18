@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './WeeklyCalendar.css'
-import { createSchedule, deleteSchedule, fetchUsers, getBalagruha, getBalagruhaListByAssignedID, getSchedules, updateSchedule } from '../../api';
+import { createSchedule, deleteSchedule, fetchUsers, getBalagruha, getUserBalagruhas, getSchedules, updateSchedule } from '../../api';
 import showToast from '../../utils/toast';
 
 const WeeklyCalendar = ({
@@ -446,20 +446,12 @@ const WeeklyCalendar = ({
     };
 
     const fetchBalagruhaByCoach = async (id) => {
-        const response = await getBalagruhaListByAssignedID(id);
+        // Use getUserBalagruhas instead of getBalagruhaListByAssignedID - works for all roles
+        const response = await getUserBalagruhas();
         if (response.success) {
-            // const role = localStorage.getItem('role');
-            // if(role === 'admin') {
-            setBalagruhas(response.data.balagruhas);
-            // } else {
-            //   const balagruhaIdsFromStorage = localStorage.getItem('balagruhaIds')?.split(',');
-
-            //   const filteredBalagruhas = response.data.balagruhas.filter(balagruha =>
-            //     balagruhaIdsFromStorage.includes(balagruha._id)
-            //   );
-            //   console.log("User Balagruha Data: ", filteredBalagruhas);
-            //   setBalagruhas(filteredBalagruhas);
-            // }
+            // Filter out STOCK option
+            const actualBalagruhas = (response.data || []).filter(b => b._id !== 'STOCK');
+            setBalagruhas(actualBalagruhas);
         } else {
             showToast("Error fetching balagruha", "error");
         }

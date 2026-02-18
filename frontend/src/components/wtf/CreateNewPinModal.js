@@ -18,7 +18,7 @@ import {
 import { Dialog, DialogContent } from "../ui/dialog.jsx";
 import { Input } from "../ui/input.jsx";
 import { Button } from "../ui/button.jsx";
-import { fetchUsers, getBalagruha } from "../../api";
+import { fetchUsers, getUserBalagruhas } from "../../api";
 import { useAuth } from "../../contexts/AuthContext";
 
 const CreateNewPinModal = ({
@@ -77,7 +77,7 @@ const CreateNewPinModal = ({
         try {
           const [usersResponse, balagruhaResponse] = await Promise.all([
             fetchUsers(),
-            getBalagruha(),
+            getUserBalagruhas(),
           ]);
 
           // Filter only students
@@ -93,12 +93,10 @@ const CreateNewPinModal = ({
           setStudents(studentUsers);
           setFilteredStudents(studentUsers);
 
-          // Handle balagruha response
-          const balagruhas = Array.isArray(balagruhaResponse)
-            ? balagruhaResponse
-            : balagruhaResponse?.data?.balagruhas ||
-              balagruhaResponse?.data ||
-              [];
+          // Handle balagruha response - getUserBalagruhas returns { success: true, data: [...] }
+          const balagruhas = Array.isArray(balagruhaResponse?.data)
+            ? balagruhaResponse.data.filter(b => b._id !== 'STOCK')
+            : [];
 
           console.log("🏛️ Fetched balagruhas:", balagruhaResponse);
           console.log("🏛️ Processed balagruhas:", balagruhas);
