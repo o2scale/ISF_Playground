@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, AlertCircle, Package } from "lucide-react";
 import useShopStore from "../../store/shopStore";
 import { useAuth } from "../../contexts/AuthContext";
-import { getBalagruhaById } from "../../api";
+import { getUserBalagruhas } from "../../api";
 import toast from "react-hot-toast";
 
 /**
@@ -23,9 +23,13 @@ export default function RequestItemModal({ product, onClose }) {
     const fetchBalagruhas = async () => {
       if (user?._id) {
         try {
-          const response = await getBalagruhaById(user._id);
-          if (response?.data?.balagruhas) {
-            setBalagruhas(response.data.balagruhas);
+          // Sprint5-Story-2.2-BugFix: Use getUserBalagruhas instead of getBalagruhaById
+          // This works for all roles (coach, medical-incharge, etc.) without requiring User Management permission
+          const response = await getUserBalagruhas();
+          if (response?.success && Array.isArray(response.data)) {
+            // Filter out the STOCK option for this dropdown (PM will see STOCK option separately)
+            const actualBalagruhas = response.data.filter(b => b._id !== 'STOCK');
+            setBalagruhas(actualBalagruhas);
           }
         } catch (error) {
           console.error("Error fetching balagruhas:", error);
