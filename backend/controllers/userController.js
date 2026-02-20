@@ -19,9 +19,16 @@ const { isRequestFromLocalhost } = require("../utils/helper");
 exports.getAllUsers = async (req, res) => {
   try {
     // RBAC: Apply scope filtering based on user's permission scope
-    let users = await User.find({
-      ...(req.scopeFilter || {}), // Inject scope filter from middleware
-    })
+    // Transform scope filter for User collection field names
+    let queryFilter = { ...(req.scopeFilter || {}) };
+    
+    // Fix field name mismatch: scope filter uses 'balagruhaId' but User collection uses 'balagruhaIds'
+    if (queryFilter.balagruhaId) {
+      queryFilter.balagruhaIds = queryFilter.balagruhaId;
+      delete queryFilter.balagruhaId;
+    }
+    
+    let users = await User.find(queryFilter)
       .lean()
       .select("-facialData -password")
       .populate("balagruhaIds")
