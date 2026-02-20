@@ -23,17 +23,24 @@ export default function RequestItemModal({ product, onClose }) {
     const fetchBalagruhas = async () => {
       if (user?._id) {
         try {
+          console.log("[RequestItemModal] Fetching balagruhas for user:", user._id, "role:", user.role);
           // Sprint5-Story-2.2-BugFix: Use getUserBalagruhas instead of getBalagruhaById
           // This works for all roles (coach, medical-incharge, etc.) without requiring User Management permission
           const response = await getUserBalagruhas();
+          console.log("[RequestItemModal] getUserBalagruhas response:", response);
           if (response?.success && Array.isArray(response.data)) {
             // Filter out the STOCK option for this dropdown (PM will see STOCK option separately)
             const actualBalagruhas = response.data.filter(b => b._id !== 'STOCK');
+            console.log("[RequestItemModal] Filtered balagruhas:", actualBalagruhas);
             setBalagruhas(actualBalagruhas);
+          } else {
+            console.error("[RequestItemModal] Invalid response:", response);
           }
         } catch (error) {
-          console.error("Error fetching balagruhas:", error);
+          console.error("[RequestItemModal] Error fetching balagruhas:", error);
         }
+      } else {
+        console.log("[RequestItemModal] No user ID available");
       }
     };
     fetchBalagruhas();
@@ -172,8 +179,13 @@ export default function RequestItemModal({ product, onClose }) {
               value={formData.balagruhaId}
               onChange={handleChange}
               className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              disabled={balagruhas.length === 0 && !isPM}
             >
-              <option value="">Select Balagruha...</option>
+              <option value="">
+                {balagruhas.length === 0 && !isPM 
+                  ? "No Balagruhas assigned to you" 
+                  : "Select Balagruha..."}
+              </option>
               {isPM && <option value="STOCK">General Stock (Inventory)</option>}
               {balagruhas.map((bg) => (
                 <option key={bg._id} value={bg._id}>
@@ -181,6 +193,11 @@ export default function RequestItemModal({ product, onClose }) {
                 </option>
               ))}
             </select>
+            {balagruhas.length === 0 && !isPM && (
+              <p className="text-xs text-amber-600 mt-1">
+                You don't have any Balagruhas assigned. Please contact an admin.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
