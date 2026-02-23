@@ -43,7 +43,12 @@ exports.getPublishedCourses = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching published courses:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Stack trace:", error.stack);
+    res.status(500).json({ 
+      error: "Internal server error",
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
@@ -59,37 +64,52 @@ exports.getCoachStudents = async (req, res) => {
       return res.status(400).json({ error: "Invalid coach ID" });
     }
 
-    // Get coach to find their Balagruha
-    const coach = await User.findById(coachId).populate("balagruha");
+    // Get coach to find their Balagruhas
+    const coach = await User.findById(coachId).populate("balagruhaIds");
 
     if (!coach) {
       return res.status(404).json({ error: "Coach not found" });
     }
 
-    if (!coach.balagruha) {
-      return res.status(404).json({ error: "Coach not assigned to Balagruha" });
+    if (!coach.balagruhaIds || coach.balagruhaIds.length === 0) {
+      return res.status(404).json({ error: "Coach not assigned to any Balagruha" });
     }
 
-    // Get all students in the coach's Balagruha
+    // Get all students in the coach's Balagruhas with Balagruha info
     const students = await User.find({
-      balagruha: coach.balagruha._id,
-      role: "student", // Assuming there's a role field
+      balagruhaIds: { $in: coach.balagruhaIds },
+      role: "student",
     })
-      .select("firstName lastName email studentId class")
-      .sort({ firstName: 1 });
+      .populate("balagruhaIds", "name")
+      .select("name email userId balagruhaIds")
+      .sort({ name: 1 });
+
+    // Map students to include their Balagruha names
+    const studentsWithBalagruha = students.map(student => {
+      const studentObj = student.toObject();
+      return {
+        ...studentObj,
+        balagruhaNames: studentObj.balagruhaIds?.map(bg => bg.name).filter(Boolean) || []
+      };
+    });
 
     res.status(200).json({
       success: true,
-      balagruha: {
-        id: coach.balagruha._id,
-        name: coach.balagruha.name,
-      },
+      balagruhas: coach.balagruhaIds.map(bg => ({
+        id: bg._id,
+        name: bg.name,
+      })),
       count: students.length,
-      data: students,
+      data: studentsWithBalagruha,
     });
   } catch (error) {
     console.error("Error fetching coach students:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Stack trace:", error.stack);
+    res.status(500).json({ 
+      error: "Internal server error",
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 
@@ -129,18 +149,38 @@ exports.createAssignment = async (req, res) => {
       return res.status(400).json({ error: "Can only assign published courses" });
     }
 
-    // Verify coach exists
-    const coach = await User.findById(assignedBy);
-    if (!coach) {
-      return res.status(404).json({ error: "Coach not found" });
+    // Verify assigner exists
+    const assigner = await User.findById(assignedBy);
+    if (!assigner) {
+      return res.status(404).json({ error: "Assigner not found" });
     }
+
+    // Check if assigner is admin or coach
+    const isAdmin = assigner.role === "admin";
 
     // Get list of student IDs
     let studentIds = [];
     if (assignedTo.type === "balagruha") {
-      // Get all students in the Balagruha
+      // Support multiple Balagruhas (new) or single Balagruha (backward compat)
+      const balagruhaIds = assignedTo.balagruhaIds || (assignedTo.balagruhaId ? [assignedTo.balagruhaId] : []);
+      
+      if (balagruhaIds.length === 0) {
+        return res.status(400).json({ error: "No Balagruhas selected" });
+      }
+
+      // For non-admin (coach), verify they have access to the Balagruhas
+      if (!isAdmin) {
+        const unauthorizedBalagruhas = balagruhaIds.filter(
+          bgId => !assigner.balagruhaIds.some(assignerBgId => assignerBgId.toString() === bgId.toString())
+        );
+        if (unauthorizedBalagruhas.length > 0) {
+          return res.status(403).json({ error: "Not authorized to assign to some Balagruhas" });
+        }
+      }
+
+      // Get all students in the selected Balagruhas
       const students = await User.find({
-        balagruha: assignedTo.balagruhaId,
+        balagruhaIds: { $in: balagruhaIds },
         role: "student",
       }).select("_id");
       studentIds = students.map((s) => s._id);
@@ -156,11 +196,19 @@ exports.createAssignment = async (req, res) => {
       }
     }
 
+    // Prepare assignedTo with balagruhaIds if applicable
+    const assignedToData = { ...assignedTo };
+    if (assignedTo.type === "balagruha") {
+      const balagruhaIds = assignedTo.balagruhaIds || (assignedTo.balagruhaId ? [assignedTo.balagruhaId] : []);
+      assignedToData.balagruhaIds = balagruhaIds;
+      assignedToData.balagruhaId = balagruhaIds.length > 0 ? balagruhaIds[0] : null; // Backward compat
+    }
+
     // Create assignment
     const assignment = new CourseAssignment({
       courseId,
       assignedBy,
-      assignedTo,
+      assignedTo: assignedToData,
       dueDate: dueDate || null,
       notifications: notifications || { inApp: true, email: true },
       progress: {
@@ -179,10 +227,11 @@ exports.createAssignment = async (req, res) => {
       // Send in-app notifications
       const notificationPromises = studentIds.map((studentId) => {
         return Notification.create({
-          user: studentId,
-          type: "course_assigned",
+          userId: studentId,
+          type: "PERSONAL",
+          category: "TASK_ASSIGNED",
           title: "New Course Assigned",
-          message: `Coach ${coach.firstName} ${coach.lastName} assigned you "${course.title}"`,
+          message: `${isAdmin ? 'Admin' : 'Coach'} ${assigner.name || assigner.firstName || 'Unknown'} assigned you "${course.title}"`,
           data: {
             courseId: course._id,
             assignmentId: assignment._id,

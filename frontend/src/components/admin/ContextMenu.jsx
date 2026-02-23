@@ -7,7 +7,8 @@ import {
   RefreshCw,
   Trash2,
   FolderTree,
-  ArrowDown
+  ArrowDown,
+  Users
 } from 'lucide-react';
 
 /**
@@ -26,7 +27,8 @@ export default function ContextMenu({
   onArchive,
   onRestore,
   onDelete,
-  onDuplicate
+  onDuplicate,
+  onAssign
 }) {
   const menuRef = useRef(null);
 
@@ -59,6 +61,13 @@ export default function ContextMenu({
       },
       show: true,
       color: 'text-gray-700 hover:bg-gray-50'
+    },
+    {
+      label: 'Assign Course',
+      icon: Users,
+      action: () => onAssign(course),
+      show: course?.status === 'published',
+      color: 'text-blue-700 hover:bg-blue-50'
     },
     {
       label: 'Duplicate Course',

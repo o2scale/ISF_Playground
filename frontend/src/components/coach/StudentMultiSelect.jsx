@@ -1,21 +1,41 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 
-export default function StudentMultiSelect({ students, selectedStudents, onSelectionChange }) {
+export default function StudentMultiSelect({ students, selectedStudents, onSelectionChange, balagruhas }) {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedBalagruhaFilter, setSelectedBalagruhaFilter] = useState('all');
 
-  // Filter students based on search query
+  // Debug logging
+  useEffect(() => {
+    console.log('[StudentMultiSelect] Received students:', students);
+    console.log('[StudentMultiSelect] Students length:', students?.length);
+    console.log('[StudentMultiSelect] First student:', students?.[0]);
+    console.log('[StudentMultiSelect] Balagruhas:', balagruhas);
+  }, [students, balagruhas]);
+
+  // Filter students based on search query and Balagruha filter
   const filteredStudents = useMemo(() => {
-    if (!searchQuery) return students;
+    let filtered = students;
 
-    const query = searchQuery.toLowerCase();
-    return students.filter(
-      (student) =>
-        student.firstName?.toLowerCase().includes(query) ||
-        student.lastName?.toLowerCase().includes(query) ||
-        student.studentId?.toLowerCase().includes(query) ||
-        student.class?.toLowerCase().includes(query)
-    );
-  }, [students, searchQuery]);
+    // Filter by Balagruha
+    if (selectedBalagruhaFilter !== 'all') {
+      filtered = filtered.filter(student => 
+        student.balagruhaIds?.some(bg => bg._id?.toString() === selectedBalagruhaFilter || bg.id?.toString() === selectedBalagruhaFilter)
+      );
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (student) =>
+          student.name?.toLowerCase().includes(query) ||
+          student.userId?.toString().toLowerCase().includes(query) ||
+          student.balagruhaNames?.some(name => name.toLowerCase().includes(query))
+      );
+    }
+
+    return filtered;
+  }, [students, searchQuery, selectedBalagruhaFilter]);
 
   // Check if a student is selected
   const isStudentSelected = (studentId) => {
@@ -75,11 +95,28 @@ export default function StudentMultiSelect({ students, selectedStudents, onSelec
         </div>
       </div>
 
-      {/* Search Filter */}
-      <div className="mb-3">
+      {/* Filters */}
+      <div className="space-y-2 mb-3">
+        {/* Balagruha Filter */}
+        {balagruhas && balagruhas.length > 1 && (
+          <select
+            value={selectedBalagruhaFilter}
+            onChange={(e) => setSelectedBalagruhaFilter(e.target.value)}
+            className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          >
+            <option value="all">All Balagruhas</option>
+            {balagruhas.map((bg) => (
+              <option key={bg.id} value={bg.id}>
+                {bg.name}
+              </option>
+            ))}
+          </select>
+        )}
+        
+        {/* Search Filter */}
         <input
           type="text"
-          placeholder="🔍 Search students by name, ID, or class..."
+          placeholder="🔍 Search students by name, ID, or Balagruha..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -90,7 +127,7 @@ export default function StudentMultiSelect({ students, selectedStudents, onSelec
       <div className="max-h-64 overflow-y-auto border border-gray-200 rounded-lg">
         {filteredStudents.length === 0 ? (
           <div className="p-4 text-center text-gray-500">
-            {searchQuery ? 'No students match your search' : 'No students available'}
+            {searchQuery || selectedBalagruhaFilter !== 'all' ? 'No students match your filters' : 'No students available'}
           </div>
         ) : (
           <div className="divide-y divide-gray-200">
@@ -111,16 +148,17 @@ export default function StudentMultiSelect({ students, selectedStudents, onSelec
                   />
                   <div className="flex-1">
                     <div className="font-medium text-gray-900">
-                      {student.firstName} {student.lastName}
+                      {student.name || 'Unknown Student'}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {student.class && (
-                        <span>
-                          Class: {student.class}
-                          {student.studentId && ' • '}
+                      {student.userId && (
+                        <span className="mr-2">ID: {student.userId}</span>
+                      )}
+                      {student.balagruhaNames && student.balagruhaNames.length > 0 && (
+                        <span className="text-xs bg-gray-100 px-2 py-0.5 rounded ml-2">
+                          {student.balagruhaNames.join(', ')}
                         </span>
                       )}
-                      {student.studentId && <span>ID: {student.studentId}</span>}
                     </div>
                   </div>
                 </label>

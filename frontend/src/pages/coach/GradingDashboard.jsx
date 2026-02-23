@@ -1,5 +1,6 @@
 // frontend/src/pages/coach/GradingDashboard.jsx
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -11,6 +12,7 @@ import AudioGradingInterface from '../../components/coach/grading/AudioGradingIn
 
 export default function GradingDashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({ pending: 0, graded: 0, flagged: 0, thisWeek: 0 });
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -147,10 +149,20 @@ export default function GradingDashboard() {
     <div className="min-h-screen bg-gray-100 w-full">
       {/* Header */}
       <div className="bg-blue-600 text-white px-6 py-4 border-b border-blue-700">
-        <h1 className="text-2xl font-bold">Syllabus Tracker & Grading</h1>
-        <div className="text-sm mt-1">
-          Coach: {user.firstName} {user.lastName}
-          {user.balagruha?.name && ` • Balagruha: ${user.balagruha.name}`}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold">Syllabus Tracker & Grading</h1>
+            <div className="text-sm mt-1">
+              Coach: {user.firstName} {user.lastName}
+              {user.balagruha?.name && ` • Balagruha: ${user.balagruha.name}`}
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/coach/assignments')}
+            className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition"
+          >
+            Assign Courses
+          </button>
         </div>
       </div>
 

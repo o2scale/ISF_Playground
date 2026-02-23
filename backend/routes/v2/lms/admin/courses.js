@@ -1,7 +1,34 @@
 const express = require('express');
 const router = express.Router();
 const courseController = require('../../../../controllers/lms/admin/courseController');
+const adminAssignmentController = require('../../../../controllers/lms/admin/adminAssignmentController');
 const { authenticate, authorize } = require('../../../../middleware/auth');
+
+// ==================== ADMIN COURSE ASSIGNMENT (MUST BE BEFORE :id ROUTES) ====================
+
+/**
+ * @route GET /api/v2/lms/admin/courses/assignments
+ * @desc Admin gets all course assignments
+ * @access Private (Admin only)
+ */
+router.get(
+  '/assignments',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  adminAssignmentController.getAllAssignments
+);
+
+/**
+ * @route POST /api/v2/lms/admin/courses/assignments
+ * @desc Admin assigns course to Balagruhas or specific students
+ * @access Private (Admin only)
+ */
+router.post(
+  '/assignments',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  adminAssignmentController.createAdminAssignment
+);
 
 // ==================== COURSE CRUD OPERATIONS ====================
 
@@ -18,18 +45,6 @@ router.get(
 );
 
 /**
- * @route GET /api/v2/lms/admin/courses/:id
- * @desc Get single course by ID with full details
- * @access Private (Admin only)
- */
-router.get(
-  '/:id',
-  authenticate,
-  authorize('LMS Management', 'Manage'),
-  courseController.getCourseById
-);
-
-/**
  * @route POST /api/v2/lms/admin/courses
  * @desc Create new course (defaults to Draft status)
  * @access Private (Admin only)
@@ -39,6 +54,18 @@ router.post(
   authenticate,
   authorize('LMS Management', 'Manage'),
   courseController.createCourse
+);
+
+/**
+ * @route GET /api/v2/lms/admin/courses/:id
+ * @desc Get single course by ID with full details
+ * @access Private (Admin only)
+ */
+router.get(
+  '/:id',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.getCourseById
 );
 
 /**

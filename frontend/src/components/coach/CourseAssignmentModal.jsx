@@ -3,12 +3,17 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import config from '../../config';
 import StudentMultiSelect from './StudentMultiSelect';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssignmentCreated }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   const [loading, setLoading] = useState(false);
   const [courses, setCourses] = useState([]);
   const [students, setStudents] = useState([]);
-  const [balagruhaInfo, setBalagruhaInfo] = useState(null);
+  const [balagruhasInfo, setBalagruhasInfo] = useState([]);
+  const [selectedBalagruhas, setSelectedBalagruhas] = useState([]);
 
   // Form state
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -22,9 +27,13 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
   useEffect(() => {
     if (isOpen) {
       fetchPublishedCourses();
-      fetchCoachStudents();
+      if (isAdmin) {
+        fetchAdminData();
+      } else {
+        fetchCoachStudents();
+      }
     }
-  }, [isOpen, coachId]);
+  }, [isOpen, coachId, isAdmin]);
 
   const fetchPublishedCourses = async () => {
     try {
@@ -51,11 +60,63 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+      console.log('[CourseAssignmentModal] Students response:', response.data);
+      console.log('[CourseAssignmentModal] Students data:', response.data.data);
+      console.log('[CourseAssignmentModal] First student:', response.data.data?.[0]);
       setStudents(response.data.data || []);
-      setBalagruhaInfo(response.data.balagruha);
+      const balagruhas = response.data.balagruhas || [];
+      setBalagruhasInfo(balagruhas);
+      // Select all Balagruhas by default
+      if (balagruhas.length > 0 && selectedBalagruhas.length === 0) {
+        setSelectedBalagruhas(balagruhas);
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
       toast.error('Failed to load students');
+    }
+  };
+
+  const fetchAdminData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      // Fetch all Balagruhas
+      const balagruhasResponse = await axios.get(
+        `${config.API_BASE_URL}/api/v1/balagruha`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      const allBalagruhas = balagruhasResponse.data.data || [];
+      setBalagruhasInfo(allBalagruhas);
+      
+      // Select all by default
+      if (allBalagruhas.length > 0 && selectedBalagruhas.length === 0) {
+        setSelectedBalagruhas(allBalagruhas);
+      }
+      
+      // Fetch all students
+      const studentsResponse = await axios.get(
+        `${config.API_BASE_URL}/api/users?role=student`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      
+      const studentsData = studentsResponse.data.data || [];
+      // Add balagruhaNames to each student
+      const studentsWithInfo = studentsData.map(student => ({
+        ...student,
+        balagruhaNames: student.balagruhaIds?.map(bgId => {
+          const bg = allBalagruhas.find(b => (b._id || b.id)?.toString() === bgId?.toString());
+          return bg?.name;
+        }).filter(Boolean) || []
+      }));
+      
+      setStudents(studentsWithInfo);
+    } catch (error) {
+      console.error('Error fetching admin data:', error);
+      toast.error('Failed to load data');
     }
   };
 
@@ -92,7 +153,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
         assignedTo: {
           type: assignmentType,
           ...(assignmentType === 'balagruha'
-            ? { balagruhaId: balagruhaInfo.id }
+            ? { balagruhaIds: selectedBalagruhas.map(bg => bg._id || bg.id) }
             : { studentIds: selectedStudents.map(s => s._id) }
           ),
         },
@@ -103,8 +164,13 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
         },
       };
 
+      // Use admin endpoint if admin, otherwise use coach endpoint
+      const url = isAdmin
+        ? `${config.API_BASE_URL}/api/v2/lms/admin/courses/assignments`
+        : `${config.API_BASE_URL}/api/v2/lms/coach/assignments`;
+
       const response = await axios.post(
-        `${config.API_BASE_URL}/api/v2/lms/coach/assignments`,
+        url,
         payload,
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -139,6 +205,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
     setSelectedCourse(null);
     setAssignmentType('balagruha');
     setSelectedStudents([]);
+    setSelectedBalagruhas(balagruhasInfo);
     setDueDate('');
     setSendInAppNotification(true);
     setSendEmailNotification(true);
@@ -211,20 +278,83 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
                   : 'border-gray-300 hover:border-blue-300'
                 }`}
             >
-              <div className="flex items-center">
+              <div className="flex items-start">
                 <input
                   type="radio"
                   checked={assignmentType === 'balagruha'}
                   onChange={() => setAssignmentType('balagruha')}
-                  className="mr-3"
+                  className="mr-3 mt-1"
                 />
-                <div>
+                <div className="flex-1">
                   <div className="font-medium text-gray-900">
-                    Entire Balagruha {balagruhaInfo && `(${balagruhaInfo.name} - ${students.length} students)`}
+                    Entire Balagruha {balagruhasInfo.length > 0 && `(${students.length} students)`}
                   </div>
                   <div className="text-sm text-gray-600">
-                    All students in your assigned Balagruha will receive this course
+                    All students in selected Balagruha(s) will receive this course
                   </div>
+                  {/* Balagruha multi-select checkboxes */}
+                  {balagruhasInfo.length > 0 && (
+                    <div className="mt-3 border border-gray-200 rounded-lg p-3 bg-white">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-medium text-gray-500">
+                          Select Balagruha(s):
+                        </span>
+                        <div className="flex gap-2">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBalagruhas(balagruhasInfo);
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                          >
+                            Select All
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedBalagruhas([]);
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                          >
+                            Clear
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-2 max-h-32 overflow-y-auto">
+                        {balagruhasInfo.map((bg) => {
+                          const bgId = bg._id || bg.id;
+                          return (
+                            <label
+                              key={bgId}
+                              className="flex items-center cursor-pointer hover:bg-gray-50 p-1 rounded"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={selectedBalagruhas.some(sbg => (sbg._id || sbg.id) === bgId)}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setSelectedBalagruhas([...selectedBalagruhas, bg]);
+                                  } else {
+                                    setSelectedBalagruhas(selectedBalagruhas.filter(sbg => (sbg._id || sbg.id) !== bgId));
+                                  }
+                                }}
+                                className="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                              />
+                              <span className="text-sm text-gray-700">{bg.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                      {selectedBalagruhas.length > 0 && (
+                        <div className="mt-2 text-xs text-blue-600">
+                          {selectedBalagruhas.length} Balagruha(s) selected
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -260,6 +390,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
               students={students}
               selectedStudents={selectedStudents}
               onSelectionChange={setSelectedStudents}
+              balagruhas={balagruhasInfo}
             />
           )}
 

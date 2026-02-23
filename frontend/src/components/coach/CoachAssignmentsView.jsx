@@ -3,8 +3,12 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import config from '../../config';
 import CourseAssignmentModal from './CourseAssignmentModal';
+import { useAuth } from '../../contexts/AuthContext';
 
 export default function CoachAssignmentsView({ coachId, coachName, balagruhaName }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === 'admin';
+  
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -19,12 +23,15 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${config.API_BASE_URL}/api/v2/lms/coach/${coachId}/assignments`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      
+      // Admin fetches all assignments, coach fetches their own
+      const url = isAdmin 
+        ? `${config.API_BASE_URL}/api/v2/lms/admin/courses/assignments`
+        : `${config.API_BASE_URL}/api/v2/lms/coach/${coachId}/assignments`;
+      
+      const response = await axios.get(url, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setAssignments(response.data.data || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -115,18 +122,20 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
   return (
     <div className="min-h-screen bg-gray-100 w-full">
       {/* Header */}
-      <div className="bg-blue-600 text-white px-6 py-4 border-b border-blue-700">
+      <div className={`text-white px-6 py-4 border-b ${isAdmin ? 'bg-purple-600 border-purple-700' : 'bg-blue-600 border-blue-700'}`}>
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold">My Course Assignments</h1>
+            <h1 className="text-2xl font-bold">
+              {isAdmin ? 'All Course Assignments (Admin)' : 'My Course Assignments'}
+            </h1>
             <div className="text-sm mt-1">
               {balagruhaName && <span>Balagruha: {balagruhaName} • </span>}
-              Coach: {coachName}
+              {isAdmin ? 'Admin' : 'Coach'}: {coachName}
             </div>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="bg-white text-blue-600 px-6 py-2 rounded-lg font-medium hover:bg-blue-50 transition"
+            className={`px-6 py-2 rounded-lg font-medium transition ${isAdmin ? 'bg-white text-purple-600 hover:bg-purple-50' : 'bg-white text-blue-600 hover:bg-blue-50'}`}
           >
             + Assign New Course
           </button>

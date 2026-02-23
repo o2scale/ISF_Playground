@@ -21,9 +21,9 @@ export default function RequestItemModal({ product, onClose }) {
   // Fetch Balagruha names
   useEffect(() => {
     const fetchBalagruhas = async () => {
-      if (user?._id) {
+      if (user?.id) {
         try {
-          console.log("[RequestItemModal] Fetching balagruhas for user:", user._id, "role:", user.role);
+          console.log("[RequestItemModal] Fetching balagruhas for user:", user.id, "role:", user.role);
           // Sprint5-Story-2.2-BugFix: Use getUserBalagruhas instead of getBalagruhaById
           // This works for all roles (coach, medical-incharge, etc.) without requiring User Management permission
           const response = await getUserBalagruhas();
@@ -40,7 +40,7 @@ export default function RequestItemModal({ product, onClose }) {
           console.error("[RequestItemModal] Error fetching balagruhas:", error);
         }
       } else {
-        console.log("[RequestItemModal] No user ID available");
+        console.log("[RequestItemModal] No user ID available. user object:", user);
       }
     };
     fetchBalagruhas();

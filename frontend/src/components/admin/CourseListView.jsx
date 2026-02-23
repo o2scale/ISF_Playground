@@ -10,6 +10,7 @@ import RestoreCourseModal from './RestoreCourseModal';
 import UnpublishConfirmationModal from './UnpublishConfirmationModal';
 import BulkActionsBar from './BulkActionsBar';
 import BulkOperationModal from './BulkOperationModal';
+import AdminCourseAssignmentModal from './AdminCourseAssignmentModal';
 
 /**
  * CourseListView - Sprint 2 Epic 02 Story 01
@@ -50,6 +51,10 @@ export default function CourseListView({
   const [selectedCourseIds, setSelectedCourseIds] = useState([]);
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [bulkOperation, setBulkOperation] = useState(null); // 'publish', 'archive', 'delete'
+
+  // Admin Course Assignment
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [courseToAssign, setCourseToAssign] = useState(null);
 
   // Status badge styles
   const getStatusBadge = (status) => {
@@ -174,6 +179,19 @@ export default function CourseListView({
       setActionLoading(false);
       closeMenu();
     }
+  };
+
+  // Admin Course Assignment
+  const handleAssign = (course) => {
+    setCourseToAssign(course);
+    setIsAssignModalOpen(true);
+    closeMenu();
+  };
+
+  const handleAssignSuccess = () => {
+    setIsAssignModalOpen(false);
+    setCourseToAssign(null);
+    toast.success('Course assigned successfully!');
   };
 
   // Epic 02 Story 05: Bulk operations handlers
@@ -385,6 +403,7 @@ export default function CourseListView({
           onRestore={handleRestore}
           onDelete={handleDelete}
           onDuplicate={handleDuplicate}
+          onAssign={handleAssign}
         />
       )}
 
@@ -488,6 +507,19 @@ export default function CourseListView({
             return false;
           })}
           onSuccess={handleBulkOperationSuccess}
+        />
+      )}
+
+      {/* Admin Course Assignment Modal */}
+      {isAssignModalOpen && courseToAssign && (
+        <AdminCourseAssignmentModal
+          isOpen={isAssignModalOpen}
+          onClose={() => {
+            setIsAssignModalOpen(false);
+            setCourseToAssign(null);
+          }}
+          course={courseToAssign}
+          onAssignmentSuccess={handleAssignSuccess}
         />
       )}
     </div>

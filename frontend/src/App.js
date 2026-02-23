@@ -38,6 +38,7 @@ import OrderReceipt from "./pages/OrderReceipt";
 import ProductManagement from "./pages/ProductManagement";
 import InventoryManagement from "./pages/InventoryManagement";
 import LowStockReport from "./pages/LowStockReport";
+import PMLowStock from "./pages/PMLowStock";
 import OutOfStockReport from "./pages/OutOfStockReport";
 import MasterInventoryReport from "./pages/MasterInventoryReport";
 import VendorManagement from "./pages/VendorManagement";
@@ -401,6 +402,16 @@ const App = () => {
                     element={
                       <ProtectedRoute module="Shop Management" action="Manage">
                         <TransactionReports />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Purchase Manager Low Stock Route */}
+                  <Route
+                    path="/purchase-manager/low-stock"
+                    element={
+                      <ProtectedRoute>
+                        <PMLowStock />
                       </ProtectedRoute>
                     }
                   />

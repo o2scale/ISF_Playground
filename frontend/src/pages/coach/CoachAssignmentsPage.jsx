@@ -16,7 +16,7 @@ export default function CoachAssignmentsPage() {
   return (
     <CoachAssignmentsView
       coachId={user.id}
-      coachName={`${user.firstName} ${user.lastName}`}
+      coachName={user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
       balagruhaName={user.balagruha?.name}
     />
   );

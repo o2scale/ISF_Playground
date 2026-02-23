@@ -146,8 +146,8 @@ export default function SubmissionQueue({
                       <span>
                         👤 Student: {submission.studentName}
                       </span>
-                      {submission.studentClass && (
-                        <span>• Class: {submission.studentClass}</span>
+                      {submission.balagruhaName && submission.balagruhaName !== "N/A" && (
+                        <span>• Balagruha: {submission.balagruhaName}</span>
                       )}
                     </div>
                     <div className="mt-1">

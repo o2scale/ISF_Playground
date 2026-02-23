@@ -26,7 +26,14 @@ const CourseAssignmentSchema = new mongoose.Schema(
         required: true,
         enum: ["balagruha", "students"],
       },
-      // If type is "balagruha"
+      // If type is "balagruha" - supports multiple Balagruhas
+      balagruhaIds: [
+        {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Balagruha",
+        },
+      ],
+      // Legacy: single Balagruha (backward compatibility)
       balagruhaId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Balagruha",

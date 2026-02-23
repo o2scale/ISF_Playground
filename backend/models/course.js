@@ -173,20 +173,23 @@ CourseSchema.index({ "modules.chapters.order": 1 });
 
 // Sprint 2: Virtual for module count
 CourseSchema.virtual("moduleCount").get(function () {
-  return this.modules.length;
+  return this.modules?.length || 0;
 });
 
 // Sprint 2: Virtual for total chapter count
 CourseSchema.virtual("chapterCount").get(function () {
+  if (!this.modules || this.modules.length === 0) return 0;
   return this.modules.reduce(
-    (total, module) => total + module.chapters.length,
+    (total, module) => total + (module.chapters?.length || 0),
     0
   );
 });
 
 // Sprint 2: Virtual for total content item count
 CourseSchema.virtual("contentItemCount").get(function () {
+  if (!this.modules || this.modules.length === 0) return 0;
   return this.modules.reduce((total, module) => {
+    if (!module.chapters || module.chapters.length === 0) return total;
     return (
       total +
       module.chapters.reduce((chTotal, chapter) => {

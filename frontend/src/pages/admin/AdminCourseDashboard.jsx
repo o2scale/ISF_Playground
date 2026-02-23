@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, FileQuestion } from 'lucide-react';
+import { Plus, Search, FileQuestion, Users } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
@@ -113,6 +113,11 @@ export default function AdminCourseDashboard() {
     toast.success('Course deleted successfully!');
   };
 
+  // Navigate to coach assignments page for admin
+  const handleAssignCourse = () => {
+    navigate('/coach/assignments');
+  };
+
   // Show loading while RBAC initializes
   if (rbacLoading) {
     return (
@@ -137,6 +142,13 @@ export default function AdminCourseDashboard() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              <button
+                onClick={handleAssignCourse}
+                className="flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold shadow-md hover:shadow-lg"
+              >
+                <Users size={20} />
+                Assign Courses
+              </button>
               <button
                 onClick={() => navigate('/admin/quizzes')}
                 className="flex items-center gap-2 px-6 py-3 bg-white text-purple-600 rounded-lg hover:bg-purple-50 transition-colors font-semibold shadow-md hover:shadow-lg"

@@ -82,18 +82,9 @@ router.put(
   purchaseRequestController.cancelPurchaseRequest
 );
 
-// Get single request details
-// Sprint5-Story-24: Changed to multi-role access
-router.get(
-  '/:id',
-  authenticate,
-  checkPurchaseRequestAccess(),
-  validateRequestId,
-  purchaseRequestController.getPurchaseRequestById
-);
-
 /**
  * Admin Routes - Sprint5-Story-18
+ * NOTE: These must come BEFORE /:id route to avoid being caught as ID parameter
  */
 
 // Story 3.9: Get pending request count for navigation badge
@@ -118,6 +109,17 @@ router.get(
   authenticate,
   checkPurchaseRequestAccess(),
   purchaseRequestController.getAllPurchaseRequests
+);
+
+// Get single request details
+// Sprint5-Story-24: Changed to multi-role access
+// NOTE: This must come AFTER all static routes like /pending-count, /stats, /
+router.get(
+  '/:id',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  validateRequestId,
+  purchaseRequestController.getPurchaseRequestById
 );
 
 // Approve purchase request
