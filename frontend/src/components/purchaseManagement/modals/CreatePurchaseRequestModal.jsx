@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   api,
   createPurchaseRequest,
@@ -260,9 +260,46 @@ export default function CreatePurchaseRequestModal({
   // EFFECTS
   // ============================================================================
 
+  // Debug: Log formData changes
   useEffect(() => {
+    console.log('DEBUG - formData updated:', {
+      balagruhaId: formData.balagruhaId,
+      category: formData.category,
+      deadline: formData.deadline,
+      itemsCount: formData.items?.length,
+      items: formData.items
+    });
+  }, [formData]);
+
+  // Track if we've already initialized the edit data to prevent re-setting
+  const hasInitializedEdit = useRef(false);
+
+  // Reset the flag when requestToEdit changes (modal opens/closes)
+  useEffect(() => {
+    if (!requestToEdit) {
+      hasInitializedEdit.current = false;
+      console.log('DEBUG - Reset edit initialization flag');
+    }
+  }, [requestToEdit]);
+
+  useEffect(() => {
+    console.log('DEBUG - useEffect running:', {
+      hasRequestToEdit: !!requestToEdit,
+      requestToEditId: requestToEdit?._id,
+      userBalagruhasCount: userBalagruhas.length,
+      balagruhasCount: balagruhas.length,
+      hasInitialProduct: !!initialProduct,
+      hasInitializedEdit: hasInitializedEdit.current
+    });
+    
     // Sprint5-Story-EditDelete: Handle request editing FIRST to prevent overwriting
     if (requestToEdit) {
+      // Prevent re-initializing if we've already set the edit data
+      if (hasInitializedEdit.current) {
+        console.log('DEBUG - Edit data already initialized, skipping');
+        return;
+      }
+      
       console.log('DEBUG - Editing request:', {
         requestId: requestToEdit._id,
         items: requestToEdit.items,
@@ -270,6 +307,8 @@ export default function CreatePurchaseRequestModal({
         category: requestToEdit.category,
         deadline: requestToEdit.deadline
       });
+      
+      hasInitializedEdit.current = true;
       
       setFormData({
         balagruhaId: requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId || '',
@@ -295,12 +334,14 @@ export default function CreatePurchaseRequestModal({
     }
     // Set default balagruha if only one assigned
     else if (userBalagruhas.length === 1 && balagruhas.length > 0) {
+      console.log('DEBUG - Setting default balagruha for single assignment');
       const defaultBalagruha = balagruhas[0];
       setFormData(prev => ({ ...prev, balagruhaId: defaultBalagruha._id }));
       fetchProducts(defaultBalagruha._id);
     }
     // Handle initial product selection (Reorder flow)
     else if (initialProduct && initialProduct.balagruhaId) {
+      console.log('DEBUG - Handling initial product selection');
       // Sprint5-Story-20: Valid purchase categories
       const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
       const productCategory = initialProduct.product?.category;
