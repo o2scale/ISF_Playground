@@ -261,8 +261,40 @@ export default function CreatePurchaseRequestModal({
   // ============================================================================
 
   useEffect(() => {
+    // Sprint5-Story-EditDelete: Handle request editing FIRST to prevent overwriting
+    if (requestToEdit) {
+      console.log('DEBUG - Editing request:', {
+        requestId: requestToEdit._id,
+        items: requestToEdit.items,
+        balagruhaId: requestToEdit.balagruhaId,
+        category: requestToEdit.category,
+        deadline: requestToEdit.deadline
+      });
+      
+      setFormData({
+        balagruhaId: requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId || '',
+        category: requestToEdit.category || '',
+        deadline: requestToEdit.deadline ? new Date(requestToEdit.deadline).toISOString().split('T')[0] : '',
+        priority: requestToEdit.priority || 'medium',
+        items: requestToEdit.items.map(item => ({
+          productId: item.productId?._id || item.productId,
+          productName: item.productName,
+          productSKU: item.productSKU,
+          requestedQuantity: item.requestedQuantity,
+          estimatedUnitCost: item.estimatedUnitCost || 0,
+          estimatedTotalCost: item.estimatedTotalCost || 0,
+          isPendingProduct: item.isPendingProduct || false
+        })),
+        attachments: [] // We don't edit existing attachments here, just allow adding new ones
+      });
+
+      const productIds = new Set(requestToEdit.items.map(item => item.productId?._id || item.productId));
+      console.log('DEBUG - Setting selected products:', Array.from(productIds));
+      setSelectedProducts(productIds);
+      fetchProducts(requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId, requestToEdit.category);
+    }
     // Set default balagruha if only one assigned
-    if (userBalagruhas.length === 1 && balagruhas.length > 0) {
+    else if (userBalagruhas.length === 1 && balagruhas.length > 0) {
       const defaultBalagruha = balagruhas[0];
       setFormData(prev => ({ ...prev, balagruhaId: defaultBalagruha._id }));
       fetchProducts(defaultBalagruha._id);
@@ -304,8 +336,14 @@ export default function CreatePurchaseRequestModal({
       // Fix: Update fetchProducts to accept optional overrides.
       fetchProducts(initialProduct.balagruhaId, initialProduct.product?.category);
     }
-    // Sprint5-Story-EditDelete: Handle request editing
-    else if (requestToEdit) {
+      console.log('DEBUG - Editing request:', {
+        requestId: requestToEdit._id,
+        items: requestToEdit.items,
+        balagruhaId: requestToEdit.balagruhaId,
+        category: requestToEdit.category,
+        deadline: requestToEdit.deadline
+      });
+      
       setFormData({
         balagruhaId: requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId || '',
         category: requestToEdit.category || '',
@@ -323,10 +361,10 @@ export default function CreatePurchaseRequestModal({
         attachments: [] // We don't edit existing attachments here, just allow adding new ones
       });
 
-      setSelectedProducts(new Set(requestToEdit.items.map(item => item.productId?._id || item.productId)));
+      const productIds = new Set(requestToEdit.items.map(item => item.productId?._id || item.productId));
+      console.log('DEBUG - Setting selected products:', Array.from(productIds));
+      setSelectedProducts(productIds);
       fetchProducts(requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId, requestToEdit.category);
-    }
-    else {
     }
   }, [userBalagruhas, balagruhas, initialProduct, requestToEdit]);
 
