@@ -316,6 +316,8 @@ export default function CreatePurchaseRequestModal({
           productName: item.productName,
           productSKU: item.productSKU,
           requestedQuantity: item.requestedQuantity,
+          estimatedUnitCost: item.estimatedUnitCost || 0,
+          estimatedTotalCost: item.estimatedTotalCost || 0,
           isPendingProduct: item.isPendingProduct || false
         })),
         attachments: [] // We don't edit existing attachments here, just allow adding new ones
