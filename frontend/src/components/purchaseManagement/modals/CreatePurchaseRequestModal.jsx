@@ -336,36 +336,6 @@ export default function CreatePurchaseRequestModal({
       // Fix: Update fetchProducts to accept optional overrides.
       fetchProducts(initialProduct.balagruhaId, initialProduct.product?.category);
     }
-      console.log('DEBUG - Editing request:', {
-        requestId: requestToEdit._id,
-        items: requestToEdit.items,
-        balagruhaId: requestToEdit.balagruhaId,
-        category: requestToEdit.category,
-        deadline: requestToEdit.deadline
-      });
-      
-      setFormData({
-        balagruhaId: requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId || '',
-        category: requestToEdit.category || '',
-        deadline: requestToEdit.deadline ? new Date(requestToEdit.deadline).toISOString().split('T')[0] : '',
-        priority: requestToEdit.priority || 'medium',
-        items: requestToEdit.items.map(item => ({
-          productId: item.productId?._id || item.productId,
-          productName: item.productName,
-          productSKU: item.productSKU,
-          requestedQuantity: item.requestedQuantity,
-          estimatedUnitCost: item.estimatedUnitCost || 0,
-          estimatedTotalCost: item.estimatedTotalCost || 0,
-          isPendingProduct: item.isPendingProduct || false
-        })),
-        attachments: [] // We don't edit existing attachments here, just allow adding new ones
-      });
-
-      const productIds = new Set(requestToEdit.items.map(item => item.productId?._id || item.productId));
-      console.log('DEBUG - Setting selected products:', Array.from(productIds));
-      setSelectedProducts(productIds);
-      fetchProducts(requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId, requestToEdit.category);
-    }
   }, [userBalagruhas, balagruhas, initialProduct, requestToEdit]);
 
   // Effect to auto-select the product once products are loaded
