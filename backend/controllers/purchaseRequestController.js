@@ -586,7 +586,15 @@ exports.approvePurchaseRequest = async (req, res) => {
     const { reviewNotes } = req.body;
     const adminId = req.user._id;
 
+    console.log('DEBUG - Approve Request START:', { requestId: id, adminId: adminId.toString() });
+
     const request = await PurchaseRequest.findById(id);
+    
+    console.log('DEBUG - Request found:', { 
+      found: !!request, 
+      status: request?.status,
+      requestedBy: request?.requestedBy?.toString()
+    });
 
     if (!request) {
       return res.status(404).json({
@@ -621,7 +629,8 @@ exports.approvePurchaseRequest = async (req, res) => {
     }
 
     // Update request
-    request.status = 'approved';
+    // After approval, set to 'pending' so PM can follow normal workflow (ordered -> delivered_store -> delivered_balagruha)
+    request.status = 'pending';
     request.reviewedBy = adminId;
     request.reviewedAt = new Date();
     request.reviewNotes = reviewNotes?.trim() || '';

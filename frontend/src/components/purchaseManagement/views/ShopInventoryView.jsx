@@ -1869,16 +1869,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       </button>
                     )}
 
-                    {/* Update Stock Button - Story 19 */}
-                    {request.status === PurchaseRequestStatuses.APPROVED && normalizedRole === UserTypes.PURCHASE_MANAGER && (
-                      <button
-                        className="btn-icon btn-primary"
-                        onClick={() => handleUpdateStock(request)}
-                        title="Update Stock"
-                      >
-                        📦
-                      </button>
-                    )}
+
                   </td>
                 </tr>
               ))}

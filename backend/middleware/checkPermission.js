@@ -43,7 +43,10 @@ function getScopeFilter(user, scope) {
 const checkPermission = (module, action) => {
   return async (req, res, next) => {
     try {
+      console.log('DEBUG - checkPermission:', { module, action, userRole: req.user?.role, userId: req.user?._id });
+      
       if (!req.user || !req.user.role) {
+        console.log('DEBUG - checkPermission FAILED: No user or role');
         return res
           .status(403)
           .json({ error: "Access denied. User role is not defined." });
@@ -52,8 +55,11 @@ const checkPermission = (module, action) => {
       const userRole = req.user.role;
 
       const role = await Role.findOne({ roleName: userRole });
+      
+      console.log('DEBUG - checkPermission role found:', { roleName: role?.roleName, permissionsCount: role?.permissions?.length });
 
       if (!role) {
+        console.log('DEBUG - checkPermission FAILED: Role not found');
         return res
           .status(403)
           .json({ error: "Access denied. Role not found." });
@@ -61,17 +67,20 @@ const checkPermission = (module, action) => {
 
       // Find the permission that matches module and action
       const permission = role.permissions.find((permission) => {
-        return (
-          permission.module === module && permission.actions.includes(action)
-        );
+        const matches = permission.module === module && permission.actions.includes(action);
+        console.log('DEBUG - Checking permission:', { module: permission.module, actions: permission.actions, matches });
+        return matches;
       });
 
       if (!permission) {
+        console.log('DEBUG - checkPermission FAILED: Permission not found for', { module, action });
         return res.status(403).json({
           error:
             "Access denied. You do not have permission to perform this action.",
         });
       }
+      
+      console.log('DEBUG - checkPermission SUCCESS:', { module, action, scope: permission.scope });
 
       // RBAC Refactor: Inject scope-based filter for data access control
       // Controllers will use req.scopeFilter to filter queries by Balagruh/User
