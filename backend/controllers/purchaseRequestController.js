@@ -169,8 +169,9 @@ exports.createPurchaseRequest = async (req, res) => {
 
     const isSmallPurchase = (maxItemCost <= ITEM_THRESHOLD) && (totalOrderCost <= ORDER_THRESHOLD);
 
-    // Set initial status (Story 2.1: Strict lifecycle starts at pending)
-    const initialStatus = 'pending';
+    // Set initial status based on approval requirement
+    // Small purchases go directly to 'pending', large purchases require approval
+    const initialStatus = isSmallPurchase ? 'pending' : 'pending_approval';
 
     // Create purchase request
     const purchaseRequest = new PurchaseRequest({
@@ -339,16 +340,26 @@ exports.getAllPurchaseRequests = async (req, res) => {
     // Role-based filtering
     if (userRole === 'admin') {
       // Admin sees ALL requests - no filter
+      console.log('DEBUG - Admin fetching all requests');
     } else if (userRole === 'purchase-manager') {
       // Purchase Manager sees ALL requests in their assigned Balagruha(s)
       const user = await User.findById(userId).select('balagruhaIds');
       const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
+
+      console.log('DEBUG - PM Fetch Requests:', {
+        userId: userId.toString(),
+        userBalagruhaIds: userBalagruhaIds,
+        userBalagruhaIdsCount: userBalagruhaIds.length,
+        statusFilter: status
+      });
 
       // Show requests from assigned balagruhas OR STOCK requests
       query.$or = [
         { balagruhaId: { $in: userBalagruhaIds } },
         { balagruhaId: 'STOCK' }
       ];
+
+      console.log('DEBUG - PM Query:', JSON.stringify(query));
     } else {
       // Other roles (Coach, Medical Incharge, etc.) see ONLY their own requests
       query.requestedBy = userId;
@@ -412,6 +423,16 @@ exports.getAllPurchaseRequests = async (req, res) => {
       .populate('deliveredByCoachId', 'name email')  // Story 2.6: Delivery tracking
       .populate('items.productId', 'name sku stock lowStockThreshold images')
       .sort({ createdAt: -1 });
+
+    // Debug logging for PM
+    if (userRole === 'purchase-manager') {
+      console.log('DEBUG - PM Fetch Results:', {
+        userRole: userRole,
+        query: JSON.stringify(query),
+        totalRequests: requests.length,
+        requestIds: requests.map(r => ({ id: r._id.toString(), status: r.status, balagruhaId: r.balagruhaId?.toString() || r.balagruhaId }))
+      });
+    }
 
     // Sprint5-Story-21: Manually populate balagruhaId (skip if STOCK)
     for (const request of requests) {
@@ -583,6 +604,15 @@ exports.approvePurchaseRequest = async (req, res) => {
     }
 
     // 🔥 VALIDATION: Cannot approve own request
+    console.log('DEBUG - Approval Check:', {
+      requestId: id,
+      requestedBy: request.requestedBy?.toString(),
+      adminId: adminId.toString(),
+      requestedByType: typeof request.requestedBy,
+      adminIdType: typeof adminId,
+      areEqual: request.requestedBy?.toString() === adminId.toString()
+    });
+    
     if (request.requestedBy.toString() === adminId.toString()) {
       return res.status(403).json({
         success: false,

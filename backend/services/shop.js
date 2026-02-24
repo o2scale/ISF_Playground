@@ -41,8 +41,12 @@ class ShopService {
       }
 
       // Story 2.5: Purchase category filter (scopes catalog by procurement bucket)
+      // Also check category field as fallback for products where purchaseCategory wasn't set properly
       if (purchaseCategory) {
-        query.purchaseCategory = purchaseCategory;
+        query.$or = [
+          { purchaseCategory: purchaseCategory },
+          { category: purchaseCategory }
+        ];
       }
 
       // Search filter (text index)

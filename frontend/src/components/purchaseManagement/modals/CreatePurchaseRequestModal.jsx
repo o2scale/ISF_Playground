@@ -456,7 +456,26 @@ export default function CreatePurchaseRequestModal({
     setFormData(prev => ({
       ...prev,
       items: prev.items.map((item, i) =>
-        i === index ? { ...item, requestedQuantity: Math.max(1, parseInt(quantity) || 1) } : item
+        i === index ? { 
+          ...item, 
+          requestedQuantity: Math.max(1, parseInt(quantity) || 1),
+          estimatedTotalCost: (Math.max(1, parseInt(quantity) || 1)) * (item.estimatedUnitCost || 0)
+        } : item
+      )
+    }));
+  };
+
+  // Update estimated unit cost for an item
+  const updateItemCost = (index, cost) => {
+    const unitCost = parseFloat(cost) || 0;
+    setFormData(prev => ({
+      ...prev,
+      items: prev.items.map((item, i) =>
+        i === index ? { 
+          ...item, 
+          estimatedUnitCost: unitCost,
+          estimatedTotalCost: (item.requestedQuantity || 1) * unitCost
+        } : item
       )
     }));
   };
@@ -693,6 +712,16 @@ export default function CreatePurchaseRequestModal({
 
     if (invalidItems.length > 0) {
       showToast('Please enter valid quantity (≥1) for all products', 'error');
+      return;
+    }
+
+    // Validation - All items must have estimated unit cost
+    const itemsWithoutCost = formData.items.filter(
+      item => !item.estimatedUnitCost || item.estimatedUnitCost <= 0
+    );
+
+    if (itemsWithoutCost.length > 0) {
+      showToast('Please enter estimated unit cost (> ₹0) for all products', 'error');
       return;
     }
 
@@ -1352,7 +1381,9 @@ export default function CreatePurchaseRequestModal({
                       <tr>
                         <th>Product</th>
                         <th>SKU</th>
-                        <th style={{ width: '120px' }}>Quantity *</th>
+                        <th style={{ width: '100px' }}>Quantity *</th>
+                        <th style={{ width: '120px' }}>Est. Unit Cost (₹) *</th>
+                        <th style={{ width: '100px' }}>Total (₹)</th>
                         <th style={{ width: '60px' }}>Action</th>
                       </tr>
                     </thead>
@@ -1388,6 +1419,21 @@ export default function CreatePurchaseRequestModal({
                             />
                           </td>
                           <td>
+                            <input
+                              type="number"
+                              className="table-input"
+                              value={item.estimatedUnitCost || ''}
+                              onChange={(e) => updateItemCost(index, e.target.value)}
+                              min="0"
+                              step="0.01"
+                              placeholder="₹0.00"
+                              required
+                            />
+                          </td>
+                          <td style={{ textAlign: 'right', fontWeight: 'bold' }}>
+                            ₹{((item.estimatedTotalCost) || 0).toFixed(2)}
+                          </td>
+                          <td>
                             <button
                               type="button"
                               className="btn-icon-remove"
@@ -1399,12 +1445,19 @@ export default function CreatePurchaseRequestModal({
                           </td>
                         </tr>
                       ))}
+                      {/* Total Row */}
+                      <tr style={{ backgroundColor: '#f5f5f5', fontWeight: 'bold', borderTop: '2px solid #ddd' }}>
+                        <td colSpan="4" style={{ textAlign: 'right', padding: '12px' }}>
+                          Grand Total:
+                        </td>
+                        <td style={{ textAlign: 'right', padding: '12px', fontSize: '16px', color: '#16a34a' }}>
+                          ₹{(formData.items.reduce((sum, item) => sum + (item.estimatedTotalCost || 0), 0)).toFixed(2)}
+                        </td>
+                        <td></td>
+                      </tr>
                     </tbody>
                   </table>
                 </div>
-                <p className="form-hint">
-                  * Fill in quantity for all products before submitting
-                </p>
               </div>
             )}
 

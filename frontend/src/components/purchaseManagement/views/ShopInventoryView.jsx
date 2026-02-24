@@ -203,14 +203,15 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     purchaseManager: 'all',
     requester: 'all',  // Story 3.8: Coach/Requester filter for PM
     category: 'All Categories',  // Sprint5-Story-20
-    // Story 3.1: PM dashboard should default to active work
-    status: normalizedRole === UserTypes.PURCHASE_MANAGER ? 'pending' : 'all',
+    // Story 3.1: Default to 'all' - will be updated via useEffect when role is determined
+    status: 'all',
     search: ''
   });
 
   // Story 3.4: Tab states for PM
   const [activeCategoryTab, setActiveCategoryTab] = useState('All Categories');
-  const [activeStatusTab, setActiveStatusTab] = useState('pending');
+  // Default to 'all' - will be updated via useEffect when role is determined
+  const [activeStatusTab, setActiveStatusTab] = useState('all');
 
   // Story 3.5: View mode toggle (list vs bunched) and expanded rows
   const [viewMode, setViewMode] = useState('list'); // 'list' or 'bunched'
@@ -231,6 +232,17 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     fetchBalagruhas();
     fetchPurchaseRequests();
   }, []);
+
+  // Fix: Update status filter when normalizedRole is determined
+  useEffect(() => {
+    if (normalizedRole === UserTypes.PURCHASE_MANAGER) {
+      setFilters(prev => ({
+        ...prev,
+        status: 'active'
+      }));
+      setActiveStatusTab('active');
+    }
+  }, [normalizedRole]);
 
   // Sprint5-Story-22: Refetch data when date filter changes
   useEffect(() => {
@@ -401,9 +413,10 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
     // Status filter
     if (filters.status === 'active') {
-      // Active work includes requests still in-progress, including those awaiting coach confirmation.
+      // Active work includes requests still in-progress, including those awaiting approval and coach confirmation.
       filtered = filtered.filter(request => [
         PurchaseRequestStatuses.PENDING,
+        PurchaseRequestStatuses.PENDING_APPROVAL,
         PurchaseRequestStatuses.ORDERED,
         PurchaseRequestStatuses.DELIVERED_STORE
       ].includes(request.status));

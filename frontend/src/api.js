@@ -2147,9 +2147,10 @@ export const getPurchaseRequestStats = async () => {
 };
 
 // Get all shop items (for product selection in create modal)
+// Note: inStock=false ensures out-of-stock products are also included
 export const getAllShopItems = async () => {
   try {
-    const response = await api.get('/api/v2/shop/products?limit=1000');
+    const response = await api.get('/api/v2/shop/products?limit=1000&inStock=false');
     // Wrap response to match expected format in modal
     return {
       success: true,
@@ -2162,12 +2163,14 @@ export const getAllShopItems = async () => {
 };
 
 // Story 2.5: Get shop items filtered by shop category (backend category)
+// Note: inStock=false ensures out-of-stock products are also included
 export const getShopItemsByCategory = async ({ category, purchaseCategory, limit = 1000 } = {}) => {
   try {
     const qs = new URLSearchParams();
     if (category) qs.set('category', category);
     if (purchaseCategory) qs.set('purchaseCategory', purchaseCategory);
     if (limit) qs.set('limit', String(limit));
+    qs.set('inStock', 'false'); // Include out-of-stock products
 
     const response = await api.get(`/api/v2/shop/products?${qs.toString()}`);
     return {
