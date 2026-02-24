@@ -1919,6 +1919,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       {/* Modal for Creating/Editing Purchase Request */}
       {showCreateModal && (
         <CreatePurchaseRequestModal
+          key={selectedRequest?._id || 'create'} // Force remount when editing different requests
           onClose={() => {
             setShowCreateModal(false);
             setSelectedRequest(null);
