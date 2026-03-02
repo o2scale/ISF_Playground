@@ -4,6 +4,9 @@ import { api } from '../../api';
 import TransactionHistoryModal from './coins/TransactionHistoryModal';
 import MilestoneCelebrationModal from './coins/MilestoneCelebrationModal';
 import useMilestones from '../../hooks/useMilestones';
+import { useAuth } from '../../contexts/AuthContext';
+import CartIcon from '../shop/CartIcon';
+import Cart from '../shop/Cart';
 
 /**
  * TitleBar Component - Epic 01 Story 01 + Story 06
@@ -16,6 +19,8 @@ import useMilestones from '../../hooks/useMilestones';
  * - Milestone celebrations (100, 500, 1000, 5000 coins)
  */
 export default function TitleBar() {
+  const { logout } = useAuth();
+  
   // State management
   const [coinBalance, setCoinBalance] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -206,6 +211,9 @@ export default function TitleBar() {
               )}
             </button>
 
+            {/* Cart Icon */}
+            <CartIcon />
+
             {/* Session Timer */}
             <div className="flex items-center gap-2 text-gray-700">
               <span className="text-xl">⏱️</span>
@@ -213,6 +221,16 @@ export default function TitleBar() {
                 {formatTime(sessionTime)}
               </span>
             </div>
+
+            {/* Logout Button */}
+            <button
+              onClick={logout}
+              className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-full font-medium transition-colors"
+              aria-label="Logout"
+            >
+              <span className="text-lg">🚪</span>
+              <span className="hidden sm:block">Logout</span>
+            </button>
           </div>
         </div>
       </header>
@@ -232,6 +250,9 @@ export default function TitleBar() {
         onClose={() => setShowTransactionModal(false)}
         currentBalance={coinBalance}
       />
+
+      {/* Shopping Cart Drawer */}
+      <Cart />
 
       {/* Milestone Celebration Modal - Epic 01 Story 06 - Phase 3 */}
       <MilestoneCelebrationModal

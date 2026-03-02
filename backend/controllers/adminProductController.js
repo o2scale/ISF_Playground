@@ -171,14 +171,8 @@ async function createProduct(req, res) {
       });
     }
 
-    // Check SKU uniqueness
-    const normalizedSku = (sku || '').toUpperCase();
-    if (!normalizedSku) {
-      return res.status(400).json({
-        success: false,
-        message: 'SKU is required'
-      });
-    }
+    // Auto-generate SKU if not provided, otherwise normalize it
+    const normalizedSku = (sku || `NEW-${Date.now()}`).toUpperCase();
 
     const existingProduct = await ShopItem.findOne({ sku: normalizedSku });
     if (existingProduct) {

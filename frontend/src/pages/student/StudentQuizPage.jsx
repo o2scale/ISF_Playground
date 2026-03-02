@@ -74,13 +74,15 @@ export default function StudentQuizPage() {
           setCourseId(cId);
         }
       } else {
-        setError('Failed to load quiz questions');
-        toast.error('Failed to load quiz');
+        const errorMsg = response.data.error || response.data.message || 'Failed to load quiz questions';
+        setError(errorMsg);
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error('Error fetching quiz:', err);
-      setError('Failed to load quiz questions');
-      toast.error('Failed to load quiz');
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to load quiz questions';
+      setError(errorMsg);
+      toast.error(errorMsg);
     } finally {
       setLoading(false);
     }
@@ -149,11 +151,13 @@ export default function StudentQuizPage() {
           state: { results: response.data }
         });
       } else {
-        toast.error('Failed to submit quiz');
+        const errorMsg = response.data.error || response.data.message || 'Failed to submit quiz';
+        toast.error(errorMsg);
       }
     } catch (err) {
       console.error('Error submitting quiz:', err);
-      toast.error('Failed to submit quiz');
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || 'Failed to submit quiz';
+      toast.error(errorMsg);
     } finally {
       setSubmitting(false);
     }

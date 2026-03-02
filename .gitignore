@@ -154,3 +154,5 @@ creds
 # Private keys (do not commit)
 /isfplayground.pem
 /keys/ISFPlayground.pem
+venv/
+.~lock.*

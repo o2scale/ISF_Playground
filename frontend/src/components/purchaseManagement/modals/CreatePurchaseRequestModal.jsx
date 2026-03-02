@@ -456,6 +456,12 @@ export default function CreatePurchaseRequestModal({
       return;
     }
 
+    // Sprint5-Story-EditDelete: Don't clear items when in edit mode
+    // The edit initialization handles setting up items correctly
+    if (requestToEdit) {
+      return;
+    }
+
     // Clear selection since chosen products may no longer be visible in new scope
     setSelectedProducts(new Set());
     setFormData((prev) => ({
@@ -465,7 +471,7 @@ export default function CreatePurchaseRequestModal({
 
     fetchProducts(formData.balagruhaId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formData.category]);
+  }, [formData.category, requestToEdit]);
 
   // ============================================================================
   // EVENT HANDLERS - Product Selection

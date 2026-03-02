@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import './style.css';
 import { createMood } from '../../api';
 import showToast from '../../utils/toast';
+import { useAuth } from '../../contexts/AuthContext';
 
 function StudentDashboard() {
+    const { logout } = useAuth();
     const [mood, setMood] = useState("happy");
     const [moodMessage, setMoodMessage] = useState("I'm feeling happy today!");
     const [sessionTime, setSessionTime] = useState(30 * 60); // Start from 0 seconds
@@ -164,8 +166,7 @@ function StudentDashboard() {
 
     // Handle logout
     const handleLogout = () => {
-        alert("Logging out...");
-        // Implement actual logout functionality here
+        logout();
     };
 
     // Send a new chat message
@@ -290,7 +291,7 @@ function StudentDashboard() {
     return (
         <div className="student-dashboard">
             {/* Header */}
-            <div className="header" style={{ display: 'none' }}>
+            <div className="header">
                 {/* User greeting */}
                 {/* <div className="user-greeting">
                     <h2>Hi Arjun,</h2>
@@ -301,7 +302,7 @@ function StudentDashboard() {
 
 
                 {/* Coins and notifications */}
-                {/* <div className="user-stats">
+                <div className="user-stats">
                     <div className="coins">
                         <span className="coins-label">ISF COINS<br />EARNED</span>
                         <div className="coins-circle">{coins}</div>
@@ -320,7 +321,7 @@ function StudentDashboard() {
                     <button className="logout-btn" onClick={handleLogout}>
                         Logout
                     </button>
-                </div> */}
+                </div>
             </div>
 
             {/* Main Content */}

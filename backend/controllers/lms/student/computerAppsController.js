@@ -208,6 +208,26 @@ exports.getQuiz = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
 
+    // Check Max Attempts
+    const maxAttempts = quiz.settings?.maxAttempts || 3;
+    const unlimitedAttempts = quiz.settings?.unlimitedAttempts || false;
+
+    if (!unlimitedAttempts) {
+      const Submission = require('../../../models/Submission');
+      const attemptCount = await Submission.countDocuments({
+        studentId,
+        taskId: quizId,
+        submissionType: 'quiz'
+      });
+
+      if (attemptCount >= maxAttempts) {
+        return res.status(403).json({
+          success: false,
+          error: `Maximum attempts (${maxAttempts}) exceeded for this quiz.`
+        });
+      }
+    }
+
     res.json({
       success: true,
       quiz
@@ -247,6 +267,26 @@ exports.submitQuiz = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
     log('Quiz Fetched');
+
+    // Check Max Attempts before accepting submission
+    const maxAttempts = quiz.settings?.maxAttempts || 3;
+    const unlimitedAttempts = quiz.settings?.unlimitedAttempts || false;
+
+    if (!unlimitedAttempts) {
+      const attemptCount = await Submission.countDocuments({
+        studentId,
+        taskId: quizId,
+        submissionType: 'quiz'
+      });
+
+      if (attemptCount >= maxAttempts) {
+        log(`Submission Rejected: Attempts (${attemptCount}) >= Max (${maxAttempts})`);
+        return res.status(403).json({
+          success: false,
+          error: `Maximum attempts (${maxAttempts}) exceeded for this quiz.`
+        });
+      }
+    }
 
     // Course ID Resolution
     let courseId = bodyCourseId || quiz.course;
