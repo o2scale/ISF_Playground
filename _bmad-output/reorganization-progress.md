@@ -14,11 +14,11 @@
 - [x] 4.COMMIT Phase 4 committed (commit 934e01e)
 
 ## Phase 2: Backend Script Organization
-- [ ] 2.1 Create organized script subdirectories under backend/scripts/
-- [ ] 2.2 Move root-level backend scripts to appropriate subdirectories
-- [ ] 2.3 Move project root utilities (check_coins.js, publish_courses.js, debug_progress.js) to backend/scripts/
-- [ ] 2.4 Handle special backend files (add student.html, notes.txt)
-- [ ] 2.COMMIT Phase 2 committed
+- [x] 2.1 Create organized script subdirectories under backend/scripts/
+- [x] 2.2 Move root-level backend scripts to appropriate subdirectories
+- [x] 2.3 Move project root utilities (check_coins.js, publish_courses.js, debug_progress.js) to backend/scripts/
+- [x] 2.4 Handle special backend files (add student.html, notes.txt)
+- [x] 2.COMMIT Phase 2 committed (66 files, commit b74fa98)
 
 ## Phase 3: Frontend Cleanup
 - [ ] 3.1 Remove duplicate files (PermissionGuard.js, useUserRole.tsx, stale usePermission)
