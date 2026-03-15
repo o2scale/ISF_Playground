@@ -152,7 +152,8 @@ exports.getAllMedicalCheckIns = async (req, res) => {
       "Request received to fetch all medical check-ins"
     );
     const { student, healthStatus, date, page, limit } = req.query;
-    const filters = {};
+    // RBAC: Apply scope filter from authorize middleware
+    const filters = { ...(req.scopeFilter || {}) };
     if (student) {
       if (!mongoose.Types.ObjectId.isValid(student)) {
         return res
@@ -690,7 +691,14 @@ exports.deleteAttachment = async (req, res) => {
 
 exports.getMedicalCheckInsByBalagruhaIds = async (req, res) => {
   try {
-    const { balagruhaIds } = req.body;
+    let { balagruhaIds } = req.body;
+    // RBAC: Restrict balagruhaIds to user's assigned scope
+    if (req.scopeFilter && req.scopeFilter.balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      balagruhaIds = (balagruhaIds || []).filter(id => allowedIds.includes(id.toString()));
+    }
     const result = await MedicalCheckIns.getMedicalCheckInsByBalagruhaIds(
       balagruhaIds
     );

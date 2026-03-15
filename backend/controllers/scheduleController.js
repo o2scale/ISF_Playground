@@ -113,7 +113,8 @@ exports.getScheduleById = async (req, res) => {
 
 exports.getSchedules = async (req, res) => {
   try {
-    const filters = req.query;
+    // RBAC: Merge scope filter with query filters
+    const filters = { ...req.query, ...(req.scopeFilter || {}) };
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -327,7 +328,14 @@ exports.getSchedulesByUser = async (req, res) => {
 
 exports.getSchedulesForAdmin = async (req, res) => {
   try {
-    const { balagruhaIds, assignedTo, startDate, endDate, status } = req.body;
+    let { balagruhaIds, assignedTo, startDate, endDate, status } = req.body;
+    // RBAC: Restrict balagruhaIds to user's assigned scope
+    if (req.scopeFilter && req.scopeFilter.balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      balagruhaIds = (balagruhaIds || []).filter(id => allowedIds.includes(id.toString()));
+    }
     if (!isValidDate(startDate) || !isValidDate(endDate)) {
       return res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
         success: false,
@@ -369,7 +377,14 @@ exports.getSchedulesForAdmin = async (req, res) => {
 
 exports.getSchedulesForCoach = async (req, res) => {
   try {
-    const { balagruhaIds, assignedTo, startDate, endDate, status } = req.body;
+    let { balagruhaIds, assignedTo, startDate, endDate, status } = req.body;
+    // RBAC: Restrict balagruhaIds to user's assigned scope
+    if (req.scopeFilter && req.scopeFilter.balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      balagruhaIds = (balagruhaIds || []).filter(id => allowedIds.includes(id.toString()));
+    }
     const result = await Schedule.getSchedulesForCoach(
       balagruhaIds,
       assignedTo,

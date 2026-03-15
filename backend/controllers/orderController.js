@@ -248,7 +248,9 @@ async function cancelOrder(req, res) {
  */
 async function getAllOrders(req, res) {
   try {
-    // Check if user is admin
+    // RBAC: Scope filter is set by authorize middleware
+    // Admin gets {} (no restriction), others get appropriate filter
+    // Non-admin users without proper authorization are blocked at the middleware level
     if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,

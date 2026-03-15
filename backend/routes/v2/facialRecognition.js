@@ -9,19 +9,17 @@
 const express = require('express');
 const router = express.Router();
 const frController = require('../../controllers/frController');
-const { authenticate } = require('../../middleware/auth');
-// TODO: Add RBAC middleware after Sprint 1.1 RBAC refactor (Epic 01 Story 01) is complete
-// const { checkPermission } = require('../../middleware/rbac');
+const { authenticate, authorize } = require('../../middleware/auth');
 
 /**
  * @route POST /api/v2/fr/register
  * @desc Register face for a student
- * @access Private (Admin, In-Charge) - TODO: Add RBAC permission check
+ * @access Private (Admin, In-Charge)
  */
 router.post(
   '/register',
   authenticate,
-  // checkPermission('manage', 'students'), // TODO: Enable after RBAC refactor
+  authorize("User Management", "Create"),
   frController.upload.single('photo'),
   frController.registerFace
 );
@@ -52,24 +50,24 @@ router.get(
 /**
  * @route DELETE /api/v2/fr/register/:studentId
  * @desc Delete face registration for student (GDPR compliance)
- * @access Private (Admin, In-Charge) - TODO: Add RBAC permission check
+ * @access Private (Admin, In-Charge)
  */
 router.delete(
   '/register/:studentId',
   authenticate,
-  // checkPermission('manage', 'students'), // TODO: Enable after RBAC refactor
+  authorize("User Management", "Delete"),
   frController.deleteFaceRegistration
 );
 
 /**
  * @route GET /api/v2/fr/stats
  * @desc Get FR system statistics
- * @access Private (Admin only) - TODO: Add RBAC permission check
+ * @access Private (Admin only)
  */
 router.get(
   '/stats',
   authenticate,
-  // checkPermission('view', 'analytics'), // TODO: Enable after RBAC refactor
+  authorize("User Management", "Read"),
   frController.getFRStats
 );
 

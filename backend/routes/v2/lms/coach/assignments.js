@@ -13,6 +13,7 @@ const { authenticate, authorize } = require('../../../../middleware/auth');
 router.get(
   '/courses/published',
   authenticate,
+  authorize("LMS Management", "Read"),
   coachAssignmentController.getPublishedCourses
 );
 
@@ -24,6 +25,7 @@ router.get(
 router.get(
   '/:coachId/students',
   authenticate,
+  authorize("LMS Management", "Read"),
   coachAssignmentController.getCoachStudents
 );
 
@@ -35,6 +37,7 @@ router.get(
 router.post(
   '/assignments',
   authenticate,
+  authorize("LMS Management", "Create"),
   coachAssignmentController.createAssignment
 );
 
@@ -46,6 +49,7 @@ router.post(
 router.get(
   '/:coachId/assignments',
   authenticate,
+  authorize("LMS Management", "Read"),
   coachAssignmentController.getCoachAssignments
 );
 
@@ -57,6 +61,7 @@ router.get(
 router.get(
   '/assignments/:assignmentId',
   authenticate,
+  authorize("LMS Management", "Read"),
   coachAssignmentController.getAssignmentById
 );
 
@@ -68,6 +73,7 @@ router.get(
 router.put(
   '/assignments/:assignmentId',
   authenticate,
+  authorize("LMS Management", "Update"),
   coachAssignmentController.updateAssignment
 );
 
@@ -79,6 +85,7 @@ router.put(
 router.delete(
   '/assignments/:assignmentId',
   authenticate,
+  authorize("LMS Management", "Delete"),
   coachAssignmentController.deleteAssignment
 );
 
@@ -90,6 +97,7 @@ router.delete(
 router.get(
   '/:coachId/stats',
   authenticate,
+  authorize("LMS Management", "Read"),
   coachAssignmentController.getCoachStats
 );
 
@@ -101,6 +109,7 @@ router.get(
 router.put(
   '/assignments/:assignmentId/progress',
   authenticate,
+  authorize("LMS Management", "Update"),
   coachAssignmentController.updateAssignmentProgress
 );
 

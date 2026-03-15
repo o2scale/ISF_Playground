@@ -347,7 +347,14 @@ exports.getMoodEntriesByDateRange = async (req, res) => {
 // API: get latest mood entry by balagruhaIds list
 exports.getLatestMoodEntry = async (req, res) => {
   try {
-    const { balagruhaIds } = req.body;
+    let { balagruhaIds } = req.body;
+    // RBAC: Restrict balagruhaIds to user's assigned scope
+    if (req.scopeFilter && req.scopeFilter.balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      balagruhaIds = (balagruhaIds || []).filter(id => allowedIds.includes(id.toString()));
+    }
     const result = await moodTrackerService.getLatestMoodEntry(balagruhaIds);
     return res.status(200).json(result);
   } catch (error) {

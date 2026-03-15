@@ -124,10 +124,10 @@ exports.updateMusicTask = async (req, res) => {
   }
 };
 
-// API for fetching sports tasks with pagination
+// API for fetching music tasks with pagination
 exports.getSportsTasks = async (req, res) => {
   try {
-    const {
+    let {
       balagruhaId,
       status,
       priority,
@@ -137,6 +137,19 @@ exports.getSportsTasks = async (req, res) => {
       assignedFor,
     } = req.body;
 
+    // RBAC: Validate balagruhaId against scope filter
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      if (!allowedIds.includes(balagruhaId.toString())) {
+        return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+          success: false,
+          message: "Access denied: You do not have access to this Balagruha's music tasks",
+        });
+      }
+    }
+
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -145,12 +158,6 @@ exports.getSportsTasks = async (req, res) => {
       },
       `Request received to fetch sports tasks for balagruhaId: ${balagruhaId}`
     );
-
-    // Process status, priority, and assignedIds from query params
-    // const statusArray = status ? status.split(',') : null;
-    // const priorityArray = priority ? priority.split(',') : null;
-    // const createdByArray = createdBy ? createdBy.split(',') : null;
-    // const assignedIdsArray = assignedIds ? assignedIds.split(',') : null;
 
     const filters = {
       balagruhaId,
@@ -314,10 +321,22 @@ exports.getAllTrainingSessions = async (req, res) => {
   }
 };
 
-// API for fetch the all students list with sports tasks by balagruhaId and filters
+// API for fetch the all students list with music tasks by balagruhaId and filters
 exports.getStudentsWithSportsTask = async (req, res) => {
   try {
-    const { balagruhaId, assignedFor, status, priority } = req.body;
+    let { balagruhaId, assignedFor, status, priority } = req.body;
+    // RBAC: Validate balagruhaId against scope filter
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      if (!allowedIds.includes(balagruhaId.toString())) {
+        return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+          success: false,
+          message: "Access denied: You do not have access to this Balagruha",
+        });
+      }
+    }
     logger.info(
       {
         clientIP: req.socket.remoteAddress,

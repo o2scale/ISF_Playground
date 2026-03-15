@@ -47,26 +47,9 @@ const repairRequestController = {
         urgency,
       } = req.query;
 
-      const query = {};
+      // RBAC: Apply scope filter from authorize middleware
+      const query = { ...(req.scopeFilter || {}) };
       if (urgency) query.urgency = urgency;
-
-      // Role-based filtering
-      const userRole = req.user.role;
-      const userId = req.user._id;
-
-      if (userRole === 'admin') {
-        // Admin sees ALL repair requests - no filter
-      } else if (userRole === 'purchase-manager') {
-        // Purchase Manager sees requests from their assigned Balagruha(s)
-        const User = require('../models/user');
-        const user = await User.findById(userId).select('balagruhaIds');
-        const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
-
-        query.balagruhaId = { $in: userBalagruhaIds };
-      } else {
-        // Other roles see ONLY their own created requests
-        query.createdBy = userId;
-      }
 
       const options = {
         skip: (parseInt(page) - 1) * parseInt(limit),
@@ -291,26 +274,9 @@ const repairRequestController = {
         status,
       } = req.query;
 
-      const query = {};
+      // RBAC: Apply scope filter from authorize middleware
+      const query = { ...(req.scopeFilter || {}) };
       if (status) query.status = status;
-
-      // Role-based filtering
-      const userRole = req.user.role;
-      const userId = req.user._id;
-
-      if (userRole === 'admin') {
-        // Admin sees ALL purchase orders - no filter
-      } else if (userRole === 'purchase-manager') {
-        // Purchase Manager sees orders from their assigned Balagruha(s)
-        const User = require('../models/user');
-        const user = await User.findById(userId).select('balagruhaIds');
-        const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
-
-        query.balagruhaId = { $in: userBalagruhaIds };
-      } else {
-        // Other roles see ONLY their own created orders
-        query.createdBy = userId;
-      }
 
       const options = {
         skip: (parseInt(page) - 1) * parseInt(limit),

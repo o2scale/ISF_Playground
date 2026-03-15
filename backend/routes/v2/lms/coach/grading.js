@@ -2,7 +2,7 @@
 const express = require("express");
 const router = express.Router();
 const coachGradingController = require("../../../../controllers/lms/coach/coachGradingController");
-const { authenticate } = require("../../../../middleware/auth");
+const { authenticate, authorize } = require("../../../../middleware/auth");
 
 /**
  * Grading Routes for Coaches
@@ -13,6 +13,7 @@ const { authenticate } = require("../../../../middleware/auth");
 router.get(
   "/:coachId/submissions",
   authenticate,
+  authorize("LMS Management", "Read"),
   coachGradingController.getSubmissions
 );
 
@@ -20,6 +21,7 @@ router.get(
 router.get(
   "/submissions/:submissionId",
   authenticate,
+  authorize("LMS Management", "Read"),
   coachGradingController.getSubmissionById
 );
 
@@ -27,6 +29,7 @@ router.get(
 router.post(
   "/submissions/:submissionId/grade",
   authenticate,
+  authorize("LMS Management", "Update"),
   coachGradingController.submitGrade
 );
 
@@ -34,6 +37,7 @@ router.post(
 router.post(
   "/submissions/bulk-grade",
   authenticate,
+  authorize("LMS Management", "Update"),
   coachGradingController.bulkGrade
 );
 
@@ -41,6 +45,7 @@ router.post(
 router.put(
   "/submissions/:submissionId/draft",
   authenticate,
+  authorize("LMS Management", "Update"),
   coachGradingController.saveDraft
 );
 
@@ -48,6 +53,7 @@ router.put(
 router.put(
   "/submissions/:submissionId/flag",
   authenticate,
+  authorize("LMS Management", "Update"),
   coachGradingController.flagSubmission
 );
 
@@ -55,6 +61,7 @@ router.put(
 router.put(
   "/submissions/:submissionId/skip",
   authenticate,
+  authorize("LMS Management", "Update"),
   coachGradingController.skipSubmission
 );
 

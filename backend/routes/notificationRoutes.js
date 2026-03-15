@@ -104,8 +104,7 @@ router.post(
 router.post(
   "/admin/send-personal",
   authenticate,
-  // Temporarily commenting out permission check for testing
-  // checkPermission("notifications", "Create"),
+  checkPermission("notifications", "Create"),
   notificationController.sendAdminPersonalNotification
 );
 

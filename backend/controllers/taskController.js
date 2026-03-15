@@ -142,8 +142,8 @@ exports.getAllTasks = async (req, res) => {
       limit = 10,
     } = req.query; // Optional filters and pagination
 
-    // Build the query object
-    const query = {};
+    // Build the query object with RBAC scope filter
+    const query = { ...(req.scopeFilter || {}) };
     if (status) query.status = status; // Filter by status
     if (assignedUser) {
       if (!mongoose.Types.ObjectId.isValid(assignedUser)) {
@@ -439,7 +439,7 @@ exports.getAllTasksV1 = async (req, res) => {
 exports.getTaskListByBalagruhaIdAndFilter = async (req, res) => {
   try {
     let userRole = req.user.role;
-    const {
+    let {
       balagruhaId,
       status,
       createdBy,
@@ -450,6 +450,18 @@ exports.getTaskListByBalagruhaIdAndFilter = async (req, res) => {
       type,
     } = req.body;
     let currentUserId = req.user._id;
+    // RBAC: Validate balagruhaId against scope filter
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      if (!allowedIds.includes(balagruhaId.toString())) {
+        return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+          success: false,
+          message: "Access denied: You do not have access to this Balagruha's tasks",
+        });
+      }
+    }
     logger.info(
       {
         clientIP: req.socket.remoteAddress,

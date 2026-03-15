@@ -7,6 +7,7 @@ const { authenticate, authorize } = require("../middleware/auth");
 router.delete(
   "/user/:userId/history/:medicalHistoryId",
   authenticate,
+  authorize("Medical Management", "Delete"),
   medicalRecordController.deleteMedicalHistoryItem
 );
 
@@ -14,6 +15,7 @@ router.delete(
 router.put(
   "/user/:userId/history/:medicalHistoryId",
   authenticate,
+  authorize("Medical Management", "Update"),
   medicalRecordController.updateMedicalHistoryItem
 );
 

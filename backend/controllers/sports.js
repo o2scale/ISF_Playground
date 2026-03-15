@@ -127,7 +127,7 @@ exports.updateSportsTask = async (req, res) => {
 // API for fetching sports tasks with pagination
 exports.getSportsTasks = async (req, res) => {
   try {
-    const {
+    let {
       balagruhaId,
       status,
       priority,
@@ -136,6 +136,19 @@ exports.getSportsTasks = async (req, res) => {
       limit,
       assignedFor,
     } = req.body;
+
+    // RBAC: Validate balagruhaId against scope filter
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      if (!allowedIds.includes(balagruhaId.toString())) {
+        return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+          success: false,
+          message: "Access denied: You do not have access to this Balagruha's sports tasks",
+        });
+      }
+    }
 
     logger.info(
       {
@@ -268,7 +281,15 @@ exports.createSportsTrainingSession = async (req, res) => {
 // API for fetch all training sessions
 exports.getAllTrainingSessions = async (req, res) => {
   try {
-    const { balagruhaIds, type } = req.query;
+    let { balagruhaIds, type } = req.query;
+    // RBAC: Restrict balagruhaIds to user's assigned scope
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaIds) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      const requestedIds = typeof balagruhaIds === 'string' ? balagruhaIds.split(',') : balagruhaIds;
+      balagruhaIds = requestedIds.filter(id => allowedIds.includes(id.toString()));
+    }
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -320,7 +341,19 @@ exports.getAllTrainingSessions = async (req, res) => {
 // API for fetch the all students list with sports tasks by balagruhaId and filters
 exports.getStudentsWithSportsTask = async (req, res) => {
   try {
-    const { balagruhaId, assignedFor, status, priority } = req.body;
+    let { balagruhaId, assignedFor, status, priority } = req.body;
+    // RBAC: Validate balagruhaId against scope filter
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      if (!allowedIds.includes(balagruhaId.toString())) {
+        return res.status(HTTP_STATUS_CODE.FORBIDDEN).json({
+          success: false,
+          message: "Access denied: You do not have access to this Balagruha",
+        });
+      }
+    }
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
@@ -374,7 +407,15 @@ exports.getStudentsWithSportsTask = async (req, res) => {
 // API for fetch the sports overview by balagruhaId
 exports.getSportsInsights = async (req, res) => {
   try {
-    const { date, balagruhaIds } = req.query;
+    let { date, balagruhaIds } = req.query;
+    // RBAC: Restrict balagruhaIds to user's assigned scope
+    if (req.scopeFilter && req.scopeFilter.balagruhaId && balagruhaIds) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map(id => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      const requestedIds = typeof balagruhaIds === 'string' ? balagruhaIds.split(',') : balagruhaIds;
+      balagruhaIds = requestedIds.filter(id => allowedIds.includes(id.toString()));
+    }
     logger.info(
       {
         clientIP: req.socket.remoteAddress,
