@@ -13,7 +13,7 @@ import {
   getBalagruhaListbyUserID,
   getUserById,
 } from "../../api";
-import { usePermission } from "../hooks/usePermission";
+import { usePermission } from "../../hooks/usePermission";
 import { useAuth } from "../../contexts/AuthContext";
 import UserForm from "./UserForm";
 

@@ -517,6 +517,7 @@ class AnalyticsService {
     ]);
 
     // DEBUG: Log aggregation result
+    console.log('Leaderboard aggregation:', {
       resultLength: leaderboard.length,
       sampleEntry: leaderboard[0] ? {
         studentName: leaderboard[0].studentName,
@@ -544,6 +545,7 @@ class AnalyticsService {
     const skip = (page - 1) * limit;
 
     // DEBUG: Log received filters
+    console.log('getZeroPurchaseStudents filters:', {
       hasRequestingUser: !!filters.requestingUser,
       requestingUserId: filters.requestingUser?._id,
       requestingUserRole: filters.requestingUser?.role,
@@ -600,6 +602,7 @@ class AnalyticsService {
     }
 
     // DEBUG: Log match conditions before pipeline
+    console.log('getZeroPurchaseStudents match:', {
       matchConditions: JSON.stringify(matchConditions),
       hasBalagruhaFilter: !!matchConditions.balagruhaIds
     });
@@ -823,6 +826,7 @@ class AnalyticsService {
     const skip = (page - 1) * limit;
 
     // DEBUG: Log received filters
+    console.log('getTransactionLog filters:', {
       hasRequestingUser: !!filters.requestingUser,
       requestingUserId: filters.requestingUser?._id,
       requestingUserRole: filters.requestingUser?.role,
@@ -910,6 +914,7 @@ class AnalyticsService {
     }
 
     // DEBUG: Log final query
+    console.log('getTransactionLog query:', {
       query: JSON.stringify(query),
       scopeFilteredStudentIdsCount: scopeFilteredStudentIds?.length,
       hasUserIdFilter: !!query.userId

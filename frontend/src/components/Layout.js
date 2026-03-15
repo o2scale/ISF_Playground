@@ -4,7 +4,7 @@ import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import "./Layout.css";
 import { useAuth } from "../contexts/AuthContext";
 import { useRBAC } from "../contexts/RBACContext";
-import { usePermission } from "./hooks/usePermission";
+import { usePermission } from "../hooks/usePermission";
 import { useCoinBalance } from "../contexts/CoinBalanceContext";
 import CartIcon from "./shop/CartIcon";
 import FloatingDeliveriesButton from "./shop/FloatingDeliveriesButton";

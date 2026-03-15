@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, Navigate } from 'react-router-dom';
 import './dashboard.css';
 import { useAuth } from '../../contexts/AuthContext';
-import { usePermission } from '../hooks/usePermission';
+import { usePermission } from '../../hooks/usePermission';
 import AdminDashboard from './admin';
 // import StudentDashboard from './student'; // Legacy
 import CoachDashboard from './coach';

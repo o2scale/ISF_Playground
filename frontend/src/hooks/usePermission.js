@@ -10,11 +10,10 @@
  *   const canEdit = usePermission('Student Management', 'Update');
  */
 
-import { useContext } from 'react';
-import { AuthContext } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export const usePermission = (module, action) => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
 
   if (!user) {
     return false;

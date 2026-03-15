@@ -9,7 +9,7 @@ import {
   assignMachineToAnotherBalagruha,
   getUnAssigned,
 } from "../../api";
-import { usePermission } from "../hooks/usePermission";
+import { usePermission } from "../../hooks/usePermission";
 
 const BalagruhaManagement = () => {
   const [balagruhas, setBalagruhas] = useState([]);
