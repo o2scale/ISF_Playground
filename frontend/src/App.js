@@ -20,7 +20,7 @@ import LoginCard from "./components/login/logincard";
 import StudentLogin from "./components/login/StudentLogin";
 import UserManagement from "./components/usermanagement/usermanagement";
 import RBACManagement from "./components/RBAC/RBACManagement";
-import MachineManagement from "./components/machineManagement/machineManagement";
+import MachineManagement from "./pages/MachineManagement";
 import Dashboard from "./components/dashboard/dashboard";
 import CourseManagement from "./components/courseManagement/CourseManagement";
 import RepairManagement from "./components/repairManagement/RepairManagement";
