@@ -80,18 +80,18 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
   });
 
   describe('Scope: "own" (User-Level Access)', () => {
-    test('should filter by userId for scope="own"', () => {
+    test('should filter by _id for scope="own"', () => {
       const filter = getScopeFilter(mockStudentUser, 'own');
 
-      expect(filter).toHaveProperty('userId');
-      expect(filter.userId).toEqual(mockStudentUser._id);
+      expect(filter).toHaveProperty('_id');
+      expect(filter._id).toEqual(mockStudentUser._id);
     });
 
     test('should restrict student to own data only', () => {
       const filter = getScopeFilter(mockStudentUser, 'own');
 
-      expect(Object.keys(filter)).toEqual(['userId']);
-      expect(filter.userId).toBe(mockStudentUser._id);
+      expect(Object.keys(filter)).toEqual(['_id']);
+      expect(filter._id).toBe(mockStudentUser._id);
     });
   });
 
@@ -99,30 +99,30 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
     test('should default to "own" if scope is undefined', () => {
       const filter = getScopeFilter(mockStudentUser, undefined);
 
-      expect(filter).toHaveProperty('userId');
-      expect(filter.userId).toEqual(mockStudentUser._id);
+      expect(filter).toHaveProperty('_id');
+      expect(filter._id).toEqual(mockStudentUser._id);
     });
 
     test('should default to "own" if scope is null', () => {
       const filter = getScopeFilter(mockStudentUser, null);
 
-      expect(filter).toHaveProperty('userId');
-      expect(filter.userId).toEqual(mockStudentUser._id);
+      expect(filter).toHaveProperty('_id');
+      expect(filter._id).toEqual(mockStudentUser._id);
     });
 
     test('should default to "own" for invalid scope value', () => {
       const filter = getScopeFilter(mockStudentUser, 'invalid-scope');
 
-      expect(filter).toHaveProperty('userId');
-      expect(filter.userId).toEqual(mockStudentUser._id);
+      expect(filter).toHaveProperty('_id');
+      expect(filter._id).toEqual(mockStudentUser._id);
     });
 
     test('should handle user with no _id field gracefully', () => {
       const userWithoutId = { role: 'student' };
       const filter = getScopeFilter(userWithoutId, 'own');
 
-      expect(filter).toHaveProperty('userId');
-      expect(filter.userId).toBeUndefined();
+      expect(filter).toHaveProperty('_id');
+      expect(filter._id).toBeUndefined();
     });
   });
 
@@ -142,7 +142,7 @@ describe('getScopeFilter - Scope-Based Query Filtering', () => {
     test('Student can query only own data', () => {
       const filter = getScopeFilter(mockStudentUser, 'own');
       // Query: Course.find(filter) -> returns only student's own courses
-      expect(filter.userId).toEqual(mockStudentUser._id);
+      expect(filter._id).toEqual(mockStudentUser._id);
     });
   });
 });
@@ -180,7 +180,7 @@ describe('Integration Test: Scope Filter with MongoDB Queries', () => {
     };
 
     expect(query).toEqual({
-      userId: mockStudent._id,
+      _id: mockStudent._id,
       courseId: '123',
       completed: true,
     });

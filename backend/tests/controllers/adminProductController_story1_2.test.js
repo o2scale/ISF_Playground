@@ -19,7 +19,7 @@ describe('Admin Product Controller - Story 1.2', () => {
           sku: 'VALID-001',
           name: 'Valid Item',
           description: 'Desc',
-          category: 'stationery',
+          category: 'ISF Shop',
           price: 100,
           sellingPrice: 100,
           maxPrice: 50,
@@ -41,7 +41,7 @@ describe('Admin Product Controller - Story 1.2', () => {
           sku: 'INVALID-001',
           name: 'Invalid Item',
           description: 'Desc',
-          category: 'stationery',
+          category: 'ISF Shop',
           price: 100,
           approvedVendors: [{ vendorId: vendor._id }]
           // Missing maxPrice
@@ -63,7 +63,7 @@ describe('Admin Product Controller - Story 1.2', () => {
           sku: 'INVALID-002',
           name: 'Invalid Item',
           description: 'Desc',
-          category: 'stationery',
+          category: 'ISF Shop',
           price: 100,
           maxPrice: 50
           // Missing approvedVendors
@@ -85,7 +85,7 @@ describe('Admin Product Controller - Story 1.2', () => {
           sku: 'INVALID-003',
           name: 'Invalid Vendor Item',
           description: 'Desc',
-          category: 'stationery',
+          category: 'ISF Shop',
           price: 100,
           maxPrice: 50,
           approvedVendors: [{ vendorId: new mongoose.Types.ObjectId() }] // Random ID
@@ -107,7 +107,7 @@ describe('Admin Product Controller - Story 1.2', () => {
           sku: 'INVALID-DUP-001',
           name: 'Duplicate Vendor Item',
           description: 'Desc',
-          category: 'stationery',
+          category: 'ISF Shop',
           maxPrice: 50,
           sellingPrice: 10,
           approvedVendors: [
@@ -133,7 +133,7 @@ describe('Admin Product Controller - Story 1.2', () => {
         user: { _id: new mongoose.Types.ObjectId(), role: 'admin' },
         body: {
           name: 'Pending Item',
-          category: 'stationery',
+          category: 'ISF Shop',
           unit: 'units',
           maxPrice: 50,
           sellingPrice: 10,
@@ -152,7 +152,7 @@ describe('Admin Product Controller - Story 1.2', () => {
         user: { _id: new mongoose.Types.ObjectId(), role: 'coach' }, // Coach role
         body: {
           name: 'Pending Item',
-          category: 'stationery',
+          category: 'ISF Shop',
           unit: 'units'
         }
       });
@@ -173,7 +173,7 @@ describe('Admin Product Controller - Story 1.2', () => {
         sku: 'UPDATE-001',
         name: 'Update Item',
         description: 'Desc',
-        category: 'stationery',
+        category: 'ISF Shop',
         price: 100,
         stock: 10
       });
@@ -197,7 +197,7 @@ describe('Admin Product Controller - Story 1.2', () => {
         sku: 'UPDATE-002',
         name: 'Update Item',
         description: 'Desc',
-        category: 'stationery',
+        category: 'ISF Shop',
         price: 100,
         stock: 10
       });
@@ -221,7 +221,7 @@ describe('Admin Product Controller - Story 1.2', () => {
         sku: 'UPDATE-003',
         name: 'Update Item',
         description: 'Desc',
-        category: 'stationery',
+        category: 'ISF Shop',
         price: 100,
         stock: 10
       });

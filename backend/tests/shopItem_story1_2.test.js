@@ -28,7 +28,7 @@ describe('ShopItem Model - Story 1.2', () => {
       sku: 'STORY1-2-001',
       name: 'Refactored Item',
       description: 'Test',
-      category: 'stationery',
+      category: 'ISF Shop',
       price: 10,
       stock: 5,
       approvedVendors: [{ vendorId: vendor._id, rank: 1 }],
@@ -49,7 +49,7 @@ describe('ShopItem Model - Story 1.2', () => {
       sku: 'STORY1-2-OLD',
       name: 'Legacy Item',
       description: 'Test',
-      category: 'stationery',
+      category: 'ISF Shop',
       price: 10,
       stock: 5
     });

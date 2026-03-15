@@ -53,7 +53,7 @@ describe('Stock Reconciliation (Story 4.1)', () => {
         sku: `SR-DELTA-${Date.now()}`,
         name: 'Delta Product',
         description: 'Delta Product',
-        category: 'stationery',
+        category: 'ISF Shop',
         price: 10,
         stock: 10
       });
@@ -88,7 +88,7 @@ describe('Stock Reconciliation (Story 4.1)', () => {
         sku: `SR-PHYS-${Date.now()}`,
         name: 'Physical Count Product',
         description: 'Physical Count Product',
-        category: 'sports',
+        category: 'Consumables',
         price: 20,
         stock: 5
       });
@@ -120,7 +120,7 @@ describe('Stock Reconciliation (Story 4.1)', () => {
         sku: `SR-NEG-${Date.now()}`,
         name: 'Negative Product',
         description: 'Negative Product',
-        category: 'other',
+        category: 'Others',
         price: 5,
         stock: 2
       });
@@ -147,7 +147,7 @@ describe('Stock Reconciliation (Story 4.1)', () => {
         sku: `SR-REASON-${Date.now()}`,
         name: 'Reason Product',
         description: 'Reason Product',
-        category: 'books',
+        category: 'Medicines',
         price: 15,
         stock: 3
       });
@@ -168,7 +168,7 @@ describe('Stock Reconciliation (Story 4.1)', () => {
         sku: `SR-403-${Date.now()}`,
         name: 'Unauthorized Product',
         description: 'Unauthorized Product',
-        category: 'stationery',
+        category: 'ISF Shop',
         price: 10,
         stock: 10
       });

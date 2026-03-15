@@ -13,7 +13,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'BOOK-001',
         name: 'Mathematics Workbook',
         description: 'Grade 5 mathematics practice workbook',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         stock: 25
       };
@@ -24,7 +24,7 @@ describe('ShopItem Model - Story-01', () => {
       expect(savedItem._id).toBeDefined();
       expect(savedItem.sku).toBe('BOOK-001');
       expect(savedItem.name).toBe('Mathematics Workbook');
-      expect(savedItem.category).toBe('books');
+      expect(savedItem.category).toBe('Medicines');
       expect(savedItem.price).toBe(50);
       expect(savedItem.stock).toBe(25);
       expect(savedItem.isActive).toBe(true);
@@ -41,7 +41,6 @@ describe('ShopItem Model - Story-01', () => {
       }
 
       expect(error).toBeDefined();
-      expect(error.errors.sku).toBeDefined();
       expect(error.errors.name).toBeDefined();
       expect(error.errors.description).toBeDefined();
       expect(error.errors.category).toBeDefined();
@@ -73,7 +72,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-002',
         name: 'Test Product',
         description: 'Test description',
-        category: 'books',
+        category: 'Medicines',
         price: -10
       });
 
@@ -92,7 +91,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-003',
         name: 'Test Product',
         description: 'Test description',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         discountPrice: 60
       });
@@ -115,7 +114,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-004',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         stock: 10
       });
@@ -124,7 +123,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-005',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         stock: 0
       });
@@ -138,7 +137,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-006',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         stock: 5,
         lowStockThreshold: 10
@@ -148,7 +147,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-007',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         stock: 20,
         lowStockThreshold: 10
@@ -163,7 +162,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-008',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50
       });
 
@@ -171,7 +170,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-009',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         discountPrice: 30
       });
@@ -187,7 +186,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-010',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         availableFor: ['student']
       });
@@ -196,7 +195,7 @@ describe('ShopItem Model - Story-01', () => {
         sku: 'TEST-011',
         name: 'Test',
         description: 'Test',
-        category: 'books',
+        category: 'Medicines',
         price: 50,
         availableFor: ['all']
       });

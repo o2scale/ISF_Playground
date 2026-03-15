@@ -10,21 +10,6 @@ const mongoose = require('mongoose');
 const Role = require('../models/role');
 
 describe('Migration: Add Scope to Permissions', () => {
-  let connection;
-
-  beforeAll(async () => {
-    // Use in-memory MongoDB for testing
-    const mongoUri = process.env.MONGO_URI_TEST || 'mongodb://localhost:27017/isf-test';
-    connection = await mongoose.connect(mongoUri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
-  });
-
-  afterAll(async () => {
-    await mongoose.connection.close();
-  });
-
   beforeEach(async () => {
     // Clear roles collection before each test
     await Role.deleteMany({});

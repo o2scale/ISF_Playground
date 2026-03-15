@@ -54,7 +54,7 @@ describe('Inventory Master Report Routes Integration - Story 3.3', () => {
         sku: `MR-ITEM1-${Date.now()}`,
         name: 'Master Report Item 1',
         description: 'Item 1',
-        category: 'stationery',
+        category: 'ISF Shop',
         price: 10,
         stock: 5
       });
@@ -63,7 +63,7 @@ describe('Inventory Master Report Routes Integration - Story 3.3', () => {
         sku: `MR-ITEM2-${Date.now()}`,
         name: 'Master Report Item 2',
         description: 'Item 2',
-        category: 'sports',
+        category: 'Consumables',
         price: 20,
         stock: 10
       });
@@ -72,7 +72,7 @@ describe('Inventory Master Report Routes Integration - Story 3.3', () => {
         sku: `MR-ITEM3-${Date.now()}`,
         name: 'Master Report Item 3',
         description: 'Item 3',
-        category: 'other',
+        category: 'Others',
         price: 30,
         stock: 0
       });

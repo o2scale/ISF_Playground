@@ -31,7 +31,7 @@ describe('Story 2.1: Purchase Request State Machine', () => {
       stock: 10,
       price: 100,
       sku: `TEST-SKU-${Date.now()}`,
-      category: 'stationery', 
+      category: 'ISF Shop', 
       description: 'Test Description' 
     });
     await product.save();

@@ -14,7 +14,7 @@ describe('RBAC Security Tests', () => {
     test('should NOT bypass permission checks in development mode', () => {
       // Read auth.js middleware
       const fs = require('fs');
-      const authMiddleware = fs.readFileSync('backend/middleware/auth.js', 'utf8');
+      const authMiddleware = fs.readFileSync(require('path').join(__dirname, '..', 'middleware', 'auth.js'), 'utf8');
 
       // Check that development bypass is REMOVED
       expect(authMiddleware).not.toMatch(/NODE_ENV.*development.*next\(\)/);
@@ -24,7 +24,7 @@ describe('RBAC Security Tests', () => {
 
     test('should NOT bypass permission checks in local mode', () => {
       const fs = require('fs');
-      const authMiddleware = fs.readFileSync('backend/middleware/auth.js', 'utf8');
+      const authMiddleware = fs.readFileSync(require('path').join(__dirname, '..', 'middleware', 'auth.js'), 'utf8');
 
       expect(authMiddleware).not.toMatch(/process\.env\.NODE_ENV.*===.*"local"/);
     });
@@ -113,7 +113,7 @@ describe('RBAC Security Tests', () => {
       const filter = getScopeFilter(user, 'INVALID_SCOPE');
 
       // Should default to 'own' (most restrictive)
-      expect(filter).toEqual({ userId: user._id });
+      expect(filter).toEqual({ _id: user._id });
     });
   });
 
@@ -156,8 +156,8 @@ describe('RBAC Security Tests', () => {
 
       const filter = getScopeFilter(student, 'own');
 
-      expect(filter).toEqual({ userId: student._id });
-      expect(filter.userId.toString()).toBe(student._id.toString());
+      expect(filter).toEqual({ _id: student._id });
+      expect(filter._id.toString()).toBe(student._id.toString());
     });
 
     test('Student cannot access another student data', () => {
@@ -174,7 +174,7 @@ describe('RBAC Security Tests', () => {
       const filter1 = getScopeFilter(student1, 'own');
       const filter2 = getScopeFilter(student2, 'own');
 
-      expect(filter1.userId.toString()).not.toBe(filter2.userId.toString());
+      expect(filter1._id.toString()).not.toBe(filter2._id.toString());
     });
   });
 });
@@ -183,7 +183,7 @@ describe('Security Audit Checklist', () => {
   test('Middleware code should not contain bypasses', () => {
     const fs = require('fs');
     const checkPermissionCode = fs.readFileSync(
-      'backend/middleware/checkPermission.js',
+      require('path').join(__dirname, '..', 'middleware', 'checkPermission.js'),
       'utf8'
     );
 
@@ -195,7 +195,7 @@ describe('Security Audit Checklist', () => {
 
   test('Auth middleware should not contain development shortcuts', () => {
     const fs = require('fs');
-    const authCode = fs.readFileSync('backend/middleware/auth.js', 'utf8');
+    const authCode = fs.readFileSync(require('path').join(__dirname, '..', 'middleware', 'auth.js'), 'utf8');
 
     // Should not skip authentication
     expect(authCode.toLowerCase()).not.toMatch(/skip.*auth/);

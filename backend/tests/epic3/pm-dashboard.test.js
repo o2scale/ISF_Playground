@@ -94,7 +94,7 @@ describe('Epic 3: PM Dashboard Extensions (Stories 3.6, 3.7)', () => {
                 stock: 100, // In Stock
                 lowStockThreshold: 10,
                 approvedVendors: [{ vendorId: vendor1._id }],
-                category: 'other',
+                category: 'Others',
                 purchaseCategory: 'Consumables',
                 isActive: true,
                 price: 100,
@@ -107,7 +107,7 @@ describe('Epic 3: PM Dashboard Extensions (Stories 3.6, 3.7)', () => {
                 stock: 5, // Low Stock (<= 10)
                 lowStockThreshold: 10,
                 approvedVendors: [{ vendorId: vendor1._id }, { vendorId: vendor2._id }],
-                category: 'other',
+                category: 'Others',
                 purchaseCategory: 'Medicines',
                 isActive: true,
                 price: 200,
@@ -120,7 +120,7 @@ describe('Epic 3: PM Dashboard Extensions (Stories 3.6, 3.7)', () => {
                 stock: 0, // Out of Stock
                 lowStockThreshold: 10,
                 approvedVendors: [{ vendorId: vendor2._id }],
-                category: 'other',
+                category: 'Others',
                 purchaseCategory: 'Repairs',
                 isActive: true,
                 price: 300,

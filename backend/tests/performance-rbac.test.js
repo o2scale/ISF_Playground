@@ -106,7 +106,7 @@ describe('Database Query Performance (Integration)', () => {
 describe('Performance Optimization Checklist', () => {
   test('User model should have index on balagruhaIds', () => {
     const fs = require('fs');
-    const userModel = fs.readFileSync('backend/models/user.js', 'utf8');
+    const userModel = fs.readFileSync(require('path').join(__dirname, '..', 'models', 'user.js'), 'utf8');
 
     // Check for index definition
     expect(userModel).toMatch(/balagruhaIds.*1.*\}/); // Index definition
@@ -115,11 +115,11 @@ describe('Performance Optimization Checklist', () => {
   test('Permission checks should use find() not findOne() + loop', () => {
     const fs = require('fs');
     const checkPermission = fs.readFileSync(
-      'backend/middleware/checkPermission.js',
+      require('path').join(__dirname, '..', 'middleware', 'checkPermission.js'),
       'utf8'
     );
 
     // Should use permission.find() for efficiency
-    expect(checkPermission).toMatch(/permission\.find/);
+    expect(checkPermission).toMatch(/permissions\.find/);
   });
 });
