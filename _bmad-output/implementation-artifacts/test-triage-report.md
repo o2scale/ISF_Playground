@@ -1,13 +1,15 @@
-# Test Triage Report — Baseline Coverage Measurement
+# Test Triage Report — Baseline & Classification
 
-**Story:** 1.1 — Baseline Coverage Measurement
+**Story 1.1:** Baseline Coverage Measurement
+**Story 1.2:** Triage & Classify Failing Test Suites
 **Date:** 2026-03-16
 **Agent:** Quinn (QA Engineer) — Claude Opus 4.6 (1M context)
-**Command:** `cd backend && npx jest --coverage --verbose`
+**Baseline Command:** `cd backend && npx jest --coverage --verbose`
+**Isolation Command:** `cd backend && npx jest tests/<file>.test.js --verbose --no-coverage`
 
 ---
 
-## Coverage Baseline
+## Coverage Baseline (Story 1.1)
 
 | Metric     | Actual   | Target (70%) | Gap      |
 |------------|----------|--------------|----------|
@@ -18,7 +20,7 @@
 
 ---
 
-## Test Suite Summary
+## Test Suite Summary (Story 1.1)
 
 | Metric        | Count |
 |---------------|-------|
@@ -35,11 +37,117 @@
 
 ---
 
-## Failing Test Suites (12)
+## Story 1.2: Triage Classification Table
 
-### Category A: ShopItem Category Enum Mismatch (7 suites, 47 failures)
+Each of the 12 failing suites was examined by: (1) reading the test file, (2) verifying the tested source code still exists, (3) running the suite in isolation, (4) checking git blame for when it last changed.
 
-These suites all fail because test data uses old category values (`stationery`, `books`, `sports`, `other`) that are no longer valid in the ShopItem model's `category` enum. This is a **stale test data** issue — the model schema was updated but the test fixtures were not.
+### Master Classification Table
+
+| # | Suite File | Classification | Root Cause | Recommended Action | Priority | NFR3 Protected |
+|---|-----------|----------------|------------|-------------------|----------|----------------|
+| 1 | `shopProduct_story2_5.test.js` | Outdated | Category enum changed; test fixtures use old values (`other`) | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P2 | No |
+| 2 | `purchaseRequest_story2_1.test.js` | Outdated | Category enum changed; test fixtures use old value (`stationery`) | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P2 | No |
+| 3 | `stockReconciliationRoutes.test.js` | Outdated | Category enum changed; test fixtures use old values (`other`, `books`, `stationery`) | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P2 | No |
+| 4 | `inventoryMasterReportRoutes.test.js` | Outdated | Category enum changed; test fixture uses old value (`stationery`) | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P3 | No |
+| 5 | `pm-dashboard.test.js` | Outdated | Category enum changed; test fixtures use old value (`other`) | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P2 | No |
+| 6 | `shopItem.test.js` | Outdated | Category enum changed; 2 tests use `books`, 1 test expects `price` in required fields but validation fires on category first | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P2 | No |
+| 7 | `shopItem_story1_2.test.js` | Outdated | Category enum changed; test fixtures use old value (`stationery`) | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P3 | No |
+| 8 | `adminProductController_story1_2.test.js` | Outdated | 5 failures — all caused by category enum change: 2 tests get HTTP 400 (controller validation rejects invalid category before model), 3 tests fail at model ValidationError | UPDATE TEST — replace old category values with current SHOP_CATEGORIES | P2 | No |
+| 9 | `checkPermission.test.js` | Outdated | `getScopeFilter()` for `scope="own"` now returns `{ _id: userId }` instead of `{ userId: userId }`. All 8 failures expect the old `userId` field name. | UPDATE TEST — change assertions from `userId` to `_id` | P1 | No |
+| 10 | `security-rbac.test.js` | Outdated + Configuration | Mixed: 3 tests fail due to `getScopeFilter` returning `_id` instead of `userId`; 2 tests fail with ENOENT on `fs.readFileSync('backend/middleware/...')` — wrong relative path (Jest cwd is `backend/`, path should be `middleware/...`) | FIX ONLY — NEVER DELETE (NFR3). Update `userId` to `_id` in assertions + fix file paths to use `path.join(__dirname, '..')` or relative to `backend/` | P1 | **YES** |
+| 11 | `migration-scope.test.js` | Configuration | `mongoose.connect()` called directly in `beforeAll` with hardcoded URI, conflicting with the shared `mongodb-memory-server` connection established by `tests/setup.js` | UPDATE TEST — remove direct `mongoose.connect()`, use shared connection from setup.js | P3 | No |
+| 12 | `performance-rbac.test.js` | Configuration | 2 tests use `fs.readFileSync('backend/models/user.js')` and `fs.readFileSync('backend/middleware/checkPermission.js')` — wrong relative path (Jest cwd is `backend/`, so path should be `models/user.js`) | UPDATE TEST — fix file paths to be relative to `backend/` | P3 | No |
+
+### Classification Definitions Used
+
+- **Stale:** The code being tested was removed or completely refactored — the test targets something that no longer exists. Action: DELETE with documented justification.
+- **Regression:** The test correctly identifies broken behavior — the code has a real bug. Action: FIX THE CODE.
+- **Configuration:** The test itself is correct but the test setup/mocks/infrastructure is broken. Action: FIX TEST SETUP.
+- **Outdated:** The code was intentionally changed but the test wasn't updated to match. Action: UPDATE TEST ASSERTIONS.
+
+### Classification Summary
+
+| Classification | Suites | Tests Failed | Recommended Action |
+|---------------|--------|-------------|-------------------|
+| Outdated | 9 | 55 | Update test assertions/fixtures to match current code |
+| Configuration | 2 | 8 | Fix test setup (connection handling, file paths) |
+| Outdated + Configuration | 1 | 7 | Fix both assertions and file paths (NFR3 protected) |
+| Stale | 0 | 0 | N/A — no suites target deleted code |
+| Regression | 0 | 0 | N/A — no real bugs found in source code |
+| **Total** | **12** | **70** | |
+
+> **Note on test counts:** Running suites in isolation produces slightly different totals than the full-suite run (70 vs 68 failures). This is due to test discovery differences: `checkPermission.test.js` shows 8/16 in isolation vs 7/12 in full run; `migration-scope.test.js` shows 6/7 vs 4/4; `security-rbac.test.js` shows 7/13 vs 7/12; `performance-rbac.test.js` shows 2/7 vs 2/6. The full-suite run numbers (68 failures) are the canonical baseline from Story 1.1.
+
+---
+
+## Failure Pattern Analysis (Story 1.2 — Task 4)
+
+### Pattern 1: ShopItem Category Enum Change (8 suites, 55 failures)
+
+**Cause:** Commit `b2ae8b96` ("feat(shop): synchronize categories across shop and purchase requests") changed the ShopItem model's `category` enum from old values (`stationery`, `books`, `sports`, `other`) to new values (`ISF Shop`, `Medicines`, `Consumables`, `Repairs`, `Infra`, `Others`) via the shared `backend/constants/shopCategories.js` constant. No test files were updated to match.
+
+**Affected suites:** #1-#8 (all Category A + Category B suites)
+
+**Single fix strategy for Story 1.3:** Search-and-replace old category values in test fixture data across all 8 files:
+- `stationery` -> `ISF Shop`
+- `books` -> `Medicines`
+- `sports` -> `Consumables`
+- `other` -> `Others`
+
+**Source files verified present:**
+- `backend/models/shopItem.js` — exists, uses `SHOP_CATEGORIES` from constants
+- `backend/constants/shopCategories.js` — exists, defines 6 categories
+- `backend/controllers/adminProductController.js` — exists, validates category
+- `backend/models/purchaseRequest.js` — exists, uses same categories
+
+### Pattern 2: getScopeFilter API Change (2 suites, 15 failures)
+
+**Cause:** The `getScopeFilter()` function in `backend/middleware/checkPermission.js` was intentionally changed (commit `d88419d1` or `d2c8730e`) so that `scope="own"` returns `{ _id: user._id }` instead of the previous `{ userId: user._id }`. This is an intentional API design decision — using `_id` is more correct for MongoDB user document lookups. Tests were not updated.
+
+**Affected suites:** #9 (`checkPermission.test.js`), #10 (`security-rbac.test.js`)
+
+**Single fix strategy for Story 1.3:** Update all assertions that reference `filter.userId` to `filter._id` in both test files. For `security-rbac.test.js`, also fix the `fs.readFileSync` file paths.
+
+**CRITICAL — NFR3:** `security-rbac.test.js` is a security test suite and MUST NEVER be deleted. It must be fixed/updated only.
+
+**Source files verified present:**
+- `backend/middleware/checkPermission.js` — exists, `getScopeFilter` function at line 9
+
+### Pattern 3: File Path Resolution Issues (3 suites, shared infrastructure problem)
+
+**Cause:** Three test files use `fs.readFileSync()` with paths relative to the project root (e.g., `'backend/middleware/auth.js'`), but Jest is configured to run from `backend/` as the working directory. This means the correct path should be `'middleware/auth.js'` or use `path.join(__dirname, '..', 'middleware', 'auth.js')`.
+
+**Affected suites:** #10 (`security-rbac.test.js` — 2 of 7 failures), #12 (`performance-rbac.test.js` — 2 of 2 failures)
+
+**Single fix strategy for Story 1.3:** Replace hardcoded `'backend/...'` paths with paths relative to the Jest cwd (`backend/`), or use `path.resolve(__dirname, '..', ...)` for robustness.
+
+### Pattern 4: Mongoose Connection Conflict (1 suite, isolated issue)
+
+**Cause:** `migration-scope.test.js` was written before the shared `tests/setup.js` was established. It calls `mongoose.connect()` in its own `beforeAll` with a hardcoded URI (`mongodb://localhost:27017/isf-test`), which conflicts with the already-active connection from `setup.js` (which uses `MongoMemoryServer`).
+
+**Affected suite:** #11 (`migration-scope.test.js`)
+
+**Fix strategy for Story 1.3:** Remove the manual `mongoose.connect()` / `mongoose.connection.close()` from the test's `beforeAll`/`afterAll` hooks. The test should rely on the shared setup.js connection. The test's 1 passing test ("should map role names to correct default scopes") passes because it doesn't touch the database.
+
+---
+
+## Recommended Fix Priority Order for Story 1.3
+
+| Priority | Action | Suites Resolved | Failures Resolved | Effort |
+|----------|--------|----------------|-------------------|--------|
+| P1 | Fix `getScopeFilter` assertions (`userId` -> `_id`) + fix file paths in security-rbac.test.js | 2 (checkPermission, security-rbac) | ~15 | Low |
+| P2 | Replace old category enum values in test fixtures | 6 (shopProduct, purchaseRequest, stockReconciliation, pm-dashboard, shopItem, adminProductController) | ~43 | Low |
+| P3 | Fix remaining config issues (migration-scope connection, performance-rbac paths, inventoryMasterReport + shopItem_story1_2 categories) | 4 | ~12 | Low-Medium |
+
+**Total estimated effort:** Low — all failures have clear, mechanical fixes. No code logic changes needed. No suites need deletion.
+
+---
+
+## Failing Test Suites — Detailed Breakdown (Story 1.1)
+
+### Category A: ShopItem Category Enum Mismatch (7 suites, 40 failures)
+
+These suites all fail because test data uses old category values (`stationery`, `books`, `sports`, `other`) that are no longer valid in the ShopItem model's `category` enum. The model schema was updated (commit `b2ae8b96`) but the test fixtures were not.
 
 | # | Suite File | Path | Failures | Total Tests |
 |---|-----------|------|----------|-------------|
@@ -52,56 +160,57 @@ These suites all fail because test data uses old category values (`stationery`, 
 | 7 | `shopItem_story1_2.test.js` | `backend/tests/shopItem_story1_2.test.js` | 2/2 | 2 |
 
 **Root cause:** `ValidationError: ShopItem validation failed: category: <value> is not a valid category`
-**Fix approach (Story 1.3):** Update test fixture data to use current valid category enum values from the ShopItem model.
+**Valid categories (current):** `ISF Shop`, `Medicines`, `Consumables`, `Repairs`, `Infra`, `Others`
+**Invalid categories (in tests):** `stationery`, `books`, `sports`, `other`
 
 ---
 
-### Category B: Controller Response Mismatch (1 suite, 5 failures)
+### Category B: Controller Validation + Category Enum (1 suite, 5 failures)
 
 | # | Suite File | Path | Failures | Total Tests |
 |---|-----------|------|----------|-------------|
 | 8 | `adminProductController_story1_2.test.js` | `backend/tests/controllers/adminProductController_story1_2.test.js` | 5/10 | 10 |
 
-**Root cause:** Mixed — 2 tests expect HTTP 201 but receive 400 (controller validation logic changed); 3 tests fail from `ValidationError: category: stationery is not a valid category` (same as Category A).
-**Classification:** Stale — controller behavior or validation rules updated, tests not aligned.
+**Root cause:** All 5 failures trace back to the category enum change. 2 tests (`createProduct`, `createPendingProduct`) get HTTP 400 because the controller's express-validator middleware rejects the invalid `stationery` category before the request reaches the model. 3 tests (`updateProduct` group) fail at the Mongoose model ValidationError level because the update path bypasses express-validator.
 
 ---
 
-### Category C: getScopeFilter API Changed (`_id` vs `userId`) (2 suites, 12 failures)
+### Category C: getScopeFilter API Changed (`_id` vs `userId`) + File Path Issues (2 suites, ~15 failures)
 
-| # | Suite File | Path | Failures | Total Tests |
+| # | Suite File | Path | Failures (isolation) | Total Tests (isolation) |
 |---|-----------|------|----------|-------------|
-| 9 | `checkPermission.test.js` | `backend/tests/checkPermission.test.js` | 7/12 | 12 |
-| 10 | `security-rbac.test.js` | `backend/tests/security-rbac.test.js` | 7/12 | 12 |
+| 9 | `checkPermission.test.js` | `backend/tests/checkPermission.test.js` | 8/16 | 16 |
+| 10 | `security-rbac.test.js` | `backend/tests/security-rbac.test.js` | 7/13 | 13 |
 
-**Root cause:** `getScopeFilter()` now returns `{ _id: userId }` instead of `{ userId: userId }` for `scope="own"`. Tests expect the old field name. Additionally, `security-rbac.test.js` has 4 tests that use `fs.readFileSync('backend/middleware/auth.js')` with a relative path that fails because Jest runs from `backend/` (should be `middleware/auth.js` or use `__dirname`).
-**Classification:** Regression — `getScopeFilter` behavior changed, tests not updated. Config issue for file path tests.
+**Root cause (scope filter):** `getScopeFilter()` for `scope="own"` returns `{ _id: user._id }`. Tests assert `filter.userId` which is now `undefined`. This is an intentional code change — the function was corrected to use `_id` (the actual MongoDB document ID field) rather than `userId` (a non-standard field).
+
+**Root cause (file paths in security-rbac.test.js):** 2 of the 7 failures are `ENOENT` errors from `fs.readFileSync('backend/middleware/checkPermission.js')` and `fs.readFileSync('backend/middleware/auth.js')`. Jest cwd is `backend/`, so the path `backend/middleware/...` resolves to `backend/backend/middleware/...` which does not exist.
+
+**NFR3:** `security-rbac.test.js` is PROTECTED — fix only, never delete.
 
 ---
 
-### Category D: Mongoose Connection Conflict (1 suite, 4 failures)
+### Category D: Mongoose Connection Conflict (1 suite, 6 failures in isolation)
 
-| # | Suite File | Path | Failures | Total Tests |
+| # | Suite File | Path | Failures (isolation) | Total Tests (isolation) |
 |---|-----------|------|----------|-------------|
-| 11 | `migration-scope.test.js` | `backend/tests/migration-scope.test.js` | 4/4 | 4 |
+| 11 | `migration-scope.test.js` | `backend/tests/migration-scope.test.js` | 6/7 | 7 |
 
-**Root cause:** `MongooseError: Can't call openUri() on an active connection with different connection strings.` The test calls `mongoose.connect()` directly, conflicting with the shared mongodb-memory-server setup in `tests/setup.js`.
-**Classification:** Config — test manages its own connection instead of using the shared setup.
+**Root cause:** `MongooseError: Can't call openUri() on an active connection with different connection strings.` The test's `beforeAll` calls `mongoose.connect(mongoUri)` with a hardcoded URI or `process.env.MONGO_URI_TEST`, but `tests/setup.js` has already connected mongoose to the MongoMemoryServer instance. The 1 passing test ("should map role names to correct default scopes") works because it is pure logic with no DB access.
 
 ---
 
 ### Category E: File Path Resolution (ENOENT) (1 suite, 2 failures)
 
-| # | Suite File | Path | Failures | Total Tests |
+| # | Suite File | Path | Failures | Total Tests (isolation) |
 |---|-----------|------|----------|-------------|
-| 12 | `performance-rbac.test.js` | `backend/tests/performance-rbac.test.js` | 2/6 | 6 |
+| 12 | `performance-rbac.test.js` | `backend/tests/performance-rbac.test.js` | 2/7 | 7 |
 
-**Root cause:** `ENOENT: no such file or directory, open 'backend/models/user.js'` and `'backend/middleware/checkPermission.js'` — tests use relative paths from project root but Jest cwd is `backend/`.
-**Classification:** Config — relative file paths incorrect for Jest execution context.
+**Root cause:** `ENOENT: no such file or directory, open 'backend/models/user.js'` and `'backend/middleware/checkPermission.js'`. Same file path issue as in security-rbac.test.js — tests use paths prefixed with `backend/` but Jest cwd is already `backend/`.
 
 ---
 
-## Coverage Breakdown by Directory
+## Coverage Breakdown by Directory (Story 1.1)
 
 | Directory | Statements | Branches | Functions | Lines |
 |-----------|-----------|----------|-----------|-------|
@@ -119,7 +228,7 @@ These suites all fail because test data uses old category values (`stationery`, 
 
 ---
 
-## Test Infrastructure Verification
+## Test Infrastructure Verification (Story 1.1)
 
 | Check | Status | Notes |
 |-------|--------|-------|
@@ -141,7 +250,7 @@ These suites all fail because test data uses old category values (`stationery`, 
 
 ---
 
-## Passing Test Suites (13)
+## Passing Test Suites (13) (Story 1.1)
 
 | # | Suite File | Path | Tests |
 |---|-----------|------|-------|
@@ -161,23 +270,47 @@ These suites all fail because test data uses old category values (`stationery`, 
 
 ---
 
-## Failure Classification Summary
+## Source Code Existence Verification (Story 1.2)
 
-| Category | Suites | Failures | Classification | Fix Complexity |
-|----------|--------|----------|----------------|----------------|
-| A: ShopItem category enum mismatch | 7 | 47 | Stale test data | Low — update fixture categories |
-| B: Controller response mismatch | 1 | 5 | Stale / Regression | Low-Medium — align test expectations |
-| C: getScopeFilter API change | 2 | 12 | Regression | Low — change `userId` to `_id` in assertions |
-| D: Mongoose connection conflict | 1 | 4 | Config | Medium — refactor to use shared setup |
-| E: File path ENOENT | 1 | 2 | Config | Low — fix relative paths |
-| **Total** | **12** | **68** | | |
+All source files referenced by failing tests were verified to still exist:
+
+| Source File | Exists | Referenced By |
+|------------|--------|---------------|
+| `backend/models/shopItem.js` | YES | Suites #1-#8 |
+| `backend/constants/shopCategories.js` | YES | Suites #1-#8 (defines valid categories) |
+| `backend/controllers/adminProductController.js` | YES | Suite #8 |
+| `backend/models/purchaseRequest.js` | YES | Suite #2 |
+| `backend/middleware/checkPermission.js` | YES | Suites #9, #10, #12 |
+| `backend/middleware/auth.js` | YES | Suite #10 |
+| `backend/models/user.js` | YES | Suite #12 |
+| `backend/models/role.js` | YES | Suite #11 |
+
+**No stale suites found.** All 12 failing test files target code that still exists in the codebase. No suites need deletion.
 
 ---
 
-## Notes for Story 1.2 (Triage & Classification)
+## Git History Analysis (Story 1.2)
 
-- The dominant failure pattern (Category A, 7 suites) is a single root cause: ShopItem model `category` enum was updated but test fixtures still use old values. Fixing the test data in these files should resolve ~47 of 68 failures.
-- Category C (scope filter) affects 2 critical security test files. The `security-rbac.test.js` file must NEVER be deleted per NFR3 — it must be updated.
-- The actual failing suite count is 12, not the predicted 14. The 2 suites that were expected to fail but pass may have been fixed in recent commits.
-- Test execution time of 32.5s is well within the NFR5 target of < 120s.
-- The `forceExit: true` config option should be noted — it may mask genuine async leak issues.
+### Breaking Commits Identified
+
+| Commit | Description | Suites Broken |
+|--------|------------|---------------|
+| `b2ae8b96` | feat(shop): synchronize categories across shop and purchase requests | #1-#8 (category enum change) |
+| `d88419d1` / `d2c8730e` | fix(rbac): Fix field naming bug + scope values | #9, #10 (getScopeFilter API) |
+
+### Test File Last Modified
+
+| Suite | Last Modified Commit | Date Relative |
+|-------|---------------------|---------------|
+| `shopProduct_story2_5.test.js` | `5081af8f` (before category sync) | Stale since `b2ae8b96` |
+| `purchaseRequest_story2_1.test.js` | `5081af8f` | Stale since `b2ae8b96` |
+| `stockReconciliationRoutes.test.js` | `b54138d2` | Stale since `b2ae8b96` |
+| `inventoryMasterReportRoutes.test.js` | `b54138d2` | Stale since `b2ae8b96` |
+| `pm-dashboard.test.js` | `fd1f8e36` | Stale since `b2ae8b96` |
+| `shopItem.test.js` | `b435d8a7` | Stale since `b2ae8b96` |
+| `shopItem_story1_2.test.js` | `eb6cbe63` | Stale since `b2ae8b96` |
+| `adminProductController_story1_2.test.js` | `a2658b04` | Stale since `b2ae8b96` |
+| `checkPermission.test.js` | `d88419d1` | Written before final scope fix |
+| `security-rbac.test.js` | `4f368072` | Written before scope fix + always had path bug |
+| `migration-scope.test.js` | `5a467012` | Written before shared setup.js existed |
+| `performance-rbac.test.js` | `4f368072` | Always had path bug |
