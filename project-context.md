@@ -1084,8 +1084,8 @@ npm test -- --verbose  # Verbose output
 - `backend/models/` - All Mongoose models
 - `backend/controllers/` - Business logic
 - `backend/routes/v2/` - API routes
-- `frontend/src/api.js` - API client
-- `frontend/src/AppRoutes.js` - Route definitions
+- `frontend/src/api/` - API client modules (split into 17 feature files)
+- `frontend/src/App.js` - Route definitions
 
 ### Environment Variables
 Required in `backend/.env`:
