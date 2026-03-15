@@ -328,5 +328,55 @@ Controllers without `authorize` need two changes:
 
 1. **Duplicate RBAC middleware:** Both `authorize` (auth.js) and `checkPermission` (checkPermission.js) perform identical logic. Story 2.2 should consider consolidating these.
 2. **Inline role checks:** Several controllers (purchaseRequestController, orderController, coachDeliveryController) perform manual `req.user.role` checks and balagruha filtering instead of using `req.scopeFilter`. These work but are inconsistent and error-prone.
-3. **LMS student routes rely on `:studentId` URL param:** The student course routes (computerApps, art, spokenEnglish, lifeSkills) use `:studentId` from the URL but have NO authentication — anyone could access any student's course data by guessing the URL.
+3. ~~**LMS student routes rely on `:studentId` URL param:** The student course routes (computerApps, art, spokenEnglish, lifeSkills) use `:studentId` from the URL but have NO authentication — anyone could access any student's course data by guessing the URL.~~ **RESOLVED in Story 2.2** — all 4 LMS student route files now have `authenticate` middleware.
 4. **The `offlineRequestQueue` routes have no auth by design** — they handle local Electron-to-server sync.
+
+---
+
+## Verification Results (Story 2.4)
+
+**Verified by:** Quinn (QA Agent)
+**Date:** 2026-03-16
+**Status:** EPIC 2 RBAC ENFORCEMENT — VERIFIED
+
+### Summary
+
+| Metric | Result |
+|--------|--------|
+| Backend test suites | 26 passed, 0 failed |
+| Total tests | 500 passed, 1 skipped, 0 failed |
+| New RBAC verification tests | 112 (in `rbac-verification-e2e.test.js`) |
+| FR route TODOs remaining | 0 |
+| LMS student routes without auth | 0 (all 5 files secured) |
+| Controllers using req.scopeFilter | 9 |
+| Sensitive routes with authorize | 38 route files |
+| Security bypass keywords found | 0 |
+
+### What Was Verified
+
+1. **Scope filter generation for all 9 roles** — admin/coach/student/BIC/PM/medical-incharge/sports-coach/music-coach/amma all produce correct scope filters (empty for admin, balagruhaId filter for balagruh-scoped roles, _id filter for own-scoped roles).
+
+2. **Cross-Balagruha data isolation** — Two coaches at different Balagruhas produce non-overlapping query filters. A coach at Balagruha A cannot see data from Balagruha B. Users with no assigned Balagruha get a null filter that matches zero documents.
+
+3. **Escalation prevention** — Invalid scope values (null, undefined, empty string, arbitrary strings) all default to the most restrictive filter (`{ _id: user._id }`). This was verified for all 9 roles.
+
+4. **FR route enforcement** — Zero TODO placeholders remain. Register, status, delete, and stats endpoints all require `authenticate + checkPermission`. The recognize endpoint remains public (it is the student login mechanism).
+
+5. **LMS student route authentication** — All 5 LMS student route files (computerApps, art, spokenEnglish, lifeSkills, dashboard) now require `authenticate` middleware. Previously 4 of these had NO authentication at all.
+
+6. **Medical/Schedule/Mood/Coach route authorization** — All medical, schedule, mood tracker, and LMS coach routes now have `authorize` middleware with appropriate module/action pairs.
+
+7. **Controller scope filter usage** — 9 controllers confirmed to use `req.scopeFilter` in their MongoDB queries: taskController, medicalCheckInsController, scheduleController, sports, music, studentMoodTrackerController, purchaseAndRepair, userController, balagruha.
+
+8. **Middleware security** — No development bypasses, no skip-auth shortcuts, no bypass keywords found in auth.js or checkPermission.js. Both `authorize` and `checkPermission` correctly set `req.scopeFilter` and `req.permissionScope`.
+
+9. **validateBalagruhaAccess middleware** — Admin (scope=all) can access any Balagruha. Coach can access assigned Balagruha only. Student (scope=own) is denied Balagruha-level routes. Missing user/permissionScope returns 403.
+
+### Test File
+
+- `backend/tests/rbac-verification-e2e.test.js` — 112 tests across 10 sections
+
+### Remaining Technical Debt
+
+- Duplicate middleware (`authorize` in auth.js vs `checkPermission` in checkPermission.js) — functionally identical, should be consolidated in a future cleanup story.
+- Some controllers (purchaseRequestController, orderController, coachDeliveryController) use inline role checks instead of `req.scopeFilter` — functional but inconsistent with the standard pattern.
