@@ -32,6 +32,6 @@ const hospitalSchema = new mongoose.Schema(
 // Create index for faster name searches
 hospitalSchema.index({ name: 1 });
 
-const Hospital = mongoose.model("Hospital", hospitalSchema);
+const Hospital = mongoose.models.Hospital || mongoose.model("Hospital", hospitalSchema);
 
 module.exports = Hospital;

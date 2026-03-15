@@ -156,3 +156,12 @@ creds
 /keys/ISFPlayground.pem
 venv/
 .~lock.*
+
+# Frontend build output (regenerated)
+frontend/build/
+
+# Environment backups
+*.backup.*
+
+# Ralph Loop state (session-local)
+.claude/ralph-loop.local.md

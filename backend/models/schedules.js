@@ -38,5 +38,5 @@ scheduleSchema.index(
   { unique: true }
 );
 
-const Schedules = mongoose.model("schedules", scheduleSchema);
+const Schedules = mongoose.models.schedules || mongoose.model("schedules", scheduleSchema);
 module.exports = Schedules;

@@ -76,4 +76,6 @@ inventoryTransactionSchema.virtual('quantityFormatted').get(function() {
 inventoryTransactionSchema.set('toJSON', { virtuals: true });
 inventoryTransactionSchema.set('toObject', { virtuals: true });
 
-module.exports = mongoose.model('InventoryTransaction', inventoryTransactionSchema);
+const InventoryTransaction = mongoose.models.InventoryTransaction || mongoose.model("InventoryTransaction", inventoryTransactionSchema);
+
+module.exports = InventoryTransaction;

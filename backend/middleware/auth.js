@@ -24,10 +24,12 @@ exports.authenticate = async (req, res, next) => {
       });
     }
 
+    // MAC Address validation (disabled - hardware-specific requirement)
+    // To enable, uncomment the following code:
+    /*
     const macAddress = req.header("MAC-Address");
 
-    // if (!macAddress) {
-    if (false) {
+    if (!macAddress) {
       return res.status(403).json({
         success: false,
         message: "MAC Address is required",
@@ -39,9 +41,7 @@ exports.authenticate = async (req, res, next) => {
       status: "active",
     });
 
-    // mac id temp comment
-    // if (!machine) {
-    if (false) {
+    if (!machine) {
       return res.status(403).json({
         success: false,
         message: "Access denied: Invalid or inactive machine",
@@ -57,6 +57,7 @@ exports.authenticate = async (req, res, next) => {
         });
       }
     }
+    */
 
     req.user = user;
     req.machine = machine;

@@ -165,6 +165,5 @@ contentLibrarySchema.pre('save', function(next) {
   next();
 });
 
-const ContentLibrary = mongoose.model('ContentLibrary', contentLibrarySchema);
-
+const ContentLibrary = mongoose.models.ContentLibrary || mongoose.model("ContentLibrary", contentLibrarySchema);
 module.exports = ContentLibrary;

@@ -8,6 +8,20 @@ const { fetchMachinesByIds } = require("../data-access/machines");
 const { upload } = require("../middleware/upload");
 const { facialLogin } = require("../controllers/userController");
 const { default: mongoose } = require("mongoose");
+const rateLimit = require("express-rate-limit");
+
+// Rate limiting for authentication endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+  message: {
+    success: false,
+    message: "Too many attempts. Please try again after 15 minutes."
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 // Register User
 
 /**
@@ -146,7 +160,7 @@ const { default: mongoose } = require("mongoose");
  *         description: Error in login
  */
 
-router.post("/register", async (req, res) => {
+router.post("/register", authLimiter, async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
@@ -197,7 +211,7 @@ router.post("/register", async (req, res) => {
   }
 });
 
-router.post("/login", async (req, res) => {
+router.post("/login", authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -314,7 +328,7 @@ router.post("/login", async (req, res) => {
 });
 
 // Student userId-only login
-router.post("/student/login", async (req, res) => {
+router.post("/student/login", authLimiter, async (req, res) => {
   try {
     const { userId } = req.body;
     if (!userId) {

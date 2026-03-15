@@ -61,6 +61,5 @@ const sportsTaskSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const SportsTask = mongoose.model("sports_tasks", sportsTaskSchema);
-
+const SportsTask = mongoose.models.sports_tasks || mongoose.model("sports_tasks", sportsTaskSchema);
 module.exports = SportsTask;

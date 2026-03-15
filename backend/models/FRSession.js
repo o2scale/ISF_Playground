@@ -427,6 +427,5 @@ FRSessionSchema.statics.getStudentSessions = async function (studentId, limit = 
     .lean();
 };
 
-const FRSession = mongoose.model('FRSession', FRSessionSchema);
-
+const FRSession = mongoose.models.FRSession || mongoose.model("FRSession", FRSessionSchema);
 module.exports = FRSession;

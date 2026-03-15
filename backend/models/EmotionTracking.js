@@ -47,6 +47,5 @@ emotionTrackingSchema.index({ studentId: 1, timestamp: -1 });
 // Index for analytics queries
 emotionTrackingSchema.index({ emotion: 1, timestamp: -1 });
 
-const EmotionTracking = mongoose.model('EmotionTracking', emotionTrackingSchema);
-
+const EmotionTracking = mongoose.models.EmotionTracking || mongoose.model("EmotionTracking", emotionTrackingSchema);
 module.exports = EmotionTracking;

@@ -32,6 +32,6 @@ const doctorSchema = new mongoose.Schema(
 // Create index for faster name searches
 doctorSchema.index({ name: 1 });
 
-const Doctor = mongoose.model("Doctor", doctorSchema);
+const Doctor = mongoose.models.Doctor || mongoose.model("Doctor", doctorSchema);
 
 module.exports = Doctor;

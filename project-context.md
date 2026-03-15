@@ -1,89 +1,1056 @@
 ---
-stepsCompleted: []
-inputDocuments: []
-workflowType: 'project-context'
-lastStep: 0
 project_name: 'ISF_Playground'
 user_name: 'Dev'
-date: '2025-12-22'
+date: '2025-03-06'
+sections_completed:
+  - technology_stack
+  - language_rules
+  - framework_rules
+  - testing_rules
+  - quality_rules
+  - workflow_rules
+  - anti_patterns
+  - orm_patterns
+status: 'complete'
+rule_count: 45
+optimized_for_llm: true
 ---
 
-# Project Context
+# ISF Playground - Project Context
 
-**Project Name:** ISF_Playground
-**Description:** Multi-Part Hybrid Application (Electron + React + Node) for Balagruha Management
+**Generated:** March 6, 2026  
+**Project Type:** MERN Stack + Electron Desktop Application  
+**Status:** Active Development (Sprint 5 Complete, Sprint 2 Partial)
+
+---
 
 ## 1. Project Overview
 
-### Core Purpose
-ISF_Playground is a comprehensive management platform designed for the Indiramma School for the Future (ISF). It integrates student management, learning modules, gamified economy (Shop), medical records, and hardware interactions (WTF system) into a unified desktop application.
+ISF Playground is a comprehensive platform for managing a children's education and welfare organization. The platform serves multiple user roles with distinct functionalities:
 
-### Key Features
-*   **Student Management:** Profiles, Attendance, Tasks.
-*   **Gamified Economy:** "Coin" system where students earn currency for tasks and spend it in the internal Shop.
-*   **Medical System:** Health tracking, check-ins, and doctor visit records.
-*   **WTF System:** Hardware integration for interactive learning.
-*   **Role-Based Access:** Granular permissions for Students, Coaches, Admins, Medical Staff, etc.
+- **Students**: Access learning courses, earn ISF Coins, shop for rewards
+- **Coaches**: Manage student learning, grade submissions, track progress
+- **Admins**: System administration, inventory management, user management
+- **Purchase Managers**: Procurement workflow, vendor management, inventory reconciliation
+- **Amma**: Student support, query management, voice communication
+- **Medical/Sports/Music Staff**: Specialized departmental functions
 
-## 2. Technology Stack
+### Technology Stack
 
-### Core Technologies
-*   **Language:** JavaScript (ES6+ / CommonJS for backend)
-*   **Frontend Framework:** React 19.0.0
-*   **Backend Framework:** Node.js / Express 4.21.2
-*   **Desktop Shell:** Electron 34.2.0
-*   **Database:** MongoDB (Mongoose 8.10.2)
-*   **State Management:** Zustand 5.0.8
-*   **Styling:** Tailwind CSS 3.4.17 + Radix UI Primitives
+**Backend:**
+- Node.js 20+ with Express.js 4.21.2
+- MongoDB 6.8.0 with Mongoose 8.10.2
+- JWT Authentication (jsonwebtoken 9.0.2) + bcryptjs 3.0.2
+- Testing: Jest 30.0.5 with mongodb-memory-server 10.2.0
+- Validation: express-validator 7.2.1
+- Security: helmet 8.0.0, express-rate-limit 7.4.1, cors 2.8.5
+- File Uploads: AWS SDK 3.772.0 (S3)
+- Face Recognition: @vladmandic/human 3.3.6, TensorFlow.js 4.22.0
+- Logging: @logtail/pino 0.5.2
 
-### Key Libraries
-*   **Routing:** React Router 7.2.0
-*   **Testing:** Jest, Playwright
-*   **Validation:** express-validator
-*   **Auth:** JWT + Bcryptjs
+**Frontend:**
+- React 19.0.0 with React Router 7.2.0
+- State: Zustand 5.0.8
+- UI: Radix UI primitives (complete component set)
+- Styling: Tailwind CSS 3.4.17
+- Forms: React Hook Form
+- Icons: FontAwesome 6.7.2, Lucide React
+- Testing: React Testing Library 16.2.0
+- HTTP: Axios 1.7.9 with axios-retry 4.5.0
+- Drag & Drop: @dnd-kit 6.3.1
 
-## 3. Architecture Patterns
+**Desktop:**
+- Electron 34.2.0
 
-### Architecture Style
-**Multi-Part Hybrid Application**
-*   **Frontend:** Component-Based SPA (React)
-*   **Backend:** MVC with Service Layer (Node/Express)
-*   **Desktop:** Electron wrapper for local hardware access and offline capabilities
+---
 
-### Key Patterns
-*   **State Management:** Global state via Zustand (`shopStore.js`), local state via React Hooks. Avoid Redux complexity.
-*   **API Design:** RESTful V2 structure (`/api/v2/shop/...`). Standard response wrapper `{ success, data, message }`.
-*   **RBAC:** Hybrid approach. Middleware checks route access; Controllers check resource ownership (e.g., Balagruha match).
-*   **Data Integrity:** Use MongoDB Sessions for transactions involving inventory/currency to ensure ACID compliance.
+## 2. Critical Implementation Rules
 
-## 4. Development Standards
+### Language-Specific Rules (JavaScript/Node.js)
 
-### Coding Conventions
-*   **Naming:** PascalCase for Components/Models (`ShopItem`), camelCase for variables/functions.
-*   **File Structure:** Domain-driven (`src/components/shop/`, `src/components/medical/`).
-*   **Imports:** Use relative paths or configured aliases consistently.
+**Module System:**
+- Backend: CommonJS (`require`/`module.exports`)
+- Frontend: ES6 modules (`import`/`export`)
+- NEVER mix module systems in the same file
 
-### Testing Strategy
-*   **Unit:** Jest for backend services/utils.
-*   **E2E:** Playwright for critical user journeys (Purchase Flow, Login).
-*   **Integration:** Supertest for API endpoints.
+**Async Patterns:**
+- ALWAYS use `async/await` (never raw Promises with `.then()`)
+- Wrap async operations in try-catch blocks
+- Use `mongoose.Transactions` for multi-document operations affecting stock/coins
 
-### Anti-Patterns (DO NOT DO)
-*   **No Loose Statuses:** Never use hardcoded strings for status transitions in controllers; use the defined State Machine constants.
-*   **No Direct DB Access in UI:** Frontend must strictly use API; no direct IPC to DB unless explicitly architectural exception (e.g., offline sync).
-*   **No "Magic" Strings:** Use enums/constants for Roles, Categories, and Statuses.
+**Error Handling:**
+- Backend controllers MUST use standard response format:
+  ```javascript
+  { success: false, message: 'Error description', error: error.message }
+  ```
+- NEVER throw raw errors in controllers - always return structured response
+- Use express-validator for request validation (validationResult + format errors)
 
-## 5. Critical Workflows
+**Import Organization (Frontend):**
+```javascript
+// 1. React imports
+import React from 'react';
+// 2. External library imports  
+import { useNavigate } from 'react-router-dom';
+// 3. Internal imports
+import { api } from '../api';
+// 4. Styles
+import './styles.css';
+```
 
-### Purchase Manager Workflow (Sprint 5)
-*   **Strict Intro:** Only Admins create items/vendors.
-*   **4-Step Lifecycle:** Request -> Order -> Store -> Balagruha.
-*   **Audit:** All stock changes logged to `InventoryTransaction`.
-*   **Shortcuts:** If stock exists, skip procurement steps.
+### ORM Patterns (Mongoose)
 
-## 6. AI Agent Rules (CRITICAL)
+**Model Definition Pattern:**
+```javascript
+const schema = new mongoose.Schema({...}, { timestamps: true });
+// ALWAYS use this pattern to prevent recompilation errors:
+const Model = mongoose.models.ModelName || mongoose.model('ModelName', schema);
+module.exports = Model;
+```
 
-*   **Read Before Write:** Always read `architecture.md` and `prd.md` before implementing features.
-*   **Atomic Transactions:** If modifying `stock` or `coins`, ALWAYS use a MongoDB transaction session.
-*   **Role Check:** Always verify `req.user.role` matches the allowed actor for a state transition (e.g., only PM can move to "Ordered").
-*   **Files:** Do not create random files; adhere strictly to the project tree defined in Architecture.
+**Schema Configuration:**
+- ALWAYS add `timestamps: true` for createdAt/updatedAt
+- ALWAYS add `toJSON: { virtuals: true }` and `toObject: { virtuals: true }`
+- Use `index: true` on frequently queried fields
+- Use text indexes for search: `name: 'text'`
+
+**Indexes:**
+```javascript
+schema.index({ category: 1, isActive: 1 });  // Compound
+schema.index({ name: 'text', description: 'text' });  // Text search
+schema.index({ createdAt: -1 });  // Sorting
+```
+
+**Virtuals (Computed Fields):**
+```javascript
+schema.virtual('inStock').get(function () {
+  return this.stock > 0;
+});
+```
+
+**Hooks:**
+```javascript
+schema.pre('save', async function (next) {
+  // Auto-generate fields, validate, etc.
+  next();
+});
+```
+
+**Methods:**
+```javascript
+// Instance method
+schema.methods.methodName = function() { ... };
+
+// Static method
+schema.statics.findByCategory = function(category) { ... };
+```
+
+**Field Validation:**
+```javascript
+{
+  type: String,
+  required: [true, 'Custom error message'],
+  trim: true,
+  lowercase: true,
+  match: [/regex/, 'Error message'],
+  enum: {
+    values: ['option1', 'option2'],
+    message: '{VALUE} is not valid'
+  },
+  min: [0, 'Cannot be negative'],
+  validate: {
+    validator: Number.isInteger,
+    message: 'Must be whole number'
+  }
+}
+```
+
+**Referencing Other Models:**
+```javascript
+fieldName: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'ModelName',
+  required: true,
+  index: true
+}
+```
+
+### Framework-Specific Rules
+
+**React Patterns:**
+- Use functional components with hooks (no class components)
+- Custom hooks in `src/hooks/` folder (use-toast.js, etc.)
+- ALWAYS use `useCallback` for event handlers passed to child components
+- Use Zustand for global state (do NOT use Context API for global state)
+- Components in `src/components/` by domain (admin/, shop/, coach/)
+- Pages in `src/pages/` as default exports
+
+**React Hook Form Pattern:**
+```javascript
+const { register, handleSubmit, formState: { errors } } = useForm();
+// register with validation rules
+{...register("fieldName", { required: "Message" })}
+```
+
+**API Client Pattern (Axios):**
+- Centralized in `src/api.js`
+- Pre-configured baseURL and interceptors
+- Use `api.get()`, `api.post()` - don't create new axios instances
+- Handle errors with toast notifications
+
+**Express Routes Pattern:**
+```javascript
+const express = require('express');
+const router = express.Router();
+const controller = require('../controllers/...');
+const { authenticate } = require('../middleware/auth');
+const checkPermission = require('../middleware/checkPermission');
+
+router.get('/', authenticate, checkPermission('Resource', 'Read'), controller.method);
+module.exports = router;
+```
+
+**Middleware Order (Critical):**
+1. Security (helmet, cors, rate-limit)
+2. Body parsers (express.json())
+3. Authentication (authenticate)
+4. Permission checks (checkPermission)
+5. Validation
+6. Route handlers
+
+**RBAC Pattern:**
+- ALWAYS use `checkPermission('Resource', 'Action')` middleware
+- Actions: 'Create', 'Read', 'Update', 'Delete', 'Manage'
+- Resource ownership checks in controllers (verify balagruhaId matches)
+
+### Testing Rules
+
+**Backend Testing:**
+- Test files: `<feature>.test.js` or `<feature>_story<X>_<Y>.test.js`
+- Location: `backend/tests/` or `backend/tests/wtf/unit/`
+- Run single file: `npx jest tests/vendor.test.js`
+- Run by pattern: `npx jest --testNamePattern="should create vendor"`
+- Use `mongodb-memory-server` for isolated DB tests
+- ALWAYS clear mocks in beforeEach: `jest.clearAllMocks()`
+
+**Test Structure:**
+```javascript
+describe('Feature (Story X.Y)', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+  
+  it('should do something', async () => {
+    // Arrange
+    // Act
+    // Assert
+  });
+});
+```
+
+**Mocking Pattern:**
+```javascript
+jest.mock('../../api', () => ({
+  apiMethod: jest.fn(),
+}));
+```
+
+**Frontend Testing:**
+- Located in `frontend/src/__tests__/`
+- Use React Testing Library + Jest
+- Mock API calls before rendering
+
+**Coverage Requirements:**
+- Backend: 70% minimum (branches, functions, lines, statements)
+- Frontend: Run tests for all new features
+
+### Code Quality & Style Rules
+
+**Linting/Formatting:**
+- NO ESLint/Prettier config - follow existing code patterns manually
+- Use existing patterns in neighboring files as reference
+- Consistency over personal preference
+
+**Naming Conventions:**
+- Backend files: camelCase.js (e.g., `purchaseRequestController.js`)
+- Frontend components: PascalCase.jsx (e.g., `VendorManagement.jsx`)
+- Models: PascalCase singular (e.g., `PurchaseRequest.js`)
+- Functions: camelCase (e.g., `createRateLimiter`)
+- Constants: UPPER_SNAKE_CASE
+- Private methods: Prefix with `_` (e.g., `_internalHelper`)
+
+**File Organization:**
+- Backend: `controllers/`, `routes/v2/`, `models/`, `middleware/`
+- Frontend: `components/<domain>/`, `pages/`, `hooks/`, `api.js`
+- Tests: Mirror source structure or in `__tests__/` folders
+
+**Documentation:**
+- JSDoc for function documentation
+- Inline comments for complex logic only
+- NO unnecessary comments explaining obvious code
+
+**Environment Variables (Backend .env):**
+```
+MONGODB_URI=mongodb://localhost:27017/isf_playground
+JWT_SECRET=your_secret_key
+PORT=5001
+```
+
+**Frontend Config (`src/config.js`):**
+- Non-sensitive configuration only
+- NEVER put secrets in frontend code
+
+### Development Workflow Rules
+
+**Commands:**
+```bash
+# Backend
+npm start          # Production
+npm run dev        # Development with nodemon
+npm test           # Run all tests
+npm run test:unit  # Unit tests only
+
+# Frontend
+npm start          # Development server (port 3000)
+```
+
+**API Versioning:**
+- New endpoints: `/api/v2/...`
+- Maintain backward compatibility with v1 where possible
+
+**File Modification Rules:**
+- ALWAYS read file before editing
+- Use Edit tool for modifications (never Write without reading first)
+- Prefer editing over creating new files
+- Follow existing code style in neighboring files
+
+### Critical Don't-Miss Rules (Anti-Patterns)
+
+**NEVER DO:**
+
+1. **Skip Transactions for Stock/Coin Operations**
+   ```javascript
+   // WRONG - No transaction
+   await ShopItem.updateOne({ _id: id }, { $inc: { stock: -1 } });
+   await Coin.create({ ... });
+   
+   // CORRECT - Use transaction
+   const session = await mongoose.startSession();
+   session.startTransaction();
+   try {
+     await ShopItem.updateOne({ _id: id }, { $inc: { stock: -1 } }).session(session);
+     await Coin.create([{ ... }], { session });
+     await session.commitTransaction();
+   } finally {
+     session.endSession();
+   }
+   ```
+
+2. **Mix Module Systems**
+   - Backend: NEVER use ES6 `import`/`export`
+   - Frontend: NEVER use CommonJS `require`/`module.exports`
+
+3. **Skip Permission Checks**
+   - ALWAYS use `authenticate` middleware
+   - ALWAYS use `checkPermission` for protected routes
+   - Verify resource ownership in controllers (balagruhaId match)
+
+4. **Use Magic Strings**
+   - WRONG: `if (status === 'pending')`
+   - CORRECT: Use constants/enums for statuses, roles, categories
+
+5. **Commit .env Files**
+   - NEVER commit `.env` files
+   - Use `.env.example` for documentation
+
+6. **Skip Validation**
+   - ALWAYS validate request bodies with express-validator
+   - ALWAYS validate file uploads (type, size)
+
+7. **Use Raw Promises**
+   - WRONG: `Model.find().then(result => ...)`
+   - CORRECT: `const result = await Model.find()`
+
+**Security Gotchas:**
+- NEVER log sensitive data (passwords, tokens)
+- ALWAYS sanitize user input before DB queries
+- Use parameterized queries (Mongoose does this automatically)
+- Validate ObjectId format: `mongoose.Types.ObjectId.isValid(id)`
+
+**Performance Gotchas:**
+- ALWAYS add DB indexes for frequently queried fields
+- Use pagination for large lists (default: 20 items)
+- Don't fetch entire documents when you only need specific fields
+- Use `.lean()` for read-only queries to improve performance
+
+---
+
+## 3. Implementation Status by Sprint
+
+### Sprint 1: Foundation ✅ COMPLETE
+**Status:** Production Ready
+
+- Authentication & RBAC system
+- User management
+- Balagruha (Children's Home) management
+- Basic student profiles
+- Facial recognition login
+
+### Sprint 2: LMS & Communication 🟡 PARTIAL
+**Status:** Core implemented, some features pending
+
+#### Epic 1: Student Experience - 70% Complete
+**Implemented:**
+- Student homepage with coin balance display
+- Course catalog navigation
+- Computer Apps courses (basic structure)
+- Quiz system with multiple question types
+- ISF Coin earning through course completion
+- Shopping cart and checkout flow
+
+**Pending:**
+- Artweaver integration for Art courses
+- Video recording for Spoken English
+- Voice responses for Life Skills
+- Full offline capability
+
+#### Epic 2: Admin Course Management - 80% Complete
+**Implemented:**
+- Course creation with modules/chapters/content items
+- Content upload (video, PDF, documents, images)
+- Quiz creation (MCQ, True/False, Fill-in-blanks)
+- Course publishing/archiving
+- Multi-language support structure
+- Drag-and-drop reordering
+
+**Pending:**
+- Translation workflow completion
+- Advanced content scheduling
+
+#### Epic 3: Coach Functionality - 60% Complete
+**Implemented:**
+- Course assignment to Balagruhas/students
+- Basic submission viewing
+- Manual ISF Coin awards
+- Student progress tracking
+
+**Pending:**
+- Grading interface for Art/Video submissions
+- Comprehensive reporting dashboard
+- Voice note feedback
+
+#### Epic 4: Amma Role Enhancement - 40% Complete
+**Implemented:**
+- Amma accounts
+- Basic query management
+
+**Pending:**
+- SLA-based query handling
+- Voice communication
+- Auto-reassignment logic
+
+#### Epic 5: System-Wide Features - 50% Complete
+**Implemented:**
+- Notification system
+- Basic voice note structure
+
+**Pending:**
+- WhatsApp integration
+- Real-time chat
+- Advanced offline queue
+
+### Sprint 5: Purchase Manager Workflow ✅ COMPLETE
+**Status:** Production Ready (with client corrections implemented)
+
+#### Epic 1: Inventory Governance & Vendor Management
+
+**Story 1.1: Vendor Data Model** ✅ DONE
+- Vendor model with name, phone, address, active status
+- Full CRUD API (Admin only)
+- Phone validation for Indian numbers
+- Product count aggregation
+- Tests passing
+
+**Story 1.2: ShopItem Schema Refactor** ✅ DONE
+- `approvedVendors` array (up to 3 vendors per item)
+- `maxPrice` field (rupees)
+- `sellingPrice` field (coins)
+- `purchaseCategory` field (6 categories)
+- Fuzzy name matching to prevent duplicates
+- Tests passing
+
+**Story 1.3: Admin New Item UI** ✅ DONE
+- Form with vendor dropdowns
+- Price cap fields
+- Image upload support
+- Category selection
+- Responsive design
+
+#### Epic 2: Purchase Request Workflow Engine
+
+**Story 2.1: Purchase Request Schema & State Machine** ✅ DONE
+- 4-step lifecycle: pending → ordered → delivered_store → delivered_balagruha
+- Role-based transition enforcement
+- Status history tracking
+- Multi-product support in single request
+- Threshold analysis for automatic approval routing
+- Tests passing
+
+**Story 2.2: Staff Purchase Request UI** ✅ DONE
+- Category-first selection (6 categories)
+- Item dropdown filtered by category
+- Priority level selection (High/Medium/Low)
+- Deadline date picker
+- File attachment support (up to 5 files)
+- Multi-product request creation
+
+**Story 2.3: Purchase Manager Fulfillment Actions** ✅ DONE
+- "Mark Ordered" action
+- "Mark Received at Store" action
+- Stock update integration
+- Inventory transaction logging
+- Role-based action permissions
+
+**Story 2.4: Request Priority & Deadline** ✅ DONE
+- Priority field with colored badges
+- Deadline field with date validation
+- Dashboard sorting by priority
+- Tests passing
+
+**Story 2.5: Six Purchase Categories** ✅ DONE
+- Categories: ISF Shop, Medicines, Repairs, Consumables, Infra, Others
+- Category-based item filtering
+- Separate requests per category enforced
+- Category badges on dashboard
+- Tests passing
+
+**Story 2.6: Repair Technician Tracking** ✅ DONE
+- Repair technician name field (required for Repairs category)
+- Coach delivery tracking (auto-captured)
+- Delivered to Balagruha timestamp
+
+#### Epic 3: Operational Dashboards & Analytics
+
+**Story 3.1: PM Operational Dashboard** ✅ DONE
+- List view of all active requests
+- Sorting by priority
+- Status filtering
+- Scorecard widget
+
+**Story 3.2: Coach Dashboard** ✅ DONE
+- "My Requests" view
+- Digital Orders view (student purchases)
+- Status filtering
+- Date range filtering
+
+**Story 3.3: Admin Master Inventory Report** ✅ DONE
+- In Store vs Deployed stock view
+- Low stock alerts
+- Product categorization
+- Export functionality
+
+**Story 3.4: PM Category Tabs & Status Buckets** ✅ DONE
+- Category tabs (6 categories)
+- Status bucket tabs (Purchase Requests, On Going Order, Reached ISF Store, Delivered)
+- Combined filtering
+
+**Story 3.5: PM Bunched/Grouped View** ✅ DONE
+- Toggle between List View and Bunched View
+- Item aggregation across requests
+- Total quantity display
+- Expandable request details
+- "Order All" functionality
+
+**Story 3.6: Additional Status Tabs** ✅ DONE
+- Present Stock tab
+- Supplier List tab
+- Most Consumed tab
+
+**Story 3.7: Shorten Request ID** ✅ DONE
+- 5-digit shortId format: PR-00001
+- Auto-generated on creation
+- Displayed throughout UI
+
+**Story 3.8: Coach Filter** ✅ DONE
+- Coach dropdown filter on PM dashboard
+- Lists all coaches with requests
+
+**Story 3.9: PM Navigation Badge** ✅ DONE
+- Pending task count in sidebar
+- Red/orange badge indicator
+- Real-time updates
+
+**Story 3.10: Column Reorder & UI Cleanup** ✅ DONE
+- Date of Request in position 2
+- Old stat cards removed
+- Clean table layout
+
+#### Epic 4: Inventory Control & Audit
+
+**Story 4.1: Stock Reconciliation Tool** ✅ DONE
+- Manual stock adjustment interface
+- Reason code selection
+- Inventory transaction logging
+- Audit trail
+- Tests passing
+
+---
+
+## 3. Data Models
+
+### Core Models
+
+**User**
+- Authentication: email, passwordHash, role
+- Profile: name, phone, avatar
+- RBAC: role, permissions array
+- Balagruha assignment: balagruhaIds[]
+
+**Student**
+- Personal info: name, age, DOB, photo
+- Balagruha assignment
+- Coin balance
+- Progress tracking
+
+**Balagruha**
+- Location info: name, address, contact
+- Assigned coaches
+- Student count
+
+### Sprint 5 Models
+
+**Vendor** (`backend/models/vendor.js`)
+```javascript
+{
+  name: String (required),
+  phone: String (required, validated),
+  address: String (required),
+  active: Boolean (default: true),
+  timestamps: true
+}
+```
+
+**ShopItem** (`backend/models/shopItem.js`)
+```javascript
+{
+  // Basic fields
+  sku: String (unique),
+  name: String (required),
+  description: String,
+  category: String (enum: SHOP_CATEGORIES),
+  purchaseCategory: String (enum: 6 categories),
+  
+  // Pricing
+  price: Number (coins),
+  discountPrice: Number,
+  maxPrice: Number (rupees),
+  sellingPrice: Number (coins),
+  
+  // Inventory
+  stock: Number,
+  lowStockThreshold: Number (default: 10),
+  
+  // Sprint 5 additions
+  approvedVendors: [{ vendorId, rank }], // Up to 3
+  isPendingProduct: Boolean,
+  createdInRequest: ObjectId,
+  
+  // Media
+  images: [{ url, isPrimary, uploadedAt }],
+  
+  // Status
+  isActive: Boolean,
+  timestamps: true
+}
+```
+
+**PurchaseRequest** (`backend/models/purchaseRequest.js`)
+```javascript
+{
+  requestId: String (auto-generated, PR-XXXXX format),
+  balagruhaId: Mixed (ObjectId or 'STOCK'),
+  category: String (6 categories),
+  priority: String (low/medium/high),
+  deadline: Date,
+  
+  // Multi-product items
+  items: [{
+    productId: ObjectId,
+    productName: String,
+    productSKU: String,
+    requestedQuantity: Number,
+    currentStock: Number,
+    estimatedUnitCost: Number,
+    estimatedTotalCost: Number,
+    receivedQuantity: Number,
+    actualUnitCost: Number
+  }],
+  
+  // Status workflow
+  status: String (pending/ordered/delivered_store/delivered_balagruha/etc),
+  statusHistory: [{ status, changedBy, changedAt, notes }],
+  
+  // Metadata
+  requestedBy: ObjectId (User),
+  reason: String,
+  justification: String,
+  attachments: [{ filename, fileUrl, uploadedAt }],
+  
+  // Approval/Rejection
+  reviewedBy: ObjectId,
+  reviewedAt: Date,
+  reviewNotes: String,
+  
+  // Purchase details
+  supplierName: String,
+  invoiceNumber: String,
+  purchaseDate: Date,
+  
+  // Story 2.6 tracking
+  repairTechnicianName: String,
+  deliveredByCoachId: ObjectId,
+  deliveredToBalagruhaAt: Date,
+  
+  // Threshold analysis
+  thresholdAnalysis: {
+    maxItemCost: Number,
+    totalOrderCost: Number,
+    requiresApproval: Boolean
+  },
+  
+  timestamps: true
+}
+```
+
+**InventoryTransaction** (`backend/models/inventoryTransaction.js`)
+```javascript
+{
+  productId: ObjectId (ref: ShopItem),
+  transactionType: String (purchase/sale/adjustment/return/correction/purchase_request),
+  quantity: Number (can be negative),
+  previousStock: Number,
+  newStock: Number,
+  reference: { type, id },
+  reason: String,
+  notes: String,
+  performedBy: ObjectId (User),
+  timestamps: true
+}
+```
+
+---
+
+## 4. API Structure
+
+### Sprint 5 Endpoints
+
+**Vendor Management** (`/api/v2/vendors`)
+- `POST /` - Create vendor (Admin only)
+- `GET /` - List vendors with pagination, search, filters
+- `GET /:id` - Get single vendor
+- `PUT /:id` - Update vendor (Admin only)
+
+**Purchase Requests** (`/api/v2/shop/admin/purchase-requests`)
+- `GET /products/low-stock` - Get low stock products
+- `POST /` - Create purchase request (multi-role)
+- `GET /my` - Get own requests
+- `GET /` - Get all requests (Admin/PM)
+- `GET /pending-count` - Get pending count for badge
+- `GET /stats` - Get statistics
+- `GET /:id` - Get single request
+- `PUT /:id` - Update request
+- `DELETE /:id` - Delete request
+- `PUT /:id/cancel` - Cancel request
+- `POST /:id/approve` - Approve request (PM)
+- `POST /:id/reject` - Reject request (PM)
+- `POST /:id/complete` - Complete with stock update (PM)
+- `PATCH /:id/status` - Update status (state machine)
+- `POST /:id/assign-stock` - Assign from stock shortcut
+
+**Inventory Management** (`/api/v2/shop/admin/inventory`)
+- Stock reconciliation endpoints
+- Transaction history
+- Stock adjustment with audit trail
+
+### Existing Endpoints (Sprint 1 & 2)
+
+**Authentication** (`/api/auth`)
+- Login/logout
+- Facial recognition
+- PIN-based student login
+- Password reset
+
+**User Management** (`/api/users`)
+- CRUD operations
+- Role assignment
+- Balagruha assignment
+
+**Shop** (`/api/shop/*`)
+- Product catalog
+- Cart management
+- Order processing
+- Coin transactions
+
+**LMS** (`/api/lms/*`, `/api/courses/*`)
+- Course management
+- Content delivery
+- Quiz system
+- Progress tracking
+
+---
+
+## 5. Frontend Structure
+
+### Key Pages
+
+**Admin Pages**
+- `InventoryManagement.jsx` - Admin inventory dashboard
+- `MasterInventoryReport.jsx` - Stock report with low stock alerts
+- `ProductManagement.jsx` - Product CRUD
+- `VendorManagement.jsx` - Vendor CRUD
+- `TransactionReports.jsx` - Analytics and reporting
+
+**Purchase Manager Pages**
+- `PMLowStock.jsx` - Low stock alerts
+- `ShopAnalytics.jsx` - Dashboard analytics
+
+**Coach Pages**
+- `CoachRequestsDashboard.jsx` - My requests + Digital Orders
+- `CoachDeliveries.jsx` - Delivery management
+
+**Student Pages**
+- Product catalog
+- Shopping cart
+- Order history
+- Course access
+
+### Component Organization
+
+```
+frontend/src/
+├── components/
+│   ├── admin/
+│   │   └── inventory/
+│   │       └── NewItemForm.jsx
+│   ├── purchaseManagement/
+│   │   ├── views/
+│   │   └── modals/
+│   ├── shop/
+│   ├── coach/
+│   └── student/
+├── pages/
+│   ├── VendorManagement.jsx
+│   ├── InventoryManagement.jsx
+│   ├── MasterInventoryReport.jsx
+│   ├── CoachRequestsDashboard.jsx
+│   └── CoachDeliveries.jsx
+├── api.js
+└── store/
+```
+
+---
+
+## 6. Key Features Implemented
+
+### Purchase Workflow (Complete)
+1. Staff creates request with category → item → quantity → priority → deadline
+2. PM sees request in dashboard with color-coded priority
+3. PM marks as "Ordered" with optional notes
+4. PM marks as "Delivered to Store" with repair technician name (if applicable)
+5. Coach marks as "Delivered to Balagruha"
+6. Stock updated automatically at each step
+7. Full audit trail maintained
+
+### Inventory Management (Complete)
+- Manual stock adjustment with reason codes
+- Automatic stock updates from purchase requests
+- Low stock threshold alerts
+- Master inventory report with deployed vs in-store
+- Inventory transaction logging
+
+### Vendor Management (Complete)
+- Vendor CRUD (Admin only)
+- Up to 3 approved vendors per product
+- Product count per vendor
+- Search and filter capabilities
+
+### Dashboard Features (Complete)
+- Category and status tabs
+- List view vs Bunched view toggle
+- Coach filtering
+- Pending badge count
+- Date range filtering
+- Priority sorting
+
+---
+
+## 7. Testing Status
+
+### Backend Tests
+
+**Passing:**
+- `vendor.test.js` - Vendor model validation
+- `vendorController.test.js` - Vendor CRUD operations
+- `purchaseRequest_story2_1.test.js` - Purchase request state machine
+- `shopProduct_story2_5.test.js` - Category filtering
+- `adminProductController_story1_2.test.js` - ShopItem with vendors
+- `inventoryMasterReportRoutes.test.js` - Inventory reporting
+- `stockReconciliationRoutes.test.js` - Stock adjustments
+- `security-rbac.test.js` - Role-based access control
+
+**Test Coverage:**
+- Models: Full coverage
+- Controllers: High coverage for Sprint 5 features
+- Routes: Integration tests for key endpoints
+
+### Frontend Tests
+- Located in `frontend/src/__tests__/`
+- Component tests for key UI components
+
+---
+
+## 8. What Remains from Sprint 2
+
+### High Priority (Required for full LMS)
+
+**Student Experience:**
+- [ ] Artweaver integration for digital drawing
+- [ ] Video recording and playback for Spoken English
+- [ ] Voice response system for Life Skills
+- [ ] Full offline capability with sync
+
+**Coach Features:**
+- [ ] Complete grading interface for Art submissions
+- [ ] Video review and grading for Spoken English
+- [ ] Comprehensive reporting dashboard
+- [ ] Voice note feedback
+
+**Amma Features:**
+- [ ] SLA-based query management
+- [ ] Auto-reassignment logic
+- [ ] Voice communication system
+- [ ] Query reclassification
+
+**System Features:**
+- [ ] WhatsApp integration for notifications
+- [ ] Real-time chat system
+- [ ] Advanced offline queue management
+
+### Medium Priority (Enhancements)
+
+- [ ] Advanced course scheduling
+- [ ] Bulk operations for course assignment
+- [ ] Student analytics and insights
+- [ ] Parent portal integration
+
+---
+
+## 9. Technical Debt & Notes
+
+### Known Issues
+1. Some Sprint 2 student features use mock data instead of DB integration
+2. Coach grading interface incomplete for Art/Video content
+3. Amma role needs full implementation
+
+### Code Quality
+- ESLint/Prettier not configured (follow existing patterns)
+- No TypeScript (JavaScript throughout)
+- Consistent naming conventions followed
+- RBAC enforced at API level
+
+### Performance Considerations
+- MongoDB indexes on frequently queried fields
+- Pagination for large lists (20 items default)
+- Image optimization for uploads
+- Virtuals for computed fields
+
+### Security
+- JWT authentication on all protected routes
+- Role-based middleware (`checkPermission`)
+- Resource ownership checks in controllers
+- File upload validation and sanitization
+
+---
+
+## 10. Development Guidelines
+
+### Adding New Features
+1. Follow existing folder structure
+2. Use existing middleware for auth/RBAC
+3. Add tests for new functionality
+4. Update this context document
+5. Follow naming conventions:
+   - Backend: camelCase (e.g., `purchaseRequestController.js`)
+   - Frontend: PascalCase for components (e.g., `VendorManagement.jsx`)
+
+### Database Changes
+1. Update models with new fields
+2. Add indexes for performance
+3. Consider migration scripts for existing data
+4. Update validation rules
+
+### API Changes
+1. Version new endpoints as `/api/v2/...`
+2. Use standard response format: `{ success, data, message }`
+3. Add appropriate middleware (auth, validation)
+4. Document in code comments
+
+---
+
+## 11. Quick Reference
+
+### Running the Application
+```bash
+# Backend
+cd backend
+npm start          # Production
+npm run dev        # Development with nodemon
+
+# Frontend
+cd frontend
+npm start          # Development server (port 3000)
+
+# Tests
+npm test           # Backend tests
+npm test -- --verbose  # Verbose output
+```
+
+### Key Files to Know
+- `backend/server.js` - Main server entry
+- `backend/models/` - All Mongoose models
+- `backend/controllers/` - Business logic
+- `backend/routes/v2/` - API routes
+- `frontend/src/api.js` - API client
+- `frontend/src/AppRoutes.js` - Route definitions
+
+### Environment Variables
+Required in `backend/.env`:
+```
+MONGODB_URI=mongodb://localhost:27017/isf_playground
+JWT_SECRET=your_secret_key
+PORT=5001
+```
+
+---
+
+## Usage Guidelines
+
+**For AI Agents:**
+
+- Read this file before implementing any code
+- Follow ALL rules exactly as documented
+- When in doubt, prefer the more restrictive option
+- Update this file if new patterns emerge
+
+**For Humans:**
+
+- Keep this file lean and focused on agent needs
+- Update when technology stack changes
+- Review quarterly for outdated rules
+- Remove rules that become obvious over time
+
+---
+
+**Document maintained by:** Development Team  
+**Last updated:** March 6, 2026  
+**Next review:** When Sprint 2 completion resumes or Sprint 6 begins

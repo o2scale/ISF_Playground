@@ -227,4 +227,6 @@ CourseAssignmentSchema.statics.getCoachStats = async function (coachId) {
   };
 };
 
-module.exports = mongoose.model("CourseAssignment", CourseAssignmentSchema);
+const CourseAssignment = mongoose.models.CourseAssignment || mongoose.model("CourseAssignment", CourseAssignmentSchema);
+
+module.exports = CourseAssignment;

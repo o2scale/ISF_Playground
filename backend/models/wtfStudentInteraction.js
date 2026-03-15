@@ -218,7 +218,7 @@ wtfStudentInteractionSchema.statics.getInteractionCounts = function (pinId) {
   return this.getPinInteractionCounts(pinId);
 };
 
-const WtfStudentInteraction = mongoose.model(
+const WtfStudentInteraction = mongoose.models.wtf_student_interaction || mongoose.model(
   "wtf_student_interaction",
   wtfStudentInteractionSchema
 );

@@ -114,7 +114,7 @@ userNotificationViewSchema.statics.cleanupOldSeenNotifications =
     return result;
   };
 
-const UserNotificationView = mongoose.model(
+const UserNotificationView = mongoose.models.UserNotificationView || mongoose.model(
   "UserNotificationView",
   userNotificationViewSchema
 );

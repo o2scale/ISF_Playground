@@ -47,7 +47,9 @@ MachineActivityStampSchema.pre("save", function (next) {
   next();
 });
 
-module.exports = mongoose.model(
+const MachineActivityStamp = mongoose.models.MachineActivityStamp || mongoose.model(
   "MachineActivityStamp",
   MachineActivityStampSchema
 );
+
+module.exports = MachineActivityStamp;

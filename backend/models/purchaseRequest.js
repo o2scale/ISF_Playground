@@ -364,6 +364,7 @@ purchaseRequestSchema.virtual('totalQuantity').get(function () {
   return this.items ? this.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0;
 });
 
-const PurchaseRequest = mongoose.model('PurchaseRequest', purchaseRequestSchema);
+// Safe model definition to prevent OverwriteModelError
+const PurchaseRequest = mongoose.models.PurchaseRequest || mongoose.model('PurchaseRequest', purchaseRequestSchema);
 
 module.exports = PurchaseRequest;

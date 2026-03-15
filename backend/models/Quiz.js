@@ -361,4 +361,6 @@ quizSchema.statics.findByChapter = function(chapterId) {
     .sort('createdAt');
 };
 
-module.exports = mongoose.model('Quiz', quizSchema);
+const Quiz = mongoose.models.Quiz || mongoose.model("Quiz", quizSchema);
+
+module.exports = Quiz;

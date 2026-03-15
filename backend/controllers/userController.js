@@ -28,14 +28,29 @@ exports.getAllUsers = async (req, res) => {
       delete queryFilter.balagruhaId;
     }
     
-    let users = await User.find(queryFilter)
-      .lean()
-      .select("-facialData -password")
-      .populate("balagruhaIds")
-      .populate("assignedMachines")
-      .populate("medicalRecords");
-    if (users) {
-      users = users.map((item) => {
+    // Pagination parameters
+    const { page = 1, limit = 20 } = req.query;
+    const pageNum = parseInt(page);
+    const limitNum = Math.min(parseInt(limit), 100); // Cap at 100
+    const skip = (pageNum - 1) * limitNum;
+    
+    // Execute paginated query
+    const [users, total] = await Promise.all([
+      User.find(queryFilter)
+        .lean()
+        .select("-facialData -password")
+        .populate("balagruhaIds")
+        .populate("assignedMachines")
+        .populate("medicalRecords")
+        .skip(skip)
+        .limit(limitNum),
+      User.countDocuments(queryFilter)
+    ]);
+    
+    // Process users
+    let processedUsers = users;
+    if (users && users.length > 0) {
+      processedUsers = users.map((item) => {
         let medicalHistoryItem = [];
         let nextActionDate = null;
         if (item?.medicalRecords?.length > 0) {
@@ -59,10 +74,24 @@ exports.getAllUsers = async (req, res) => {
         return item;
       });
     }
-    res.status(200).json(users);
+    
+    res.status(200).json({
+      success: true,
+      data: processedUsers,
+      count: processedUsers.length,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        pages: Math.ceil(total / limitNum)
+      }
+    });
   } catch (error) {
     console.log("error", error);
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: error.message 
+    });
   }
 };
 

@@ -33,8 +33,9 @@ StudentMoodTrackerSchema.pre("save", function (next) {
   next();
 });
 
-const StudentMoodTracker = mongoose.model(
+const StudentMoodTracker = mongoose.models.student_mood_tracker || mongoose.model(
   "student_mood_tracker",
   StudentMoodTrackerSchema
 );
+
 module.exports = StudentMoodTracker;

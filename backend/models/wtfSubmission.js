@@ -306,6 +306,5 @@ wtfSubmissionSchema.statics.findByStudent = function (studentId) {
   return this.getStudentSubmissions(studentId);
 };
 
-const WtfSubmission = mongoose.model("wtf_submission", wtfSubmissionSchema);
-
+const WtfSubmission = mongoose.models.wtf_submission || mongoose.model("wtf_submission", wtfSubmissionSchema);
 module.exports = WtfSubmission;

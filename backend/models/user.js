@@ -106,7 +106,11 @@ const userSchema = new mongoose.Schema(
       required: false,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 // hashing passwords
@@ -189,6 +193,7 @@ userSchema.methods.getBalagruhaIdsAsStrings = function () {
 // RBAC Refactor: Add index on balagruhaIds for performance
 userSchema.index({ balagruhaIds: 1 });
 
-const User = mongoose.model("User", userSchema);
+// Safe model definition to prevent OverwriteModelError
+const User = mongoose.models.User || mongoose.model("User", userSchema);
 
 module.exports = User;

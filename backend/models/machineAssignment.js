@@ -36,7 +36,9 @@ const MachineAssignmentHistorySchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model(
+const MachineAssignmentHistory = mongoose.models.MachineAssignmentHistory || mongoose.model(
   "MachineAssignmentHistory",
   MachineAssignmentHistorySchema
 );
+
+module.exports = MachineAssignmentHistory;

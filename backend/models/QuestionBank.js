@@ -221,4 +221,6 @@ questionBankSchema.statics.findByTag = function(tag) {
     .sort('-usageCount');
 };
 
-module.exports = mongoose.model('QuestionBank', questionBankSchema);
+const QuestionBank = mongoose.models.QuestionBank || mongoose.model("QuestionBank", questionBankSchema);
+
+module.exports = QuestionBank;

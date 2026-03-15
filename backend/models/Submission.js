@@ -356,4 +356,6 @@ SubmissionSchema.methods.markAsSkipped = function () {
   return this.save();
 };
 
-module.exports = mongoose.model("Submission", SubmissionSchema);
+const Submission = mongoose.models.Submission || mongoose.model("Submission", SubmissionSchema);
+
+module.exports = Submission;

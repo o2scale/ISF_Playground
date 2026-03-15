@@ -235,4 +235,6 @@ CourseSchema.statics.findArchived = function () {
   return this.find({ status: "archived" });
 };
 
-module.exports = mongoose.model("Course", CourseSchema);
+const Course = mongoose.models.Course || mongoose.model("Course", CourseSchema);
+
+module.exports = Course;

@@ -517,7 +517,6 @@ class AnalyticsService {
     ]);
 
     // DEBUG: Log aggregation result
-    console.log('🔍 [RBAC DEBUG] getStudentLeaderboard aggregation result:', {
       resultLength: leaderboard.length,
       sampleEntry: leaderboard[0] ? {
         studentName: leaderboard[0].studentName,
@@ -545,7 +544,6 @@ class AnalyticsService {
     const skip = (page - 1) * limit;
 
     // DEBUG: Log received filters
-    console.log('🔍 [RBAC DEBUG] analytics.getZeroPurchaseStudents received:', {
       hasRequestingUser: !!filters.requestingUser,
       requestingUserId: filters.requestingUser?._id,
       requestingUserRole: filters.requestingUser?.role,
@@ -602,7 +600,6 @@ class AnalyticsService {
     }
 
     // DEBUG: Log match conditions before pipeline
-    console.log('🔍 [RBAC DEBUG] getZeroPurchaseStudents match conditions:', {
       matchConditions: JSON.stringify(matchConditions),
       hasBalagruhaFilter: !!matchConditions.balagruhaIds
     });
@@ -826,7 +823,6 @@ class AnalyticsService {
     const skip = (page - 1) * limit;
 
     // DEBUG: Log received filters
-    console.log('🔍 [RBAC DEBUG] analytics.getTransactionLog received:', {
       hasRequestingUser: !!filters.requestingUser,
       requestingUserId: filters.requestingUser?._id,
       requestingUserRole: filters.requestingUser?.role,
@@ -914,7 +910,6 @@ class AnalyticsService {
     }
 
     // DEBUG: Log final query
-    console.log('🔍 [RBAC DEBUG] Final MongoDB query:', {
       query: JSON.stringify(query),
       scopeFilteredStudentIdsCount: scopeFilteredStudentIds?.length,
       hasUserIdFilter: !!query.userId

@@ -37,4 +37,6 @@ const MachineSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model("Machine", MachineSchema);
+const Machine = mongoose.models.Machine || mongoose.model("Machine", MachineSchema);
+
+module.exports = Machine;

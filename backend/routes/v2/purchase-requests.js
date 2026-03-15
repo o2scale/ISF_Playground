@@ -125,15 +125,7 @@ router.get(
 // Approve purchase request
 router.post(
   '/:id/approve',
-  (req, res, next) => {
-    console.log('DEBUG - Route hit: POST /:id/approve', { id: req.params.id, userId: req.user?._id });
-    next();
-  },
   authenticate,
-  (req, res, next) => {
-    console.log('DEBUG - After authenticate', { userId: req.user?._id, role: req.user?.role });
-    next();
-  },
   checkPermission('Purchase Management', 'Manage'),
   validateRequestId,
   validateApproval,

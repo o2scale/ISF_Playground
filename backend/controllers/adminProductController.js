@@ -2,6 +2,15 @@ const ShopItem = require('../models/shopItem');
 const Vendor = require('../models/vendor');
 
 /**
+ * Escape regex special characters to prevent ReDoS attacks
+ * @param {string} str - Input string to sanitize
+ * @returns {string} - Sanitized string safe for regex
+ */
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
  * Admin Product Controller - Sprint5-Story-05
  * CRUD operations for shop products (admin only)
  */
@@ -35,10 +44,11 @@ async function getAllProducts(req, res) {
     }
 
     if (search) {
+      const sanitizedSearch = escapeRegex(search);
       query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { sku: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } }
+        { name: { $regex: sanitizedSearch, $options: 'i' } },
+        { sku: { $regex: sanitizedSearch, $options: 'i' } },
+        { description: { $regex: sanitizedSearch, $options: 'i' } }
       ];
     }
 

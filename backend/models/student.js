@@ -21,9 +21,14 @@ const studentSchema = new mongoose.Schema(
       { type: mongoose.Schema.Types.ObjectId, ref: "MedicalRecord" },
     ],
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
-const Student = mongoose.model("Student", studentSchema);
+// Safe model definition to prevent OverwriteModelError
+const Student = mongoose.models.Student || mongoose.model("Student", studentSchema);
 
 module.exports = Student;

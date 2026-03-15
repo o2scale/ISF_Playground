@@ -183,8 +183,9 @@ const medicalCheckInSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const MedicalCheckIn = mongoose.model(
+const MedicalCheckIn = mongoose.models.medical_check_ins || mongoose.model(
   "medical_check_ins",
   medicalCheckInSchema
 );
+
 module.exports = MedicalCheckIn;

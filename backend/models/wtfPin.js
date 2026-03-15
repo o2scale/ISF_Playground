@@ -211,6 +211,5 @@ wtfPinSchema.statics.findExpiredPins = function () {
   return this.getExpiredPins();
 };
 
-const WtfPin = mongoose.model("wtf_pin", wtfPinSchema);
-
+const WtfPin = mongoose.models.wtf_pin || mongoose.model("wtf_pin", wtfPinSchema);
 module.exports = WtfPin;

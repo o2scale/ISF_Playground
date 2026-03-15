@@ -59,4 +59,6 @@ const studentProgressSchema = new mongoose.Schema({
 // Compound index to ensure one progress record per student per course
 studentProgressSchema.index({ student: 1, course: 1 }, { unique: true });
 
-module.exports = mongoose.model('StudentProgress', studentProgressSchema);
+const StudentProgress = mongoose.models.StudentProgress || mongoose.model("StudentProgress", studentProgressSchema);
+
+module.exports = StudentProgress;

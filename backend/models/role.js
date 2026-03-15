@@ -17,9 +17,14 @@ const roleSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
-const Role = mongoose.model("Role", roleSchema);
+// Safe model definition to prevent OverwriteModelError
+const Role = mongoose.models.Role || mongoose.model("Role", roleSchema);
 
 module.exports = Role;

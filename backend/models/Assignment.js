@@ -33,7 +33,12 @@ const assignmentSchema = new mongoose.Schema({
         inApp: { type: Boolean, default: true }
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
 });
 
-module.exports = mongoose.model('Assignment', assignmentSchema);
+// Safe model definition to prevent OverwriteModelError
+const Assignment = mongoose.models.Assignment || mongoose.model('Assignment', assignmentSchema);
+
+module.exports = Assignment;

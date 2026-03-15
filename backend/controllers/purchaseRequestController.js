@@ -224,8 +224,7 @@ exports.createPurchaseRequest = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Error creating purchase request',
-      error: error.message,
-      stack: error.stack
+      error: error.message
     });
   }
 };
@@ -328,7 +327,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
  */
 exports.getAllPurchaseRequests = async (req, res) => {
   try {
-    const { status, balagruhaId, category, startDate, endDate } = req.query;
+    const { status, balagruhaId, category, startDate, endDate, page = 1, limit = 20 } = req.query;
 
     const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
     const userId = req.user._id;
@@ -340,26 +339,16 @@ exports.getAllPurchaseRequests = async (req, res) => {
     // Role-based filtering
     if (userRole === 'admin') {
       // Admin sees ALL requests - no filter
-      console.log('DEBUG - Admin fetching all requests');
     } else if (userRole === 'purchase-manager') {
       // Purchase Manager sees ALL requests in their assigned Balagruha(s)
       const user = await User.findById(userId).select('balagruhaIds');
       const userBalagruhaIds = (user.balagruhaIds || []).map(id => id.toString());
-
-      console.log('DEBUG - PM Fetch Requests:', {
-        userId: userId.toString(),
-        userBalagruhaIds: userBalagruhaIds,
-        userBalagruhaIdsCount: userBalagruhaIds.length,
-        statusFilter: status
-      });
 
       // Show requests from assigned balagruhas OR STOCK requests
       query.$or = [
         { balagruhaId: { $in: userBalagruhaIds } },
         { balagruhaId: 'STOCK' }
       ];
-
-      console.log('DEBUG - PM Query:', JSON.stringify(query));
     } else {
       // Other roles (Coach, Medical Incharge, etc.) see ONLY their own requests
       query.requestedBy = userId;
@@ -417,33 +406,35 @@ exports.getAllPurchaseRequests = async (req, res) => {
       }
     }
 
-    const requests = await PurchaseRequest.find(query)
-      .populate('requestedBy', 'name email role')
-      .populate('reviewedBy', 'name email')
-      .populate('deliveredByCoachId', 'name email')  // Story 2.6: Delivery tracking
-      .populate('items.productId', 'name sku stock lowStockThreshold images')
-      .sort({ createdAt: -1 });
-
-    // Debug logging for PM
-    if (userRole === 'purchase-manager') {
-      console.log('DEBUG - PM Fetch Results:', {
-        userRole: userRole,
-        query: JSON.stringify(query),
-        totalRequests: requests.length,
-        requestIds: requests.map(r => ({ id: r._id.toString(), status: r.status, balagruhaId: r.balagruhaId?.toString() || r.balagruhaId }))
-      });
-    }
-
-    // Sprint5-Story-21: Manually populate balagruhaId (skip if STOCK)
-    for (const request of requests) {
-      if (request.balagruhaId && request.balagruhaId !== 'STOCK') {
-        await request.populate('balagruhaId', 'name');
-      }
-    }
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Execute paginated query
+    const [requests, total] = await Promise.all([
+      PurchaseRequest.find(query)
+        .populate('requestedBy', 'name email role')
+        .populate('reviewedBy', 'name email')
+        .populate('deliveredByCoachId', 'name email')
+        .populate('items.productId', 'name sku stock lowStockThreshold images')
+        .populate('balagruhaId', 'name')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit)),
+      PurchaseRequest.countDocuments(query)
+    ]);
 
     res.json({
       success: true,
-      data: { requests, count: requests.length }
+      data: { 
+        requests, 
+        count: requests.length,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
     });
   } catch (error) {
     console.error('Error fetching purchase requests:', error);
@@ -586,15 +577,7 @@ exports.approvePurchaseRequest = async (req, res) => {
     const { reviewNotes } = req.body;
     const adminId = req.user._id;
 
-    console.log('DEBUG - Approve Request START:', { requestId: id, adminId: adminId.toString() });
-
     const request = await PurchaseRequest.findById(id);
-    
-    console.log('DEBUG - Request found:', { 
-      found: !!request, 
-      status: request?.status,
-      requestedBy: request?.requestedBy?.toString()
-    });
 
     if (!request) {
       return res.status(404).json({
@@ -612,15 +595,6 @@ exports.approvePurchaseRequest = async (req, res) => {
     }
 
     // 🔥 VALIDATION: Cannot approve own request
-    console.log('DEBUG - Approval Check:', {
-      requestId: id,
-      requestedBy: request.requestedBy?.toString(),
-      adminId: adminId.toString(),
-      requestedByType: typeof request.requestedBy,
-      adminIdType: typeof adminId,
-      areEqual: request.requestedBy?.toString() === adminId.toString()
-    });
-    
     if (request.requestedBy.toString() === adminId.toString()) {
       return res.status(403).json({
         success: false,

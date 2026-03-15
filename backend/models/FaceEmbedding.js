@@ -252,6 +252,5 @@ FaceEmbeddingSchema.methods.toJSON = function () {
   return obj;
 };
 
-const FaceEmbedding = mongoose.model('FaceEmbedding', FaceEmbeddingSchema);
-
+const FaceEmbedding = mongoose.models.FaceEmbedding || mongoose.model("FaceEmbedding", FaceEmbeddingSchema);
 module.exports = FaceEmbedding;

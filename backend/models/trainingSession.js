@@ -30,6 +30,5 @@ const trainingSession = new mongoose.Schema(
   { timestamps: true }
 );
 
-const TrainingSession = mongoose.model("training_sessions", trainingSession);
-
+const TrainingSession = mongoose.models.training_sessions || mongoose.model("training_sessions", trainingSession);
 module.exports = TrainingSession;

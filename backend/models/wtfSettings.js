@@ -75,4 +75,6 @@ wtfSettingsSchema.index(
   { unique: true, partialFilterExpression: { isActive: true } }
 );
 
-module.exports = mongoose.model("WtfSettings", wtfSettingsSchema);
+const WtfSettings = mongoose.models.WtfSettings || mongoose.model("WtfSettings", wtfSettingsSchema);
+
+module.exports = WtfSettings;
