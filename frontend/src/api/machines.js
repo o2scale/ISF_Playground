@@ -9,3 +9,24 @@ export const createMachine = async (data) => {
   const response = await api.post('/api/v1/machines', data);
   return response.data;
 };
+
+/**
+ * Reassign a machine to a different Balagruha via PUT /api/v1/machines/:id/assign
+ * @param {string} id - Machine document _id
+ * @param {string} newBalagruha - Target Balagruha _id
+ * @returns {Promise<Object>} API response data
+ */
+export const updateMachine = async (id, newBalagruha) => {
+  const response = await api.put(`/api/v1/machines/${id}/assign`, { newBalagruha });
+  return response.data;
+};
+
+/**
+ * Deactivate a machine by toggling its status via PUT /api/v1/machines/:id/status
+ * @param {string} id - Machine document _id
+ * @returns {Promise<Object>} API response data
+ */
+export const deactivateMachine = async (id) => {
+  const response = await api.put(`/api/v1/machines/${id}/status`);
+  return response.data;
+};

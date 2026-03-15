@@ -1,15 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw, Search, Monitor } from 'lucide-react';
+import { Plus, RefreshCw, Search, Monitor, Pencil, PowerOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../api';
 import { getBalagruha } from '../api';
-import { createMachine } from '../api/machines';
+import { createMachine, updateMachine, deactivateMachine } from '../api/machines';
 import { useAuth } from '../contexts/AuthContext';
 import { useRBAC } from '../contexts/RBACContext';
 import { UserTypes, normalizeUserRole } from '../constants/userTypes';
 import MachineRegistrationModal from '../components/admin/MachineRegistrationModal';
+import MachineEditModal from '../components/admin/MachineEditModal';
+import DeactivateConfirmModal from '../components/admin/DeactivateConfirmModal';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -45,6 +47,12 @@ export default function MachineManagement() {
 
   // Registration modal state
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+
+  // Edit modal state
+  const [editingMachine, setEditingMachine] = useState(null);
+
+  // Deactivate confirmation modal state
+  const [deactivatingMachine, setDeactivatingMachine] = useState(null);
 
   // SECURITY CHECK: Admin-only access
   useEffect(() => {
@@ -155,6 +163,50 @@ export default function MachineManagement() {
       throw err; // Re-throw so the modal knows submission failed
     }
   }, [closeRegister, fetchMachines]);
+
+  // Edit (reassign) handler
+  const handleEditSubmit = useCallback(async (machineId, newBalagruha) => {
+    try {
+      const result = await updateMachine(machineId, newBalagruha);
+      if (result && result.success) {
+        toast.success('Machine reassigned successfully');
+        setEditingMachine(null);
+        fetchMachines();
+      } else {
+        toast.error(result?.message || 'Failed to reassign machine');
+      }
+    } catch (err) {
+      console.error('Error reassigning machine:', err);
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to reassign machine';
+      toast.error(message);
+      throw err;
+    }
+  }, [fetchMachines]);
+
+  // Deactivate handler
+  const handleDeactivateConfirm = useCallback(async (machineId) => {
+    try {
+      const result = await deactivateMachine(machineId);
+      if (result && result.success) {
+        toast.success('Machine deactivated successfully');
+        setDeactivatingMachine(null);
+        fetchMachines();
+      } else {
+        toast.error(result?.message || 'Failed to deactivate machine');
+      }
+    } catch (err) {
+      console.error('Error deactivating machine:', err);
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to deactivate machine';
+      toast.error(message);
+      throw err;
+    }
+  }, [fetchMachines]);
 
   // Client-side filtered rows (API handles server-side, this is a safety net)
   const filteredMachines = useMemo(() => machines, [machines]);
@@ -395,54 +447,87 @@ export default function MachineManagement() {
                     >
                       Last Login
                     </th>
+                    <th
+                      scope="col"
+                      className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider"
+                    >
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200">
-                  {filteredMachines.map((machine) => (
-                    <tr
-                      key={machine._id}
-                      className="hover:bg-slate-50 transition-colors"
-                      tabIndex={0}
-                      aria-label={`Machine ${machine.machineId}, status ${machine.status}`}
-                    >
-                      <td className="px-6 py-4">
-                        <div className="font-medium text-slate-900">
-                          {machine.machineId}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-slate-700 font-mono text-sm">
-                        {machine.macAddress}
-                      </td>
-                      <td className="px-6 py-4 text-slate-700">
-                        {machine.serialNumber}
-                      </td>
-                      <td className="px-6 py-4 text-slate-700">
-                        {getBalagruhaName(machine)}
-                      </td>
-                      <td className="px-6 py-4">
-                        <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
-                            machine.status
-                          )}`}
-                        >
-                          {machine.status
-                            ? machine.status.charAt(0).toUpperCase() +
-                              machine.status.slice(1)
-                            : 'Unknown'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-slate-700 text-sm">
-                        {machine.lastLogin
-                          ? new Date(machine.lastLogin).toLocaleString()
-                          : 'Never'}
-                      </td>
-                    </tr>
-                  ))}
+                  {filteredMachines.map((machine) => {
+                    const isInactive = machine.status === 'inactive';
+                    return (
+                      <tr
+                        key={machine._id}
+                        className={`hover:bg-slate-50 transition-colors ${
+                          isInactive ? 'opacity-60 bg-slate-50' : ''
+                        }`}
+                        tabIndex={0}
+                        aria-label={`Machine ${machine.machineId}, status ${machine.status}`}
+                      >
+                        <td className="px-6 py-4">
+                          <div className={`font-medium ${isInactive ? 'text-slate-500' : 'text-slate-900'}`}>
+                            {machine.machineId}
+                          </div>
+                        </td>
+                        <td className={`px-6 py-4 font-mono text-sm ${isInactive ? 'text-slate-400' : 'text-slate-700'}`}>
+                          {machine.macAddress}
+                        </td>
+                        <td className={`px-6 py-4 ${isInactive ? 'text-slate-400' : 'text-slate-700'}`}>
+                          {machine.serialNumber}
+                        </td>
+                        <td className={`px-6 py-4 ${isInactive ? 'text-slate-400' : 'text-slate-700'}`}>
+                          {getBalagruhaName(machine)}
+                        </td>
+                        <td className="px-6 py-4">
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadge(
+                              machine.status
+                            )}`}
+                          >
+                            {machine.status
+                              ? machine.status.charAt(0).toUpperCase() +
+                                machine.status.slice(1)
+                              : 'Unknown'}
+                          </span>
+                        </td>
+                        <td className={`px-6 py-4 text-sm ${isInactive ? 'text-slate-400' : 'text-slate-700'}`}>
+                          {machine.lastLogin
+                            ? new Date(machine.lastLogin).toLocaleString()
+                            : 'Never'}
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => setEditingMachine(machine)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                              aria-label={`Edit machine ${machine.machineId}`}
+                            >
+                              <Pencil className="w-3.5 h-3.5" aria-hidden="true" />
+                              Edit
+                            </button>
+                            {machine.status === 'active' && (
+                              <button
+                                onClick={() => setDeactivatingMachine(machine)}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors focus:ring-2 focus:ring-red-500 focus:outline-none"
+                                aria-label={`Deactivate machine ${machine.machineId}`}
+                              >
+                                <PowerOff className="w-3.5 h-3.5" aria-hidden="true" />
+                                Deactivate
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
 
                   {filteredMachines.length === 0 && (
                     <tr>
                       <td
-                        colSpan={6}
+                        colSpan={7}
                         className="px-6 py-12 text-center text-slate-600"
                       >
                         No machines found.
@@ -462,6 +547,25 @@ export default function MachineManagement() {
           balagruhaOptions={balagruhaOptions}
           onClose={closeRegister}
           onSubmit={handleRegisterSubmit}
+        />
+      )}
+
+      {/* Edit (Reassign) Modal */}
+      {editingMachine && (
+        <MachineEditModal
+          machine={editingMachine}
+          balagruhaOptions={balagruhaOptions}
+          onClose={() => setEditingMachine(null)}
+          onSubmit={handleEditSubmit}
+        />
+      )}
+
+      {/* Deactivate Confirmation Modal */}
+      {deactivatingMachine && (
+        <DeactivateConfirmModal
+          machine={deactivatingMachine}
+          onClose={() => setDeactivatingMachine(null)}
+          onConfirm={handleDeactivateConfirm}
         />
       )}
     </div>
