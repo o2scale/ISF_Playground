@@ -9,7 +9,8 @@
 const express = require('express');
 const router = express.Router();
 const frController = require('../../controllers/frController');
-const { authenticate, authorize } = require('../../middleware/auth');
+const { authenticate } = require('../../middleware/auth');
+const checkPermission = require('../../middleware/checkPermission');
 
 /**
  * @route POST /api/v2/fr/register
@@ -19,7 +20,7 @@ const { authenticate, authorize } = require('../../middleware/auth');
 router.post(
   '/register',
   authenticate,
-  authorize("User Management", "Create"),
+  checkPermission('User Management', 'Create'),
   frController.upload.single('photo'),
   frController.registerFace
 );
@@ -27,7 +28,7 @@ router.post(
 /**
  * @route POST /api/v2/fr/recognize
  * @desc Recognize face (identify student)
- * @access Public (for login) or Private (for attendance)
+ * @access Public — this is the student login mechanism; no auth required
  * Note: In production, add rate limiting to prevent brute force
  */
 router.post(
@@ -39,11 +40,12 @@ router.post(
 /**
  * @route GET /api/v2/fr/status/:studentId
  * @desc Check if student has face registered
- * @access Private
+ * @access Private (Admin, In-Charge, Coach)
  */
 router.get(
   '/status/:studentId',
   authenticate,
+  checkPermission('User Management', 'Read'),
   frController.getRegistrationStatus
 );
 
@@ -55,7 +57,7 @@ router.get(
 router.delete(
   '/register/:studentId',
   authenticate,
-  authorize("User Management", "Delete"),
+  checkPermission('User Management', 'Delete'),
   frController.deleteFaceRegistration
 );
 
@@ -67,7 +69,7 @@ router.delete(
 router.get(
   '/stats',
   authenticate,
-  authorize("User Management", "Read"),
+  checkPermission('User Management', 'Read'),
   frController.getFRStats
 );
 
