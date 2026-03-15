@@ -2217,4 +2217,312 @@ The medical domain has four models that operate semi-independently:
 
 ---
 
-**Accuracy Verification:** All 45 model files in `backend/models/` were read directly and documented against actual source code. Field names, types, required flags, defaults, enums, refs, indexes, virtuals, hooks, and methods verified against source files on March 16, 2026. Model relationships (128 ObjectId references) and data flows verified against controller/service source code on March 16, 2026.
+## Controller-Model Dependencies
+
+**Story:** 4.3 - Controller-to-Model Dependency Map & Findings
+**Generated:** March 16, 2026
+**Total Controllers Mapped:** 51 (39 top-level + 12 LMS)
+**Architecture Layers:** Controller -> Service -> Data-Access -> Model
+
+### Architecture Note
+
+ISF Playground uses a three-tier data access pattern:
+1. **Controllers** (`backend/controllers/`) — HTTP request handling, some directly import models
+2. **Services** (`backend/services/`) — Business logic, may import models directly or delegate to data-access
+3. **Data-Access** (`backend/data-access/`) — Pure database operations, always imports models
+
+Many controllers delegate entirely to services (which delegate to data-access), so "no direct model import" does not mean "no model usage." The dependency map below traces the full chain.
+
+### Dependency Map — Top-Level Controllers
+
+| Controller | Direct Model Imports | Via Service/DA Layer | Operations |
+|---|---|---|---|
+| adminProductController.js | ShopItem, Vendor | -- | Both (find, findOne, findById, findByIdAndUpdate, save, countDocuments) |
+| analyticsController.js | User, Order (inline) | analytics.js -> Order, User, ShopItem, Coin | Read (aggregate) |
+| balagruha.js | -- | balagruha.js -> DA/balagruha (Balagruha), DA/machines (Machine), DA/User (User) | Both (create via service) |
+| cartController.js | -- | cart.js -> Cart, ShopItem | Both |
+| coachDeliveryController.js | Order, User, Balagruha, Notification | -- | Both (find, findById, save, countDocuments) |
+| coinController.js | -- | coin.js -> Coin | Both |
+| contentController.js | ContentLibrary | -- | Both (find, findById, save, findByIdAndDelete, aggregate, countDocuments) |
+| courseController.js | -- | course.js -> DA/course (Course) | Both |
+| doctorController.js | -- | doctor.js -> DA/doctor (Doctor) | Both |
+| frController.js | FaceEmbedding, Student, FRSession (inline) | frService.js -> FaceEmbedding, FRSession; frCacheService.js -> FaceEmbedding | Both (findOne, findById, updateMany, countDocuments) |
+| hospitalController.js | -- | hospital.js -> DA/hospital (Hospital) | Both |
+| inventoryController.js | ShopItem, InventoryTransaction, Order, PurchaseRequest (inline) | -- | Both (find, findOne, findById, create, save, updateOne, findOneAndUpdate, aggregate, countDocuments) |
+| machineController.js | Machine | -- | Both (find, findOne, findById, save, countDocuments) |
+| medicalCheckInsController.js | -- | medicalCheckIns.js -> User, Balagruha (inline); DA/medicalCheckIns (MedicalCheckIns) | Both |
+| medicalRecordController.js | Medical (MedicalRecord), User | -- | Both (findOne, save) |
+| music.js | -- | musicTask.js -> User, DA/sportsTask (SportsTasks), DA/User (User), DA/trainingSession (TrainingSession), DA/task (Task); trainingSession.js -> DA/trainingSession (TrainingSession) | Both |
+| notificationController.js | -- | notification.js -> Notification, User, UserNotificationView (inline) | Both |
+| offlineRequestQueue.js | -- | offlineRequestQueue.js -> DA/offlineRequestQueue (OfflineReqQueue) | Both |
+| orderController.js | -- | order.js -> Order, Cart, ShopItem, Coin | Both |
+| profileController.js | User, Coin, Order | -- | Read (find, findOne, findById, aggregate, countDocuments) |
+| purchaseAndRepair.js | -- | purchaseAndRepair/purchaseOrder.js -> DA/purchaseOrder (PurchaseOrders), DA/repairRequests (RepairRequests), ShopItem, User; purchaseAndRepair/repairRequests.js -> DA/repairRequests (RepairRequests) | Both |
+| purchaseRequestController.js | PurchaseRequest, ShopItem, User, InventoryTransaction | -- | Both (find, findById, create, save, findByIdAndUpdate, findByIdAndDelete, aggregate, countDocuments) |
+| questionBankController.js | QuestionBank | -- | Both (find, findById, save, deleteOne, aggregate, countDocuments, distinct) |
+| quizController.js | Quiz, QuestionBank, Course | -- | Both (find, findById, save, deleteOne, updateMany, aggregate, countDocuments) |
+| reportsController.js | -- | analytics.js -> Order, User, ShopItem, Coin; wtfWebSocket.js -> (none direct) | Read |
+| roleController.js | Role | -- | Both (find, findOne, findById, save, findByIdAndDelete) |
+| scheduleController.js | -- | schedule.js -> DA/schedule (Schedules), User | Both |
+| schedulerController.js | -- | scheduler.js -> DA/wtfPin (WtfPin); wtf.js -> DA/wtfPin (WtfPin), DA/wtfStudentInteraction (WtfStudentInteraction), DA/wtfSubmission (WtfSubmission), User, Coin (via CoinService) | Both |
+| shopController.js | -- | shop.js -> ShopItem, PurchaseRequest | Both |
+| shopProductImageController.js | ShopItem | -- | Both (findById, save) |
+| sports.js | -- | sportsTask.js -> User, DA/sportsTask (SportsTasks), DA/User (User), DA/trainingSession (TrainingSession), DA/task (Task); trainingSession.js -> DA/trainingSession (TrainingSession) | Both |
+| studentMoodTrackerController.js | -- | studentMoodTracker.js -> DA/studentMoodTracker (StudentMoodTracker) | Both |
+| taskController.js | Task, User | task.js -> User, Task, DA/task (Task), DA/User (User) | Both (find, findById, save, countDocuments) |
+| userController.js | User, Medical (inline) | user.js -> User, DA/User (User), DA/balagruha (Balagruha); student.js -> DA/User (User), DA/medicalRecords (Medical), DA/machines (Machine); attendenance.js -> DA/attendance (Attendance) | Both (find, findOne, findById, save, findByIdAndUpdate, findByIdAndDelete, countDocuments) |
+| vendorController.js | Vendor, ShopItem | -- | Both (find, findById, create, findByIdAndUpdate, aggregate, countDocuments) |
+| wtfController.js | -- | wtf.js -> DA/wtfPin (WtfPin), DA/wtfStudentInteraction (WtfStudentInteraction), DA/wtfSubmission (WtfSubmission), User (inline), Coin (via CoinService); notification.js -> Notification, User | Both |
+| wtfSettingsController.js | -- | wtfSettings.js -> WtfSettings | Both |
+| wtfWebSocketController.js | -- | wtfWebSocket.js -> (WebSocket only, no model access) | N/A (WebSocket setup only) |
+
+### Dependency Map — LMS Controllers
+
+| Controller | Direct Model Imports | Via Service/DA Layer | Operations |
+|---|---|---|---|
+| lms/admin/adminAssignmentController.js | CourseAssignment, Course, User, Notification | -- | Both (find, findById, create, save) |
+| lms/admin/courseController.js | Course | -- | Both (find, findOne, findById, save, deleteOne, findByIdAndDelete) |
+| lms/admin/translationController.js | Course, Quiz | -- | Both (find, findById, save, updateMany) |
+| lms/coach/coachAssignmentController.js | CourseAssignment, Course, User, Notification | -- | Both (find, findById, create, save) |
+| lms/coach/coachGradingController.js | Submission, User, Course, Notification, Coin | -- | Both (find, findById, findByIdAndUpdate, save) |
+| lms/coach/coachReportsController.js | User, StudentProgress, Coin | -- | Read (aggregate, countDocuments) |
+| lms/coach/manualAwardController.js | Coin, User | -- | Both (findById, aggregate) |
+| lms/student/artCourseController.js | Course, StudentProgress | -- | Read (find) |
+| lms/student/computerAppsController.js | Course, StudentProgress, Quiz (inline), Submission (inline), Coin (inline), User (inline) | -- | Both (find, findOne, findById, findByIdAndUpdate, findOneAndUpdate, save, countDocuments) |
+| lms/student/lifeSkillsController.js | Course, StudentProgress, Submission, Quiz (inline), Coin (inline), User (inline) | -- | Both (find, findOne, findById, findByIdAndUpdate, save, countDocuments) |
+| lms/student/spokenEnglishController.js | Course, StudentProgress, Submission | -- | Both (find, findOne, save) |
+| lms/student/studentDashboardController.js | User, Coin, Notification, EmotionTracking, Course, StudentProgress | -- | Both (find, findOne, findById, save, insertMany, countDocuments) |
+
+### Model Usage Summary
+
+Total models: 45. Models referenced by at least one controller (directly or via service/DA chain): **42**.
+
+| Model | Used By (Controller Count) | Access Pattern |
+|---|---|---|
+| User | 25+ controllers/services | Read & Write — most heavily used model |
+| Course | 12 controllers | Read & Write |
+| Coin | 9 controllers/services | Read & Write |
+| Notification | 7 controllers/services | Read & Write |
+| ShopItem | 7 controllers/services | Read & Write |
+| StudentProgress | 6 controllers | Read & Write |
+| Order | 5 controllers/services | Read & Write |
+| Submission | 4 controllers | Read & Write |
+| PurchaseRequest | 3 controllers/services | Read & Write |
+| Quiz | 4 controllers | Read & Write |
+| CourseAssignment | 2 controllers | Read & Write |
+| QuestionBank | 2 controllers | Read & Write |
+| Vendor | 2 controllers | Read & Write |
+| FaceEmbedding | 1 controller + 2 services | Read & Write |
+| Task | 2 controllers + 1 service | Read & Write |
+| SportsTasks | 2 controllers (music, sports) via services | Read & Write |
+| Machine | 2 controllers (machine, balagruha) via service/DA | Read & Write |
+| Balagruha | 3 controllers via services | Read & Write |
+| Cart | 1 controller via service | Read & Write |
+| InventoryTransaction | 2 controllers | Read & Write |
+| Medical (MedicalRecord) | 2 controllers (medicalRecord, user) | Read & Write |
+| MedicalCheckIns | 1 controller via service | Read & Write |
+| Doctor | 1 controller via service/DA | Read & Write |
+| Hospital | 1 controller via service/DA | Read & Write |
+| Attendance | 1 controller (user) via service/DA | Read & Write |
+| Schedules | 1 controller via service/DA | Read & Write |
+| TrainingSession | 2 controllers (music, sports) via service/DA | Read & Write |
+| OfflineReqQueue | 1 controller via service/DA | Read & Write |
+| StudentMoodTracker | 1 controller via service/DA | Read & Write |
+| ContentLibrary | 1 controller | Read & Write |
+| Role | 1 controller | Read & Write |
+| WtfPin | 2 controllers (wtf, scheduler) via service/DA | Read & Write |
+| WtfSettings | 1 controller via service | Read & Write |
+| WtfStudentInteraction | 1 controller (wtf) via service/DA | Read & Write |
+| WtfSubmission | 1 controller (wtf) via service/DA | Read & Write |
+| FRSession | 1 controller + 1 service | Read & Write |
+| EmotionTracking | 1 controller (studentDashboard) | Read |
+| PurchaseOrders | 1 controller (purchaseAndRepair) via service/DA | Read & Write |
+| RepairRequests | 1 controller (purchaseAndRepair) via service/DA | Read & Write |
+| Student | 1 controller (frController) | Read |
+| UserNotificationView | 1 service (notification) | Read & Write |
+| WtfSettings | 1 controller via service | Read & Write |
+
+### Orphaned Models (Not Used by Any Controller/Service/DA)
+
+| Model | File | Notes |
+|---|---|---|
+| **ActivityLog** | `backend/models/activitylog.js` | Defined but never imported in any controller, service, or data-access file. No usage found anywhere in the application layer. |
+| **MachineActiveLog** | `backend/models/machineactivelog.js` | Defined but never imported. Uses PascalCase field names (LogID, MachineID, UserID, LoginTimestamp, etc.) inconsistent with rest of codebase. |
+| **MachineAssignment** | `backend/models/machineAssignment.js` | Defined but never imported. Uses PascalCase field names (HistoryID, MachineID, PreviousBalagruhaID, NewBalagruhaID, AssignedBy). References `ref: "Admin"` which is not a valid model name (should be "User"). |
+
+---
+
+## Schema Quality Findings
+
+**Story:** 4.3 - Schema Quality Findings
+**Generated:** March 16, 2026
+
+### Finding 1: Redundant Student Data Between User and Student Models (HIGH)
+
+**Category:** Redundant fields across models
+**Severity:** High — active source of data inconsistency
+
+The `User` model and `Student` model both store overlapping student-related fields with inconsistent enum casing:
+
+| Field | User Model | Student Model |
+|---|---|---|
+| age | `Number` (required if role=student) | `Number` (required) |
+| gender | enum: `"male", "female", "other"` | enum: `"Male", "Female", "Other"` |
+| balagruha | `balagruhaIds` (array of ObjectId) | `balagruhaId` (single ObjectId) |
+| parentalStatus | enum: `"has both", "has one", "has none", "has guardian", ""` | enum: `"Has Both", "Has One", "Has None", "Has Guardian"` |
+
+**Impact:** Gender and parentalStatus enum casing differences mean data written by one model cannot be reliably queried by the other. The balagruha reference is an array in User but a single ref in Student. Additionally, both User and Student have `attendanceRecords`, `medicalRecords`, and `performanceReports` array fields referencing other models.
+
+**Recommendation:** Consolidate student-specific fields into one model (likely User, since Student is only imported by frController). Normalize enum casing.
+
+### Finding 2: PascalCase Field Names in Machine Models (MEDIUM)
+
+**Category:** Naming inconsistencies
+**Severity:** Medium — orphaned models, but would cause issues if activated
+
+The `machineactivelog.js` and `machineAssignment.js` models use PascalCase field names (`MachineID`, `UserID`, `LoginTimestamp`, `LogoutTimestamp`, `SessionDuration`, `HistoryID`, `PreviousBalagruhaID`, `NewBalagruhaID`, `AssignedBy`, `AssignmentDate`), while every other model in the codebase uses camelCase.
+
+**Impact:** These are currently orphaned (not imported anywhere), so no runtime impact. However, if activated, they would break naming conventions and confuse queries.
+
+**Recommendation:** If these models are needed for Story 3.x (Machine management), rename fields to camelCase before activation.
+
+### Finding 3: MachineAssignment References Non-Existent "Admin" Model (HIGH)
+
+**Category:** Invalid reference
+**Severity:** High — would cause runtime error if model were used
+
+`machineAssignment.js` has `AssignedBy: { ref: "Admin" }` but no "Admin" model exists. The correct reference should be "User".
+
+**Impact:** Currently orphaned so no runtime error, but this is a defect that must be fixed before the model is used.
+
+### Finding 4: Missing Indexes on Frequently Queried Reference Fields (MEDIUM)
+
+**Category:** Missing indexes
+**Severity:** Medium — performance impact on growing collections
+
+Many models have ObjectId reference fields used in queries but lack indexes. Key examples:
+
+| Model | Field(s) Missing Index | Query Pattern |
+|---|---|---|
+| Attendance | studentId, balagruhaId | Queried by student and balagruha |
+| Coin | userId | Queried by user for balance/history |
+| MedicalCheckIns | studentId, createdBy | Queried by student for check-in history |
+| Medical | studentId | Queried by student for medical records |
+| Notification | userId (has compound index), coachId, pinId | Individual field lookups |
+| Schedules | balagruhaId, assignedTo, createdBy | Queried by balagruha and assignee |
+| SportsTasks | assignedUser, createdBy | Queried by assignee |
+| Task | assignedUser, createdBy, balagruhaId | Queried by assignee and balagruha |
+| TrainingSession | balagruhaId, createdBy | Queried by balagruha |
+| WtfPin | author | Queried by author |
+| WtfStudentInteraction | studentId, pinId | Queried by student and pin |
+| WtfSubmission | studentId | Queried by student |
+| Student | balagruhaId | Queried by balagruha |
+| StudentMoodTracker | userId | Queried by user |
+| UserNotificationView | notificationId | Queried by notification |
+
+**Impact:** Without indexes, these queries perform collection scans. Performance degrades as collections grow.
+
+**Recommendation:** Add indexes to the most frequently queried fields. Priority: `Coin.userId`, `Attendance.studentId`, `MedicalCheckIns.studentId`, `Task.assignedUser`, `Schedules.balagruhaId`.
+
+### Finding 5: Models with No Validation (LOW)
+
+**Category:** Missing validation
+**Severity:** Low — data integrity risk
+
+Several models have minimal or no field validation (no required flags, no enums, no validators):
+
+| Model | Required Fields | Enum Fields | Validators |
+|---|---|---|---|
+| Medical | 0 | 0 | 0 |
+| ActivityLog | 1 | 0 | 0 |
+| MachineActiveLog | 2 | 0 | 0 |
+| MachineAssignment | 3 | 0 | 0 |
+| Doctor | 1 | 0 | 0 |
+| Hospital | 1 | 0 | 0 |
+| UserNotificationView | 1 | 0 | 0 |
+
+**Impact:** Documents can be created with missing or invalid data. The Medical model is particularly concerning as it has zero required fields — a medical record could be created completely empty.
+
+**Recommendation:** Add `required` flags to essential fields, especially `Medical.studentId` and `Medical.createdBy`.
+
+### Finding 6: Inconsistent File Naming for Model Files (LOW)
+
+**Category:** Naming inconsistencies
+**Severity:** Low — developer experience impact
+
+Model files use three different naming conventions:
+
+| Convention | Files |
+|---|---|
+| **camelCase** (majority) | user.js, course.js, coin.js, cart.js, order.js, vendor.js, task.js, etc. |
+| **PascalCase** | Assignment.js, ContentLibrary.js, CourseAssignment.js, EmotionTracking.js, FaceEmbedding.js, FRSession.js, QuestionBank.js, Quiz.js, StudentProgress.js, Submission.js |
+| **lowercase** | activitylog.js, machineactivelog.js |
+
+**Impact:** Makes it harder to guess import paths. Developers must check the actual filename.
+
+**Recommendation:** Standardize on one convention (camelCase is the majority pattern).
+
+### Finding 7: Inline Model Imports Inside Functions (LOW)
+
+**Category:** Architectural inconsistency
+**Severity:** Low — works but violates separation of concerns
+
+Several controllers and services import models inside function bodies rather than at module top-level:
+
+| File | Inline Import |
+|---|---|
+| analyticsController.js | User, Order (line 63-64) |
+| frController.js | FRSession (line 346) |
+| inventoryController.js | PurchaseRequest (line 968) |
+| userController.js | MedicalRecord (line 928), User (line 965) |
+| services/wtf.js | User (lines 143, 519) |
+| services/notification.js | UserNotificationView (line 292) |
+| services/medicalCheckIns.js | Balagruha (line 683) |
+| lms/student/computerAppsController.js | Quiz, Submission, Coin, User (lines 177-260) |
+| lms/student/lifeSkillsController.js | Quiz, Submission, Coin, User (lines 292-562) |
+
+**Impact:** Deferred loading avoids circular dependency issues but makes dependency tracing harder and is inconsistent with the project's general top-level import pattern.
+
+### Finding 8: Mixed Data Access Patterns (MEDIUM)
+
+**Category:** Architectural inconsistency
+**Severity:** Medium — maintainability concern
+
+The codebase uses three different data access patterns simultaneously:
+
+1. **Controller -> Model direct** (e.g., purchaseRequestController.js imports models directly)
+2. **Controller -> Service -> Model** (e.g., coinController.js -> coin.js -> Coin model)
+3. **Controller -> Service -> Data-Access -> Model** (e.g., doctorController.js -> doctor.js -> DA/doctor.js -> Doctor model)
+
+This means changing a model's API requires checking three different layers. Some models are accessed via all three patterns by different controllers.
+
+**Recommendation:** Standardize on the three-tier pattern (Controller -> Service -> DA -> Model) for all data access.
+
+### Finding 9: Student Model Appears Largely Redundant (MEDIUM)
+
+**Category:** Redundant model
+**Severity:** Medium — confusing architecture
+
+The `Student` model (`backend/models/student.js`) is only imported by `frController.js`. Meanwhile, student data (age, gender, balagruha, parental status, guardian info) is also stored on the `User` model (when `role === "student"`). The `Student` model has its own `userId` field referencing `User`, creating a one-to-one relationship where one model would suffice.
+
+**Impact:** Dual models for student data creates confusion about which is the source of truth. Most controllers use `User` model for student data.
+
+**Recommendation:** Evaluate whether Student model can be deprecated in favor of User model fields, or clarify the intended boundary between the two.
+
+### Findings Summary
+
+| # | Finding | Severity | Category |
+|---|---|---|---|
+| 1 | Redundant student data (User vs Student) with enum casing mismatch | HIGH | Redundant fields |
+| 2 | PascalCase field names in machine models | MEDIUM | Naming inconsistency |
+| 3 | MachineAssignment references non-existent "Admin" model | HIGH | Invalid reference |
+| 4 | Missing indexes on 15+ frequently queried reference fields | MEDIUM | Missing indexes |
+| 5 | Seven models with minimal/no validation | LOW | Missing validation |
+| 6 | Three different file naming conventions for model files | LOW | Naming inconsistency |
+| 7 | Inline model imports inside function bodies (9 occurrences) | LOW | Architectural inconsistency |
+| 8 | Three different data access patterns used simultaneously | MEDIUM | Architectural inconsistency |
+| 9 | Student model largely redundant with User model | MEDIUM | Redundant model |
+
+---
+
+**Accuracy Verification:** All 45 model files in `backend/models/` were read directly and documented against actual source code. Field names, types, required flags, defaults, enums, refs, indexes, virtuals, hooks, and methods verified against source files on March 16, 2026. Model relationships (128 ObjectId references) and data flows verified against controller/service source code on March 16, 2026. Controller-model dependency map traced from all 51 controllers through service and data-access layers against actual `require()` statements on March 16, 2026.
