@@ -952,26 +952,61 @@ frontend/src/
 
 ### Technical Improvements Needed
 
-**Test Coverage (Critical):**
-- [ ] Backend controller tests: purchaseRequestController (51KB), userController (37KB), inventoryController (29KB)
-- [ ] Frontend E2E tests with Playwright (0% coverage currently)
-- [ ] Backend overall: 19.5% → target 70%
-- [ ] Frontend overall: 16% → target 50%
+**Test Coverage (Updated 2026-03-15):**
+- [x] Backend controller tests: purchaseRequestController (46 tests), userController (25 tests), inventoryController (19 tests)
+- [x] Playwright E2E setup with login (5 tests) + purchase lifecycle (4 tests)
+- [ ] Backend overall: target 70% (continue adding tests via BMAD dev-story cycle)
+- [ ] Frontend overall: target 50%
 
-**Code Quality:**
-- [ ] Split frontend/src/api.js (2,198 lines) into feature modules
+**Code Quality (Updated 2026-03-15):**
+- [x] Split frontend/src/api.js → 17 feature modules (184 exports preserved)
+- [x] Added ErrorBoundary component
 - [ ] Controller optimization story 1.3 completion (API response standardization)
 - [ ] Consolidate dual drag-and-drop libraries (@dnd-kit + @hello-pangea/dnd)
 - [ ] Consolidate dual icon libraries (FontAwesome + Lucide)
 
-**Documentation:**
-- [ ] Update architecture doc with current route paths
-- [ ] Create frontend specification document
+**Documentation (Updated 2026-03-15):**
+- [x] Update architecture doc with current route paths
+- [x] Create frontend specification document (UX Design Specification)
 - [ ] Create unified product brief
 
 ---
 
-## 9. Technical Debt & Notes
+## 9. Test Maintenance Rules
+
+### MANDATORY: Test Discipline for All Agents
+
+These rules apply to ALL code changes, whether via BMAD dev-story, quick-dev, or any other workflow:
+
+1. **Before modifying any controller, service, or route:** Check if a corresponding test file exists in `backend/tests/`. If it does, read it to understand what's tested.
+
+2. **After modifying code:** Run the corresponding test file. If tests fail due to YOUR changes (not pre-existing failures), update the tests to match the new behavior before committing.
+
+3. **When adding new endpoints or features:** Write tests as part of the same commit. Do NOT defer test writing to a separate task.
+
+4. **When removing or renaming functions/endpoints:** Delete or update the corresponding test cases. Do NOT leave tests for code that no longer exists.
+
+5. **Test commands:**
+   - Run specific test: `cd backend && npx jest tests/<file>.test.js --verbose`
+   - Run all tests: `cd backend && npx jest --verbose`
+   - Run with coverage: `cd backend && npx jest --coverage`
+   - Run E2E: `cd frontend && npx playwright test`
+
+6. **Pre-existing test failures:** 14 legacy test suites have pre-existing failures (before 2026-03-15 changes). These are NOT caused by recent work. When fixing these, treat each as its own task.
+
+7. **Frontend changes:** When modifying React components that have test files in `frontend/src/__tests__/`, run those tests. When modifying API layer files in `frontend/src/api/`, verify imports still work.
+
+### Test File Locations
+- Backend unit/integration: `backend/tests/`
+- Backend controller tests: `backend/tests/controllers/`
+- Backend route tests: `backend/tests/routes/`
+- Backend WTF tests: `backend/tests/wtf/unit/`
+- Frontend component tests: `frontend/src/__tests__/`
+- Frontend E2E: `frontend/e2e/`
+
+---
+
+## 10. Technical Debt & Notes
 
 ### Known Issues
 1. Machine management has backend but no frontend UI
@@ -979,6 +1014,7 @@ frontend/src/
 3. MAC address validation disabled in auth.js middleware
 4. FR routes have TODO comments for RBAC permission checks
 5. RBAC scope filtering not uniformly applied across all controllers
+6. 14 pre-existing test suites failing (legacy, not caused by recent changes)
 
 ### Code Quality
 - ESLint/Prettier not configured (follow existing patterns)
