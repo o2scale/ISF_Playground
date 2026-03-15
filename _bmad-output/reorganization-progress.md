@@ -1,11 +1,11 @@
 # Reorganization Progress Tracker
 
 ## Phase 1: Immediate Cleanup
-- [ ] 1.1 Commit already-staged BMAD deletions (450+ old structure files)
-- [ ] 1.3 Delete log files and lock files from root, backend/, frontend/
-- [ ] 1.4 Delete duplicates & empty files (claude.md, claude copy.md, duplicate workspace, concurrently)
-- [ ] 1.5 Update .gitignore with new entries
-- [ ] 1.COMMIT Phase 1 committed
+- [x] 1.1 Commit already-staged BMAD deletions (450+ old structure files)
+- [x] 1.3 Delete log files and lock files from root, backend/, frontend/
+- [x] 1.4 Delete duplicates & empty files (claude.md, claude copy.md, duplicate workspace, concurrently)
+- [x] 1.5 Update .gitignore with new entries
+- [x] 1.COMMIT Phase 1 committed (954 files, commit 6423081)
 
 ## Phase 4: Documentation Consolidation (before Phase 2 for cleaner root)
 - [ ] 4.1 Move 10 completion reports to _bmad-output/sprint-2-code-quality/
