@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const activityLogSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -6,7 +8,11 @@ const activityLogSchema = new mongoose.Schema(
     ipAddress: { type: String },
     details: { type: String },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const ActivityLog = mongoose.models.ActivityLog || mongoose.model("ActivityLog", activityLogSchema);

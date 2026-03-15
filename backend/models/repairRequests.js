@@ -33,7 +33,11 @@ const repairRequestSchema = new mongoose.Schema(
     repairDetails: { type: String },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const RepairRequests = mongoose.models.repair_requests || mongoose.model("repair_requests", repairRequestSchema);

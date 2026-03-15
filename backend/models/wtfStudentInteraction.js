@@ -53,15 +53,15 @@ const wtfStudentInteractionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Compound indexes for performance
-    indexes: [
-      { studentId: 1, pinId: 1, type: 1 }, // For unique interactions
-      { pinId: 1, type: 1 }, // For interaction counts
-      { studentId: 1, createdAt: -1 }, // For student's interaction history
-      { type: 1, createdAt: -1 }, // For analytics
-    ],
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Indexes for performance
+wtfStudentInteractionSchema.index({ pinId: 1, type: 1 });
+wtfStudentInteractionSchema.index({ studentId: 1, createdAt: -1 });
+wtfStudentInteractionSchema.index({ type: 1, createdAt: -1 });
 
 // Compound unique index to prevent duplicate interactions
 // For likes, we need to include likeType to allow both thumbs_up and green_heart

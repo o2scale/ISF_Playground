@@ -262,12 +262,16 @@ const FRSessionSchema = new mongoose.Schema({
     of: mongoose.Schema.Types.Mixed,
   },
 
-  // Timestamp
+  // Timestamp (legacy field, kept for backward compatibility)
   timestamp: {
     type: Date,
     default: Date.now,
     index: true,
   },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Compound indexes for common queries

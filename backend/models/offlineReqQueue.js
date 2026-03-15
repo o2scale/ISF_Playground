@@ -15,7 +15,11 @@ const OfflineRequestQueueSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
     updatedAt: { type: Date, default: Date.now },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const OfflineRequestQueue = mongoose.models.offline_request_queue || mongoose.model(

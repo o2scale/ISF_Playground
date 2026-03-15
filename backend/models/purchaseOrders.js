@@ -27,7 +27,11 @@ const purchaseOrderSchema = new mongoose.Schema(
     ], // URLs or file paths for attachments
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const PurchaseOrder = mongoose.models.purchase_orders || mongoose.model("purchase_orders", purchaseOrderSchema);

@@ -180,7 +180,11 @@ const medicalCheckInSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const MedicalCheckIn = mongoose.models.medical_check_ins || mongoose.model(

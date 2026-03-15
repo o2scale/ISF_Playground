@@ -44,7 +44,11 @@ const attendanceSchema = new mongoose.Schema(
       default: null, // User who manually marked attendance (if manual override)
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const Attendance = mongoose.models.Attendance || mongoose.model("Attendance", attendanceSchema);

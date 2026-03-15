@@ -79,6 +79,8 @@ const contentLibrarySchema = new mongoose.Schema({
   },
 }, {
   timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Indexes for efficient queries

@@ -117,16 +117,17 @@ const wtfSubmissionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Indexes for performance
-    indexes: [
-      { studentId: 1, createdAt: -1 }, // For student's submissions
-      { status: 1, createdAt: -1 }, // For pending reviews
-      { type: 1, status: 1 }, // For type-based queries
-      { reviewedBy: 1, reviewedAt: -1 }, // For reviewer's activity
-      { approvedPinId: 1 }, // For approved submissions
-    ],
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Indexes for performance
+wtfSubmissionSchema.index({ studentId: 1, createdAt: -1 });
+wtfSubmissionSchema.index({ status: 1, createdAt: -1 });
+wtfSubmissionSchema.index({ type: 1, status: 1 });
+wtfSubmissionSchema.index({ reviewedBy: 1, reviewedAt: -1 });
+wtfSubmissionSchema.index({ approvedPinId: 1 });
 
 // Pre-save middleware to validate submission data
 wtfSubmissionSchema.pre("save", function (next) {

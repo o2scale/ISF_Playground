@@ -58,7 +58,11 @@ const sportsTaskSchema = new mongoose.Schema(
       repetitions: { type: String, default: "" },
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const SportsTask = mongoose.models.sports_tasks || mongoose.model("sports_tasks", sportsTaskSchema);

@@ -95,7 +95,11 @@ const taskSchema = new mongoose.Schema(
       },
     ], // Array of student references for medical tasks
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const Task = mongoose.models.Task || mongoose.model("Task", taskSchema);

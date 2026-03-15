@@ -161,7 +161,11 @@ const CourseSchema = new mongoose.Schema(
       enum: ['en', 'hi', 'te'] // English, Hindi, Telugu
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 // Sprint 2: Indexes for performance

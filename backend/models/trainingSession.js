@@ -27,7 +27,11 @@ const trainingSession = new mongoose.Schema(
     },
     assignedStudents: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }], // Array of student IDs
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
 );
 
 const TrainingSession = mongoose.models.training_sessions || mongoose.model("training_sessions", trainingSession);

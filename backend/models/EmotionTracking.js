@@ -37,6 +37,8 @@ const emotionTrackingSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
     collection: 'emotion_tracking'
   }
 );

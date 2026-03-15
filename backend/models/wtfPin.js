@@ -117,17 +117,18 @@ const wtfPinSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Add indexes for performance
-    indexes: [
-      { status: 1, createdAt: -1 }, // For active pins query
-      { author: 1, createdAt: -1 }, // For author's pins
-      { type: 1, status: 1 }, // For type-based queries
-      { expiresAt: 1 }, // For expiration queries
-      { isOfficial: 1, status: 1 }, // For official posts
-      { position: 1, status: 1 }, // For manual ordering
-    ],
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Indexes for performance
+wtfPinSchema.index({ status: 1, createdAt: -1 });
+wtfPinSchema.index({ author: 1, createdAt: -1 });
+wtfPinSchema.index({ type: 1, status: 1 });
+wtfPinSchema.index({ expiresAt: 1 });
+wtfPinSchema.index({ isOfficial: 1, status: 1 });
+wtfPinSchema.index({ position: 1, status: 1 });
 
 // Virtual for engagement rate
 wtfPinSchema.virtual("engagementRate").get(function () {

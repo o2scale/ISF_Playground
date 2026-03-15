@@ -58,7 +58,9 @@ const inventoryTransactionSchema = new mongoose.Schema(
     }
   },
   {
-    timestamps: true // Automatically adds createdAt and updatedAt
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
 
@@ -71,10 +73,6 @@ inventoryTransactionSchema.index({ transactionType: 1 });
 inventoryTransactionSchema.virtual('quantityFormatted').get(function() {
   return this.quantity >= 0 ? `+${this.quantity}` : `${this.quantity}`;
 });
-
-// Ensure virtuals are included in JSON output
-inventoryTransactionSchema.set('toJSON', { virtuals: true });
-inventoryTransactionSchema.set('toObject', { virtuals: true });
 
 const InventoryTransaction = mongoose.models.InventoryTransaction || mongoose.model("InventoryTransaction", inventoryTransactionSchema);
 

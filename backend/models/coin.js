@@ -99,15 +99,16 @@ const coinSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-    // Indexes for performance
-    indexes: [
-      { userId: 1 }, // For user coin queries
-      { "transactions.createdAt": -1 }, // For transaction history
-      { "transactions.type": 1 }, // For transaction type queries
-      { "transactions.source": 1 }, // For source-based queries
-    ],
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
   }
 );
+
+// Indexes for performance
+coinSchema.index({ userId: 1 });
+coinSchema.index({ "transactions.createdAt": -1 });
+coinSchema.index({ "transactions.type": 1 });
+coinSchema.index({ "transactions.source": 1 });
 
 // Pre-save middleware to validate coin balance
 coinSchema.pre("save", function (next) {

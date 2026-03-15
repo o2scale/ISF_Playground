@@ -96,18 +96,6 @@ const FaceEmbeddingSchema = new mongoose.Schema({
     index: true,
   },
 
-  // Timestamps
-  createdAt: {
-    type: Date,
-    default: Date.now,
-    index: true,
-  },
-
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
-
   // When this embedding was last used for successful recognition
   lastUsedAt: {
     type: Date,
@@ -119,18 +107,16 @@ const FaceEmbeddingSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Indexes for performance
 FaceEmbeddingSchema.index({ studentId: 1, isActive: 1 });
 FaceEmbeddingSchema.index({ createdAt: -1 });
 FaceEmbeddingSchema.index({ lastUsedAt: -1 });
-
-// Update updatedAt on save
-FaceEmbeddingSchema.pre('save', function (next) {
-  this.updatedAt = new Date();
-  next();
-});
 
 /**
  * Instance method: Set embedding (encrypts before storing)
@@ -247,7 +233,7 @@ FaceEmbeddingSchema.statics.replaceEmbedding = async function (studentId, embedd
  * Prevent embedding field from appearing in logs
  */
 FaceEmbeddingSchema.methods.toJSON = function () {
-  const obj = this.toObject();
+  const obj = this.toObject({ virtuals: true });
   delete obj.embedding; // Never include raw embedding in JSON
   return obj;
 };

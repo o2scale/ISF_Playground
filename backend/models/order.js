@@ -151,7 +151,9 @@ const orderSchema = new mongoose.Schema({
     maxLength: 500
   }
 }, {
-  timestamps: true
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
 });
 
 // Indexes for efficient queries
@@ -322,10 +324,6 @@ async function notifyCoachesForOrder(order) {
     console.error('Error in notifyCoachesForOrder:', error);
   }
 }
-
-// Ensure virtuals are included in toJSON/toObject
-orderSchema.set('toJSON', { virtuals: true });
-orderSchema.set('toObject', { virtuals: true });
 
 const Order = mongoose.models.Order || mongoose.model('Order', orderSchema);
 
