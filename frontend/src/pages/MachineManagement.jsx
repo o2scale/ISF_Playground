@@ -1,13 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { RefreshCw, Search, Monitor } from 'lucide-react';
+import { Plus, RefreshCw, Search, Monitor } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
 import { api } from '../api';
 import { getBalagruha } from '../api';
+import { createMachine } from '../api/machines';
 import { useAuth } from '../contexts/AuthContext';
 import { useRBAC } from '../contexts/RBACContext';
 import { UserTypes, normalizeUserRole } from '../constants/userTypes';
+import MachineRegistrationModal from '../components/admin/MachineRegistrationModal';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -40,6 +42,9 @@ export default function MachineManagement() {
 
   // Balagruha options for dropdown
   const [balagruhaOptions, setBalagruhaOptions] = useState([]);
+
+  // Registration modal state
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
 
   // SECURITY CHECK: Admin-only access
   useEffect(() => {
@@ -121,6 +126,36 @@ export default function MachineManagement() {
     return () => clearTimeout(debounceTimer);
   }, [canReadMachines, fetchMachines, isAdmin, searchTerm]);
 
+  // Registration form handlers
+  const openRegister = useCallback(() => {
+    setIsRegisterOpen(true);
+  }, []);
+
+  const closeRegister = useCallback(() => {
+    setIsRegisterOpen(false);
+  }, []);
+
+  const handleRegisterSubmit = useCallback(async (payload) => {
+    try {
+      const result = await createMachine(payload);
+      if (result && result.success) {
+        toast.success('Machine registered successfully');
+        closeRegister();
+        fetchMachines();
+      } else {
+        toast.error(result?.message || 'Failed to register machine');
+      }
+    } catch (err) {
+      console.error('Error registering machine:', err);
+      const message =
+        err.response?.data?.message ||
+        err.message ||
+        'Failed to register machine';
+      toast.error(message);
+      throw err; // Re-throw so the modal knows submission failed
+    }
+  }, [closeRegister, fetchMachines]);
+
   // Client-side filtered rows (API handles server-side, this is a safety net)
   const filteredMachines = useMemo(() => machines, [machines]);
 
@@ -195,6 +230,14 @@ export default function MachineManagement() {
                   aria-hidden="true"
                 />
                 Refresh
+              </button>
+              <button
+                onClick={openRegister}
+                className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                aria-label="Register a new machine"
+              >
+                <Plus className="w-5 h-5" aria-hidden="true" />
+                Register Machine
               </button>
             </div>
           </div>
@@ -412,6 +455,15 @@ export default function MachineManagement() {
           )}
         </div>
       </div>
+
+      {/* Registration Modal */}
+      {isRegisterOpen && (
+        <MachineRegistrationModal
+          balagruhaOptions={balagruhaOptions}
+          onClose={closeRegister}
+          onSubmit={handleRegisterSubmit}
+        />
+      )}
     </div>
   );
 }

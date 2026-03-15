@@ -18,3 +18,4 @@ export * from './wtf';
 export * from './notifications';
 export * from './shop';
 export * from './purchaseRequests';
+export * from './machines';
