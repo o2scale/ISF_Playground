@@ -1,13 +1,23 @@
 # ISF Playground - Database Architecture
 
 **Generated:** March 16, 2026
-**Story:** 4.1 - Complete Model Schema Mapping
-**Total Models:** 45
+**Stories:** 4.1 (Schema Map), 4.2 (Relationships & Data Flows), 4.3 (Controller Dependencies & Quality Findings), 4.4 (Architecture Diagrams)
+**Total Models:** 45 | **Total Relationships:** 131 | **Total Controllers Mapped:** 51 | **Quality Findings:** 9
 **Database:** MongoDB 6.8.0 with Mongoose 8.10.2
 
 ---
 
 ## Table of Contents
+
+- [Schema Map (Story 4.1)](#core-platform) — 45 models across 6 domains
+- [Cross-Reference Summary](#cross-reference-summary) — Model counts, collection names, ObjectId reference map
+- [Model Relationships (Story 4.2)](#model-relationships) — 131 ObjectId references, hub models, pattern summary
+- [Data Flow Documentation (Story 4.2)](#data-flow-documentation) — Purchase, Coin, LMS, Medical lifecycles
+- [Controller-Model Dependencies (Story 4.3)](#controller-model-dependencies) — 51 controllers, 3-tier access pattern
+- [Schema Quality Findings (Story 4.3)](#schema-quality-findings) — 9 findings (2 HIGH, 4 MEDIUM, 3 LOW)
+- [Architecture Diagrams (Story 4.4)](#architecture-diagrams) — 7 Mermaid diagrams
+
+### Schema Map — Models by Domain
 
 ### Core Platform (17 models)
 1. [User](#user-backendmodelsuserjs)
@@ -2526,3 +2536,392 @@ The `Student` model (`backend/models/student.js`) is only imported by `frControl
 ---
 
 **Accuracy Verification:** All 45 model files in `backend/models/` were read directly and documented against actual source code. Field names, types, required flags, defaults, enums, refs, indexes, virtuals, hooks, and methods verified against source files on March 16, 2026. Model relationships (128 ObjectId references) and data flows verified against controller/service source code on March 16, 2026. Controller-model dependency map traced from all 51 controllers through service and data-access layers against actual `require()` statements on March 16, 2026.
+
+---
+
+## Architecture Diagrams
+
+**Story:** 4.4 - Architecture Diagrams
+**Generated:** March 16, 2026
+
+All diagrams use Mermaid notation and are renderable in GitHub, VS Code, and standard markdown viewers (NFR11).
+
+### Diagram 1: System Overview
+
+High-level view of all major components and their interactions. Shows the React/Electron frontend communicating through Nginx to the Express API, which connects to MongoDB, Redis, S3, and WebSocket services. Major subsystems are grouped by domain.
+
+```mermaid
+graph TB
+    subgraph Client["Client Layer"]
+        ELECTRON["Electron Desktop Shell"]
+        REACT["React Frontend<br/>(Vite + Tailwind + Radix UI)"]
+        ELECTRON --> REACT
+    end
+
+    subgraph Proxy["Reverse Proxy"]
+        NGINX["Nginx"]
+    end
+
+    REACT -->|"HTTP / WebSocket"| NGINX
+
+    subgraph API["Express API Server"]
+        direction TB
+        MW["Middleware Layer<br/>(auth, RBAC, multer, cors)"]
+
+        subgraph Domains["Application Domains"]
+            direction LR
+            CORE["Core Platform<br/>(Users, Roles, Balagruha,<br/>Attendance, Tasks,<br/>Schedules, Notifications)"]
+            SHOP["Shop & Procurement<br/>(Products, Cart, Orders,<br/>Purchase Requests,<br/>Vendors, Inventory)"]
+            LMS["LMS<br/>(Courses, Quizzes,<br/>Assignments, Submissions,<br/>Progress, Grading)"]
+            WTF["WTF / Gamification<br/>(Pins, Interactions,<br/>Submissions, Coins)"]
+            FR["Facial Recognition<br/>(Embeddings, Sessions,<br/>Emotion Tracking)"]
+            MED["Medical / Health<br/>(Check-Ins, Doctors,<br/>Hospitals, Records)"]
+        end
+
+        MW --> Domains
+    end
+
+    NGINX --> MW
+
+    subgraph DataLayer["Data & Storage"]
+        MONGO[("MongoDB 6.8<br/>45 Models / 131 Refs")]
+        REDIS[("Redis<br/>Session Cache")]
+        S3["AWS S3<br/>File Storage"]
+    end
+
+    subgraph RealTime["Real-Time"]
+        WS["WebSocket Server<br/>(WTF Live Updates)"]
+    end
+
+    Domains --> MONGO
+    Domains --> REDIS
+    Domains --> S3
+    Domains --> WS
+    WS -->|"Push Events"| NGINX
+```
+
+### Diagram 2: Component Relationship Diagram
+
+Shows the layered architecture from frontend pages down through API routes, controllers, services, data-access, and models to the database. Key relationships between layers are indicated.
+
+```mermaid
+graph TB
+    subgraph Frontend["Frontend (React + Zustand)"]
+        direction LR
+        PAGES["Pages<br/>(Dashboard, Login,<br/>Admin, Coach, Student)"]
+        COMPONENTS["Components<br/>(PinLogin, Shop, LMS,<br/>PurchaseManager, Medical,<br/>FR, Admin panels)"]
+        STORES["Zustand Stores<br/>(shopStore, authStore,<br/>wtfStore, lmsStore)"]
+        HOOKS["Custom Hooks<br/>(usePermission,<br/>useAuth, useApi)"]
+        PAGES --> COMPONENTS
+        COMPONENTS --> STORES
+        COMPONENTS --> HOOKS
+    end
+
+    subgraph APILayer["API Layer (Express)"]
+        direction LR
+        ROUTES_V1["V1 Routes<br/>(Legacy endpoints)"]
+        ROUTES_V2["V2 Routes<br/>(/api/v2/shop, /api/v2/lms,<br/>/api/v2/fr, /api/v2/medical,<br/>/api/v2/vendors)"]
+        AUTH_MW["Auth Middleware<br/>(JWT + checkPermission)"]
+    end
+
+    subgraph BusinessLayer["Business Logic"]
+        direction LR
+        CTRL["Controllers (51)<br/>(userController,<br/>courseController,<br/>orderController,<br/>wtfController, ...)"]
+        SVC["Services (15+)<br/>(coin, cart, order,<br/>course, wtf, medical,<br/>notification, ...)"]
+    end
+
+    subgraph DataAccess["Data Access Layer"]
+        direction LR
+        DA["DA Modules (15+)<br/>(DA/user, DA/course,<br/>DA/wtfPin, DA/doctor,<br/>DA/attendance, ...)"]
+    end
+
+    subgraph ModelLayer["Mongoose Models (45)"]
+        direction LR
+        CORE_M["Core (17)<br/>User, Student, Role,<br/>Balagruha, Attendance,<br/>Task, Machine, ..."]
+        SHOP_M["Shop (8)<br/>ShopItem, Vendor,<br/>PurchaseRequest, Cart,<br/>Order, Inventory, ..."]
+        LMS_M["LMS (8)<br/>Course, Quiz,<br/>Assignment, Submission,<br/>StudentProgress, ..."]
+        WTF_M["WTF (5)<br/>WtfPin, Coin,<br/>WtfSubmission, ..."]
+        FR_M["FR (3)<br/>FaceEmbedding,<br/>FRSession, Emotion"]
+        MED_M["Medical (4)<br/>MedicalCheckIns,<br/>Doctor, Hospital"]
+    end
+
+    DB[("MongoDB<br/>45 Collections")]
+
+    STORES -->|"Axios HTTP"| ROUTES_V2
+    HOOKS -->|"Axios HTTP"| ROUTES_V1
+
+    ROUTES_V1 --> AUTH_MW
+    ROUTES_V2 --> AUTH_MW
+    AUTH_MW --> CTRL
+
+    CTRL -->|"Direct import<br/>(some controllers)"| ModelLayer
+    CTRL --> SVC
+    SVC --> DA
+    SVC -->|"Direct import<br/>(some services)"| ModelLayer
+    DA --> ModelLayer
+
+    ModelLayer -->|"Mongoose ODM"| DB
+```
+
+### Diagram 3: Data Flow — Purchase Lifecycle
+
+Shows the complete 5-step procurement workflow from purchase request creation through delivery to balagruha, including the atomic transaction at the completion step.
+
+```mermaid
+sequenceDiagram
+    participant PM as Purchase Manager
+    participant API as Express API
+    participant PR as PurchaseRequest
+    participant SI as ShopItem
+    participant IT as InventoryTransaction
+    participant Admin as Admin
+    participant Coach as Coach
+
+    Note over PM,Coach: Step 1 — Create Purchase Request
+    PM->>API: POST /api/v2/shop/admin/purchase-requests
+    API->>API: Validate role (canCreatePurchaseRequest)
+    API->>SI: Validate productIds, get stock
+    API->>PR: Create (status: pending, auto PR-XXXXX)
+    API->>SI: Create pending product if new (isPendingProduct=true)
+
+    Note over PM,Coach: Step 2 — Admin Review
+    Admin->>API: PATCH .../purchase-requests/:id/status
+    API->>PR: Update (status: approved, reviewedBy, statusHistory[])
+
+    Note over PM,Coach: Step 3 — Mark Ordered
+    PM->>API: PATCH .../purchase-requests/:id/status
+    API->>PR: Update (status: ordered, statusHistory[])
+
+    Note over PM,Coach: Step 4 — Complete (Atomic Transaction)
+    PM->>API: PUT .../purchase-requests/:id/complete
+    rect rgb(255, 240, 220)
+        Note over API,IT: MongoDB Transaction
+        API->>SI: Activate pending products OR increment stock
+        API->>IT: Create InventoryTransaction per item
+        API->>PR: Update (status: completed, inventoryTransactionIds[])
+    end
+
+    Note over PM,Coach: Step 5 — Deliver to Balagruha
+    Coach->>API: PATCH .../purchase-requests/:id/status
+    API->>PR: Update (status: delivered_balagruha, deliveredByCoachId)
+```
+
+### Diagram 4: Data Flow — Coin Economy
+
+Shows how coins are earned through WTF interactions and LMS grading, spent through the shop, and refunded on order cancellation.
+
+```mermaid
+flowchart LR
+    subgraph Earn["Earning Coins"]
+        WTF_PIN["WTF Pin Created"] -->|"awardWtfCoins()"| COIN_ADD["Coin.addCoins"]
+        WTF_INT["WTF Interaction<br/>(Like/Love)"] -->|"addCoins()"| COIN_ADD
+        GRADE["Submission Graded<br/>(0-100 coins)"] -->|"type: earned<br/>source: submission_grade"| COIN_ADD
+        MANUAL["Manual Award<br/>(Coach)"] -->|"addCoins()"| COIN_ADD
+    end
+
+    subgraph CoinModel["Coin Model"]
+        COIN_ADD --> BAL["Balance Updated<br/>+ Transaction Record"]
+        COIN_SUB["Coin.deductCoins"] --> BAL
+    end
+
+    subgraph Spend["Spending Coins"]
+        BROWSE["Browse Shop"] --> CART["Add to Cart"]
+        CART --> ORDER["Create Order"]
+        ORDER -->|"Atomic Transaction"| DEDUCT["Deduct Balance<br/>+ Deduct Stock"]
+        DEDUCT --> COIN_SUB
+    end
+
+    subgraph Refund["Cancellation"]
+        CANCEL["Cancel Order<br/>(within 5 min)"] -->|"Atomic Transaction"| RESTORE["Restore Balance<br/>+ Restore Stock"]
+        RESTORE --> COIN_ADD
+    end
+```
+
+### Diagram 5: Data Flow — LMS Grading Lifecycle
+
+Shows the course lifecycle from creation through publishing, assignment, student progress tracking, submission, and grading with coin rewards.
+
+```mermaid
+sequenceDiagram
+    participant Admin as Admin
+    participant Coach as Coach
+    participant Student as Student
+    participant API as Express API
+    participant C as Course
+    participant CA as CourseAssignment
+    participant SP as StudentProgress
+    participant SUB as Submission
+    participant COIN as Coin
+
+    Note over Admin,COIN: Course Setup
+    Admin->>API: POST /api/v2/lms/admin/courses
+    API->>C: Create (status: draft, modules[])
+    Admin->>API: PATCH .../courses/:id/publish
+    API->>C: Update (status: published)
+
+    Note over Admin,COIN: Assignment
+    Coach->>API: POST /api/v2/lms/coach/assignments
+    API->>CA: Create (courseId, assignedTo, dueDate)
+    API->>Student: Notification sent
+
+    Note over Admin,COIN: Student Progress
+    Student->>API: GET .../courses/:courseId
+    API->>SP: findOrCreate (status: in_progress)
+    Student->>API: POST .../progress/:courseId/items/:itemId
+    API->>SP: Update (completedItems[], completionPercentage)
+
+    Note over Admin,COIN: Submission & Grading
+    Student->>API: POST .../submissions
+    API->>SUB: Create (status: pending, fileUrl)
+    Coach->>API: POST .../submissions/:id/grade
+    API->>SUB: markAsGraded (quality, coinsAwarded)
+    API->>COIN: Add transaction (type: earned, 0-100 coins)
+    API->>Student: Notification (coins + feedback)
+
+    Note over Admin,COIN: Course Completion
+    API->>SP: completionPercentage reaches 100%
+    API->>SP: Update (status: completed)
+    opt enableCoinReward
+        API->>COIN: Award course completion coins
+    end
+```
+
+### Diagram 6: Data Flow — Medical Check-In Lifecycle
+
+Shows the medical check-in workflow including doctor visits, follow-ups, and file attachments.
+
+```mermaid
+sequenceDiagram
+    participant Staff as Medical Incharge
+    participant API as Express API
+    participant MCI as MedicalCheckIns
+    participant U as User
+
+    Note over Staff,U: Step 1 — Create Check-In
+    Staff->>API: POST /api/v2/medical-check-ins
+    API->>U: Validate studentId exists
+    API->>MCI: Create (studentId, temperature, healthStatus,<br/>symptoms[], createdBy)
+
+    Note over Staff,U: Step 2 — Add Doctor Visit
+    Staff->>API: PUT /api/v2/medical-check-ins/:id
+    API->>MCI: Push to doctorVisits[]<br/>(doctorName, hospitalName, prescription, conclusion)
+
+    Note over Staff,U: Step 3 — Schedule Follow-Up
+    Staff->>API: PUT /api/v2/medical-check-ins/:id
+    API->>MCI: Push to followUps[]<br/>(followUpDate, hospital, doctor, assignedCoaches[])
+
+    Note over Staff,U: Step 4 — Upload Attachments
+    Staff->>API: PUT .../medical-check-ins/:id/attachments
+    API->>MCI: Push to attachments[]<br/>(fileName, fileUrl, fileType, uploadedBy)
+
+    Note over Staff,U: Step 5 — View Records
+    Staff->>API: GET .../medical-check-ins/student/:studentId
+    API->>MCI: Find by studentId (paginated)
+    Staff->>API: POST .../medical-check-ins/by-balagruha
+    API->>U: Get students by balagruhaIds (RBAC scope filter)
+    API->>MCI: Find check-ins for those students
+```
+
+### Diagram 7: Domain Model Relationships
+
+Shows how the 6 domains connect through their central hub models (User, Balagruha, Course, ShopItem, WtfPin, Machine). User is the primary hub with 60+ inbound references.
+
+```mermaid
+graph TB
+    subgraph CoreDomain["Core Platform (17 models)"]
+        USER(["User<br/>60+ inbound refs"])
+        STUDENT["Student"]
+        ROLE["Role"]
+        BALA(["Balagruha<br/>18 inbound refs"])
+        ATTEND["Attendance"]
+        NOTIFY["Notification"]
+        UNV["UserNotificationView"]
+        SCHED["Schedules"]
+        TASK["Task"]
+        SPORTS["SportsTasks"]
+        TRAIN["TrainingSession"]
+        MACHINE(["Machine<br/>3 inbound refs"])
+        MACHASSIGN["MachineAssignment"]
+        MACHLOG["MachineActiveLog"]
+        OFFLINE["OfflineReqQueue"]
+        ACTLOG["ActivityLog"]
+        MOOD["StudentMoodTracker"]
+    end
+
+    subgraph ShopDomain["Shop & Procurement (8 models)"]
+        SHOPITEM(["ShopItem<br/>4 inbound refs"])
+        VENDOR["Vendor"]
+        PR["PurchaseRequest"]
+        PO["PurchaseOrders"]
+        REPAIR["RepairRequests"]
+        INVTX["InventoryTransaction"]
+        CART["Cart"]
+        ORDER["Order"]
+    end
+
+    subgraph LMSDomain["LMS (8 models)"]
+        COURSE(["Course<br/>7 inbound refs"])
+        CONTENT["ContentLibrary"]
+        QUIZ["Quiz"]
+        QBANK["QuestionBank"]
+        ASSIGN["Assignment"]
+        COURSEASSIGN["CourseAssignment"]
+        PROGRESS["StudentProgress"]
+        SUBMISSION["Submission"]
+    end
+
+    subgraph WTFDomain["WTF / Gamification (5 models)"]
+        WTFPIN(["WtfPin<br/>4 inbound refs"])
+        WTFSET["WtfSettings"]
+        WTFINT["WtfStudentInteraction"]
+        WTFSUB["WtfSubmission"]
+        COIN["Coin"]
+    end
+
+    subgraph FRDomain["Facial Recognition (3 models)"]
+        FACEEMB["FaceEmbedding"]
+        FRSESS["FRSession"]
+        EMOTION["EmotionTracking"]
+    end
+
+    subgraph MedDomain["Medical / Health (4 models)"]
+        MEDICAL["Medical"]
+        MEDCI["MedicalCheckIns"]
+        DOCTOR["Doctor"]
+        HOSPITAL["Hospital"]
+    end
+
+    %% Cross-domain relationships via User hub
+    USER --- BALA
+    USER -.->|"referenced by"| ATTEND
+    USER -.->|"referenced by"| NOTIFY
+    USER -.->|"referenced by"| TASK
+    USER -.->|"referenced by"| ORDER
+    USER -.->|"referenced by"| PR
+    USER -.->|"referenced by"| COIN
+    USER -.->|"referenced by"| WTFPIN
+    USER -.->|"referenced by"| COURSE
+    USER -.->|"referenced by"| SUBMISSION
+    USER -.->|"referenced by"| PROGRESS
+    USER -.->|"referenced by"| FACEEMB
+    USER -.->|"referenced by"| MEDCI
+    USER -.->|"referenced by"| MACHINE
+
+    %% Balagruha cross-domain
+    BALA -.->|"referenced by"| SCHED
+    BALA -.->|"referenced by"| SHOPITEM
+    BALA -.->|"referenced by"| COURSEASSIGN
+    BALA -.->|"referenced by"| FRSESS
+    BALA -.->|"referenced by"| PR
+
+    %% Course internal
+    COURSE -.->|"referenced by"| QUIZ
+    COURSE -.->|"referenced by"| ASSIGN
+    COURSE -.->|"referenced by"| PROGRESS
+
+    %% Shop internal
+    SHOPITEM -.->|"referenced by"| CART
+    SHOPITEM -.->|"referenced by"| ORDER
+    SHOPITEM -.->|"referenced by"| INVTX
+    VENDOR -.->|"referenced by"| SHOPITEM
+```
