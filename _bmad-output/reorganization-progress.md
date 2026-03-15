@@ -8,10 +8,10 @@
 - [x] 1.COMMIT Phase 1 committed (954 files, commit 6423081)
 
 ## Phase 4: Documentation Consolidation (before Phase 2 for cleaner root)
-- [ ] 4.1 Move 10 completion reports to _bmad-output/sprint-2-code-quality/
-- [ ] 4.2 Archive historical data files to _bmad-output/archives/
-- [ ] 4.3 Verify root is clean of report clutter
-- [ ] 4.COMMIT Phase 4 committed
+- [x] 4.1 Move 10 completion reports to _bmad-output/sprint-2-code-quality/
+- [x] 4.2 Archive historical data files to _bmad-output/archives/
+- [x] 4.3 Verify root is clean of report clutter
+- [x] 4.COMMIT Phase 4 committed (commit 934e01e)
 
 ## Phase 2: Backend Script Organization
 - [ ] 2.1 Create organized script subdirectories under backend/scripts/
