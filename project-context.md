@@ -20,7 +20,10 @@ optimized_for_llm: true
 
 **Generated:** March 6, 2026  
 **Project Type:** MERN Stack + Electron Desktop Application  
-**Status:** Active Development (Sprint 5 Complete, Sprint 2 Partial)
+**Status:** Active Development
+**Reconciled:** March 15, 2026
+**Sprints Executed:** 1, 1.1, 2, 5, 5-PM, 6, S2-CQ
+**Sprints NOT Executed:** 3 (Mobile App), 4 (Emergency/SOS)
 
 ---
 
@@ -388,79 +391,81 @@ npm start          # Development server (port 3000)
 ## 3. Implementation Status by Sprint
 
 ### Sprint 1: Foundation ✅ COMPLETE
-**Status:** Production Ready
+**Status:** Production Ready (backend full, some frontend gaps)
 
-- Authentication & RBAC system
-- User management
-- Balagruha (Children's Home) management
-- Basic student profiles
-- Facial recognition login
+- Authentication & RBAC system (scope-based: own/balagruh/all)
+- User management (9 roles: admin, coach, student, balagruha-incharge, purchase-manager, medical-incharge, sports-coach, music-coach, amma)
+- Balagruha (Children's Home) management — full CRUD with UI
+- Task management — full lifecycle with attachments/comments (149KB component)
+- Machine registration & allocation — backend complete, NO frontend UI
+- Facial recognition login — AES-256-GCM encrypted embeddings
+- MAC address validation — code exists but DISABLED for development
 
-### Sprint 2: LMS & Communication 🟡 PARTIAL
-**Status:** Core implemented, some features pending
+**Known gaps:**
+- Machine Management has no frontend pages
+- RBAC scope filtering not uniformly applied across all controllers
+- FR routes have TODO comments for RBAC permission checks
 
-#### Epic 1: Student Experience - 70% Complete
-**Implemented:**
-- Student homepage with coin balance display
-- Course catalog navigation
-- Computer Apps courses (basic structure)
-- Quiz system with multiple question types
-- ISF Coin earning through course completion
-- Shopping cart and checkout flow
+### Sprint 1.1: RBAC & FR Rebuild ✅ COMPLETE
+- RBAC refactor with getScopeFilter() middleware
+- Facial Recognition rebuild with encrypted storage and audit trail
+- RBACContext + usePermission hook on frontend
 
-**Pending:**
-- Artweaver integration for Art courses
-- Video recording for Spoken English
-- Voice responses for Life Skills
-- Full offline capability
+### Sprint 2: LMS & Communication 🟡 MOSTLY COMPLETE (64% full, 24% partial)
+**Status:** Core LMS fully functional. Amma role and WhatsApp NOT built.
 
-#### Epic 2: Admin Course Management - 80% Complete
-**Implemented:**
-- Course creation with modules/chapters/content items
-- Content upload (video, PDF, documents, images)
-- Quiz creation (MCQ, True/False, Fill-in-blanks)
-- Course publishing/archiving
-- Multi-language support structure
-- Drag-and-drop reordering
+#### Epic 1: Student Experience — 5/6 IMPLEMENTED
+- ✅ Student homepage & course navigation (with offline caching)
+- ✅ Computer Apps course interaction (hierarchy, quizzes)
+- ⚠️ Art course — routes exist, Artweaver Electron IPC STUBBED (not connected)
+- ✅ Spoken English — webcam recording, video submission
+- ✅ Life Skills — WhatsApp-style voice recording, 60s limit, MCQ quizzes
+- ✅ ISF Coin wallet — auto-awards, transaction history, real-time balance
 
-**Pending:**
-- Translation workflow completion
-- Advanced content scheduling
+#### Epic 2: Admin Course Management — 5/5 IMPLEMENTED
+- ✅ Course creation & structure builder (Modules → Chapters → Content Items)
+- ✅ Content management module (S3 upload, 500MB limit, metadata)
+- ✅ Quiz & assessment builder (question bank, reorder, publish)
+- ✅ Translation module (English → Telugu, item-by-item editor, progress tracking)
+- ✅ Course publishing & archiving (Draft → Published → Archived with validation)
 
-#### Epic 3: Coach Functionality - 60% Complete
-**Implemented:**
-- Course assignment to Balagruhas/students
-- Basic submission viewing
-- Manual ISF Coin awards
-- Student progress tracking
+#### Epic 3: Coach Functionality — 3/4 IMPLEMENTED
+- ✅ Course assignment interface (assign to students/Balagruhas)
+- ✅ Grading interface (Art/Audio/Video submissions, flag/skip, rubrics)
+- ⚠️ Manual coin award — implicit via grading auto-awards, no explicit manual API
+- ✅ Coach reporting dashboard (overview stats, leaderboard)
 
-**Pending:**
-- Grading interface for Art/Video submissions
-- Comprehensive reporting dashboard
-- Voice note feedback
+#### Epic 4: Amma Role Enhancement — 0/4 IMPLEMENTED
+- ⚠️ Amma role EXISTS in system but has no dedicated features
+- ❌ Query management — NOT BUILT
+- ❌ SLA task management & auto-reassignment — NOT BUILT
+- ❌ Amma dashboard — NOT BUILT
 
-#### Epic 4: Amma Role Enhancement - 40% Complete
-**Implemented:**
-- Amma accounts
-- Basic query management
+#### Epic 5: System-Wide Features — 2/6 IMPLEMENTED
+- ✅ In-app notification center (personal/common/system, badge, read tracking)
+- ⚠️ Voice infrastructure — upload/recording works, no live calling
+- ✅ Admin broadcast ("Mann ki Baat") — implemented as WTF pin category
+- ❌ WhatsApp integration — NOT BUILT
+- ⚠️ PM error handling — generic handlers only, no PM-specific logging
+- ⚠️ Course reporting — basic metrics, not comprehensive
 
-**Pending:**
-- SLA-based query handling
-- Voice communication
-- Auto-reassignment logic
+### Sprint 3-4: Mobile App & Emergency ❌ NOT EXECUTED
+**Status:** MPSDs exist in docs/ but development was never started
+- Sprint 3: Mobile app, FR attendance, mobile media, push notifications (FCM)
+- Sprint 4: SOS emergency alerts, internal messaging, WhatsApp notifications, health tracking
 
-#### Epic 5: System-Wide Features - 50% Complete
-**Implemented:**
-- Notification system
-- Basic voice note structure
+### Sprint 5: E-Commerce & Shop ✅ COMPLETE (92%)
+**Status:** Production Ready — 24/26 stories implemented
+**Quality Score:** 97.25/100
 
-**Pending:**
-- WhatsApp integration
-- Real-time chat
-- Advanced offline queue
+### Sprint 5-PM: Purchase Manager Workflow ✅ COMPLETE
+**Status:** All 20 stories implemented (reconciled 2026-03-15, sprint-status.yaml updated)
 
-### Sprint 5: Purchase Manager Workflow ✅ COMPLETE
-**Status:** Production Ready (with client corrections implemented)
+### Sprint 6: Bug Fixes & Medical Enhancements ✅ COMPLETE
+**Status:** All 5 stories delivered — coach view, medical check-ins, hospital dropdown, post-production fixes
+
+### S2-CQ: Code Quality & Security ✅ MOSTLY COMPLETE
+**Status:** Security cleanup 100%, ORM standardization 100%, controller optimization 60%
 
 #### Epic 1: Inventory Governance & Vendor Management
 
@@ -909,48 +914,71 @@ frontend/src/
 
 ---
 
-## 8. What Remains from Sprint 2
+## 8. What Remains (Reconciled 2026-03-15)
 
-### High Priority (Required for full LMS)
+### Unbuilt Features from Executed Sprints
 
-**Student Experience:**
-- [ ] Artweaver integration for digital drawing
-- [ ] Video recording and playback for Spoken English
-- [ ] Voice response system for Life Skills
-- [ ] Full offline capability with sync
+**Sprint 2 — Amma Role (Epic 4):**
+- [ ] Amma query management system
+- [ ] SLA-based task management & auto-reassignment
+- [ ] Amma dashboard UI
 
-**Coach Features:**
-- [ ] Complete grading interface for Art submissions
-- [ ] Video review and grading for Spoken English
-- [ ] Comprehensive reporting dashboard
-- [ ] Voice note feedback
+**Sprint 2 — System Features:**
+- [ ] WhatsApp API integration for notifications
+- [ ] Live voice calling (infrastructure exists for upload only)
+- [ ] Comprehensive course reporting/analytics
 
-**Amma Features:**
-- [ ] SLA-based query management
-- [ ] Auto-reassignment logic
-- [ ] Voice communication system
-- [ ] Query reclassification
+**Sprint 1 — Machine Management:**
+- [ ] Frontend UI for machine CRUD operations
+- [ ] Re-enable MAC address validation for production
 
-**System Features:**
-- [ ] WhatsApp integration for notifications
-- [ ] Real-time chat system
-- [ ] Advanced offline queue management
+**Sprint 2 — Partial Items:**
+- [ ] Artweaver Electron IPC integration (stubbed)
+- [ ] Explicit manual coin award API for coaches
 
-### Medium Priority (Enhancements)
+### Unexecuted Sprints (3-4)
 
-- [ ] Advanced course scheduling
-- [ ] Bulk operations for course assignment
-- [ ] Student analytics and insights
-- [ ] Parent portal integration
+**Sprint 3 (Mobile App) — NOT STARTED:**
+- [ ] Mobile app for Coaches/Admins/BICs
+- [ ] FR-based attendance via photo upload
+- [ ] Mobile media management
+- [ ] Push notifications (FCM)
+
+**Sprint 4 (Emergency) — NOT STARTED:**
+- [ ] SOS emergency alert system (Desktop → Mobile)
+- [ ] Internal messaging system
+- [ ] WhatsApp-based notifications
+- [ ] Student health tracking with SOS correlation
+
+### Technical Improvements Needed
+
+**Test Coverage (Critical):**
+- [ ] Backend controller tests: purchaseRequestController (51KB), userController (37KB), inventoryController (29KB)
+- [ ] Frontend E2E tests with Playwright (0% coverage currently)
+- [ ] Backend overall: 19.5% → target 70%
+- [ ] Frontend overall: 16% → target 50%
+
+**Code Quality:**
+- [ ] Split frontend/src/api.js (2,198 lines) into feature modules
+- [ ] Controller optimization story 1.3 completion (API response standardization)
+- [ ] Consolidate dual drag-and-drop libraries (@dnd-kit + @hello-pangea/dnd)
+- [ ] Consolidate dual icon libraries (FontAwesome + Lucide)
+
+**Documentation:**
+- [ ] Update architecture doc with current route paths
+- [ ] Create frontend specification document
+- [ ] Create unified product brief
 
 ---
 
 ## 9. Technical Debt & Notes
 
 ### Known Issues
-1. Some Sprint 2 student features use mock data instead of DB integration
-2. Coach grading interface incomplete for Art/Video content
-3. Amma role needs full implementation
+1. Machine management has backend but no frontend UI
+2. Amma role exists in system but has zero dedicated features
+3. MAC address validation disabled in auth.js middleware
+4. FR routes have TODO comments for RBAC permission checks
+5. RBAC scope filtering not uniformly applied across all controllers
 
 ### Code Quality
 - ESLint/Prettier not configured (follow existing patterns)
@@ -1052,5 +1080,6 @@ PORT=5001
 ---
 
 **Document maintained by:** Development Team  
-**Last updated:** March 6, 2026  
-**Next review:** When Sprint 2 completion resumes or Sprint 6 begins
+**Last updated:** March 15, 2026
+**Last reconciled:** March 15, 2026 (full sprint cross-reference against codebase)
+**Reference:** See _bmad-output/sprint-reconciliation-report.md for detailed findings

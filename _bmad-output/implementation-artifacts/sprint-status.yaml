@@ -1,25 +1,40 @@
 # Sprint Status for Sprint 5 - Purchase Manager Workflow
 # This file tracks the real-time status of implementation stories.
+# Reconciled: 2026-03-15 (cross-referenced specs vs codebase)
 
 sprint_name: "Sprint 5"
 sprint_goal: "Establish Inventory Governance & Core Procurement Workflow"
-status: "active"
+status: "complete"
 
 development_status:
   # Epic 1: Inventory Governance & Vendor Management
   1-1-vendor-data-model: "done"
-  1-2-shopitem-refactor: "backlog"
-  1-3-admin-ui: "backlog"
+  1-2-shopitem-refactor: "done"       # approvedVendors + purchaseCategory fields in ShopItem model
+  1-3-admin-ui: "done"                # NewItemForm component exists and tested
 
   # Epic 2: Purchase Request Workflow Engine
   2-1-workflow-engine: "done"
-  2-2-staff-request-ui: "backlog"
+  2-2-staff-request-ui: "done"        # CreatePurchaseRequestModal works for all 8 non-student roles
   2-3-fulfillment-actions: "done"
 
+  # Client Corrections (Epic 2 extensions)
+  2-4-request-priority-deadline: "done"
+  2-5-six-purchase-categories: "done"
+  2-6-repair-technician-tracking: "done"
+
   # Epic 3: Operational Dashboards & Analytics
-  3-1-pm-dashboard: "review"
-  3-2-coach-dashboard: "review"
-  3-3-admin-inventory-report: "review"
+  3-1-pm-dashboard: "done"            # purchaseDashboard.js 400+ lines
+  3-2-coach-dashboard: "done"         # CoachDeliveries page + components
+  3-3-admin-inventory-report: "done"  # ShopInventoryView (604-line test file)
+
+  # Client Corrections (Epic 3 extensions)
+  3-4-pm-tabs-and-buckets: "done"
+  3-5-pm-bunched-view: "done"
+  3-6-additional-status-tabs: "done"
+  3-7-shorten-request-id: "done"
+  3-8-coach-filter: "done"
+  3-9-pm-navigation-badge: "done"
+  3-10-column-reorder-cleanup: "done"
 
   # Epic 4: Inventory Control & Audit
-  4-1-stock-reconciliation: "review"
+  4-1-stock-reconciliation: "done"    # StockReconciliationView + tests exist
