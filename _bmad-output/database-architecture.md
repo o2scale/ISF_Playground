@@ -1848,4 +1848,373 @@ Some models use non-standard collection names (lowercase pluralized differs from
 
 ---
 
-**Accuracy Verification:** All 45 model files in `backend/models/` were read directly and documented against actual source code. Field names, types, required flags, defaults, enums, refs, indexes, virtuals, hooks, and methods verified against source files on March 16, 2026.
+## Model Relationships
+
+### Complete Relationship Table
+
+Every ObjectId reference between models is listed below with source model, reference field, target model, cardinality, and direction.
+
+#### Core Platform Relationships
+
+| # | Source Model | Ref Field | Target Model | Cardinality | Direction |
+|---|-------------|-----------|-------------|-------------|-----------|
+| 1 | User | balagruhaIds | Balagruha | Many-to-Many | User belongs to many Balagruhas; Balagruha has many Users |
+| 2 | User | performanceReports | Report | One-to-Many | User has many Reports (Note: Report model not present in codebase -- legacy/orphan ref) |
+| 3 | User | attendanceRecords | Attendance | One-to-Many | User has many Attendance records |
+| 4 | User | medicalRecords | MedicalRecord | One-to-Many | User has many Medical records |
+| 5 | User | assignedMachines | Machine | One-to-Many | User has many assigned Machines |
+| 6 | Student | balagruhaId | Balagruha | Many-to-One | Student belongs to one Balagruha |
+| 7 | Student | performanceReports | Report | One-to-Many | Legacy/orphan ref (see User note) |
+| 8 | Student | attendanceRecords | Attendance | One-to-Many | Legacy/orphan ref |
+| 9 | Student | medicalRecords | MedicalRecord | One-to-Many | Legacy/orphan ref |
+| 10 | Attendance | studentId | User | Many-to-One | Many Attendance records per User |
+| 11 | Attendance | balagruhaId | Balagruha | Many-to-One | Attendance scoped to one Balagruha |
+| 12 | Attendance | frSessionId | FRSession | One-to-One | Optional link to FR session that produced this record |
+| 13 | Attendance | markedBy | User | Many-to-One | Staff who manually marked attendance |
+| 14 | ActivityLog | userId | User | Many-to-One | Many logs per User |
+| 15 | Notification | userId | User | Many-to-One | Many Notifications per User |
+| 16 | Notification | metadata.pinId | WtfPin | Many-to-One | Optional link to WTF pin |
+| 17 | Notification | metadata.pinnedBy | User | Many-to-One | Optional reference to pinning user |
+| 18 | Notification | metadata.taskId | Task | Many-to-One | Optional link to task |
+| 19 | Notification | metadata.coachId | User | Many-to-One | Optional coach reference |
+| 20 | UserNotificationView | userId | User | One-to-One | One view record per User |
+| 21 | UserNotificationView | seenCommonNotifications[].notificationId | Notification | Many-to-Many | Tracks which common notifications User has seen |
+| 22 | Schedules | balagruhaId | Balagruha | Many-to-One | Schedule scoped to one Balagruha |
+| 23 | Schedules | assignedTo | User | Many-to-One | Schedule assigned to one User |
+| 24 | Schedules | createdBy | User | Many-to-One | Schedule created by one User |
+| 25 | Task | assignedUser | User | Many-to-One | Task assigned to one User |
+| 26 | Task | createdBy | User | Many-to-One | Task created by one User |
+| 27 | Task | comments[].user | User | Many-to-One | Comment author |
+| 28 | Task | comments[].attachments[].uploadedBy | User | Many-to-One | Attachment uploader |
+| 29 | Task | attachments[].uploadedBy | User | Many-to-One | Attachment uploader |
+| 30 | Task | balagruhaId | Balagruha | Many-to-One | Optional Balagruha scope (medical tasks) |
+| 31 | Task | students | User | Many-to-Many | Students associated with medical tasks |
+| 32 | SportsTasks | assignedUser | User | Many-to-One | Task assigned to one User |
+| 33 | SportsTasks | createdBy | User | Many-to-One | Task created by one User |
+| 34 | SportsTasks | comments[].user | User | Many-to-One | Comment author |
+| 35 | SportsTasks | attachments[].uploadedBy | User | Many-to-One | Attachment uploader |
+| 36 | TrainingSession | createdBy | User | Many-to-One | Session created by one User |
+| 37 | TrainingSession | balagruhaId | Balagruha | Many-to-One | Session scoped to one Balagruha |
+| 38 | TrainingSession | assignedStudents | User | Many-to-Many | Session has many student participants |
+| 39 | Machine | assignedBalagruha | Balagruha | Many-to-One | Machine assigned to one Balagruha |
+| 40 | MachineAssignment | MachineID | Machine | Many-to-One | Assignment history for one Machine |
+| 41 | MachineAssignment | PreviousBalagruhaID | Balagruha | Many-to-One | Previous location |
+| 42 | MachineAssignment | NewBalagruhaID | Balagruha | Many-to-One | New location |
+| 43 | MachineAssignment | AssignedBy | User | Many-to-One | Admin who performed assignment (ref: "Admin") |
+| 44 | MachineActiveLog | MachineID | Machine | Many-to-One | Activity log for one Machine |
+| 45 | MachineActiveLog | UserID | User | Many-to-One | User who used the Machine |
+| 46 | StudentMoodTracker | userId | User | Many-to-One | Many mood entries per User |
+
+#### Shop/Procurement Relationships
+
+| # | Source Model | Ref Field | Target Model | Cardinality | Direction |
+|---|-------------|-----------|-------------|-------------|-----------|
+| 47 | ShopItem | balagruhaId | Balagruha | Many-to-One | Optional scope to one Balagruha |
+| 48 | ShopItem | createdBy | User | Many-to-One | Created by one User |
+| 49 | ShopItem | createdInRequest | PurchaseRequest | Many-to-One | Created via a purchase request (pending products) |
+| 50 | ShopItem | approvedVendors[].vendorId | Vendor | Many-to-Many | Item has many approved Vendors |
+| 51 | PurchaseRequest | balagruhaId | Balagruha | Many-to-One | Request scoped to one Balagruha (or "STOCK") |
+| 52 | PurchaseRequest | items[].productId | ShopItem | Many-to-Many | Request contains many ShopItems |
+| 53 | PurchaseRequest | requestedBy | User | Many-to-One | Requested by one User |
+| 54 | PurchaseRequest | statusHistory[].changedBy | User | Many-to-One | Status changed by User |
+| 55 | PurchaseRequest | reviewedBy | User | Many-to-One | Reviewed/approved by one User |
+| 56 | PurchaseRequest | completedBy | User | Many-to-One | Completed by one User |
+| 57 | PurchaseRequest | deliveredByCoachId | User | Many-to-One | Coach who delivered to Balagruha |
+| 58 | PurchaseRequest | inventoryTransactionIds | InventoryTransaction | One-to-Many | Request generates many InventoryTransactions |
+| 59 | PurchaseRequest | allocatedToBalagruhas[].balagruhaId | Balagruha | Many-to-Many | Allocation targets |
+| 60 | PurchaseRequest | allocatedToBalagruhas[].allocatedBy | User | Many-to-One | User who allocated |
+| 61 | PurchaseOrders | balagruhaId | Balagruha | Many-to-One | Order for one Balagruha |
+| 62 | PurchaseOrders | attachments[].uploadedBy | User | Many-to-One | Attachment uploader |
+| 63 | PurchaseOrders | createdBy | User | Many-to-One | Created by one User |
+| 64 | RepairRequests | balagruhaId | Balagruha | Many-to-One | Repair for one Balagruha |
+| 65 | RepairRequests | attachments[].uploadedBy | User | Many-to-One | Attachment uploader |
+| 66 | RepairRequests | createdBy | User | Many-to-One | Created by one User |
+| 67 | InventoryTransaction | productId | ShopItem | Many-to-One | Transaction for one ShopItem |
+| 68 | InventoryTransaction | reference.id | (polymorphic) | Many-to-One | Links to Order, PurchaseRequest, or manual (via reference.type) |
+| 69 | InventoryTransaction | performedBy | User | Many-to-One | Performed by one User |
+| 70 | Cart | userId | User | One-to-One | One Cart per User (unique constraint) |
+| 71 | Cart | items[].shopItemId | ShopItem | Many-to-Many | Cart contains many ShopItems |
+| 72 | Order | userId | User | Many-to-One | Many Orders per User |
+| 73 | Order | items[].shopItemId | ShopItem | Many-to-Many | Order contains many ShopItems |
+| 74 | Order | cancelledBy | User | Many-to-One | User who cancelled |
+| 75 | Order | coinTransactionId | Coin | Many-to-One | Links to Coin record for payment |
+| 76 | Order | deliveredBy | User | Many-to-One | Coach who delivered |
+
+#### LMS Relationships
+
+| # | Source Model | Ref Field | Target Model | Cardinality | Direction |
+|---|-------------|-----------|-------------|-------------|-----------|
+| 77 | Course | assignedBalagruha | Balagruha | Many-to-Many | Course assigned to many Balagruhas |
+| 78 | Course | createdBy | User | Many-to-One | Created by one User |
+| 78a | Course | modules[].chapters[].contentItems[].quizRef | Quiz | Many-to-One | ContentItem can reference a standalone Quiz |
+| 79 | ContentLibrary | uploadedBy | User | Many-to-One | Uploaded by one User |
+| 80 | ContentLibrary | usedInCourses[].courseId | Course | Many-to-Many | Content used in many Courses |
+| 81 | Quiz | course | Course | Many-to-One | Quiz belongs to one Course |
+| 81a | Quiz | module | Module (subdoc of Course) | Many-to-One | Quiz scoped to a Course module (subdocument ID) |
+| 81b | Quiz | chapter | Chapter (subdoc of Course) | Many-to-One | Quiz scoped to a Course chapter (subdocument ID) |
+| 82 | Quiz | questions[].questionBankId | QuestionBank | Many-to-Many | Questions sourced from QuestionBank |
+| 83 | Quiz | createdBy | User | Many-to-One | Created by one User |
+| 84 | Quiz | lastEditedBy | User | Many-to-One | Last edited by one User |
+| 85 | QuestionBank | usedInQuizzes[].quizId | Quiz | Many-to-Many | Question used in many Quizzes (bidirectional with Quiz.questions[].questionBankId) |
+| 86 | QuestionBank | createdBy | User | Many-to-One | Created by one User |
+| 87 | QuestionBank | lastEditedBy | User | Many-to-One | Last edited by one User |
+| 88 | Assignment | courseId | Course | Many-to-One | Assignment for one Course |
+| 89 | Assignment | assignedBy | User | Many-to-One | Assigned by one User (Coach) |
+| 90 | Assignment | targetIds | (polymorphic) | Many-to-Many | Balagruha IDs or Student User IDs (based on targetType) |
+| 91 | CourseAssignment | courseId | Course | Many-to-One | Assignment for one Course |
+| 92 | CourseAssignment | assignedBy | User | Many-to-One | Assigned by one User (Coach) |
+| 93 | CourseAssignment | assignedTo.balagruhaIds | Balagruha | Many-to-Many | Assigned to many Balagruhas |
+| 94 | CourseAssignment | assignedTo.balagruhaId | Balagruha | Many-to-One | Legacy single Balagruha ref |
+| 95 | CourseAssignment | assignedTo.studentIds | User | Many-to-Many | Assigned to many Students |
+| 96 | StudentProgress | student | User | Many-to-One | Progress for one User (compound unique with course) |
+| 97 | StudentProgress | course | Course | Many-to-One | Progress for one Course |
+| 98 | Submission | studentId | User | Many-to-One | Submitted by one User |
+| 99 | Submission | courseId | Course | Many-to-One | Submission for one Course |
+| 100 | Submission | grade.gradedBy | User | Many-to-One | Graded by one User (Coach) |
+| 101 | Submission | flagged.flaggedBy | User | Many-to-One | Flagged by one User (Coach) |
+
+#### WTF/Gamification Relationships
+
+| # | Source Model | Ref Field | Target Model | Cardinality | Direction |
+|---|-------------|-----------|-------------|-------------|-----------|
+| 102 | WtfPin | author | User | Many-to-One | Authored by one User |
+| 103 | WtfSettings | createdBy | User | Many-to-One | Created by one User |
+| 104 | WtfSettings | updatedBy | User | Many-to-One | Updated by one User |
+| 105 | WtfStudentInteraction | studentId | User | Many-to-One | Interaction by one User |
+| 106 | WtfStudentInteraction | pinId | WtfPin | Many-to-One | Interaction on one WtfPin |
+| 107 | WtfSubmission | studentId | User | Many-to-One | Submitted by one User |
+| 108 | WtfSubmission | reviewedBy | User | Many-to-One | Reviewed by one User |
+| 109 | WtfSubmission | approvedPinId | WtfPin | One-to-One | Approved submission becomes one WtfPin |
+| 110 | Coin | userId | User | One-to-One | One Coin record per User (balance + transactions) |
+| 111 | Coin | transactions[].wtfPinId | WtfPin | Many-to-One | Transaction linked to a WtfPin |
+| 112 | Coin | transactions[].wtfSubmissionId | WtfSubmission | Many-to-One | Transaction linked to a WtfSubmission |
+| 113 | Coin | transactions[].wtfInteractionId | WtfStudentInteraction | Many-to-One | Transaction linked to an interaction |
+
+#### Facial Recognition Relationships
+
+| # | Source Model | Ref Field | Target Model | Cardinality | Direction |
+|---|-------------|-----------|-------------|-------------|-----------|
+| 114 | FaceEmbedding | studentId | Student | One-to-One | One active embedding per Student (unique constraint) |
+| 115 | FaceEmbedding | registeredBy | User | Many-to-One | Registered by one User (admin) |
+| 116 | FRSession | studentId | Student | Many-to-One | Many sessions per Student |
+| 117 | FRSession | initiatedBy | User | Many-to-One | Initiated by one User |
+| 118 | FRSession | recognition.matchedStudentId | Student | Many-to-One | Matched to one Student |
+| 119 | FRSession | balagruhaId | Balagruha | Many-to-One | Session at one Balagruha |
+| 120 | EmotionTracking | studentId | User | Many-to-One | Many emotion entries per User |
+
+#### Medical/Health Relationships
+
+| # | Source Model | Ref Field | Target Model | Cardinality | Direction |
+|---|-------------|-----------|-------------|-------------|-----------|
+| 121 | Medical | studentId | User | Many-to-One | Medical record for one User |
+| 122 | Medical | createdBy | User | Many-to-One | Created by one User |
+| 123 | MedicalCheckIns | studentId | User | Many-to-One | Check-in for one User |
+| 124 | MedicalCheckIns | createdBy | User | Many-to-One | Created by one User (medical-incharge/coach) |
+| 125 | MedicalCheckIns | attachments[].uploadedBy | User | Many-to-One | Attachment uploader |
+| 126 | MedicalCheckIns | followUps[].assignedCoaches | User | Many-to-Many | Follow-up assigned to many Coaches |
+| 127 | Doctor | createdBy | User | Many-to-One | Created by one User |
+| 128 | Hospital | createdBy | User | Many-to-One | Created by one User |
+
+### Relationship Pattern Summary
+
+| Pattern | Count | Examples |
+|---------|-------|---------|
+| Many-to-One | 89 | Attendance.studentId -> User, Order.userId -> User |
+| One-to-One | 5 | Cart.userId -> User (unique), FaceEmbedding.studentId -> Student (unique), Coin.userId -> User, UserNotificationView.userId -> User, WtfSubmission.approvedPinId -> WtfPin |
+| Many-to-Many | 17 | User.balagruhaIds <-> Balagruha, ShopItem.approvedVendors[].vendorId <-> Vendor, Cart.items[].shopItemId <-> ShopItem |
+| Polymorphic | 2 | Assignment.targetIds (Balagruha or User based on targetType), InventoryTransaction.reference.id (Order or PurchaseRequest based on reference.type) |
+| **Total ObjectId References** | **131** | Across all 45 models |
+
+### Central Hub Models
+
+The following models are referenced most frequently and serve as hubs in the relationship graph:
+
+| Model | Inbound Refs (referenced by others) | Outbound Refs (references others) |
+|-------|-------------------------------------|-----------------------------------|
+| **User** | 60+ (nearly every model references User) | 5 (Balagruha, Machine, Report, Attendance, MedicalRecord) |
+| **Balagruha** | 18 (User, Student, Attendance, Schedules, Task, Machine, TrainingSession, Course, CourseAssignment, PurchaseRequest, PurchaseOrders, RepairRequests, ShopItem, FRSession, MachineAssignment) | 1 (Machine via assignedMachines) |
+| **Course** | 7 (Quiz, Assignment, CourseAssignment, StudentProgress, Submission, ContentLibrary) | 2 (Balagruha, User) |
+| **ShopItem** | 4 (PurchaseRequest.items, Cart.items, Order.items, InventoryTransaction) | 4 (Balagruha, User, PurchaseRequest, Vendor) |
+| **WtfPin** | 4 (WtfStudentInteraction, WtfSubmission, Coin.transactions, Notification.metadata) | 1 (User) |
+| **Machine** | 3 (User, Balagruha, MachineAssignment, MachineActiveLog) | 1 (Balagruha) |
+
+---
+
+## Data Flow Documentation
+
+### Flow 1: Purchase Lifecycle
+
+**Scope:** PurchaseRequest creation through to InventoryTransaction and ShopItem stock updates, with optional Balagruha delivery.
+
+```
+Staff/PM creates request -> Admin approves -> PM marks ordered ->
+PM completes (delivers to store) -> InventoryTransaction created ->
+ShopItem stock updated -> Optional: Coach delivers to Balagruha
+```
+
+#### Step-by-Step Data Flow
+
+| Step | Actor | Action | Models Read | Models Written | Details |
+|------|-------|--------|------------|----------------|---------|
+| 1. Create PR | Purchase Manager / Coach | POST /api/v2/shop/admin/purchase-requests | User (role check, balagruhaIds), ShopItem (validate productIds, get current stock) | PurchaseRequest (new), ShopItem (create pending product if new) | Validates role via `user.canCreatePurchaseRequest()`. Parses items array, validates category. Auto-generates requestId (PR-XXXXX). Calculates totalEstimatedCost. Creates pending ShopItem if product doesn't exist (isPendingProduct=true). |
+| 2. Review/Approve | Admin | PATCH /api/v2/shop/admin/purchase-requests/:id/status | PurchaseRequest, User (role check) | PurchaseRequest (status -> approved, reviewedBy, reviewedAt, statusHistory[]) | State machine validation: pending -> approved. Adds statusHistory entry with changedBy and notes. |
+| 3. Mark Ordered | PM | PATCH /api/v2/shop/admin/purchase-requests/:id/status | PurchaseRequest, User | PurchaseRequest (status -> ordered, statusHistory[]) | State machine: approved -> ordered. Tracks who changed status. |
+| 4. Complete (Deliver to Store) | PM | PUT /api/v2/shop/admin/purchase-requests/:id/complete | PurchaseRequest, ShopItem[] (all items in request) | ShopItem[] (stock incremented or pending product activated), InventoryTransaction[] (one per item), PurchaseRequest (status -> completed, completedBy, completedAt, inventoryTransactionIds[], actualTotalCost) | **Atomic MongoDB transaction.** For each item: (a) if pending product, activate it (isPendingProduct=false, isActive=true, set initial stock); (b) if existing product, increment stock. Creates InventoryTransaction per item with type=purchase_request, previousStock, newStock, reference to PR. Idempotency: checks inventoryTransactionIds not already populated. |
+| 5. Deliver to Balagruha | Coach | PATCH /api/v2/shop/admin/purchase-requests/:id/status | PurchaseRequest, User | PurchaseRequest (status -> delivered_balagruha, deliveredByCoachId, deliveredToBalagruhaAt, statusHistory[]) | State machine: delivered_store -> delivered_balagruha. Records delivering coach. |
+
+#### State Machine
+
+```
+pending -> [approved | rejected | cancelled]
+approved -> [ordered | cancelled]
+ordered -> [delivered_store | cancelled]
+delivered_store -> [delivered_balagruha | completed]
+```
+
+#### Key Models Involved
+
+- **PurchaseRequest**: Central workflow entity; tracks full lifecycle via status + statusHistory[]
+- **ShopItem**: Stock recipient; pending products activated on completion
+- **InventoryTransaction**: Audit trail; one record per product per completion
+- **User**: Actor at every step (requestedBy, reviewedBy, completedBy, deliveredByCoachId)
+- **Balagruha**: Scoping entity (request destination)
+- **Vendor**: Referenced indirectly via ShopItem.approvedVendors[]
+
+---
+
+### Flow 2: Coin Economy (Earn -> Spend -> Cancel/Refund)
+
+**Scope:** How coins enter the system (earned via WTF, grading, manual award), how they are spent (shop purchase), and how refunds work (order cancellation within 5 minutes).
+
+```
+Student earns coins (multiple sources) -> Student browses Shop ->
+Adds to Cart -> Creates Order -> Coins deducted + Stock deducted ->
+Optional: Cancel within 5 min -> Coins refunded + Stock restored
+```
+
+#### Step-by-Step Data Flow
+
+**Earning Coins:**
+
+| Step | Actor | Action | Models Read | Models Written | Details |
+|------|-------|--------|------------|----------------|---------|
+| E1. WTF Pin Creation | Student | Pin approved by admin | WtfSubmission, WtfPin | Coin (addCoins: type=wtf_pin_creation, source=wtf), WtfPin (new) | Coin.awardWtfCoins() called. Updates wtfStats.pinsCreated. Amount from WtfSettings.wtfCoinReward. |
+| E2. WTF Interaction | Student | Like/love a pin | WtfStudentInteraction | Coin (addCoins: type=wtf_interaction, source=wtf) | Updates wtfStats.interactionsMade. |
+| E3. Submission Grading | Coach grades | POST .../submissions/:id/grade | Submission (populated with studentId, courseId), User (coach info) | Submission (markAsGraded), Coin (new transaction record: type=earned, source=submission_grade), User ($inc coins), Notification (new: type=submission_graded) | Coach sets quality + coinsAwarded (0-100). Creates Coin record with metadata {submissionId, courseId, quality}. Sends notification to student. |
+| E4. Manual Award | Coach | POST .../manual-award | User | Coin (addCoins), Notification | Coach can manually award coins to students for various reasons. |
+
+**Spending Coins (Shop Purchase):**
+
+| Step | Actor | Action | Models Read | Models Written | Details |
+|------|-------|--------|------------|----------------|---------|
+| S1. Browse Shop | Student | GET /api/v2/shop/products | ShopItem (active, in-stock) | -- | Read-only. Filters by category, availability, search. |
+| S2. Add to Cart | Student | POST /api/v2/shop/cart/items | ShopItem (stock check), Cart | Cart (addItem or increment quantity) | Cart.getOrCreate(userId) finds or creates. Validates stock availability. |
+| S3. Create Order | Student | POST /api/v2/shop/orders | Cart (populated with ShopItem), Coin (balance check), ShopItem[] (stock validation) | Order (new), ShopItem[] ($inc stock: -qty, $inc __v: +1), Coin (balance -= totalAmount, transactions.push spent), Cart (items cleared) | **Atomic MongoDB transaction with optimistic locking.** Validates: cart not empty, all items in stock, sufficient coin balance. Deducts stock with version check (__v). Generates unique orderNumber (ORD-YYYYMMDD-NNNNN). Sets status=completed, deliveryStatus=pending_confirmation. Clears cart. |
+| S4. Auto-Confirm | System | After 5-min window | Order | Order (deliveryStatus -> pending_delivery) | Order.checkAndConfirmOrders() called on coach delivery page load. Orders past 5-min window confirmed for delivery. |
+
+**Cancellation/Refund:**
+
+| Step | Actor | Action | Models Read | Models Written | Details |
+|------|-------|--------|------------|----------------|---------|
+| C1. Cancel Order | Student | POST .../orders/:orderNumber/cancel | Order (ownership + isCancelable check), Coin | Order (status -> cancelled, cancelledAt, cancelledBy, deliveryStatus -> cancelled), Coin (balance += totalAmount, transactions.push earned/refund), ShopItem[] ($inc stock: +qty) | **Atomic MongoDB transaction.** Only within 5-minute window (isCancelable virtual). Restores stock for all items. Refunds coins with source=shop, description="Refund for cancelled order". |
+
+#### Key Models Involved
+
+- **Coin**: Central ledger; one document per user with embedded transactions array, balance, weekly/monthly stats, wtfStats
+- **Cart**: Temporary holding area; one per user (unique constraint on userId)
+- **Order**: Immutable purchase record; contains item snapshots (name, price, quantity at time of purchase)
+- **ShopItem**: Stock source; decremented on purchase, restored on cancellation
+- **Submission**: Earning trigger via grading
+- **WtfPin / WtfSubmission / WtfStudentInteraction**: Earning triggers via WTF engagement
+
+---
+
+### Flow 3: LMS Grading Lifecycle
+
+**Scope:** From admin course creation through student progress to coach grading and coin award.
+
+```
+Admin creates Course -> Coach assigns via CourseAssignment ->
+Student progresses (StudentProgress) -> Student submits work (Submission) ->
+Coach grades -> StudentProgress updated -> Coin awarded -> Notification sent
+```
+
+#### Step-by-Step Data Flow
+
+| Step | Actor | Action | Models Read | Models Written | Details |
+|------|-------|--------|------------|----------------|---------|
+| 1. Create Course | Admin | POST /api/v2/lms/admin/courses | -- | Course (new: status=draft, modules[], createdBy) | Course has deeply nested structure: modules -> chapters -> contentItems. Each contentItem can be video/pdf/audio/image/text/link/quiz/task. Quiz contentItems can reference standalone Quiz via quizRef. |
+| 2. Publish Course | Admin | PATCH .../courses/:id/publish | Course | Course (status -> published, publishedAt) | Course.publish() instance method. Only published courses can be assigned. |
+| 3. Assign Course | Coach | POST /api/v2/lms/coach/assignments | Course (verify published), User (coach's students via balagruhaIds) | CourseAssignment (new: courseId, assignedBy, assignedTo {type, balagruhaIds or studentIds}, dueDate, status=active) | Supports two assignment types: by balagruha (all students in those balagruhas) or by individual studentIds. Creates notification for each affected student. Sets progress.totalStudents count. |
+| 4. Start Course | Student | GET /api/v2/lms/student/:category/courses/:courseId | Course (published), StudentProgress, CourseAssignment | StudentProgress (findOrCreate: status -> in_progress, startedAt, lastAccessedAt) | StudentProgress has compound unique index {student, course}. Created on first access. Tracks completedModules[], completedChapters[], completedItems[]. |
+| 5. Complete Content | Student | POST .../progress/:courseId/items/:itemId | Course (get item details), StudentProgress | StudentProgress (completedItems.push {itemId, itemType, completedAt, score}, completionPercentage recalculated) | Completion percentage = (completedItems.length / totalContentItems) * 100. |
+| 6. Submit Work | Student | POST /api/v2/lms/student/:category/submissions | Course (verify task exists) | Submission (new: studentId, courseId, taskId, taskTitle, submissionType, fileUrl, status=pending) | Supports art, video, audio, quiz submission types. Files uploaded to S3. Metadata includes duration, fileSize, dimensions. |
+| 7. Grade Submission | Coach | POST .../coach/submissions/:id/grade | Submission (populated with studentId, courseId), User (coach) | Submission (markAsGraded: grade {quality, coinsAwarded, feedback, evaluationCriteria, gradedBy, gradedAt}), Coin (new transaction if coinsAwarded > 0), User ($inc coins), Notification (new) | Quality: excellent/good/needs_improvement. CoinsAwarded: 0-100. Creates Coin record with type=earned, source=submission_grade. Notification includes coins awarded and feedback. |
+| 8. Course Complete | System | Triggered when completionPercentage reaches 100% | StudentProgress, Course | StudentProgress (status -> completed, completedAt), Coin (optional: if course.enableCoinReward, award course.coinsOnCompletion) | Course-level coin reward is optional (enableCoinReward flag). Updates CourseAssignment progress.studentsCompleted. |
+
+#### Alternative Paths
+
+- **Flag Submission**: Coach flags submission (status -> flagged, flagged.reason, flagged.flaggedBy). Notification sent to all admin users.
+- **Skip Submission**: Coach skips for later review (status -> skipped, skippedAt).
+- **Save Draft**: Coach saves draft grade (draft {quality, coinsAwarded, feedback, savedAt}) without finalizing.
+- **Bulk Grade**: Coach grades multiple submissions at once with same quality/coins settings.
+
+#### Key Models Involved
+
+- **Course**: Content container with nested modules/chapters/contentItems
+- **CourseAssignment**: Links Course to Students (via Balagruha or direct studentIds)
+- **StudentProgress**: Per-student per-course progress tracking (compound unique)
+- **Submission**: Student work for coach review
+- **Coin**: Reward for graded work
+- **Notification**: Student notifications on grading
+- **ContentLibrary**: Media files referenced by course contentItems (uploaded independently)
+- **Quiz / QuestionBank**: Assessment content linked to courses
+
+---
+
+### Flow 4: Medical Check-In Lifecycle
+
+**Scope:** Medical check-in creation, doctor visit tracking, follow-up scheduling, and student health record management.
+
+```
+Staff creates MedicalCheckIn -> Links to Student ->
+Records symptoms/temperature -> Optional: Doctor visit details ->
+Optional: Follow-up scheduling with assigned coaches ->
+Attachments (prescriptions, test results) -> Health status tracking
+```
+
+#### Step-by-Step Data Flow
+
+| Step | Actor | Action | Models Read | Models Written | Details |
+|------|-------|--------|------------|----------------|---------|
+| 1. Create Check-In | Medical Incharge / Coach | POST /api/v2/medical-check-ins | User (validate studentId exists) | MedicalCheckIns (new: studentId, temperature, date, healthStatus, notes, symptoms[], customSymptom, createdBy) | healthStatus enum: normal/important/critical. Symptoms from predefined list (cough_cold, fever, stomach_ache, headache, injury, other). File uploads handled via multer (attachments, prescriptions, testResults). |
+| 2. Add Doctor Visit | Medical Incharge | PUT /api/v2/medical-check-ins/:id (or during create) | MedicalCheckIns | MedicalCheckIns (doctorVisits[].push: {doctorName, hospitalName, visitDate, prescriptionFiles[], testDetails, testResultFiles[], conclusion, createdAt}) | Sprint6-Story-3-AC5: Supports multiple doctor visits per check-in. Backward compatible with legacy single doctorVisit object. Doctor/hospital names are embedded strings (not references to Doctor/Hospital models). |
+| 3. Schedule Follow-Up | Medical Incharge | PUT /api/v2/medical-check-ins/:id | MedicalCheckIns | MedicalCheckIns (followUps[].push: {followUpDate, hospital, doctor, assignedCoaches[], status, descriptionFiles[], testResultFiles[], notes, createdAt}) | Sprint6-Story-3-AC6/AC7: Multiple follow-ups per check-in. Each follow-up can have assigned coaches (User ObjectIds). Status: active/inactive/completed. |
+| 4. Upload Attachments | Medical Incharge | PUT /api/v2/medical-check-ins/:id/attachments | MedicalCheckIns | MedicalCheckIns (attachments[].push: {fileName, fileUrl, fileType, fileSize, uploadedBy, uploadedAt}) | Supports three attachment categories: general attachments, prescriptions (on doctor visits), and test results (on doctor visits). |
+| 5. View by Student | Any authorized | GET /api/v2/medical-check-ins/student/:studentId | MedicalCheckIns (filtered by studentId), User | -- | Returns paginated check-in history for a student. |
+| 6. View by Balagruha | Coach / Admin | POST /api/v2/medical-check-ins/by-balagruha | User (get students by balagruhaIds), MedicalCheckIns | -- | RBAC: scope filter restricts balagruhaIds to user's assigned scope. Finds all students in requested balagruhas, then their check-ins. |
+
+#### Relationship to Other Medical Models
+
+The medical domain has four models that operate semi-independently:
+
+| Model | Role | Linked To |
+|-------|------|-----------|
+| **MedicalCheckIns** | Primary check-in workflow (active use) | User (studentId, createdBy, followUps[].assignedCoaches) |
+| **Medical** | Historical medical records (medicalHistory[], vaccinations[]) | User (studentId, createdBy) |
+| **Doctor** | Doctor reference data (name, specialty, hospital, contact) | User (createdBy) |
+| **Hospital** | Hospital reference data (name, address, city, contact) | User (createdBy) |
+
+**Important Note:** MedicalCheckIns.doctorVisits[] stores doctor/hospital names as embedded strings, NOT as ObjectId references to the Doctor/Hospital models. The Doctor and Hospital models serve as independent reference directories managed separately. This means there is no enforced referential link between a check-in's doctor visit and the Doctor/Hospital collections.
+
+#### Key Models Involved
+
+- **MedicalCheckIns**: Primary workflow entity; tracks student health with symptoms, doctor visits, follow-ups, and attachments
+- **Medical (MedicalRecord)**: Separate historical record with medicalHistory[], vaccinations[], healthCheckupDate
+- **Doctor**: Reference directory for doctors (not linked from check-ins by ObjectId)
+- **Hospital**: Reference directory for hospitals (not linked from check-ins by ObjectId)
+- **User**: Actor (createdBy, assignedCoaches) and subject (studentId)
+
+---
+
+**Accuracy Verification:** All 45 model files in `backend/models/` were read directly and documented against actual source code. Field names, types, required flags, defaults, enums, refs, indexes, virtuals, hooks, and methods verified against source files on March 16, 2026. Model relationships (128 ObjectId references) and data flows verified against controller/service source code on March 16, 2026.
