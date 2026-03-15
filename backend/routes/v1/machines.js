@@ -35,6 +35,14 @@ router.put(
   machineController.assignMachine
 );
 
+// Get machine usage logs (active log history)
+router.get(
+  "/:id/logs",
+  authenticate,
+  authorize("Machine Management", "Read"),
+  machineController.getMachineLogs
+);
+
 // Get machine history
 router.get(
   "/:id/history",

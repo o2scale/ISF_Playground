@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Plus, RefreshCw, Search, Monitor, Pencil, PowerOff } from 'lucide-react';
+import { Plus, RefreshCw, Search, Monitor, Pencil, PowerOff, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ import { UserTypes, normalizeUserRole } from '../constants/userTypes';
 import MachineRegistrationModal from '../components/admin/MachineRegistrationModal';
 import MachineEditModal from '../components/admin/MachineEditModal';
 import DeactivateConfirmModal from '../components/admin/DeactivateConfirmModal';
+import MachineLogsModal from '../components/admin/MachineLogsModal';
 
 const STATUS_OPTIONS = [
   { value: 'all', label: 'All Statuses' },
@@ -53,6 +54,9 @@ export default function MachineManagement() {
 
   // Deactivate confirmation modal state
   const [deactivatingMachine, setDeactivatingMachine] = useState(null);
+
+  // Logs modal state
+  const [viewingLogsMachine, setViewingLogsMachine] = useState(null);
 
   // SECURITY CHECK: Admin-only access
   useEffect(() => {
@@ -501,6 +505,14 @@ export default function MachineManagement() {
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
                             <button
+                              onClick={() => setViewingLogsMachine(machine)}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                              aria-label={`View usage logs for machine ${machine.machineId}`}
+                            >
+                              <FileText className="w-3.5 h-3.5" aria-hidden="true" />
+                              View Logs
+                            </button>
+                            <button
                               onClick={() => setEditingMachine(machine)}
                               className="inline-flex items-center gap-1 px-3 py-1.5 text-sm text-purple-700 bg-purple-50 hover:bg-purple-100 rounded-lg transition-colors focus:ring-2 focus:ring-purple-500 focus:outline-none"
                               aria-label={`Edit machine ${machine.machineId}`}
@@ -566,6 +578,14 @@ export default function MachineManagement() {
           machine={deactivatingMachine}
           onClose={() => setDeactivatingMachine(null)}
           onConfirm={handleDeactivateConfirm}
+        />
+      )}
+
+      {/* Usage Logs Modal */}
+      {viewingLogsMachine && (
+        <MachineLogsModal
+          machine={viewingLogsMachine}
+          onClose={() => setViewingLogsMachine(null)}
         />
       )}
     </div>

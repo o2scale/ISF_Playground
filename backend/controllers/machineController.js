@@ -1,5 +1,6 @@
 // controllers/machineController.js
 const Machine = require("../models/machine");
+const MachineActivityStamp = require("../models/machineactivelog");
 const { getBalagruhaById } = require("../data-access/balagruha");
 const { default: mongoose } = require("mongoose");
 const { getMachineById, deleteMachine } = require("../data-access/machines");
@@ -519,6 +520,66 @@ exports.getUnassignedMachines = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching unassigned machines:", error);
+    res.status(500).json({
+      success: false,
+      data: {},
+      message: "Internal server error",
+    });
+  }
+};
+
+/**
+ * Get usage logs (MachineActivityStamp) for a specific machine.
+ * Supports pagination (default 20 per page), sorted by most recent first.
+ */
+exports.getMachineLogs = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { page = 1, limit = 20 } = req.query;
+
+    // Validate the machine ID format
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid machine ID format.",
+      });
+    }
+
+    // Verify the machine exists
+    const machine = await Machine.findById(id);
+    if (!machine) {
+      return res.status(404).json({
+        success: false,
+        message: "Machine not found.",
+      });
+    }
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 20));
+    const skip = (pageNum - 1) * limitNum;
+
+    const [logs, total] = await Promise.all([
+      MachineActivityStamp.find({ MachineID: id })
+        .populate("UserID", "name email role")
+        .sort({ LoginTimestamp: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .lean(),
+      MachineActivityStamp.countDocuments({ MachineID: id }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        logs,
+        total,
+        page: pageNum,
+        totalPages: Math.ceil(total / limitNum),
+      },
+      message: "Successfully fetched machine usage logs",
+    });
+  } catch (error) {
+    console.error("Error fetching machine logs:", error);
     res.status(500).json({
       success: false,
       data: {},

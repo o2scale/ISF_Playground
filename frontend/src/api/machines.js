@@ -30,3 +30,14 @@ export const deactivateMachine = async (id) => {
   const response = await api.put(`/api/v1/machines/${id}/status`);
   return response.data;
 };
+
+/**
+ * Get usage logs for a specific machine via GET /api/v1/machines/:id/logs
+ * @param {string} id - Machine document _id
+ * @param {Object} [params] - Optional query params { page, limit }
+ * @returns {Promise<Object>} API response data with { logs, total, page, totalPages }
+ */
+export const getMachineLogs = async (id, params = {}) => {
+  const response = await api.get(`/api/v1/machines/${id}/logs`, { params });
+  return response.data;
+};
