@@ -337,12 +337,16 @@ router.post("/student/login", authLimiter, async (req, res) => {
         .json({ success: false, message: "userId is required" });
     }
     // Find user by _id, userId field, or email
-    const isValid = mongoose.Types.ObjectId.isValid(userId);
+    const isValid = mongoose.Types.ObjectId.isValid(userId) && String(userId).length === 24;
     let user = null;
-    
+
     if (isValid) {
       // Try to find by MongoDB ObjectId first
-      user = await User.findById(userId);
+      try {
+        user = await User.findById(userId);
+      } catch (e) {
+        // CastError — not a valid ObjectId, continue to other lookups
+      }
     }
     
     if (!user) {
