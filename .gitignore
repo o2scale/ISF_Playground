@@ -165,3 +165,7 @@ frontend/build/
 
 # Ralph Loop state (session-local)
 .claude/ralph-loop.local.md
+
+# Files with exposed credentials (rotated but blocked by GitHub Push Protection)
+_bmad-output/sprint-2-code-quality/SECURITY_CLEANUP_COMPLETION_REPORT.md
+docs/security/credential-rotation.md
