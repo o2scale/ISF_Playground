@@ -314,3 +314,56 @@ All source files referenced by failing tests were verified to still exist:
 | `security-rbac.test.js` | `4f368072` | Written before scope fix + always had path bug |
 | `migration-scope.test.js` | `5a467012` | Written before shared setup.js existed |
 | `performance-rbac.test.js` | `4f368072` | Always had path bug |
+
+---
+
+## Story 1.4: Final Verification — Clean Suite & Coverage Maintained
+
+**Date:** 2026-03-16
+**Agent:** Quinn (QA Engineer) — Claude Opus 4.6 (1M context)
+**Command:** `cd backend && npx jest --coverage --verbose`
+
+### AC #1: Zero Test Failures & Execution Time
+
+| Metric | Result | Threshold | Status |
+|--------|--------|-----------|--------|
+| Test Suites | 25 passed, 0 failed | 0 failures | PASS |
+| Tests | 388 passed, 1 skipped, 0 failed | 0 failures | PASS |
+| Execution Time | 24.61s | < 120s (NFR5) | PASS |
+
+### AC #2: Coverage Comparison — Baseline (Story 1.1) vs Final (Story 1.4)
+
+| Metric | Baseline (1.1) | Final (1.4) | Delta | Status |
+|--------|---------------|-------------|-------|--------|
+| Statements | 29.77% | 32.40% | +2.63pp | PASS (no decrease) |
+| Branches | 22.55% | 25.25% | +2.70pp | PASS (no decrease) |
+| Functions | 25.74% | 28.28% | +2.54pp | PASS (no decrease) |
+| Lines | 30.21% | 32.82% | +2.61pp | PASS (no decrease) |
+
+> **Coverage improved across all four metrics.** The +2.5-2.7pp improvement is attributable to Story 1.3 test fixes — previously-failing tests now execute their code paths fully, increasing measured coverage.
+
+### Summary of All Resolutions Applied (Story 1.3)
+
+| Pattern | Suites Fixed | Fix Applied |
+|---------|-------------|-------------|
+| ShopItem category enum mismatch | 8 suites (#1-#8) | Updated test fixtures from old category values (`stationery`, `books`, `sports`, `other`) to current values (`ISF Shop`, `Medicines`, `Consumables`, `Repairs`, `Infra`, `Others`) |
+| getScopeFilter API change | 2 suites (#9, #10) | Updated assertions from `filter.userId` to `filter._id` |
+| File path resolution (ENOENT) | 2 suites (#10, #12) | Fixed `fs.readFileSync` paths from `'backend/...'` to paths relative to Jest cwd (`backend/`) |
+| Mongoose connection conflict | 1 suite (#11) | Removed direct `mongoose.connect()` call; suite now uses shared `tests/setup.js` connection |
+
+### Infrastructure Notes
+
+- **`forceExit: true`** remains in `jest.config.js` — masks open handle issues. Worker process force-exit warning still emitted. Not a test failure but should be investigated in future work.
+- **Duplicate schema index warning** on `{"orderNumber":1}` in the Order model still present. Not a test failure.
+- **Coverage threshold at 70%** in jest.config.js causes Jest to exit with code 1 even when all tests pass. This is expected until coverage reaches 70%.
+
+### Epic 1: Test Stabilization — COMPLETE
+
+| Story | Status | Outcome |
+|-------|--------|---------|
+| 1.1 Baseline Coverage Measurement | DONE | 29.77% stmts, 22.55% branches, 25.74% functions, 30.21% lines |
+| 1.2 Triage & Classify Failing Suites | DONE | 12 failing suites classified into 4 failure patterns |
+| 1.3 Resolve Legacy Test Failures | DONE | All 12 suites fixed — 0 test deletions, 0 code changes, tests-only fixes |
+| 1.4 Verify Clean Suite & Coverage | DONE | 0 failures, coverage improved, 24.61s execution time |
+
+**Epic 1 is now complete. The backend test suite is a reliable CI signal.**
