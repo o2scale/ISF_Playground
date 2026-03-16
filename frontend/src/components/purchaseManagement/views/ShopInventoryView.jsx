@@ -236,13 +236,14 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   }, []);
 
   // Fix: Update status filter when normalizedRole is determined
+  // Story 3.4: PM defaults to "Purchase Requests" (pending) tab
   useEffect(() => {
     if (normalizedRole === UserTypes.PURCHASE_MANAGER) {
       setFilters(prev => ({
         ...prev,
-        status: 'active'
+        status: 'pending'
       }));
-      setActiveStatusTab('active');
+      setActiveStatusTab('pending');
     }
   }, [normalizedRole]);
 

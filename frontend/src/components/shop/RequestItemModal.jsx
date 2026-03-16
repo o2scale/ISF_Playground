@@ -30,13 +30,17 @@ export default function RequestItemModal({ product, onClose }) {
             // Filter out the STOCK option for this dropdown (PM will see STOCK option separately)
             const actualBalagruhas = response.data.filter(b => b._id !== 'STOCK');
             setBalagruhas(actualBalagruhas);
+            return; // API succeeded, skip fallback
           } else {
             console.error("[RequestItemModal] Invalid response:", response);
           }
         } catch (error) {
           console.error("[RequestItemModal] Error fetching balagruhas:", error);
         }
-      } else {
+      }
+      // Fallback: use user.balagruhaIds when API is unavailable or user.id is missing
+      if (Array.isArray(user?.balagruhaIds) && user.balagruhaIds.length > 0) {
+        setBalagruhas(user.balagruhaIds.map(id => ({ _id: id, name: id })));
       }
     };
     fetchBalagruhas();
