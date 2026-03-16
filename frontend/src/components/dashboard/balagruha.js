@@ -196,7 +196,7 @@ function BalagruhaDashboard() {
         try {
             setLoading(true);
             const response = await getBalagruha(JSON.stringify());
-            console.log('balagruha details', response?.data?.balagruhas);
+
             setBalagruhas(response?.data?.balagruhas || []);
 
             // If there are balagruhas, select the first one by default
@@ -216,7 +216,7 @@ function BalagruhaDashboard() {
     const getMachinesData = async () => {
         try {
             const response = await getMachines();
-            console.log('machines data', response.data?.machines);
+
             setMachines(response.data.machines || []);
         } catch (error) {
             console.error('Error fetching machines data:', error);
@@ -232,7 +232,7 @@ function BalagruhaDashboard() {
 
         try {
             const response = await getTasks(JSON.stringify(data));
-            console.log('tasks details', response?.data?.tasks);
+
             setTasks(response?.data?.tasks || []);
         } catch (error) {
             console.error('Error fetching tasks:', error);
@@ -242,7 +242,7 @@ function BalagruhaDashboard() {
     const getUsersList = async () => {
         try {
             const response = await fetchUsers();
-            console.log('users details', response);
+
             setUsers(response || []);
             const coachUsers = (response || []).filter(user => user.role === "coach");
             setCoaches(coachUsers);
@@ -258,7 +258,7 @@ function BalagruhaDashboard() {
 
         try {
             const response = await getStudentListforAttendance(id, new Date());
-            console.log('student list', response?.data?.studentList);
+
             setStudents(response?.data?.studentList || []);
         } catch (error) {
             console.error('Error fetching student list:', error);
@@ -270,7 +270,7 @@ function BalagruhaDashboard() {
 
         try {
             const response = await getStudentListforAttendance(balagruhaId);
-            console.log('attendance data', response?.data);
+
             setAttendance(response?.data || []);
         } catch (error) {
             console.error('Error fetching attendance data:', error);
@@ -279,11 +279,11 @@ function BalagruhaDashboard() {
 
     const getPerformanceData = async (balagruhaId) => {
         if (!balagruhaId) return;
-        console.log('data')
+
         setPerformanceReports([])
         // try {
         //     const response = await getPerformanceReports(balagruhaId);
-        //     console.log('performance data', response?.data);
+        //     
         //     setPerformanceReports(response?.data || []);
         // } catch (error) {
         //     console.error('Error fetching performance data:', error);
@@ -294,7 +294,7 @@ function BalagruhaDashboard() {
         setMessages([])
         // try {
         //     const response = await getMessages();
-        //     console.log('messages data', response?.data);
+        //     
         //     setMessages(response?.data || []);
         // } catch (error) {
         //     console.error('Error fetching messages:', error);

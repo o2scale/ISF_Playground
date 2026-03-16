@@ -25,7 +25,6 @@ export default function useFileUpload() {
         if (i === maxRetries - 1) throw error;
 
         const backoffDelay = delay * Math.pow(2, i);
-        console.log(`Retry attempt ${i + 1}/${maxRetries} after ${backoffDelay}ms`);
         await new Promise(resolve => setTimeout(resolve, backoffDelay));
       }
     }
@@ -124,7 +123,6 @@ export default function useFileUpload() {
 
     } catch (error) {
       if (axios.isCancel(error)) {
-        console.log('Upload cancelled by user');
         // Update status to cancelled
         setUploads(prev => ({
           ...prev,

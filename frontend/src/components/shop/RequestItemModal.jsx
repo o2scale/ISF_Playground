@@ -23,15 +23,12 @@ export default function RequestItemModal({ product, onClose }) {
     const fetchBalagruhas = async () => {
       if (user?.id) {
         try {
-          console.log("[RequestItemModal] Fetching balagruhas for user:", user.id, "role:", user.role);
           // Sprint5-Story-2.2-BugFix: Use getUserBalagruhas instead of getBalagruhaById
           // This works for all roles (coach, medical-incharge, etc.) without requiring User Management permission
           const response = await getUserBalagruhas();
-          console.log("[RequestItemModal] getUserBalagruhas response:", response);
           if (response?.success && Array.isArray(response.data)) {
             // Filter out the STOCK option for this dropdown (PM will see STOCK option separately)
             const actualBalagruhas = response.data.filter(b => b._id !== 'STOCK');
-            console.log("[RequestItemModal] Filtered balagruhas:", actualBalagruhas);
             setBalagruhas(actualBalagruhas);
           } else {
             console.error("[RequestItemModal] Invalid response:", response);
@@ -40,7 +37,6 @@ export default function RequestItemModal({ product, onClose }) {
           console.error("[RequestItemModal] Error fetching balagruhas:", error);
         }
       } else {
-        console.log("[RequestItemModal] No user ID available. user object:", user);
       }
     };
     fetchBalagruhas();

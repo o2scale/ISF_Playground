@@ -38,13 +38,7 @@ const ImageViewer = ({
   // Reset states when image source changes or modal opens
   useEffect(() => {
     if (isOpen && imageSrc) {
-      console.log("ImageViewer - Modal opened with:", {
-        isOpen,
-        imageSrc,
-        title,
-        author,
-        type: typeof imageSrc,
-      });
+
       setImgError(false);
       setImgLoading(true);
       setUseFallback(false);
@@ -69,7 +63,7 @@ const ImageViewer = ({
     if (!url || typeof url !== "string") return false;
 
     // Debug logging
-    console.log("ImageViewer - Checking URL:", url);
+
 
     // Check for common image file extensions anywhere in the URL
     const hasImageExtension = /\.(png|jpe?g|gif|webp|bmp|svg)(\?.*)?$/i.test(
@@ -102,15 +96,7 @@ const ImageViewer = ({
       isDataOrBlob ||
       isS3Url;
 
-    console.log("ImageViewer - URL check results:", {
-      url,
-      hasImageExtension,
-      isS3ImageUrl,
-      isCommonImageHost,
-      isDataOrBlob,
-      isS3Url,
-      result,
-    });
+
 
     return result;
   };
@@ -342,10 +328,7 @@ const ImageViewer = ({
                     }`}
                     style={{ display: useFallback ? "block" : "none" }} // Show fallback when needed
                     onLoad={() => {
-                      console.log(
-                        "ImageViewer - Image loaded successfully:",
-                        imageSrc
-                      );
+
                       setImgLoading(false);
                     }}
                     onError={(e) => {

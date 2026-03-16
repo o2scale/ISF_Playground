@@ -54,7 +54,7 @@ const BalagruhaManagement = () => {
   const getBalagruhas = async () => {
     try {
       const response = await getBalagruha();
-      console.log("Balagruhas fetched:", response);
+
       setBalagruhas(response?.data?.balagruhas || []);
     } catch (error) {
       console.error("Error fetching balagruhas:", error);
@@ -64,7 +64,7 @@ const BalagruhaManagement = () => {
   const fetchMachines = async () => {
     try {
       const response = await getMachines();
-      console.log("Machines fetched:", response);
+
       setMachines(response?.data?.machines || []);
       getUnAssignedMachines();
     } catch (error) {
@@ -75,7 +75,7 @@ const BalagruhaManagement = () => {
   const getUnAssignedMachines = async () => {
     try {
       const response = await getUnAssigned();
-      console.log("reosnbasd", response.data);
+
       setUnassigned(response.data.machines || []);
     } catch (error) {
       console.error("Erro in fetching machines", error);
@@ -167,9 +167,9 @@ const BalagruhaManagement = () => {
     try {
       if (modalMode === "create") {
         const response = await addBalagruha(formData);
-        console.log("Balagruha added:", response);
+
         setConfirmationMessage("Balagruha added successfully!");
-        console.log("formtt", formData);
+
       } else {
         const submissionData = {
           name: formData.name,
@@ -183,7 +183,7 @@ const BalagruhaManagement = () => {
           selectedBalagruha._id,
           submissionData
         );
-        console.log("Balagruha updated:", response);
+
         setConfirmationMessage("Balagruha updated successfully!");
 
         // Handle machine assignments
@@ -231,7 +231,7 @@ const BalagruhaManagement = () => {
     if (selectedBalagruha) {
       try {
         const response = await deleteBalagruha(selectedBalagruha._id);
-        console.log("Balagruha deleted:", response);
+
 
         setBalagruhas(
           balagruhas.filter((bg) => bg._id !== selectedBalagruha._id)
@@ -266,7 +266,7 @@ const BalagruhaManagement = () => {
 
   // Get machine name by ID
   const getMachineName = (machineId) => {
-    console.log("machine", machineId);
+
     const machine = machines.find((m) => m._id === machineId._id);
     return machine ? machine.machineId : machine?.serialNumber;
   };

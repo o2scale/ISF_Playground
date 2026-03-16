@@ -6,10 +6,6 @@ export default function StudentMultiSelect({ students, selectedStudents, onSelec
 
   // Debug logging
   useEffect(() => {
-    console.log('[StudentMultiSelect] Received students:', students);
-    console.log('[StudentMultiSelect] Students length:', students?.length);
-    console.log('[StudentMultiSelect] First student:', students?.[0]);
-    console.log('[StudentMultiSelect] Balagruhas:', balagruhas);
   }, [students, balagruhas]);
 
   // Filter students based on search query and Balagruha filter

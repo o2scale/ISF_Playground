@@ -107,7 +107,6 @@ export default function TitleBar() {
   // Handle notification bell click
   const handleNotificationClick = () => {
     // Notification center dropdown not yet implemented (Sprint 2 Epic 5 backlog)
-    console.log('Open notification center');
   };
 
   // Effects

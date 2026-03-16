@@ -222,7 +222,7 @@ const TransactionReports = () => {
     try {
       const response = await exportReport('leaderboard', { leaderboardType: type });
       // Download will be triggered by backend
-      console.log('Export successful:', response);
+
     } catch (err) {
       console.error('Error exporting leaderboard:', err);
       alert('Failed to export leaderboard. Please try again.');
@@ -232,7 +232,7 @@ const TransactionReports = () => {
   const handleExportZeroPurchases = async () => {
     try {
       const response = await exportReport('zero-purchases', {});
-      console.log('Export successful:', response);
+
     } catch (err) {
       console.error('Error exporting zero purchases:', err);
       alert('Failed to export report. Please try again.');
@@ -242,7 +242,7 @@ const TransactionReports = () => {
   const handleExportTransactionLog = async () => {
     try {
       const response = await exportReport('transactions', transactionFilters);
-      console.log('Export successful:', response);
+
     } catch (err) {
       console.error('Error exporting transaction log:', err);
       alert('Failed to export transaction log. Please try again.');

@@ -29,14 +29,14 @@ export const WtfBackgroundProvider = ({ children }) => {
   const loadGoogleFont = (fontName) => {
     if (!fontName) return;
 
-    console.log("Loading Google Font:", fontName);
+
 
     // Check if font is already loaded
     const existingLink = document.querySelector(
       `link[href*="${fontName.replace(/\s+/g, "+")}"]`
     );
     if (existingLink) {
-      console.log("Font already loaded:", fontName);
+
       return;
     }
 
@@ -49,7 +49,7 @@ export const WtfBackgroundProvider = ({ children }) => {
 
     // Add event listeners to track loading
     link.onload = () => {
-      console.log("Font loaded successfully:", fontName);
+
       // Re-apply font after loading
       setTimeout(() => {
         const category = getFontCategory(fontName);
@@ -66,7 +66,7 @@ export const WtfBackgroundProvider = ({ children }) => {
     };
 
     document.head.appendChild(link);
-    console.log("Font loading initiated:", fontName);
+
   };
 
   // Function to get font category for fallback
@@ -113,7 +113,7 @@ export const WtfBackgroundProvider = ({ children }) => {
   const applyFontGlobally = (fontName) => {
     if (!fontName) return;
 
-    console.log("Applying font globally:", fontName);
+
 
     // Load the font
     loadGoogleFont(fontName);
@@ -122,7 +122,7 @@ export const WtfBackgroundProvider = ({ children }) => {
     const category = getFontCategory(fontName);
     const fontFamilyValue = `"${fontName}", ${category}`;
 
-    console.log("Font family value:", fontFamilyValue);
+
 
     // Set CSS custom property
     document.documentElement.style.setProperty(
@@ -140,7 +140,7 @@ export const WtfBackgroundProvider = ({ children }) => {
       element.style.fontFamily = fontFamilyValue;
     });
 
-    console.log("Font applied globally to", allElements.length, "elements");
+
   };
 
   // Function to check if font is available
@@ -155,7 +155,7 @@ export const WtfBackgroundProvider = ({ children }) => {
       link.href.includes(fontName.replace(/\s+/g, "+"))
     );
 
-    console.log("Font availability check:", fontName, "Loaded:", isFontLoaded);
+
     return isFontLoaded;
   };
 
@@ -163,7 +163,7 @@ export const WtfBackgroundProvider = ({ children }) => {
   const forceRefreshFont = (fontName) => {
     if (!fontName) return;
 
-    console.log("Force refreshing font:", fontName);
+
     const category = getFontCategory(fontName);
     const fontFamilyValue = `"${fontName}", ${category}`;
 
@@ -183,7 +183,7 @@ export const WtfBackgroundProvider = ({ children }) => {
       element.style.fontFamily = fontFamilyValue;
     });
 
-    console.log("Font force refreshed for", wtfElements.length, "WTF elements");
+
   };
 
   const fetchBackgroundSettings = async () => {

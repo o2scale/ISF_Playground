@@ -33,7 +33,6 @@ export default function TaskDetails({ task }) {
   const handleStartTask = () => {
     // In-browser task launch not yet implemented
     toast.success('Starting task in browser...');
-    console.log('Start task:', task.id);
   };
 
   // Handle Open External Tool button click
@@ -41,7 +40,6 @@ export default function TaskDetails({ task }) {
     // Electron IPC tool launch not yet implemented
     // For web-based app, show placeholder message
     toast(`Opening ${toolName}...`, { icon: '🚀' });
-    console.log('Open tool:', toolName);
 
     // Placeholder: In Electron app, this would use ipcRenderer.send('launch-tool', { toolName })
   };

@@ -97,7 +97,7 @@ const AudioPlayer = ({
       currentTime > 0 &&
       Math.abs(currentTime - duration) < 0.1
     ) {
-      console.log("Audio finished, ensuring handle is at 100%");
+
       setCurrentTime(duration);
     }
   }, [isPlaying, currentTime, duration]);
@@ -369,10 +369,7 @@ const AudioPlayer = ({
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
               onEnded={() => {
-                console.log(
-                  "Audio ended, setting currentTime to duration:",
-                  duration
-                );
+
                 setIsPlaying(false);
                 setCurrentTime(duration);
               }}

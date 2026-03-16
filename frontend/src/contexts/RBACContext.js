@@ -31,15 +31,12 @@ export const RBACProvider = ({ children }) => {
         if (response.data) {
           // If the response is directly the permissions array
           if (Array.isArray(response.data)) {
-            console.log("Direct permissions array detected");
-
             // Format the permissions into our expected structure
             const formattedPermissions = {};
             response.data.forEach((permission) => {
               formattedPermissions[permission.module] = permission.actions;
             });
 
-            console.log("Formatted permissions:", formattedPermissions);
             setPermissions(formattedPermissions);
             setAllRoles([{ roleName: user.role, permissions: response.data }]);
           }
@@ -52,34 +49,20 @@ export const RBACProvider = ({ children }) => {
 
             // Get user role from auth context
             const userRole = user.role.toLowerCase();
-            console.log("User role:", userRole);
-            console.log(
-              "Available roles:",
-              response.data.roles.map((r) => r.roleName.toLowerCase())
-            );
 
             // Find matching role in API response
             const roleData = response.data.roles.find(
               (role) => role.roleName.toLowerCase() === userRole
             );
 
-            console.log("Found role data:", roleData);
-
             if (roleData) {
               // Transform permissions to our format for easier access
               const formattedPermissions = {};
 
-              console.log("DEBUG: roleData.permissions array:", roleData.permissions);
-              console.log("DEBUG: roleData.permissions length:", roleData.permissions.length);
-
-              roleData.permissions.forEach((permission, index) => {
-                console.log(`DEBUG: Processing permission ${index}:`, permission);
-                console.log(`DEBUG: Module: "${permission.module}", Actions:`, permission.actions);
+              roleData.permissions.forEach((permission) => {
                 formattedPermissions[permission.module] = permission.actions;
               });
 
-              console.log("Formatted permissions:", formattedPermissions);
-              console.log("Formatted permissions keys:", Object.keys(formattedPermissions));
               setPermissions(formattedPermissions);
             } else {
               console.warn(`Role '${userRole}' not found in permissions data`);

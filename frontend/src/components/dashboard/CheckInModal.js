@@ -29,11 +29,11 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
 
   useEffect(() => {
     if (studentData) {
-      console.log('CheckInModal - studentData.attachments:', studentData.attachments);
+
       const images = studentData.attachments?.filter(att => att.fileType.startsWith("image/")) || [];
       const pdfs = studentData.attachments?.filter(att => att.fileType === "application/pdf") || [];
-      console.log('CheckInModal - filtered images:', images);
-      console.log('CheckInModal - filtered pdfs:', pdfs);
+
+
 
       // S6-S2-BUG-002 FIX: Extract balagruha ID string from array (could be object or string)
       let balagruhaId = '';
@@ -49,7 +49,7 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
           : ids[0];
       }
 
-      console.log('CheckInModal - extracted balagruhaId:', balagruhaId);
+
       setSelectedBalagruha(balagruhaId);
       fetchStudents(balagruhaId);
 
@@ -144,9 +144,9 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
       setRemovedAttachmentIds([]);
     }
 
-    console.log('CheckInModal - studentData:', studentData);
-    console.log('CheckInModal - editMode:', editMode);
-    console.log('CheckInModal - formData.uploadedImages:', formData.uploadedImages);
+
+
+
   }, [studentData]);
 
   if (!isOpen) return null;
@@ -246,25 +246,25 @@ const CheckInModal = ({ isOpen, onClose, onSubmit, studentData, balagruhas, edit
   };
 
   const fetchStudents = async (balId) => {
-    console.log("fetchStudents called with balId:", balId);
+
     if (!balId) {
-      console.log("No balId provided, clearing students");
+
       setStudents([]);
       return;
     }
 
     setSelectedBalagruha(balId);
-    console.log("Calling API to fetch students for balagruha:", balId);
+
     const response = await getAnyUserBasedonRoleandBalagruha("student", balId);
-    console.log("API response:", response);
+
 
     if (response.success) {
       // Backend already filters by balagruhaId, no need to filter again
       const students = response?.data?.users || [];
-      console.log("Students from API:", students);
+
       setStudents(students);
     } else {
-      console.log("API call failed or no success");
+
       setStudents([]);
     }
   };

@@ -30,7 +30,6 @@ export default function AddContentItemModal({ isOpen, onClose, onAdd }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
-    console.log('🚀 AddContentItemModal: Submitting form data:', formData);
     await onAdd(formData);
     setFormData({ type: 'video', title: '', description: '', fileUrl: '' });
   };

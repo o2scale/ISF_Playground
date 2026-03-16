@@ -60,7 +60,7 @@ const createEmptyMedicalHistoryEntry = () => ({
 });
 
 const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
-  console.log("usdsds", user);
+
   const navigate = useNavigate();
   const [machines, setMachines] = useState([]);
   const role = localStorage.getItem("role");
@@ -127,7 +127,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
   const getMachinesData = async () => {
     const response = await getMachines();
-    console.log("response", response.data?.machines);
+
     setMachines(response.data.machines);
   };
 
@@ -152,8 +152,8 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
   useEffect(() => {
     if (mode === "edit" && user) {
-      console.log("🔍 Edit mode - User object:", user);
-      console.log("🔍 Edit mode - userId field:", user.userId);
+
+
       const normalizedMedicalHistory = (user.medicalHistory || []).map(
         (history) => ({
           name: history.name || "",
@@ -232,11 +232,11 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
         setIsLoadingCheckIns(true);
         try {
           const response = await getMedicalCheckInsByStudentId(user._id);
-          console.log('UserForm - check-ins response:', response); // Debug log
+// Debug log
           if (response.success) {
             // Sprint6-Story-02-Phase4-BUG: response.data contains medicalCheckIns array
             const checkInsData = response.data.medicalCheckIns || response.data;
-            console.log('UserForm - check-ins data:', checkInsData); // Debug log
+// Debug log
             // Sort by date, newest first
             const sortedCheckIns = checkInsData.sort((a, b) =>
               new Date(b.date) - new Date(a.date)
@@ -747,13 +747,11 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
       // Log the FormData entries for debugging
       for (let pair of formDataToSend.entries()) {
-        console.log(
-          pair[0] + ": " + (pair[1] instanceof File ? pair[1].name : pair[1])
-        );
+
       }
 
       // Use the API functions with FormData
-      console.log(files.facialData);
+
       const response =
         mode === "add"
           ? await addUsers(formDataToSend)
@@ -1875,15 +1873,7 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                             <p><strong>Notes:</strong> {checkIn.notes}</p>
                           )}
                           {/* Sprint6-Story-02-Phase4-DEBUG: Log check-in data */}
-                          {console.log('CheckIn details:', {
-                            id: checkIn._id,
-                            hasDoctorVisits: !!checkIn.doctorVisits,
-                            doctorVisitsLength: checkIn.doctorVisits?.length,
-                            doctorVisitsData: checkIn.doctorVisits,
-                            hasFollowUps: !!checkIn.followUps,
-                            followUpsLength: checkIn.followUps?.length,
-                            followUpsData: checkIn.followUps,
-                          })}
+
                           {checkIn.doctorVisits && checkIn.doctorVisits.length > 0 && (
                             <p><strong>Doctor Visits:</strong> {checkIn.doctorVisits.length}</p>
                           )}

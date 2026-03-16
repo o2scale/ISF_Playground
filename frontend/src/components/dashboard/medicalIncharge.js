@@ -432,7 +432,7 @@ const MedicInchargeDashboard = () => {
         // { id: 6, name: "Reports", activeTab: "reports" },
   ];
   const handleOpenModal = (checkin = null, edit = null) => {
-    console.log("Opening modal...");
+
     setEditData(checkin);
     setEditMode(edit);
     setIsModalOpen(true);
@@ -739,8 +739,8 @@ const MedicInchargeDashboard = () => {
 
   const handleUpdateSubmit = (e) => {
     e.preventDefault();
-    console.log("Updated Student Data:", selectedStudent);
-    console.log("Uploaded Files:", uploadedFiles);
+
+
     handleCloseUpdateModal();
   };
 
@@ -783,7 +783,6 @@ const MedicInchargeDashboard = () => {
     // getUserBalagruhas returns the current user's assigned balagruhas
     try {
       const response = await getUserBalagruhas();
-      console.log("getUserBalagruhas response:", response);
       
       // Backend returns { success: true, data: [balagruhas] }
       // where data is the array directly
@@ -791,7 +790,6 @@ const MedicInchargeDashboard = () => {
         // Filter out the STOCK option, only keep actual balagruhas
         const actualBalagruhas = response.data.filter(b => b._id !== 'STOCK');
         
-        console.log("User's assigned balagruhas:", actualBalagruhas);
         setBalagruhaData(actualBalagruhas);
       } else {
         console.error("Invalid response structure:", response);
@@ -815,7 +813,7 @@ const MedicInchargeDashboard = () => {
     } else {
       showToast("Error in fetching Medical Condition Details", "error")
     }
-    console.log(response)
+
   }
 
   const handleDateRangeChange = (start, end) => {
@@ -1270,8 +1268,6 @@ const MedicInchargeDashboard = () => {
                                 setHoveredFollowUps(null);
                             }
                           };
-
-
 
                           // Handle click for doctor visits tooltip
                           const handleDoctorVisitsClick = (e) => {

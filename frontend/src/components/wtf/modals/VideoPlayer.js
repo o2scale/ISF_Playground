@@ -27,7 +27,7 @@ const VideoPlayer = ({
 
   const handleVideoPlay = () => {
     setTimeout(() => {
-      console.log("Video marked as seen");
+
     }, 3000);
   };
 

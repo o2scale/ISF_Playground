@@ -100,13 +100,11 @@ export default function ComputerAppsPage() {
   };
 
   const markContentComplete = async (item) => {
-    console.log('markContentComplete called', item);
     try {
       // if (!courseId) { // Removed, courseId is always present in this view
       //   console.error('No courseId, cannot mark complete');
       //   return;
       // }
-      console.log('Sending request to mark-complete...');
       const response = await api.post(`/api/v2/lms/student/${studentId}/courses/computer-apps/mark-complete`, {
         itemId: item.id,
         itemType: item.type,
@@ -114,7 +112,6 @@ export default function ComputerAppsPage() {
         quizId: item.quizId // Pass quizId if it exists (for robustness)
       });
       if (response.data.success) {
-        console.log('Mark complete success. Refreshing hierarchy...');
         // Refresh hierarchy to update checkmarks
         fetchCourseHierarchy();
         // Also re-fetch apps list in background to update progress bar?

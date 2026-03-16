@@ -60,9 +60,6 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
           headers: { Authorization: `Bearer ${token}` },
         }
       );
-      console.log('[CourseAssignmentModal] Students response:', response.data);
-      console.log('[CourseAssignmentModal] Students data:', response.data.data);
-      console.log('[CourseAssignmentModal] First student:', response.data.data?.[0]);
       setStudents(response.data.data || []);
       const balagruhas = response.data.balagruhas || [];
       setBalagruhasInfo(balagruhas);

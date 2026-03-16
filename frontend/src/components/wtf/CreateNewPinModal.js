@@ -86,10 +86,6 @@ const CreateNewPinModal = ({
             (user) => user.role === "student" || user.userType === "student"
           );
 
-          console.log("🔍 Fetched users:", users);
-          console.log("👨‍🎓 Filtered students:", studentUsers);
-          console.log("📚 Sample student data:", studentUsers[0]);
-
           setStudents(studentUsers);
           setFilteredStudents(studentUsers);
 
@@ -97,9 +93,6 @@ const CreateNewPinModal = ({
           const balagruhas = Array.isArray(balagruhaResponse?.data)
             ? balagruhaResponse.data.filter(b => b._id !== 'STOCK')
             : [];
-
-          console.log("🏛️ Fetched balagruhas:", balagruhaResponse);
-          console.log("🏛️ Processed balagruhas:", balagruhas);
 
           setBalagruhas(balagruhas);
         } catch (error) {
@@ -157,30 +150,27 @@ const CreateNewPinModal = ({
 
   // Filter students by balagruha
   useEffect(() => {
-    console.log("🔄 Filtering students - Balagruha:", formData.balagruha);
-    console.log("🔄 Available students:", students);
+
+
 
     if (formData.balagruha) {
       const filtered = students.filter((student) => {
         // Check if student has balagruhaIds array and if it contains the selected balagruha
         if (Array.isArray(student.balagruhaIds)) {
-          console.log("🏛️ Student balagruhaIds:", student.balagruhaIds);
+
           // Find the balagruha object that matches the selected name
           const matchingBalagruha = student.balagruhaIds.find(
             (bg) => bg.name === formData.balagruha
           );
-          console.log("🎯 Matching balagruha:", matchingBalagruha);
+
           return !!matchingBalagruha;
         }
         // Fallback: check if student.balagruha (string) matches (for backward compatibility)
-        console.log(
-          "🔄 Fallback check - student.balagruha:",
-          student.balagruha
-        );
+
         return student.balagruha === formData.balagruha;
       });
 
-      console.log("✅ Filtered students:", filtered);
+
       setFilteredStudents(filtered);
 
       if (
@@ -195,7 +185,7 @@ const CreateNewPinModal = ({
         setError(""); // Clear errors when student is filtered out
       }
     } else {
-      console.log("🔄 No balagruha filter - showing all students");
+
       setFilteredStudents(students);
     }
   }, [formData.balagruha, formData.studentId, students]);
@@ -776,7 +766,7 @@ const CreateNewPinModal = ({
   };
 
   const renderContentInput = () => {
-    console.log("Current content type:", formData.contentType);
+
     switch (formData.contentType) {
       case "text":
         return (
@@ -1164,7 +1154,7 @@ const CreateNewPinModal = ({
                     <select
                       value={formData.balagruha}
                       onChange={(e) => {
-                        console.log("🏛️ Balagruha selected:", e.target.value);
+
                         setError(""); // Clear errors when selection changes
                         setFormData((prev) => ({
                           ...prev,
@@ -1320,7 +1310,7 @@ const CreateNewPinModal = ({
                       type="button"
                       onClick={() => {
                         if (isDisabled) return;
-                        console.log("Setting content type to:", type.value);
+
                         setError("");
                         setFormData((prev) => ({
                           ...prev,

@@ -16,12 +16,6 @@ export default function StudentQuizPage() {
   const location = useLocation();
   const { refreshBalance } = useCoinBalance();
 
-  console.log('StudentQuizPage MOUNTED', {
-    quizId,
-    pathname: location.pathname,
-    isComputerApps: location.pathname.includes('computer-apps')
-  });
-
   const [loading, setLoading] = useState(true);
   const [questions, setQuestions] = useState([]);
   const [quizTitle, setQuizTitle] = useState('');
@@ -67,7 +61,6 @@ export default function StudentQuizPage() {
         const passedCourseId = location.state?.courseId;
         if (passedCourseId) {
           setCourseId(passedCourseId);
-          console.log('Using Passed CourseID:', passedCourseId);
         } else if (response.data.quiz.course) {
           // Fallback to internal quiz course
           const cId = response.data.quiz.course._id || response.data.quiz.course;

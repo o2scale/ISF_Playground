@@ -56,7 +56,7 @@ function AdminDashboard() {
   const getBalagruhaList = async () => {
     try {
       const response = await getBalagruha(JSON.stringify());
-      console.log("balagruha details", response?.data?.balagruhas);
+
       setBalagruhas(response?.data?.balagruhas || []);
     } catch (error) {
       console.error("Error fetching balagruha list:", error);
@@ -85,7 +85,7 @@ function AdminDashboard() {
 
   const getMachinesData = async () => {
     const response = await getMachines();
-    console.log("response", response.data?.machines);
+
     setMachines(response.data.machines);
   };
 
@@ -95,7 +95,7 @@ function AdminDashboard() {
     };
     try {
       const response = await getTasks(JSON.stringify(data));
-      console.log("tasks details", response?.data?.tasks);
+
       setTasks(response?.data?.tasks || []);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -105,7 +105,7 @@ function AdminDashboard() {
   const getUsersList = async () => {
     try {
       const response = await fetchUsers();
-      console.log("users details", response);
+
 
       // Set all users
       setUsers(response || []);
@@ -226,7 +226,7 @@ function AdminDashboard() {
   //         });
   //     }
 
-  //     console.log(response, moodResponse, balagruhaIds);
+  //     
   // };
 
   const handleStudentCheckboxChange = async (studentId, userId) => {
@@ -261,7 +261,7 @@ function AdminDashboard() {
       setMoodData(filteredMood);
     }
 
-    console.log(response, moodResponse, balagruhaIds);
+
   };
 
   // Handle select all students

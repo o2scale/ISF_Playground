@@ -156,7 +156,7 @@ const Layout = () => {
     { id: 6, name: "Reports", activeTab: "reports" },
   ];
 
-  console.log(sportCoachMenu);
+
 
   const handleNotificationClick = async () => {
     const newShowState = !showNotifications;

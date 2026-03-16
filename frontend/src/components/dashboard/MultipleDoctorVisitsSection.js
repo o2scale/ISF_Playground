@@ -105,7 +105,7 @@ const MultipleDoctorVisitsSection = ({ doctorVisits, onChange }) => {
                 <DoctorNameDropdown
                   value={visit.doctorName || ""}
                   onChange={(value) => {
-                    // console.log("Doctor Name changed:", value);
+                    // 
                     updateDoctorVisit(visitIndex, "doctorName", value);
                   }}
                   placeholder="Search or add doctor name"
@@ -117,7 +117,7 @@ const MultipleDoctorVisitsSection = ({ doctorVisits, onChange }) => {
                 <HospitalNameDropdown
                   value={visit.hospitalName || ""}
                   onChange={(value) => {
-                    // console.log("Hospital Name changed:", value);
+                    // 
                     updateDoctorVisit(visitIndex, "hospitalName", value);
                   }}
                   placeholder="Search or add hospital name"

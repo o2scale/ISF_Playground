@@ -101,7 +101,7 @@ const VoiceSuggestionModal = ({ open, onClose }) => {
           const newTime = t + 1;
           // Force stop at exactly 60 seconds (1 minute)
           if (newTime >= 60) {
-            console.log("Recording reached 60 seconds, stopping automatically");
+
             clearInterval(id);
             mr.stop();
             s.getTracks().forEach((track) => track.stop());
@@ -116,7 +116,7 @@ const VoiceSuggestionModal = ({ open, onClose }) => {
       // Backup safety timeout in case the interval fails
       setTimeout(() => {
         if (recording) {
-          console.log("Backup safety timeout triggered");
+
           stopRecording();
         }
       }, 60500); // Slightly longer than 60s as a backup
@@ -145,7 +145,7 @@ const VoiceSuggestionModal = ({ open, onClose }) => {
   // Safety effect: force stop if recording exceeds 60 seconds
   React.useEffect(() => {
     if (recording && timer >= 60) {
-      console.log("Safety effect: forcing stop at 60 seconds");
+
       stopRecording();
     }
   }, [recording, timer]);
@@ -433,7 +433,7 @@ const WallOfFameContent = ({ onToggleView }) => {
   useEffect(() => {
     const fetchPins = async () => {
       try {
-        console.log("🔧 Frontend: Fetching pins...");
+
 
         // Build query parameters based on selected category
         const queryParams = {};
@@ -445,23 +445,15 @@ const WallOfFameContent = ({ onToggleView }) => {
         }
 
         const response = await getActiveWtfPins(queryParams);
-        console.log("🔧 Frontend: getActiveWtfPins response:", response);
+
 
         if (response.success && response.data && response.data.pins) {
           const pins = response.data.pins;
-          console.log(
-            "🔧 Frontend: Setting content with pins:",
-            pins.map((p) => ({
-              id: p._id || p.id,
-              title: p.title,
-              caption: p.caption,
-              engagementMetrics: p.engagementMetrics,
-            }))
-          );
-          console.log("🔧 Frontend: First pin full data:", pins[0]);
+
+
           setContent(pins);
         } else {
-          console.log("🔧 Frontend: No pins found or error response");
+
           setContent([]);
         }
       } catch (error) {
@@ -1145,7 +1137,7 @@ const WallOfFameContent = ({ onToggleView }) => {
   const handleFontSelection = (fontName) => {
     if (!fontName) return;
 
-    console.log("Font selected:", fontName);
+
 
     // Update preview settings
     const settings = {
@@ -1162,10 +1154,10 @@ const WallOfFameContent = ({ onToggleView }) => {
     // Check if font was applied successfully
     setTimeout(() => {
       const isAvailable = checkFontAvailability(fontName);
-      console.log("Font availability after selection:", isAvailable);
+
 
       if (!isAvailable) {
-        console.log("Font not available, forcing refresh...");
+
         forceRefreshFont(fontName);
       }
     }, 500);
@@ -1179,7 +1171,7 @@ const WallOfFameContent = ({ onToggleView }) => {
       return;
     }
 
-    console.log("Manually applying font:", currentFont);
+
 
     // Force apply the font
     applyFontGlobally(currentFont);
@@ -1200,25 +1192,25 @@ const WallOfFameContent = ({ onToggleView }) => {
       return;
     }
 
-    console.log("Testing current font:", currentFont);
+
 
     // Check if font is available
     const isAvailable = checkFontAvailability(currentFont);
-    console.log("Font available:", isAvailable);
+
 
     // Check current CSS custom property
     const cssVar = getComputedStyle(document.documentElement).getPropertyValue(
       "--wtf-font-family"
     );
-    console.log("CSS custom property value:", cssVar);
+
 
     // Check body font
     const bodyFont = getComputedStyle(document.body).fontFamily;
-    console.log("Body font:", bodyFont);
+
 
     // Check html font
     const htmlFont = getComputedStyle(document.documentElement).fontFamily;
-    console.log("HTML font:", htmlFont);
+
 
     // Show results
     alert(`Font Test Results:
@@ -1232,7 +1224,7 @@ HTML Font: ${htmlFont}`);
   // Load selected font on component mount and when font changes
   useEffect(() => {
     if (previewBgSettings.fontFamily) {
-      console.log("Font changed in useEffect:", previewBgSettings.fontFamily);
+
 
       // Apply font immediately
       applyFontGlobally(previewBgSettings.fontFamily);
@@ -1241,7 +1233,7 @@ HTML Font: ${htmlFont}`);
       setTimeout(() => {
         const isAvailable = checkFontAvailability(previewBgSettings.fontFamily);
         if (!isAvailable) {
-          console.log("Font not available in useEffect, forcing refresh...");
+
           forceRefreshFont(previewBgSettings.fontFamily);
         }
       }, 1000);
@@ -1275,10 +1267,10 @@ HTML Font: ${htmlFont}`);
     try {
       setIsSaving(true);
       setBgError("");
-      console.log("Saving background settings:", previewBgSettings);
+
 
       const response = await updateWtfSettings(previewBgSettings);
-      console.log("Save response:", response);
+
 
       // Update the context with saved settings
       updateBackgroundSettings(previewBgSettings);
@@ -1422,7 +1414,7 @@ HTML Font: ${htmlFont}`);
     const file = event.target.files[0];
     if (!file) return;
 
-    console.log("Selected file:", file.name, file.size, file.type);
+
 
     // Validate file
     const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
@@ -1445,12 +1437,12 @@ HTML Font: ${htmlFont}`);
       setIsUploadingBg(true);
       setBgError("");
 
-      console.log("Starting image upload...");
+
       const uploadResponse = await uploadWtfBackgroundImage(file);
-      console.log("Upload response:", uploadResponse);
+
 
       const imageUrl = uploadResponse.data?.imageUrl || uploadResponse.imageUrl;
-      console.log("Image URL:", imageUrl);
+
 
       if (!imageUrl) {
         throw new Error("No image URL returned from upload");
@@ -1482,7 +1474,7 @@ HTML Font: ${htmlFont}`);
   };
 
   const handleCreatePin = async (newPin) => {
-    console.log("Creating new pin:", newPin);
+
 
     if (isCoach && newPin.studentId) {
       // This is a coach suggestion
@@ -1560,26 +1552,19 @@ HTML Font: ${htmlFont}`);
 
   const handleLikePin = async (pinId) => {
     try {
-      console.log("🔧 Frontend: handleLikePin called for pin:", pinId);
+
       const resp = await likeWtfPin(pinId, "thumbs_up");
-      console.log("🔧 Frontend: likeWtfPin response:", resp);
+
 
       setContent((prev) => {
-        console.log("🔧 Frontend: Updating content state, prev:", prev);
+
         return prev.map((pin) => {
           const currentId = pin.id || pin._id;
           if (currentId !== pinId) return pin;
           const currentLikes = pin.engagementMetrics?.likes ?? 0;
           const delta = resp?.data?.action === "unliked" ? -1 : 1;
           const newLikes = Math.max(0, currentLikes + delta);
-          console.log(
-            "🔧 Frontend: Pin",
-            currentId,
-            "likes:",
-            currentLikes,
-            "->",
-            newLikes
-          );
+
           return {
             ...pin,
             engagementMetrics: {
@@ -1613,29 +1598,19 @@ HTML Font: ${htmlFont}`);
 
   const handleHeartPin = async (pinId) => {
     try {
-      console.log("🔧 Frontend: handleHeartPin called for pin:", pinId);
+
       const resp = await loveWtfPin(pinId);
-      console.log("🔧 Frontend: loveWtfPin response:", resp);
+
 
       setContent((prev) => {
-        console.log(
-          "🔧 Frontend: Updating content state for heart, prev:",
-          prev
-        );
+
         return prev.map((pin) => {
           const currentId = pin.id || pin._id;
           if (currentId !== pinId) return pin;
           const currentLoves = pin.engagementMetrics?.loves ?? 0;
           const delta = resp?.data?.action === "unloved" ? -1 : 1;
           const newLoves = Math.max(0, currentLoves + delta);
-          console.log(
-            "🔧 Frontend: Pin",
-            currentId,
-            "loves:",
-            currentLoves,
-            "->",
-            newLoves
-          );
+
           return {
             ...pin,
             engagementMetrics: {
@@ -1715,16 +1690,7 @@ HTML Font: ${htmlFont}`);
       case "image":
         // Use thumbnail first, then mediaUrl, or default to gray background
         const imageUrl = thumbnail || mediaUrl;
-        console.log(
-          "Card background - Type:",
-          type,
-          "Thumbnail:",
-          thumbnail,
-          "MediaUrl:",
-          mediaUrl,
-          "Using:",
-          imageUrl
-        );
+
         return imageUrl
           ? {
               backgroundImage: `url(${imageUrl})`,
@@ -1735,14 +1701,7 @@ HTML Font: ${htmlFont}`);
       case "video":
         // Use thumbnail first, then fallback to blue background
         const videoThumbnail = thumbnail || mediaUrl;
-        console.log(
-          "Video card background - Thumbnail:",
-          thumbnail,
-          "MediaUrl:",
-          mediaUrl,
-          "Using:",
-          videoThumbnail
-        );
+
         return videoThumbnail
           ? {
               backgroundImage: `url(${videoThumbnail})`,
@@ -1937,7 +1896,7 @@ HTML Font: ${htmlFont}`);
       return;
     }
 
-    console.log("Checking computed styles for font:", currentFont);
+
 
     // Check various elements
     const elements = [
@@ -1956,13 +1915,13 @@ HTML Font: ${htmlFont}`);
       if (element) {
         const computedStyle = getComputedStyle(element);
         const fontFamily = computedStyle.fontFamily;
-        console.log(`${name} font-family:`, fontFamily);
+
 
         // Check if our font is in the computed style
         if (fontFamily.includes(currentFont)) {
-          console.log(`✅ ${name} has our font`);
+
         } else {
-          console.log(`❌ ${name} does NOT have our font`);
+
         }
       }
     });
@@ -2284,7 +2243,7 @@ Check console for detailed results.`);
                               const isAvailable = checkFontAvailability(
                                 previewBgSettings.fontFamily
                               );
-                              console.log("Font availability:", isAvailable);
+
                               alert(
                                 `Font ${previewBgSettings.fontFamily} is ${
                                   isAvailable ? "available" : "not available"
@@ -2780,17 +2739,7 @@ Check console for detailed results.`);
       {selectedContent && modalType === "photo" && (
         <>
           {/* Debug info */}
-          {console.log("ImageViewer Debug - selectedContent:", {
-            title: selectedContent.title,
-            author: selectedContent.author,
-            caption: selectedContent.caption,
-            captionType: typeof selectedContent.caption,
-            allKeys: Object.keys(selectedContent),
-            authorType: typeof selectedContent.author,
-            authorKeys: selectedContent.author
-              ? Object.keys(selectedContent.author)
-              : null,
-          })}
+
                   <ImageViewer
           isOpen={true}
           onClose={closeModal}

@@ -203,21 +203,11 @@ export default function RepairManagement() {
       }
 
       // Debug: Log what's being sent
-      console.log("Form data being sent:", {
-        balagruhaId: repairForm.balagruhaId,
-        issueName: repairForm.issueName,
-        description: repairForm.description,
-        dateReported: repairForm.dateReported,
-        urgency: repairForm.urgency,
-        estimatedCost: repairForm.estimatedCost,
-        repairDetails: repairForm.repairDetails,
-        status: editingItem ? repairForm.status : undefined,
-        attachments: repairForm.attachments.length,
-      });
+
 
       // Debug: Log FormData contents
       for (let [key, value] of formData.entries()) {
-        console.log(`FormData key: ${key}, value:`, value);
+
       }
 
       let response;
@@ -291,10 +281,10 @@ export default function RepairManagement() {
   const fetchBalagruha = async () => {
     try {
       const response = await getBalagruha();
-      console.log("Balagruha API response:", response);
+
       if (response.success) {
         setBalagruhas(response.data.balagruhas || []);
-        console.log("Balagruhas set:", response.data.balagruhas || []);
+
       } else {
         showToast(
           "Error fetching balagruha: " + (response.message || "Unknown error"),

@@ -9,7 +9,6 @@ export const createRepair = async (data) => {
     );
     return response.data;
   } catch (error) {
-    console.log("Error creating repair request:", error);
     throw error;
   }
 };

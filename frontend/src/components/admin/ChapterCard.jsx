@@ -61,7 +61,6 @@ export default function ChapterCard({
 
   const handleAddContentItem = async (contentData) => {
     try {
-      console.log('📦 ChapterCard: Adding content item:', contentData);
       const response = await api.post(
         `/api/v2/lms/admin/courses/${courseId}/modules/${moduleId}/chapters/${chapter._id}/content`,
         contentData

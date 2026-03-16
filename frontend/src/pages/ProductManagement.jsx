@@ -41,30 +41,30 @@ export default function ProductManagement() {
   useEffect(() => {
     // Wait for RBAC context to finish loading before checking permissions
     if (rbacLoading) {
-      console.log('RBAC context still loading, waiting...');
+
       return;
     }
 
     // CRITICAL FIX: Also wait if permissions object is empty (not yet populated)
     const permissionsLoaded = Object.keys(permissions).length > 0;
     if (!permissionsLoaded) {
-      console.log('Permissions not yet loaded (empty object), waiting...');
+
       return;
     }
 
-    console.log('RBAC loaded and permissions populated, checking access...');
-    console.log('Available permissions:', permissions);
-    console.log('Permissions keys:', Object.keys(permissions));
-    console.log('Shop Management permission exists:', permissions['Shop Management']);
+
+
+
+
 
     const hasPerm = hasPermission('Shop Management', 'Manage');
-    console.log('Has Shop Management permission:', hasPerm);
+
 
     if (!hasPerm) {
       console.warn('Unauthorized access attempt to Product Management');
       navigate('/access-denied');
     } else {
-      console.log('✅ Permission check passed - user has admin access');
+
     }
   }, [hasPermission, navigate, rbacLoading, permissions]);
 

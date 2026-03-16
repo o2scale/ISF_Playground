@@ -23,7 +23,7 @@ const RBACManagement = () => {
 
     const response = await fetchRolesandPermissions();
 
-    console.log("data", response);
+
 
     // Simulate API call delay
     setTimeout(() => {
@@ -255,10 +255,7 @@ const RBACManagement = () => {
     // Format and set permissions in the requested structure
     const formatted = formatPermissionsForAPI(role.permissions);
     setFormattedPermissions(formatted);
-    console.log(
-      "Selected Role Permissions:",
-      JSON.stringify(formatted, null, 2)
-    );
+
   };
 
   // Handle permission toggle
@@ -286,7 +283,7 @@ const RBACManagement = () => {
       // Format and set permissions
       const formatted = formatPermissionsForAPI(updated);
       setFormattedPermissions(formatted);
-      console.log("Updated Permissions:", JSON.stringify(formatted, null, 2));
+
 
       return updated;
     });
@@ -314,7 +311,7 @@ const RBACManagement = () => {
       // Format and set permissions
       const formatted = formatPermissionsForAPI(updated);
       setFormattedPermissions(formatted);
-      console.log("Updated Permissions:", JSON.stringify(formatted, null, 2));
+
 
       return updated;
     });
@@ -358,10 +355,7 @@ const RBACManagement = () => {
       // Format and set permissions
       const formatted = formatPermissionsForAPI(updated);
       setFormattedPermissions(formatted);
-      console.log(
-        "Updated All Permissions:",
-        JSON.stringify(formatted, null, 2)
-      );
+
 
       return updated;
     });
@@ -376,7 +370,7 @@ const RBACManagement = () => {
         id,
         JSON.stringify(permissionsForAPI, null, 2)
       );
-      console.log("Response:", response);
+
       fetchRolesAndPermissions();
     } catch (error) {
       console.error("Error updating role permissions:", error);

@@ -75,7 +75,6 @@ const FaceIdLogin = ({ onToggle }) => {
 
       humanRef.current = new Human.default(config);
       await humanRef.current.load();
-      console.log("Human library initialized for real-time detection");
     } catch (err) {
       console.error("Error initializing Human library:", err);
     }
@@ -344,7 +343,6 @@ const FaceIdLogin = ({ onToggle }) => {
         navigate("/dashboard");
       }, 1500);
 
-      console.log("Face recognition successful");
     } catch (err) {
       const apiMsg =
         err?.response?.data?.error ||

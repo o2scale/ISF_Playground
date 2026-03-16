@@ -23,7 +23,6 @@ export default function AudioQuestionCard({
       // Small delay to ensure audio is loaded
       setTimeout(() => {
         audioRef.current.play().catch(err => {
-          console.log('Autoplay prevented by browser:', err);
         });
       }, 300);
     }

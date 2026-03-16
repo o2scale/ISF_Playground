@@ -22,9 +22,7 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
 
   // Fetch all Balagruhas and students on mount
   useEffect(() => {
-    console.log('[AdminCourseAssignmentModal] useEffect triggered, isOpen:', isOpen);
     if (isOpen) {
-      console.log('[AdminCourseAssignmentModal] Modal opened, fetching data...');
       fetchData();
     }
   }, [isOpen]);
@@ -42,7 +40,6 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
         }
       );
       const allBalagruhas = balagruhasResponse.data.data || [];
-      console.log('[AdminCourseAssignmentModal] Fetched Balagruhas:', allBalagruhas.length, allBalagruhas);
       setBalagruhas(allBalagruhas);
       // Select all by default
       setSelectedBalagruhas(allBalagruhas);
@@ -56,7 +53,6 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
       );
       
       const studentsData = studentsResponse.data.data || [];
-      console.log('[AdminCourseAssignmentModal] Fetched Students:', studentsData.length, studentsData);
       // Add balagruhaNames to each student for display
       const studentsWithBalagruhaInfo = studentsData.map(student => ({
         ...student,
@@ -65,7 +61,6 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
           return bg?.name;
         }).filter(Boolean) || []
       }));
-      console.log('[AdminCourseAssignmentModal] Students with Balagruha info:', studentsWithBalagruhaInfo.length);
       setStudents(studentsWithBalagruhaInfo);
     } catch (error) {
       console.error('Error fetching data:', error);

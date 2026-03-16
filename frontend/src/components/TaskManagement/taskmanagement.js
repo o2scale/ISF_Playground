@@ -1681,7 +1681,7 @@ const CreateTaskForm = ({
 //     const [selectedAttachmentId, setSelectedAttachmentId] = useState('')
 //     const [selectedTask, setSelectedTask] = useState(task)
 //     const currentUser = { _id: localStorage.getItem('userId') };
-//     console.log('current task', task)
+//     
 //     if (!task) return null;
 
 //     const assignedUser = users.find(user => user._id === selectedTask.assignedUser);
@@ -1750,7 +1750,7 @@ const CreateTaskForm = ({
 //             }
 
 //             getTaskDetailsByTaskId(selectedTask?._id)
-//             console.log('response', response)
+//             
 
 //             if (response && response.success) {
 //                 const updatedTask = response.data.task;
@@ -1813,7 +1813,7 @@ const CreateTaskForm = ({
 //     };
 
 //     const deleteAttachments = async () => {
-//         console.log('tasdads', selectedTask._id, selectedAttachmentId)
+//         
 //         const response = await deleteAttachemnets(task._id, selectedAttachmentId);
 //         getTaskDetailsByTaskId(selectedTask._id)
 //         setShowDeleteModal(false)
@@ -1821,7 +1821,7 @@ const CreateTaskForm = ({
 
 //     const handleDeleteComment = async (commentId) => {
 //         const response = await deleteCommentinTask(selectedTask?._id, commentId)
-//         console.log('response delete ', response)
+//         
 //         setComments((prevComments) => response?.data?.task?.comments || prevComments);
 //     }
 
@@ -1900,7 +1900,7 @@ const CreateTaskForm = ({
 
 //                                 <div className="info-item">
 //                                     <span className="info-label">Assigned To</span>
-//                                     {console.log('name', selectedTask?.assignedUser)}
+
 //                                     <span>{selectedTask?.assignedUser ? selectedTask?.assignedUser.name : 'Unassigned'}</span>
 //                                 </div>
 
@@ -2271,7 +2271,7 @@ export const TaskDetailsModal = ({
       }
 
       getTaskDetailsByTaskId(selectedTask?._id);
-      console.log("response", response);
+
 
       if (response && response.success) {
         const updatedTask = response.data.task;
@@ -2334,7 +2334,7 @@ export const TaskDetailsModal = ({
     if (!canManageTask) {
       return;
     }
-    console.log("tasdads", selectedTask._id, selectedAttachmentId);
+
     const response = await deleteAttachemnets(task._id, selectedAttachmentId);
     getTaskDetailsByTaskId(selectedTask._id);
     setShowDeleteModal(false);
@@ -2345,7 +2345,7 @@ export const TaskDetailsModal = ({
       return;
     }
     const response = await deleteCommentinTask(selectedTask?._id, commentId);
-    console.log("response delete ", response);
+
     setComments(
       (prevComments) => response?.data?.task?.comments || prevComments
     );
@@ -3655,7 +3655,7 @@ const TaskManagement = () => {
 
   // Update this function to pass filters to the API
   const getAllTasks = async (filterParams = {}) => {
-    console.log("filterParams", filterParams);
+
     setIsLoading(true);
 
     const finalFilters = { ...filterParams };
@@ -3697,7 +3697,7 @@ const TaskManagement = () => {
     // }
   };
   const handleAddTask = async (taskData) => {
-    console.log("taskData", taskData);
+
     try {
       if (isStudent) {
         addToast("Students cannot create tasks", "error");
@@ -3760,9 +3760,9 @@ const TaskManagement = () => {
         response = await createMusicTask(formData);
       } else {
         response = await createTask(formData);
-        console.log("calling");
+
       }
-      console.log("Task created:", response);
+
 
       addToast(`Task "${taskData.title}" created successfully!`, "success");
       setShowCreateTask(false);
@@ -3819,7 +3819,7 @@ const TaskManagement = () => {
         currentFilters.balagruhaId = balagruhas[0]._id;
         setFilters(currentFilters);
       }
-      console.log("asdasd", currentFilters);
+
       getAllTasks(currentFilters);
     }
   }, [balagruhas]);

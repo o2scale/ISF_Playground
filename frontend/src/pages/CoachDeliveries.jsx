@@ -59,7 +59,6 @@ export default function CoachDeliveries() {
       
       // Filter out STOCK option if present
       const filteredBalagruhas = allBalagruhas.filter(b => b._id !== 'STOCK');
-      console.log('Fetched balagruhas:', filteredBalagruhas.length);
 
       setBalagruhas(filteredBalagruhas);
 
@@ -69,7 +68,7 @@ export default function CoachDeliveries() {
         // fetchUsers returns response.data, which could be { users: [...] } or [...]
         const allUsers = usersResponse?.users || usersResponse || [];
         const coachesData = allUsers.filter(u => u.role?.toLowerCase() === 'coach');
-        console.log('Fetched all coaches:', coachesData.length);
+
         setAllCoaches(coachesData);
         // Initial coaches list is all coaches (will be filtered by useEffect when balagruha is selected)
         setCoaches(coachesData);
@@ -194,7 +193,7 @@ export default function CoachDeliveries() {
         );
         return coachBalagruhaIds.includes(balagruhaFilter);
       });
-      console.log(`Filtered ${filteredCoaches.length} coaches for balagruha ${balagruhaFilter}`);
+
       setCoaches(filteredCoaches);
 
       // Reset coach filter if currently selected coach is not in the filtered list

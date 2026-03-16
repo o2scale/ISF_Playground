@@ -39,7 +39,7 @@ const ProtectedRoute = ({ children, module, action, requiredRoles }) => {
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    console.log("User not authenticated, redirecting to login");
+
     return <Navigate to="/login" replace />;
   }
 
@@ -52,9 +52,7 @@ const ProtectedRoute = ({ children, module, action, requiredRoles }) => {
     );
 
     if (!roleAllowed) {
-      console.log(
-        `Role denied: ${userRole} not in [${requiredRoles.join(", ")}]`
-      );
+
       return <Navigate to={getDashboardForRole(userRole)} replace />;
     }
   }
@@ -66,14 +64,10 @@ const ProtectedRoute = ({ children, module, action, requiredRoles }) => {
     const isAdmin = userRole === "admin";
     const permitted = isAdmin || hasPermission(module, action);
 
-    console.log(
-      `Permission check for ${userRole} - ${module}:${action} = ${permitted}`
-    );
+
 
     if (!permitted) {
-      console.log(
-        `Access denied for ${userRole} to ${action} on ${module}`
-      );
+
       return <Navigate to={getDashboardForRole(userRole)} replace />;
     }
   }

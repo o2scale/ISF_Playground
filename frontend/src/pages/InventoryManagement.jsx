@@ -43,25 +43,25 @@ export default function InventoryManagement() {
   // SECURITY CHECK: Redirect unauthorized users
   useEffect(() => {
     if (rbacLoading) {
-      console.log('RBAC context still loading, waiting...');
+
       return;
     }
 
     const permissionsLoaded = Object.keys(permissions).length > 0;
     if (!permissionsLoaded) {
-      console.log('Permissions not yet loaded (empty object), waiting...');
+
       return;
     }
 
-    console.log('RBAC loaded and permissions populated, checking access...');
+
     const hasPerm = hasPermission('Shop Management', 'Manage');
-    console.log('Has Shop Management permission:', hasPerm);
+
 
     if (!hasPerm) {
       console.warn('Unauthorized access attempt to Inventory Management');
       navigate('/access-denied');
     } else {
-      console.log('✅ Permission check passed - user has admin access');
+
     }
   }, [hasPermission, navigate, rbacLoading, permissions]);
 

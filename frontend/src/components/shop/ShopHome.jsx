@@ -112,7 +112,6 @@ const ShopHome = () => {
 
   // Handle add to cart (will be implemented in Story-02)
   const handleAddToCart = (product) => {
-    console.log("Add to cart:", product);
     alert(`"${product.name}" will be added to cart in Story-02`);
   };
 

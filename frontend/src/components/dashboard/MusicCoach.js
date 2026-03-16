@@ -456,7 +456,7 @@ const PerformanceDetailModal = ({
   studentName,
   metricName,
 }) => {
-  console.log("Performance Detail Modal isOpen:", isOpen); // Debug log
+// Debug log
 
   const handleExportPDF = () => {
     const doc = new jsPDF();
@@ -1176,7 +1176,7 @@ const MusicCoachDashboard = () => {
 
       //     const balagruhaIds = balagruhas.map(b => b._id).join(',');
       let balagruhaIds;
-      console.log("fiererere", filters.balagruhaIds.length === 0);
+
       if (filters.balagruhaIds.length !== 0) {
         balagruhaIds = filters.balagruhaIds;
       } else {
@@ -1188,7 +1188,7 @@ const MusicCoachDashboard = () => {
       // }
 
       const response = await getTraining(balagruhaIds, type);
-      console.log("training sessions response:", response);
+
       setTrainingSessions(response.data.trainingSessions || []);
     } catch (error) {
       console.error("Error fetching training sessions:", error);
@@ -1487,7 +1487,6 @@ const MusicCoachDashboard = () => {
     try {
       // Use getUserBalagruhas instead of getBalagruha - works for all roles
       const response = await getUserBalagruhas();
-      console.log("balagruha details", response?.data);
       // Filter out STOCK option
       const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
       setBalagruhas(actualBalagruhas);
@@ -1502,7 +1501,7 @@ const MusicCoachDashboard = () => {
     };
     try {
       const response = await getTasks(JSON.stringify(data));
-      console.log("tasks details", response?.data?.tasks);
+
       setTasks(response?.data?.tasks || []);
     } catch (error) {
       console.error("Error fetching tasks:", error);
@@ -1512,7 +1511,7 @@ const MusicCoachDashboard = () => {
   const getUsersList = async () => {
     try {
       const response = await coachBasedUsers();
-      console.log("users details", response);
+
 
       // Set all users
       setUsers(response || []);
@@ -1645,7 +1644,7 @@ const MusicCoachDashboard = () => {
     } else {
       const response = await createTraining(JSON.stringify(sessionData));
       getTrainingSessions(trainingFilters);
-      console.log("training response", response);
+
     }
     setEditingSession(null);
   };
@@ -1656,12 +1655,7 @@ const MusicCoachDashboard = () => {
     setSelectedStudent(student);
     setSelectedMetric(metric);
     setShowPerformanceModal(true);
-    console.log(
-      "Setting showPerformanceModal to true",
-      performance,
-      student,
-      metric
-    );
+
   };
 
   // Handle performance filter change
@@ -2195,7 +2189,7 @@ const MusicCoachDashboard = () => {
                   onClick={() => {
                     setEditingSession(null);
                     setShowSessionModal(true);
-                    console.log("Opening new session modal");
+
                   }}
                 >
                   + New Training Session
@@ -2303,7 +2297,7 @@ const MusicCoachDashboard = () => {
                   isOpen={true}
                   onClose={() => {
                     setShowSessionModal(false);
-                    console.log("Closing session modal");
+
                   }}
                   onSave={handleSaveSession}
                   balagruhas={balagruhas}
@@ -2646,7 +2640,7 @@ const MusicCoachDashboard = () => {
                   isOpen={true}
                   onClose={() => {
                     setShowPerformanceModal(false);
-                    console.log("Closing performance modal");
+
                   }}
                   performanceData={selectedPerformance}
                   studentName={selectedStudent}

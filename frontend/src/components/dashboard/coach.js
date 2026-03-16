@@ -50,7 +50,7 @@ function CoachDashboard() {
         try {
             // Use getUserBalagruhas instead of getBalagruhaById - works for all roles
             const response = await getUserBalagruhas();
-            console.log('Balagruha details:', response?.data);
+
             // Filter out STOCK option
             const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
             setBalagruhas(actualBalagruhas);
@@ -66,7 +66,7 @@ function CoachDashboard() {
                 balagruhaId: selectedBalagruha || "67b63186d2486ca7b43fe418"
             };
             const response = await getTasks(JSON.stringify(data));
-            console.log('Tasks details:', response?.data?.tasks);
+
 
             // Convert tasks to calendar events format
             const formattedTasks = (response?.data?.tasks || []).map(task => ({
@@ -96,7 +96,7 @@ function CoachDashboard() {
         try {
             // S6-S1-PROD-BUG-001: Use new API that returns filtered users based on role and Balagruha
             const response = await getAssignableUsersForSchedule();
-            console.log('Assignable users for schedule:', response);
+
 
             // The backend already filters users, so we use the data directly
             const assignableUsers = response?.data || [];
@@ -117,7 +117,7 @@ function CoachDashboard() {
 
     const fetchSchedules = async (balagruha, startDate, endDate) => {
         try {
-            console.log(balagruha, "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+
             let dataToSend;
             if (balagruha) {
                 dataToSend = {
@@ -138,7 +138,7 @@ function CoachDashboard() {
             }
 
             const response = await getSchedulesCoach(dataToSend);
-            console.log(response, "JJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJJ")
+
             setSchedules(response?.data?.schedules);
         } catch (error) {
             console.error("Error in fetching schedules", error);

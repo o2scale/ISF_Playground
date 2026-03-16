@@ -48,13 +48,13 @@ const MachineManagement = () => {
 
   const getBalagruhaList = async () => {
     const response = await getBalagruha();
-    console.log("balagruha details", response?.data?.balagruhas);
+
     setBalagruhaOptions(response?.data?.balagruhas);
   };
 
   const getMachinesData = async () => {
     const response = await getMachines();
-    console.log("response", response.data?.machines);
+
     setMachines(response.data.machines);
   };
 
@@ -64,10 +64,7 @@ const MachineManagement = () => {
   }, []);
   const handleAssignBalagruha = async (e) => {
     e.preventDefault();
-    console.log("Assigning Balagruha:", {
-      machineId: selectedMachine?._id,
-      balagruhaId: selectedBalagruha,
-    });
+
 
     let data = {
       newBalagruha: selectedBalagruha,
@@ -83,9 +80,9 @@ const MachineManagement = () => {
 
   const handleAddMachine = async (e) => {
     e.preventDefault();
-    console.log("New Machine:", JSON.stringify(newMachine));
+
     const response = await addMachines(JSON.stringify(newMachine));
-    console.log("machine added succesfullu", response);
+
     getMachinesData();
 
     setShowAddForm(false);
@@ -100,13 +97,13 @@ const MachineManagement = () => {
 
   const toggleStatus = async (id) => {
     const response = await toggleMachineStatus(id);
-    console.log("resss", response);
+
     getMachinesData();
   };
 
   const deleteMachines = async (id) => {
     const response = await deleteMachineById(id);
-    console.log("responsese", response);
+
     getMachinesData();
   };
 

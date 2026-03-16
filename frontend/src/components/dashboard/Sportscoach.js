@@ -117,7 +117,7 @@ const TrainingSessionModal = ({ isOpen, onClose, onSave, balagruhas, editSession
             const type = localStorage.getItem("role") === 'sports-coach' ? 'sports' : 'music';
 
             const response = await getTraining(balagruhaIds, type);
-            console.log('training sessions response:', response);
+
             setTrainingSessions(response.data.trainingSessions || []);
         } catch (error) {
             console.error('Error fetching training sessions:', error);
@@ -419,7 +419,7 @@ const TrainingSessionModal = ({ isOpen, onClose, onSave, balagruhas, editSession
 
 // Performance Detail Modal Component
 const PerformanceDetailModal = ({ isOpen, onClose, performanceData, studentName, metricName }) => {
-    console.log("Performance Detail Modal isOpen:", isOpen); // Debug log
+// Debug log
 
     const handleExportPDF = () => {
         const doc = new jsPDF();
@@ -1111,7 +1111,6 @@ const SportCoachDashboard = () => {
         try {
             // Use getUserBalagruhas instead of getBalagruha - works for all roles
             const response = await getUserBalagruhas();
-            console.log('balagruha details', response?.data);
             // Filter out STOCK option
             const actualBalagruhas = (response?.data || []).filter(b => b._id !== 'STOCK');
             setBalagruhas(actualBalagruhas);
@@ -1126,7 +1125,7 @@ const SportCoachDashboard = () => {
         }
         try {
             const response = await getTasks(JSON.stringify(data));
-            console.log('tasks details', response?.data?.tasks);
+
             setTasks(response?.data?.tasks || []);
         } catch (error) {
             console.error('Error fetching tasks:', error);
@@ -1136,7 +1135,7 @@ const SportCoachDashboard = () => {
     const getUsersList = async () => {
         try {
             const response = await fetchUsers();
-            console.log('users details', response);
+
 
             // Set all users
             setUsers(response || []);
@@ -1245,7 +1244,7 @@ const SportCoachDashboard = () => {
         setSelectedStudent(student);
         setSelectedMetric(metric);
         setShowPerformanceModal(true);
-        console.log("Setting showPerformanceModal to true", performance, student, metric);
+
     };
 
     // Handle performance filter change
@@ -1946,7 +1945,7 @@ const SportCoachDashboard = () => {
                                     onClick={() => {
                                         setEditingSession(null);
                                         setShowSessionModal(true);
-                                        console.log("Opening new session modal");
+
                                     }}
                                 >
                                     + New Training Session
@@ -2006,7 +2005,7 @@ const SportCoachDashboard = () => {
                                                                 e.stopPropagation();
                                                                 setEditingSession(session);
                                                                 setShowSessionModal(true);
-                                                                console.log("Opening edit session modal", session);
+
                                                             }}
                                                         >✏️</button>
                                                         <button className="sport-icon-button">👁️</button>
@@ -2025,7 +2024,7 @@ const SportCoachDashboard = () => {
                                     isOpen={true}
                                     onClose={() => {
                                         setShowSessionModal(false);
-                                        console.log("Closing session modal");
+
                                     }}
                                     balagruhas={balagruhas}
                                     onSave={handleSaveSession}
@@ -2317,7 +2316,7 @@ const SportCoachDashboard = () => {
                                     isOpen={true}
                                     onClose={() => {
                                         setShowPerformanceModal(false);
-                                        console.log("Closing performance modal");
+
                                     }}
                                     performanceData={selectedPerformance}
                                     studentName={selectedStudent}

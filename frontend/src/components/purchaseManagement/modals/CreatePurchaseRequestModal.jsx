@@ -262,13 +262,6 @@ export default function CreatePurchaseRequestModal({
 
   // Debug: Log formData changes
   useEffect(() => {
-    console.log('DEBUG - formData updated:', {
-      balagruhaId: formData.balagruhaId,
-      category: formData.category,
-      deadline: formData.deadline,
-      itemsCount: formData.items?.length,
-      items: formData.items
-    });
   }, [formData]);
 
   // Track if we've already initialized the edit data to prevent re-setting
@@ -278,35 +271,18 @@ export default function CreatePurchaseRequestModal({
   useEffect(() => {
     if (!requestToEdit) {
       hasInitializedEdit.current = false;
-      console.log('DEBUG - Reset edit initialization flag');
     }
   }, [requestToEdit]);
 
   useEffect(() => {
-    console.log('DEBUG - useEffect running:', {
-      hasRequestToEdit: !!requestToEdit,
-      requestToEditId: requestToEdit?._id,
-      userBalagruhasCount: userBalagruhas.length,
-      balagruhasCount: balagruhas.length,
-      hasInitialProduct: !!initialProduct,
-      hasInitializedEdit: hasInitializedEdit.current
-    });
     
     // Sprint5-Story-EditDelete: Handle request editing FIRST to prevent overwriting
     if (requestToEdit) {
       // Prevent re-initializing if we've already set the edit data
       if (hasInitializedEdit.current) {
-        console.log('DEBUG - Edit data already initialized, skipping');
         return;
       }
       
-      console.log('DEBUG - Editing request:', {
-        requestId: requestToEdit._id,
-        items: requestToEdit.items,
-        balagruhaId: requestToEdit.balagruhaId,
-        category: requestToEdit.category,
-        deadline: requestToEdit.deadline
-      });
       
       hasInitializedEdit.current = true;
       
@@ -328,20 +304,17 @@ export default function CreatePurchaseRequestModal({
       });
 
       const productIds = new Set(requestToEdit.items.map(item => item.productId?._id || item.productId));
-      console.log('DEBUG - Setting selected products:', Array.from(productIds));
       setSelectedProducts(productIds);
       fetchProducts(requestToEdit.balagruhaId?._id || requestToEdit.balagruhaId, requestToEdit.category);
     }
     // Set default balagruha if only one assigned
     else if (userBalagruhas.length === 1 && balagruhas.length > 0) {
-      console.log('DEBUG - Setting default balagruha for single assignment');
       const defaultBalagruha = balagruhas[0];
       setFormData(prev => ({ ...prev, balagruhaId: defaultBalagruha._id }));
       fetchProducts(defaultBalagruha._id);
     }
     // Handle initial product selection (Reorder flow)
     else if (initialProduct && initialProduct.balagruhaId) {
-      console.log('DEBUG - Handling initial product selection');
       // Sprint5-Story-20: Valid purchase categories
       const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
       const productCategory = initialProduct.product?.category;

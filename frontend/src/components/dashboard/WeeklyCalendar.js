@@ -55,7 +55,7 @@ const WeeklyCalendar = ({
 
     //     //     const dateString = currentDate.toISOString().split('T')[0];
     //     //     const dayEvents = calendarEvents.filter(event => {  
-    //     //         console.log(event.date, dateString, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    //     //         
     //     //         return event.date === dateString
     //     //     });
 
@@ -85,7 +85,7 @@ const WeeklyCalendar = ({
     //     //     const dateString = currentDate.toISOString().split("T")[0]; // "YYYY-MM-DD"
 
     //     //      const dayEvents = calendarEvents.filter(event => {  
-    //     //         console.log(event.date, dateString, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX")
+    //     //         
     //     //         return event.date === dateString
     //     //     });
 
@@ -115,7 +115,7 @@ const WeeklyCalendar = ({
     //         const dateString = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
 
     //         const dayEvents = calendarEvents.filter(event => {
-    //             // console.log(event.date, dateString, "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX");
+    //             // 
     //             return event.date === dateString;
     //         });
 
@@ -566,7 +566,7 @@ const WeeklyCalendar = ({
     };
 
     const handleScheduleViewModal = (schedule) => {
-        console.log('click worked', schedule);
+
         setScheduleViewModal(true);
         setSingleSchedule(schedule);
     }
@@ -741,7 +741,7 @@ const WeeklyCalendar = ({
                                         {/* Sprint6-Story-1-AC2: Extended to 15 hours (7 AM - 9 PM) */}
                                         {Array.from({ length: 15 }, (_, i) => {
                                             // const slotEvents = day.events.filter(ev => {
-                                            //     // console.log(ev, "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+                                            //     // 
                                             //     const eventHour = new Date(ev.schedules[0].startTime).getHours();
                                             //     return eventHour === i + 7;
                                             // });
@@ -765,7 +765,7 @@ const WeeklyCalendar = ({
                                                                 <div className="no-events">No events</div>
                                                             ) : (
                                                                 // slotEvents.map(event => {
-                                                                //     console.log("NNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN", event)
+                                                                //     
                                                                 //     return (
                                                                 //         (
                                                                 //             <div
@@ -792,7 +792,7 @@ const WeeklyCalendar = ({
                                                                 slotEvents.map(event => {
                                                                     return event.schedules.map(schedule => {
                                                                         const eventHour = new Date(schedule.startTime).getHours();
-                                                                        console.log(event, "SSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSSS")
+
                                                                         return (
                                                                             <div
                                                                                 key={schedule._id}  // Use the schedule's _id as the key

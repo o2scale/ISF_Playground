@@ -531,7 +531,7 @@ const PurchaseDashboard = () => {
       const filteredBalagruhas = response.data.balagruhas.filter((balagruha) =>
         balagruhaIdsFromStorage.includes(balagruha._id)
       );
-      console.log("User Balagruha Data: ", filteredBalagruhas);
+
       setBalagruhas(filteredBalagruhas);
     } else {
       showToast("Error fetching balagruha", "error");
@@ -668,7 +668,7 @@ const PurchaseDashboard = () => {
   };
 
   // const filteredPurchaseOrders = purchaseOrders.filter((bal) => {
-  //   console.log(filterBalagruhaPurchase, bal);
+  //   
   //   if (filterBalagruhaPurchase !== "all") {
   //     return bal.balagruhaId === filterBalagruhaPurchase;
   //   } else {

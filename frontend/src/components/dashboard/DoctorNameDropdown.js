@@ -30,11 +30,9 @@ const DoctorNameDropdown = ({ value, onChange, placeholder }) => {
   };
 
   const handleCreate = async (inputValue) => {
-    console.log("[DoctorNameDropdown] handleCreate called with:", inputValue);
     try {
       setIsLoading(true);
       const response = await createDoctor(inputValue);
-      console.log("[DoctorNameDropdown] createDoctor response:", response);
       
       if (response.success) {
         const newOption = {
@@ -45,13 +43,11 @@ const DoctorNameDropdown = ({ value, onChange, placeholder }) => {
         // Update local state immediately
         setDoctors((prev) => {
           const updated = [...prev, newOption];
-          console.log("[DoctorNameDropdown] Updated doctors list:", updated);
           return updated;
         });
 
         // Pass value to parent
         if (onChange && typeof onChange === 'function') {
-          console.log("[DoctorNameDropdown] Calling onChange with:", response.data.name);
           onChange(response.data.name);
         }
       } else {

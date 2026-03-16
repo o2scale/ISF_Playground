@@ -37,7 +37,7 @@ export default function UserIdLogin({ onToggle }) {
 
             const response = await studentPinLogin(data);
 
-            console.log(response);
+
 
             if (response.data && response.data.data) {
                 const { token, user } = response.data.data;

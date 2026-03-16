@@ -146,7 +146,7 @@ const UserManagement = () => {
     try {
       const id = localStorage.getItem("userId");
       const response = await getBalagruhaById(id);
-      console.log("Balagruha details by userId:", response?.data?.balagruhas);
+
       setBalagruhas(response?.data?.balagruhas || []);
     } catch (error) {
       console.error("Error fetching balagruha list:", error);
@@ -173,13 +173,13 @@ const UserManagement = () => {
           options = assignedResp?.data?.balagruhas || [];
         }
 
-        console.log("Coach balagruha options:", options);
+
         setBalagruhaOptions(options);
         return;
       }
 
       const response = await getBalagruha();
-      console.log("Balagruha details:", response?.data?.balagruhas);
+
       setBalagruhaOptions(response?.data?.balagruhas);
     } catch (error) {
       console.error("Error fetching balagruha list:", error);
@@ -265,8 +265,8 @@ const UserManagement = () => {
 
       // Debug logging for filter values
       if (filterBalagruha !== "all") {
-        console.log("🔍 Filtering by balagruha:", filterBalagruha);
-        console.log("🔍 User balagruhaIds:", user.balagruhaIds);
+
+
       }
 
       // Filter by search term
@@ -303,11 +303,7 @@ const UserManagement = () => {
         const normalizedFilter = normalizeBalagruhaId(filterBalagruha);
         const isMatch = userBalagruhaIds.includes(normalizedFilter);
         if (filterBalagruha !== "all") {
-          console.log(
-            `🔍 User ${user.name}: balagruhaIds=${JSON.stringify(
-              userBalagruhaIds
-            )}, filter=${filterBalagruha}, match=${isMatch}`
-          );
+
         }
         return isMatch;
       }
@@ -368,14 +364,9 @@ const UserManagement = () => {
 
   // Debug filter changes
   useEffect(() => {
-    console.log("🔍 Filter changed:", {
-      filterBalagruha,
-      filterRole,
-      filterStatus,
-      searchTerm,
-    });
-    console.log("🔍 Total users:", users.length);
-    console.log("🔍 Filtered users:", filteredUsers.length);
+
+
+
   }, [
     filterBalagruha,
     filterRole,
@@ -553,26 +544,24 @@ const UserManagement = () => {
         // Add files if they exist
         if (facialDataFile) {
           formDataToSend.append("facialData", facialDataFile);
-          console.log("Appending facial data file:", facialDataFile.name);
+
         }
       }
 
-      console.log("FormData entries:");
+
       for (let pair of formDataToSend.entries()) {
-        console.log(
-          pair[0] + ": " + (pair[1] instanceof File ? pair[1].name : pair[1])
-        );
+
       }
 
       let response;
 
       if (view === "add") {
         response = await addUsers(formDataToSend, formData?.role);
-        console.log("User added successfully:", response);
+
         setConfirmationMessage("User added successfully!");
       } else if (view === "edit" && selectedUser) {
         response = await updateUsers(selectedUser._id, formDataToSend);
-        console.log("User updated successfully:", response);
+
         setConfirmationMessage("User updated successfully!");
       }
 
@@ -614,7 +603,7 @@ const UserManagement = () => {
     if (selectedUser) {
       try {
         const response = await deleteUsers(selectedUser._id);
-        console.log("User deleted:", response);
+
 
         const updatedUsers = users.filter(
           (user) => user._id !== selectedUser._id
@@ -728,7 +717,7 @@ const UserManagement = () => {
 
   const handleSuccess = (response) => {
     // Handle successful submission
-    console.log("User saved:", response);
+
     getUsers();
     setSelectedUser(null);
     setFilterRole("all");

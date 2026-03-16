@@ -298,8 +298,8 @@ export default function MachineRepairsView() {
   };
 
   // const filteredBalagruhas = purchaseOrders.filter((bal) => {
-  //   console.log(purchaseOrders)
-  //   console.log(bal.balagruhaId, filterBalagruha)
+  //   
+  //   
   //   if(filterBalagruha !== "all") {
   //       return bal.balagruhaId === filterBalagruha
   //   }

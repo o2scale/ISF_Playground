@@ -17,7 +17,7 @@ export default function CourseAudioPlayer({ audioUrl, title, onClose, onComplete
     // Handle auto-play prevention
     useEffect(() => {
         if (audioRef.current) {
-            audioRef.current.play().catch(e => console.log('Autoplay blocked', e));
+            audioRef.current.play().catch(() => {});
             setIsPlaying(true);
         }
     }, []);

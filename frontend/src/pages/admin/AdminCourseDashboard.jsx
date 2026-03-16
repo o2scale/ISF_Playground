@@ -30,24 +30,20 @@ export default function AdminCourseDashboard() {
   // SECURITY CHECK: Redirect unauthorized users
   useEffect(() => {
     if (rbacLoading) {
-      console.log('RBAC context still loading, waiting...');
       return;
     }
 
     const permissionsLoaded = Object.keys(permissions).length > 0;
     if (!permissionsLoaded) {
-      console.log('Permissions not yet loaded, waiting...');
       return;
     }
 
     const hasPerm = hasPermission('LMS Management', 'Manage');
-    console.log('Has LMS Management permission:', hasPerm);
 
     if (!hasPerm) {
       console.warn('Unauthorized access attempt to Course Management');
       navigate('/access-denied');
     } else {
-      console.log('✅ Permission check passed - admin access granted');
     }
   }, [hasPermission, navigate, rbacLoading, permissions]);
 

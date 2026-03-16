@@ -45,7 +45,7 @@ export default function OrderHistory() {
           // Extract balagruhas from response: response.data.balagruhas
           const balagruhasData = balagruhasResponse?.data?.balagruhas || [];
 
-          console.log('Fetched balagruhas:', balagruhasData.length);
+
           setBalagruhas(balagruhasData);
         } catch (err) {
           console.error('Error fetching filter options:', err);
@@ -78,7 +78,7 @@ export default function OrderHistory() {
             return isStudent && inBalagruha;
           });
 
-          console.log(`Found ${studentsInBalagruha.length} students in balagruha`);
+
           setStudents(studentsInBalagruha);
           setStudentFilter('all'); // Reset student filter when balagruha changes
         } catch (err) {

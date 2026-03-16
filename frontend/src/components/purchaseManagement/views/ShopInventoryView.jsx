@@ -237,9 +237,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
 
   // Fix: Update status filter when normalizedRole is determined
   useEffect(() => {
-    console.log('DEBUG - Role Check:', { normalizedRole, isPM: normalizedRole === UserTypes.PURCHASE_MANAGER });
     if (normalizedRole === UserTypes.PURCHASE_MANAGER) {
-      console.log('DEBUG - Setting PM filters to active');
       setFilters(prev => ({
         ...prev,
         status: 'active'
@@ -269,11 +267,6 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   }, [filters.dateRange, filters.fromDate, filters.toDate]);
 
   useEffect(() => {
-    console.log('DEBUG - Frontend Filter:', {
-      totalRequests: requests.length,
-      filterStatus: filters.status,
-      requestsBeforeFilter: requests.map(r => ({ id: r._id, status: r.status }))
-    });
     applyFilters();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requests, filters, sortConfig, normalizedRole, userId, userBalagruhas]);
@@ -317,10 +310,6 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         : await getMyPurchaseRequests(params);
 
       if (response.success) {
-        console.log('DEBUG - Fetched Requests:', {
-          count: response.data.requests?.length,
-          requests: response.data.requests?.map(r => ({ id: r._id, status: r.status, requestId: r.requestId }))
-        });
         setRequests(response.data.requests || []);
       } else {
         showToast('Error fetching purchase requests', 'error');
@@ -490,11 +479,6 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
         return aValue > bValue ? 1 : -1;
       }
       return aValue < bValue ? 1 : -1;
-    });
-
-    console.log('DEBUG - After Filter:', {
-      filteredCount: filtered.length,
-      filteredIds: filtered.map(r => ({ id: r._id, status: r.status }))
     });
 
     setFilteredRequests(filtered);
@@ -1868,7 +1852,6 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                         📦 Mark Received at Store
                       </button>
                     )}
-
 
                   </td>
                 </tr>

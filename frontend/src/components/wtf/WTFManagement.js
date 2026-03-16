@@ -270,14 +270,14 @@ const WTFManagementContent = ({ onToggleView }) => {
         ...coinTransactionsFilters,
       };
 
-      console.log("Fetching coin transactions with params:", params);
-      console.log("Current filters:", coinTransactionsFilters);
+
+
 
       const response = await getAllCoinTransactions(params);
       if (response.success) {
         setCoinTransactions(response.data.transactions);
         setCoinTransactionsTotal(response.data.totalTransactions);
-        console.log("Received transactions:", response.data.transactions);
+
       }
     } catch (error) {
       console.error("Error fetching coin transactions:", error);
@@ -289,14 +289,7 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Fetch coin transactions when filters or page changes
   useEffect(() => {
-    console.log(
-      "useEffect triggered - activeTab:",
-      activeTab,
-      "page:",
-      coinTransactionsPage,
-      "filters:",
-      coinTransactionsFilters
-    );
+
     if (activeTab === "coin-transactions") {
       fetchCoinTransactions();
     }
@@ -304,11 +297,11 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Handle coin transactions filter changes
   const handleCoinTransactionsFilterChange = (key, value) => {
-    console.log(`Filter change: ${key} = ${value}`);
-    console.log(`Previous filters:`, coinTransactionsFilters);
+
+
     setCoinTransactionsFilters((prev) => {
       const newFilters = { ...prev, [key]: value };
-      console.log(`New filters:`, newFilters);
+
       return newFilters;
     });
     setCoinTransactionsPage(1); // Reset to first page when filters change
@@ -316,7 +309,7 @@ const WTFManagementContent = ({ onToggleView }) => {
 
   // Clear all filters
   const clearCoinTransactionsFilters = () => {
-    console.log("Clearing all filters");
+
     setCoinTransactionsFilters({
       source: "",
       pinType: "",
