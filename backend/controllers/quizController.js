@@ -220,7 +220,7 @@ exports.createQuiz = async (req, res) => {
                 order: chapterDoc.contentItems.length // Append to end
               });
               await courseDoc.save();
-              console.log(`Linked Quiz ${quiz._id} to Course ${cleanedCourse}`);
+              // Quiz linked to course successfully
             }
           }
         }
@@ -344,7 +344,7 @@ exports.updateQuiz = async (req, res) => {
                   item => item.quizRef?.toString() !== quizId
                 );
                 await oldCourseDoc.save();
-                console.log(`Removed Quiz ${quizId} from old location`);
+                // Quiz removed from old location
               }
             }
           }
@@ -368,7 +368,7 @@ exports.updateQuiz = async (req, res) => {
                 if (item) {
                   item.title = updates.title;
                   await courseDoc.save();
-                  console.log('Updated Quiz Title in Course ContentItem');
+                  // Quiz title updated in course content item
                 }
               }
             }
@@ -388,7 +388,7 @@ exports.updateQuiz = async (req, res) => {
                   order: newChapterDoc.contentItems.length
                 });
                 await newCourseDoc.save();
-                console.log(`Added Quiz ${quizId} to new location`);
+                // Quiz added to new location
               }
             }
           }
@@ -508,7 +508,7 @@ exports.deleteQuiz = async (req, res) => {
                 item => item.quizRef?.toString() !== quizId
               );
               await courseDoc.save();
-              console.log(`Removed Quiz ${quizId} from Course ${quiz.course}`);
+              // Quiz removed from course
             }
           }
         }

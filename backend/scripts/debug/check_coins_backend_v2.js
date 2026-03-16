@@ -3,7 +3,7 @@ const User = require('./models/user');
 const Submission = require('./models/Submission');
 require('dotenv').config();
 
-const db = process.env.MONGO_URI_LOCAL || 'mongodb://localhost:27017/isfplayground';
+const db = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
 
 mongoose.connect(db).then(async () => {
   console.log('Connected to DB');

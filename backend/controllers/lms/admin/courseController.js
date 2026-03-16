@@ -491,9 +491,6 @@ exports.addContentItem = async (req, res) => {
       taskData,
     } = req.body;
 
-    console.log(`📦 Adding Content Item - Course: ${courseId}, Module: ${moduleId}, Chapter: ${chapterId}`);
-    console.log('📝 Payload:', JSON.stringify(req.body, null, 2));
-
     if (!type || !title) {
       return res.status(400).json({ error: "Type and title are required" });
     }
@@ -966,8 +963,7 @@ exports.archiveCourse = async (req, res) => {
     // Archive course
     await course.archive();
 
-    // TODO: Save reason to audit log (Story 05 - Audit Trail)
-    // TODO: Send notifications to coaches if notifyCoaches is true
+    // Audit trail and coach notifications not yet implemented (Sprint 2 backlog)
 
     res.status(200).json({
       success: true,
@@ -1043,8 +1039,7 @@ exports.unpublishCourse = async (req, res) => {
     course.status = "draft";
     await course.save();
 
-    // TODO: Save reason to audit log (Story 05 - Audit Trail)
-    // TODO: Send notifications to coaches if notifyCoaches is true
+    // Audit trail and coach notifications not yet implemented (Sprint 2 backlog)
 
     res.status(200).json({
       success: true,

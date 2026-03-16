@@ -516,16 +516,6 @@ class AnalyticsService {
       }
     ]);
 
-    // DEBUG: Log aggregation result
-    console.log('Leaderboard aggregation:', {
-      resultLength: leaderboard.length,
-      sampleEntry: leaderboard[0] ? {
-        studentName: leaderboard[0].studentName,
-        totalEarned: leaderboard[0].totalEarned,
-        totalSpent: leaderboard[0].totalSpent
-      } : 'No entries'
-    });
-
     // Add rank to each entry
     return leaderboard.map((entry, index) => ({
       rank: index + 1,
@@ -543,15 +533,6 @@ class AnalyticsService {
    */
   static async getZeroPurchaseStudents(filters = {}, page = 1, limit = 10) {
     const skip = (page - 1) * limit;
-
-    // DEBUG: Log received filters
-    console.log('getZeroPurchaseStudents filters:', {
-      hasRequestingUser: !!filters.requestingUser,
-      requestingUserId: filters.requestingUser?._id,
-      requestingUserRole: filters.requestingUser?.role,
-      permissionScope: filters.permissionScope,
-      balagruhaIdsCount: filters.requestingUser?.balagruhaIds?.length
-    });
 
     // Build initial match conditions
     const matchConditions = { role: 'student' };
@@ -600,12 +581,6 @@ class AnalyticsService {
         matchConditions.balagruhaIds = filters.balagruhaId;
       }
     }
-
-    // DEBUG: Log match conditions before pipeline
-    console.log('getZeroPurchaseStudents match:', {
-      matchConditions: JSON.stringify(matchConditions),
-      hasBalagruhaFilter: !!matchConditions.balagruhaIds
-    });
 
     const pipeline = [
       { $match: matchConditions },
@@ -825,15 +800,6 @@ class AnalyticsService {
   static async getTransactionLog(filters = {}, page = 1, limit = 20) {
     const skip = (page - 1) * limit;
 
-    // DEBUG: Log received filters
-    console.log('getTransactionLog filters:', {
-      hasRequestingUser: !!filters.requestingUser,
-      requestingUserId: filters.requestingUser?._id,
-      requestingUserRole: filters.requestingUser?.role,
-      permissionScope: filters.permissionScope,
-      balagruhaIdsCount: filters.requestingUser?.balagruhaIds?.length
-    });
-
     // Build query
     const query = {};
 
@@ -912,13 +878,6 @@ class AnalyticsService {
     if (filters.status) {
       query.status = filters.status;
     }
-
-    // DEBUG: Log final query
-    console.log('getTransactionLog query:', {
-      query: JSON.stringify(query),
-      scopeFilteredStudentIdsCount: scopeFilteredStudentIds?.length,
-      hasUserIdFilter: !!query.userId
-    });
 
     const [transactions, total] = await Promise.all([
       Order.find(query)

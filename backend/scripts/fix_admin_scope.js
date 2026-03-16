@@ -1,7 +1,13 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const Role = require('../models/role');
 
-const uri = "mongodb+srv://admin:admin0987@cluster1.kkubs.mongodb.net/isfplayground?retryWrites=true&w=majority&appName=cluster1";
+const uri = process.env.MONGO_URI || process.env.MONGODB_URI;
+
+if (!uri) {
+  console.error('Error: MONGO_URI or MONGODB_URI environment variable is required');
+  process.exit(1);
+}
 
 const fixScope = async () => {
     try {

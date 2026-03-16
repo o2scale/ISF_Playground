@@ -42,7 +42,7 @@ exports.uploadFileToS3 = async (filePath, bucketName, keyName) => {
     // Construct the URL (note: v3 doesn't return the URL directly)
     const url = `https://${bucketName}.s3.${region}.amazonaws.com/${keyName}`;
 
-    console.log("File uploaded successfully");
+    // File uploaded successfully
     return {
       success: true,
       message: "Upload successful",
@@ -115,7 +115,7 @@ exports.uploadWtfMedia = async (filePath, mediaType, pinId) => {
     await s3Client.send(command);
 
     const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
-    console.log(`WTF media uploaded successfully: ${url}`);
+    // WTF media uploaded successfully
 
     return {
       success: true,
@@ -152,7 +152,7 @@ exports.uploadWtfMediaBuffer = async (buffer, fileName, contentType) => {
     await s3Client.send(command);
 
     const url = `https://${process.env.AWS_S3_WTF_BUCKET_NAME}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
-    console.log(`WTF media uploaded successfully: ${url}`);
+    // WTF media uploaded successfully
     return url;
   } catch (error) {
     console.error("Error uploading WTF media buffer:", error);
@@ -350,7 +350,7 @@ exports.deleteFileFromS3 = async (bucketName, key) => {
     const command = new DeleteObjectCommand(params);
     await s3Client.send(command);
 
-    console.log(`File deleted successfully from S3: ${key}`);
+    // File deleted successfully from S3
     return {
       success: true,
       message: "File deleted successfully",
@@ -399,7 +399,7 @@ exports.deleteWtfMedia = async (keyOrUrl) => {
     const command = new DeleteObjectCommand(params);
     await s3Client.send(command);
 
-    console.log(`WTF media deleted successfully: ${key}`);
+    // WTF media deleted successfully
     return {
       success: true,
       message: "WTF media deleted successfully",
@@ -463,7 +463,7 @@ exports.uploadShopProductImage = async (filePath, productId) => {
     await s3Client.send(command);
 
     const url = `https://${process.env.AWS_S3_BUCKET_NAME_SHOP_PRODUCTS}.s3.${process.env.AWS_S3_REGION}.amazonaws.com/${fileName}`;
-    console.log(`Shop product image uploaded successfully: ${url}`);
+    // Shop product image uploaded successfully
 
     return {
       success: true,
@@ -515,7 +515,7 @@ exports.deleteShopProductImage = async (keyOrUrl) => {
     const command = new DeleteObjectCommand(params);
     await s3Client.send(command);
 
-    console.log(`Shop product image deleted successfully: ${key}`);
+    // Shop product image deleted successfully
     return {
       success: true,
       message: "Shop product image deleted successfully",
@@ -579,7 +579,7 @@ exports.generateLMSContentUploadUrl = async (fileName, fileType, mimeType, expir
     const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
     const cdnUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
 
-    console.log(`Generated presigned upload URL for ${fileName} (expires in ${expiresIn}s)`);
+    // Generated presigned upload URL
 
     return {
       success: true,
@@ -616,7 +616,7 @@ exports.generateLMSContentDownloadUrl = async (s3Key, expiresIn = 3600) => {
 
     const downloadUrl = await getSignedUrl(s3Client, command, { expiresIn });
 
-    console.log(`Generated presigned download URL for ${s3Key} (expires in ${expiresIn}s)`);
+    // Generated presigned download URL
 
     return {
       success: true,
@@ -670,7 +670,7 @@ exports.uploadLMSContent = async (fileContent, fileName, fileType, mimeType) => 
     });
 
     const bucketName = process.env.AWS_S3_BUCKET_NAME_LMS_CONTENT || process.env.AWS_S3_WTF_BUCKET_NAME;
-    console.log(`🚀 Starting S3 Upload - Bucket: ${bucketName}, Key: ${s3Key}, Content-Type: ${mimeType}`);
+    // Starting S3 upload
 
     await s3Client.send(command);
 
@@ -679,7 +679,7 @@ exports.uploadLMSContent = async (fileContent, fileName, fileType, mimeType) => 
     // bucketName is already declared above
     const cdnUrl = `https://${bucketName}.s3.${region}.amazonaws.com/${s3Key}`;
 
-    console.log(`LMS content uploaded successfully: ${cdnUrl}`);
+    // LMS content uploaded successfully
 
     return {
       success: true,
@@ -737,7 +737,7 @@ exports.deleteLMSContent = async (keyOrUrl) => {
 
     await s3Client.send(command);
 
-    console.log(`LMS content deleted successfully: ${key}`);
+    // LMS content deleted successfully
 
     return {
       success: true,

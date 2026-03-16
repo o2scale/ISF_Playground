@@ -31,16 +31,12 @@ exports.uploadFiles = async (req, res) => {
       });
     }
 
-    console.log(`📦 Processing ${files.length} file(s) for LMS content upload`);
-
     const uploadedFiles = [];
     const failedUploads = [];
 
     // Upload each file to S3
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      console.log(`🔄 Processing file ${i + 1}/${files.length}: ${file.originalname}`);
-
       try {
         // Determine file type from MIME type
         const fileType = getFileTypeFromMimeType(file.mimetype);
@@ -102,8 +98,6 @@ exports.uploadFiles = async (req, res) => {
             fileSize: contentLibraryEntry.fileSize,
             mimeType: contentLibraryEntry.mimeType,
           });
-
-          console.log(`✅ File uploaded successfully: ${file.originalname}`);
 
           // Cleanup local file after successful S3 upload
           if (fs.existsSync(file.path)) {

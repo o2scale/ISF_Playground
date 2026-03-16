@@ -128,7 +128,7 @@ class Student {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during user registration: ${error.message}`
@@ -443,7 +443,7 @@ class Student {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during user registration: ${error.message}`
@@ -490,7 +490,7 @@ class Student {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during creating medical record for student: ${error.message}`
@@ -517,7 +517,6 @@ class Student {
             return record.medicalHistory;
           });
           item.medicalHistory = [...medicalRecords];
-          console.log("medicalRecords", medicalRecords);
           delete item.medicalRecords;
           return item;
         });
@@ -538,7 +537,7 @@ class Student {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during fetching student list by balagruha id: ${error.message}`
@@ -607,7 +606,7 @@ class Student {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during fetching student list by balagruha id with attendance by date: ${error.message}`
@@ -667,22 +666,9 @@ class Student {
               [new Float32Array(user.facialData.faceDescriptor)]
             );
           });
-        // Debug: Log all registered names and descriptor lengths
-        labeledDescriptors.forEach((ld) => {
-          console.log(
-            `Registered: ${ld.label}, Descriptor length: ${ld.descriptors[0].length}`
-          );
-        });
-
         const faceMatcher = new faceapi.FaceMatcher(labeledDescriptors, 0.6); // 0.6 is the max distance threshold
         const bestMatch = faceMatcher.findBestMatch(queryDescriptor);
 
-        console.log(
-          "Best match:",
-          bestMatch.label,
-          "Distance:",
-          bestMatch.distance
-        );
         // Apply a threshold for unknown faces
         const result = {
           _id: bestMatch.distance < 0.6 ? bestMatch.label : null,
@@ -801,7 +787,7 @@ class Student {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during student facial login: ${error.message}`
@@ -906,7 +892,7 @@ class Student {
       }
       return medicalHistory;
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during student medical record update: ${error.message}`

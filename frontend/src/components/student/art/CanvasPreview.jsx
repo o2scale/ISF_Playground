@@ -11,7 +11,7 @@ export default function CanvasPreview({ onSubmit, onSave, showSaveButton = false
   const [hasContent, setHasContent] = useState(false);
 
   const handleLaunchArtweaver = () => {
-    // TODO: Implement Electron IPC call to launch Artweaver
+    // Electron IPC call to launch Artweaver not yet implemented (Sprint 2 backlog)
     // window.electron.send('launch-artweaver', { canvasSize: { width: 1024, height: 768 } })
 
     toast.success('🎨 Opening Artweaver... (Placeholder - requires Electron)');

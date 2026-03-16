@@ -6,7 +6,7 @@ const Coin = require('../models/coin');
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
 // MongoDB connection string
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/isf_playground';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
 
 async function addCoinsToStudent(studentId, amount) {
   try {

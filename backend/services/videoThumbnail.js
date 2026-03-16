@@ -54,7 +54,7 @@ class VideoThumbnailService {
         ])
         .output(outputPath)
         .on("end", () => {
-          console.log("Video thumbnail generated successfully");
+          // Video thumbnail generated successfully
           resolve({ success: true, outputPath });
         })
         .on("error", (err) => {

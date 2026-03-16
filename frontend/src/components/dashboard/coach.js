@@ -221,9 +221,9 @@ function CoachDashboard() {
     const coachMenus = [
         { id: 1, name: "Daily Schedule", count: schedules?.length || 0 },
         { id: 2, name: "Task Tracker", count: tasks.length },
-        { id: 3, name: "Medical", count: 0 }, // TODO: Add medical count when API is available
-        { id: 7, name: "Purchase", count: 0 }, // TODO: Add purchase count when API is available
-        { id: 8, name: "ISF Shop", count: 0 }, // TODO: Add shop count when API is available
+        { id: 3, name: "Medical", count: 0 }, // Medical count API not yet available
+        { id: 7, name: "Purchase", count: 0 }, // Purchase count API not yet available
+        { id: 8, name: "ISF Shop", count: 0 }, // Shop count API not yet available
     ];
 
     // Top menus

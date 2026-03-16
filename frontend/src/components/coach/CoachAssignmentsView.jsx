@@ -271,7 +271,7 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
                     <button
                       className="text-gray-500 hover:text-gray-700 text-2xl"
                       onClick={() => {
-                        /* TODO: Show context menu */
+                        /* Context menu not yet implemented */
                       }}
                     >
                       ⋮

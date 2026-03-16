@@ -70,7 +70,7 @@ exports.createUser = async (payload) => {
         break;
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     throw error;
   }
 };
@@ -111,7 +111,7 @@ exports.registerUser = async (payload) => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     errorLogger.error(
       { data: { error: error } },
       `Error occurred during user registration: ${error.message}`
@@ -143,7 +143,7 @@ exports.registerUser = async (payload) => {
 exports.getUserManagementOverviewDetails = async () => {
   try {
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     throw error;
   }
 };
@@ -173,7 +173,7 @@ exports.findUsersByRoleAndBalagruhaId = async (payload) => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     errorLogger.error(
       { data: { error: error } },
       `Error occurred while fetching users by role and balagruhaId: ${error.message}`
@@ -203,7 +203,7 @@ exports.getUserInfo = async (userId) => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     errorLogger.error(
       { data: { error: error } },
       `Error occurred while fetching detailed user information: ${error.message}`
@@ -247,7 +247,7 @@ exports.updateUserPasswordByAdmin = async ({ userId, newPassword }) => {
       }
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     throw error;
   }
 };
@@ -288,7 +288,7 @@ exports.assignBalagruhaToUser = async (payload) => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     throw error;
   }
 };
@@ -455,7 +455,7 @@ exports.updateUserDetailsById = async (userId, payload) => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     errorLogger.error(
       { data: { error: error } },
       `Error occurred while updating user details: ${error.message}`
@@ -495,7 +495,7 @@ exports.deleteUserById = async (userId) => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     errorLogger.error(
       { data: { error } },
       `Error occurred while deleting user: ${error.message}`
@@ -560,7 +560,7 @@ exports.getUserListByAssignedBalagruhaByRole = async ({ role, userId }) => {
 
     return Array.from(uniqueUsersMap.values());
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Service error");
     errorLogger.error(
       { data: { error } },
       `Error occurred while fetching user list by assigned balagruha and role: ${error.message}`

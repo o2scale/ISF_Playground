@@ -26,7 +26,7 @@ function initializeFRService(human) {
     throw new Error('Human instance is required to initialize FR service');
   }
   humanInstance = human;
-  console.log('✅ FR Service initialized with Human library');
+  // FR Service initialized
 }
 
 /**

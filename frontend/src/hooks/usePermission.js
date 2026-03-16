@@ -15,29 +15,29 @@ import { useAuth } from '../contexts/AuthContext';
 export const usePermission = (module, action) => {
   const { user } = useAuth();
 
-  if (!user) {
+  const can = (checkAction, checkModule) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+
+    if (user.permissions && Array.isArray(user.permissions)) {
+      return user.permissions.some((permission) => {
+        return (
+          permission.module === checkModule &&
+          permission.actions &&
+          permission.actions.includes(checkAction)
+        );
+      });
+    }
     return false;
+  };
+
+  // If called with args directly, return boolean (legacy usage)
+  if (module && action) {
+    return can(action, module);
   }
 
-  // Admin role has all permissions
-  if (user.role === 'admin') {
-    return true;
-  }
-
-  // Check if user has permissions array (new RBAC system)
-  if (user.permissions && Array.isArray(user.permissions)) {
-    return user.permissions.some((permission) => {
-      return (
-        permission.module === module &&
-        permission.actions &&
-        permission.actions.includes(action)
-      );
-    });
-  }
-
-  // Fallback: role-based check (old system)
-  // This will be deprecated once all users have permissions array
-  return false;
+  // If called without args, return object with can() (ProtectedRoute usage)
+  return { can };
 };
 
 export default usePermission;

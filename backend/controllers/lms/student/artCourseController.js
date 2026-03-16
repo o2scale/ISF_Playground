@@ -92,11 +92,11 @@ exports.getArtCourseData = async (req, res) => {
         },
         {
           mode: 'competition',
-          currentCompetition: null // TODO: Implement Competition Model
+          currentCompetition: null // Competition Model not yet implemented
         },
         {
           mode: 'free_sketch',
-          gallery: [] // TODO: Implement Gallery Model
+          gallery: [] // Gallery Model not yet implemented
         }
       ]
     };
@@ -125,8 +125,8 @@ exports.submitArtwork = async (req, res) => {
     const { type, mode, metadata } = req.body;
     const file = req.file; // Assuming multer middleware
 
-    // TODO: Implement actual S3 upload and database storage
-    // For now, returning mock success response
+    // Art S3 upload and database storage not yet implemented (Artweaver IPC stubbed)
+    // Returning mock success response for now
 
     // Validate required fields
     if (!type || type !== 'art') {
@@ -183,7 +183,7 @@ exports.saveToGallery = async (req, res) => {
     const { title, canvasSize, sessionDuration } = req.body;
     const file = req.file;
 
-    // TODO: Implement actual S3 upload and database storage
+    // Art S3 upload not yet implemented (Artweaver IPC stubbed)
     const artworkId = `sketch-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const mockArtworkUrl = `https://isf-playground-art.s3.amazonaws.com/gallery/${studentId}/${artworkId}.png`;
 

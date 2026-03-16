@@ -1,3 +1,4 @@
+const { errorLogger } = require("../config/pino-config");
 const {
   getAttendanceByStudentIdAndDate,
   updateAttendanceById,
@@ -84,7 +85,7 @@ class Attendance {
         }
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Attendance service error");
       throw error;
     }
   }
@@ -199,7 +200,7 @@ class Attendance {
         }
       }
     } catch (error) {
-      console.log("error in saveManualAttendance:", error);
+      errorLogger.error({ error: error.message }, "Manual attendance service error");
       throw error;
     }
   }

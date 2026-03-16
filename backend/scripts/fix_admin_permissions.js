@@ -5,7 +5,7 @@ const Role = require('../models/role');
 async function fixPermissions() {
     try {
         // Attempt to load proper mongo URI from env, fallback to default local
-        const mongoUri = process.env.MONGO_URI || 'mongodb://localhost:27017/isf_playground';
+        const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
         console.log('Connecting to MongoDB:', mongoUri);
         await mongoose.connect(mongoUri);
 

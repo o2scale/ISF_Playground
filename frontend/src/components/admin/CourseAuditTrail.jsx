@@ -27,7 +27,7 @@ export default function CourseAuditTrail({ courseId }) {
   const fetchAuditLog = async () => {
     try {
       setLoading(true);
-      // TODO: Create backend endpoint GET /api/v2/lms/admin/courses/:courseId/audit
+      // Backend audit endpoint not yet implemented (Sprint 2 backlog)
       // For now, using mock data
       setAuditLog([
         {

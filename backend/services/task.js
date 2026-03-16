@@ -103,7 +103,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during getting all tasks: ${error.message}`
@@ -115,13 +115,12 @@ class Task {
   static async getTaskOverview() {
     try {
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
   static async createTask(payload) {
     try {
-      console.log("abccc", payload);
       const {
         title,
         description,
@@ -235,14 +234,13 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
 
   static async createTaskV2(payload, isOfflineReq) {
     try {
-      console.log("abccc", payload);
       const {
         title,
         description,
@@ -372,7 +370,6 @@ class Task {
         taskCopy.assignedUser = item;
         taskList.push(taskCopy);
       });
-      console.log("taskList", taskList);
       let result = await createMultipleTask(taskList);
       if (result && result.success) {
         return {
@@ -390,7 +387,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -566,7 +563,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -590,7 +587,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -621,7 +618,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -718,7 +715,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -815,7 +812,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -872,7 +869,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -930,7 +927,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -974,7 +971,7 @@ class Task {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       errorLogger.error(
         { data: { error: error } },
         `Error occurred during fetching task details: ${error.message}`
@@ -1053,7 +1050,7 @@ class Task {
         message: "Assignable users fetched successfully",
       };
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }

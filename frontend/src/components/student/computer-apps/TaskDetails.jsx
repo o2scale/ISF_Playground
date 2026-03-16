@@ -31,14 +31,14 @@ export default function TaskDetails({ task }) {
 
   // Handle Start Task button click
   const handleStartTask = () => {
-    // TODO: Implement in-browser task launch
+    // In-browser task launch not yet implemented
     toast.success('Starting task in browser...');
     console.log('Start task:', task.id);
   };
 
   // Handle Open External Tool button click
   const handleOpenTool = () => {
-    // TODO: Implement Electron IPC tool launch
+    // Electron IPC tool launch not yet implemented
     // For web-based app, show placeholder message
     toast(`Opening ${toolName}...`, { icon: '🚀' });
     console.log('Open tool:', toolName);
@@ -89,7 +89,7 @@ export default function TaskDetails({ task }) {
           <button
             onClick={() => {
               toast.success('Task marked as complete!');
-              // TODO: Implement progress update API call
+              // Progress update API call not yet implemented
             }}
             className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors shadow-md"
           >

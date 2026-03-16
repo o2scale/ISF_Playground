@@ -300,7 +300,7 @@ exports.getQuiz = async (req, res) => {
         quiz = await Quiz.findById(quizId).populate('questions');
       } catch (err) {
         // Ignore cast errors or similar, proceed to ContentItem lookup
-        console.log("Not a direct Quiz ID or not found, trying ContentItem...");
+        // Not a direct Quiz ID or not found, proceed to ContentItem lookup
       }
     }
 

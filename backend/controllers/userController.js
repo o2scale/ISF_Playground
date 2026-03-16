@@ -87,7 +87,7 @@ exports.getAllUsers = async (req, res) => {
       }
     });
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Controller error");
     res.status(500).json({ 
       success: false,
       message: error.message 
@@ -594,7 +594,7 @@ exports.facialLogin = async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    console.log("error", error);
+    errorLogger.error({ error: error.message }, "Controller error");
     errorLogger.error(
       {
         clientIP: req.socket.remoteAddress,

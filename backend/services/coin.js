@@ -633,7 +633,6 @@ class CoinService {
   // Get all coin transactions across all users (Admin only)
   static async getAllTransactions(limit = 100, skip = 0, filters = {}) {
     try {
-      console.log("getAllTransactions called with filters:", filters);
       let query = {};
 
       // Apply filters if provided
@@ -642,41 +641,11 @@ class CoinService {
       }
       if (filters.source && filters.source.trim() !== "") {
         query["transactions.source"] = filters.source;
-        console.log("Applied source filter:", filters.source);
       }
       // Note: pinType and date filtering are handled in the aggregation pipeline after lookup
       // We don't need to restrict the initial query for these filters
 
-      // Log date filter values for debugging
-      if (filters.dateFrom && filters.dateFrom.trim() !== "") {
-        console.log("DateFrom filter value:", filters.dateFrom);
-        console.log("DateFrom as Date object:", new Date(filters.dateFrom));
-        console.log(
-          "DateFrom as ISO string:",
-          new Date(filters.dateFrom).toISOString()
-        );
-      }
-      if (filters.dateTo && filters.dateTo.trim() !== "") {
-        console.log("DateTo filter value:", filters.dateTo);
-        console.log("DateTo as Date object:", new Date(filters.dateTo));
-        console.log(
-          "DateTo as ISO string:",
-          new Date(filters.dateTo).toISOString()
-        );
-      }
-
-      console.log("Final query:", JSON.stringify(query, null, 2));
-
-      // Log pin type filter if specified
-      if (filters.pinType && filters.pinType.trim() !== "") {
-        console.log("Will apply pinType filter:", filters.pinType);
-      }
-
       // Aggregate to get all transactions with user details
-      console.log(
-        "Starting aggregation pipeline with query:",
-        JSON.stringify(query, null, 2)
-      );
       const pipeline = [
         { $match: query },
         { $unwind: "$transactions" },
@@ -768,30 +737,7 @@ class CoinService {
         { $limit: limit },
       ];
 
-      console.log(
-        "Complete aggregation pipeline:",
-        JSON.stringify(pipeline, null, 2)
-      );
       const transactions = await Coin.aggregate(pipeline);
-      console.log(
-        "Aggregation pipeline returned",
-        transactions.length,
-        "transactions"
-      );
-
-      // Log first few transaction dates for debugging
-      if (transactions.length > 0) {
-        console.log("Sample transaction dates:");
-        transactions.slice(0, 3).forEach((t, i) => {
-          console.log(`Transaction ${i + 1}:`, {
-            createdAt: t.transaction.createdAt,
-            createdAtType: typeof t.transaction.createdAt,
-            createdAtISO: t.transaction.createdAt
-              ? t.transaction.createdAt.toISOString()
-              : "null",
-          });
-        });
-      }
 
       // Get total count for pagination (only student transactions)
       const countPipeline = [

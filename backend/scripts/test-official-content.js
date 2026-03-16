@@ -1,8 +1,9 @@
+require("dotenv").config({ path: require("path").resolve(__dirname, "../.env") });
 const mongoose = require("mongoose");
 const WtfPin = require("../models/wtfPin");
 
 // Connect to MongoDB
-mongoose.connect("mongodb://localhost:27017/isfplayground", {
+mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/isfplayground", {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 });

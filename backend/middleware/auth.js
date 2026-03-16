@@ -60,7 +60,6 @@ exports.authenticate = async (req, res, next) => {
     */
 
     req.user = user;
-    req.machine = machine;
 
     next();
   } catch (err) {
@@ -94,7 +93,6 @@ exports.authenticate = async (req, res, next) => {
 exports.authorize = (module, action) => {
   return async (req, res, next) => {
     try {
-      console.log("auth res: ", req.user);
       const userRole = req.user.role;
 
       // RBAC Refactor: Development bypass REMOVED for production security

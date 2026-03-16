@@ -26,7 +26,7 @@ export default function WorkshopsMode({ data, studentId, onRefresh }) {
 
   const handleConfirmSubmission = async (metadata) => {
     try {
-      // TODO: Implement actual file upload
+      // File upload not yet implemented (Artweaver IPC stubbed)
       toast.success('Workshop artwork submitted successfully!');
       setShowSubmissionModal(false);
       if (onRefresh) onRefresh();

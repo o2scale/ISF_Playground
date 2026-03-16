@@ -1,3 +1,4 @@
+const { errorLogger } = require("../config/pino-config");
 const { createMedicalRecords } = require("../data-access/medicalRecords");
 
 class MedicalRecords {
@@ -46,7 +47,7 @@ class MedicalRecords {
         return result;
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Medical records service error");
       throw error;
     }
   }

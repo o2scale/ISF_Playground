@@ -216,8 +216,7 @@ exports.getPendingHomeworkCount = async (req, res) => {
       });
     }
 
-    // Mock homework count for now
-    // TODO: Replace with actual homework query in Epic 05
+    // Placeholder homework count (Epic 05 not yet implemented)
     const count = 3;
 
     res.json({

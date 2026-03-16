@@ -129,9 +129,7 @@ class Balagruha {
           )
             ? [...balagruha.data.assignedMachines]
             : [];
-          console.log("existingAssignedMachines", existingAssignedMachines);
           let removedMachines = existingAssignedMachines.filter((machineId) => {
-            console.log("machineId", machineId);
             return !updateData.assignedMachines.includes(
               machineId._id.toString()
             );
@@ -221,7 +219,6 @@ class Balagruha {
         } else {
           result.data.balagruhas = [];
         }
-        console.log("ersa");
       } else {
         result = await getBalagruhaDetailsByUserId({ userId });
       }

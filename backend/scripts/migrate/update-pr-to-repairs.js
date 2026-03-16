@@ -8,7 +8,7 @@ const mongoose = require('mongoose');
 require('dotenv').config({ path: require('path').join(__dirname, '../backend/.env') });
 
 // MongoDB connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/isf';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
 
 async function updatePurchaseRequestToRepairs() {
   try {

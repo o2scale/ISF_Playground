@@ -1,6 +1,7 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost:27017/isf-playground').then(async () => {
+mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground').then(async () => {
   const db = mongoose.connection.db;
 
   // Update user with 100 coins

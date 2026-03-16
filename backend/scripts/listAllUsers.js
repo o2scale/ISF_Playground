@@ -1,7 +1,8 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const mongoose = require('mongoose');
 const User = require('../models/user');
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/isf_playground';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
 
 async function listAllUsers() {
   try {

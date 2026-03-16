@@ -1,7 +1,7 @@
 # ISF Playground — Sprint Reconciliation Report
 
 **Date:** 2026-03-15
-**Scope:** All executed sprints (1, 1.1, 2, 5, 5-PM, 6, S2-CQ)
+**Scope:** 3 planned sprints executed (1, 2, 5) + 3 unplanned efforts (1.1 RBAC/FR rebuild, Sprint 6 bug fixes, S2-CQ code quality initiative)
 **Method:** Cross-referenced MPSD specs + BMAD artifacts + docs/ stories + actual codebase
 **Not Executed:** Sprint 3 (Mobile App), Sprint 4 (Emergency/SOS)
 
@@ -9,21 +9,40 @@
 
 ## Executive Summary
 
+Of 5 planned development sprints, **3 have been executed** (Sprint 1, 2, 5), plus **3 additional unplanned efforts** (Sprint 1.1 RBAC/FR rebuild, Sprint 6 bug fixes, S2-CQ code quality initiative). Sprints 3 and 4 have not been started.
+
+### Planned Sprints
+
 | Sprint | Planned Stories | Implemented | Partial | Not Built | Rate |
 |--------|----------------|-------------|---------|-----------|------|
-| **1** | 8 features | 3 | 5 | 0 | 38% full, 100% backend |
-| **1.1** | 3 stories | 2 | 1 | 0 | 67% full |
-| **2** | 25 stories | 16 | 6 | 3 | 64% full |
-| **5** (Shop) | 26 stories | 24 | 2 | 0 | 92% full |
-| **5-PM** | 20 stories | 10 | 6 | 4 | 50% full |
-| **6** | 5 stories | 5 | 0 | 0 | 100% full |
-| **S2-CQ** | 3 stories | 2 | 1 | 0 | 67% full |
-| **TOTAL** | **90** | **62** | **21** | **7** | **69% full** |
+| **1** (Core Platform) | 8 features | 3 | 5 | 0 | 38% full, 100% backend |
+| **2** (LMS & Communication) | 25 stories | 16 | 6 | 3 | 64% full |
+| **3** (Mobile App) | — | — | — | — | NOT EXECUTED |
+| **4** (Emergency/SOS) | — | — | — | — | NOT EXECUTED |
+| **5** (E-Commerce & Shop + Purchase Manager) | 46 stories | 34 | 8 | 4 | 74% full |
 
-**Features confirmed NOT built (from planned sprints):**
+Sprint 5 includes both the original Shop stories (26) and the Purchase Manager extension (20), as the PM workflow was a continuation of Sprint 5 scope.
+
+### Unplanned Efforts
+
+| Effort | Scope | Status |
+|--------|-------|--------|
+| **Sprint 1.1** (RBAC & FR Rebuild) | 3 stories — security foundation fix | COMPLETE (67% full) |
+| **Sprint 6** (Bug Fixes & Medical) | 5 stories — post-production fixes | COMPLETE (100%) |
+| **S2-CQ** (Code Quality Initiative) | 3 stories — security, ORM, controller optimization | MOSTLY COMPLETE (67%) |
+
+**Note on Sprint 6:** The original Sprint 6 (5 bug fix stories) is COMPLETE. A NEW Sprint 6 (Stabilization & Documentation) is being planned as the next sprint to execute — covering legacy test fixes, RBAC enforcement, Machine Management UI, database schema documentation, and architecture diagrams.
+
+### Totals (Across All Executed Work)
+
+| | Planned | Implemented | Partial | Not Built | Rate |
+|--|---------|-------------|---------|-----------|------|
+| **All work** | 90 stories | 62 | 21 | 7 | 69% full |
+
+**Features confirmed NOT built (from executed sprints):**
 - Sprint 2 Epic 4: Amma query management, SLA auto-reassignment, Amma dashboard (3)
 - Sprint 2 Epic 5: WhatsApp integration (1)
-- Sprint 5-PM: Stories 1-2, 1-3, 2-2 in backlog (3)
+- Sprint 5 PM extension: Stories 1-2, 1-3, 2-2 in backlog (3)
 
 **Sprints NOT executed at all:**
 - Sprint 3: Mobile app, FR attendance, mobile media, push notifications
@@ -344,5 +363,5 @@ The BMAD sprint status file is stale. Update to reflect actual codebase state:
 - Remove 9 duplicate files from `docs/misc/` (keep root versions)
 - Remove 4 duplicate Sprint 5 epic files from `docs/epics/` root (keep subdirectory versions)
 
-### 5. Create Missing Product Brief
-No master product brief exists for the overall ISF Playground platform. The MPSDs cover individual sprints but there's no unified vision document.
+### 5. ~~Create Missing Product Brief~~ ✅ DONE
+Product brief completed: `_bmad-output/project-planning-artifacts/product-brief-ISF_Playground-2026-03-15.md` (March 15, 2026).

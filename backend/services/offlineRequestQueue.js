@@ -41,12 +41,9 @@ exports.createOfflineRequest = async ({
     const result = await OfflineRequestQueueDA.createOfflineRequest(
       offlineRequest
     );
-    console.log(
-      `Offline request created for operation: ${operation}, path: ${apiPath}`
-    );
     return result;
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Offline request queue error");
     return {
       success: false,
       message: "Error creating offline request",
@@ -363,7 +360,7 @@ exports.syncOfflineRequestToServer = async () => {
         message: "Pending offline requests fetched successfully",
       };
     } else {
-      console.log("No pending offline requests found");
+      // No pending offline requests found
       return {
         success: true,
         data: {},
@@ -371,7 +368,7 @@ exports.syncOfflineRequestToServer = async () => {
       };
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Offline request queue error");
     logger.error(`Error fetching pending offline requests: ${error.message}`);
     return {
       success: false,
@@ -383,9 +380,9 @@ exports.syncOfflineRequestToServer = async () => {
 
 exports.syncRemoteDBToLocalDB = async () => {
   try {
-    // TODO: implement if needed
+    // Remote DB sync not yet implemented (deferred — no current requirement)
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Offline request queue error");
     logger.error(`Error syncing offline request to server: ${error.message}`);
     return {
       success: false,

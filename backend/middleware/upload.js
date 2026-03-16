@@ -50,13 +50,6 @@ const upload = multer({
 
 // WTF-specific upload configuration with support for media files
 const wtfFileFilter = (req, file, cb) => {
-  console.log("🔍 WTF File Filter - Processing file:", {
-    originalname: file.originalname,
-    mimetype: file.mimetype,
-    size: file.size,
-    fieldname: file.fieldname,
-  });
-
   const allowedTypes = [
     "image/jpeg",
     "image/png",
@@ -74,16 +67,9 @@ const wtfFileFilter = (req, file, cb) => {
     "audio/webm", // Browser MediaRecorder default for many setups
   ];
 
-  console.log("📋 Allowed MIME types:", allowedTypes);
-  console.log("🎯 File MIME type:", file.mimetype);
-  console.log("🔍 Is MIME type allowed?", allowedTypes.includes(file.mimetype));
-
   if (allowedTypes.includes(file.mimetype)) {
-    console.log("✅ WTF File Filter - File accepted:", file.mimetype);
     cb(null, true);
   } else {
-    console.log("❌ WTF File Filter - File rejected:", file.mimetype);
-    console.log("💡 Suggestion: Check if file extension matches MIME type");
     cb(
       new Error(
         `Invalid file type: ${
@@ -129,13 +115,6 @@ const fontUpload = multer({
 
 // LMS Content-specific upload configuration with support for large media files
 const lmsFileFilter = (req, file, cb) => {
-  console.log("🔍 LMS File Filter - Processing file:", {
-    originalname: file.originalname,
-    mimetype: file.mimetype,
-    size: file.size,
-    fieldname: file.fieldname,
-  });
-
   const allowedTypes = [
     // Video files
     "video/mp4",
@@ -161,15 +140,9 @@ const lmsFileFilter = (req, file, cb) => {
     "image/svg+xml",
   ];
 
-  console.log("📋 Allowed LMS MIME types:", allowedTypes);
-  console.log("🎯 File MIME type:", file.mimetype);
-  console.log("🔍 Is MIME type allowed?", allowedTypes.includes(file.mimetype));
-
   if (allowedTypes.includes(file.mimetype)) {
-    console.log("✅ LMS File Filter - File accepted:", file.mimetype);
     cb(null, true);
   } else {
-    console.log("❌ LMS File Filter - File rejected:", file.mimetype);
     cb(
       new Error(
         `Invalid file type: ${file.mimetype}. Allowed types: video (mp4, webm, ogg, mov), pdf, audio (mp3, wav, ogg, aac, m4a), image (jpeg, png, gif, webp, svg)`
@@ -230,16 +203,6 @@ const lmsUploadWithErrorHandling = (req, res, next) => {
     }
 
     // Log successful file upload for debugging
-    if (req.files && req.files.length > 0) {
-      console.log("✅ LMS Files uploaded successfully:", req.files.map(f => ({
-        originalname: f.originalname,
-        filename: f.filename,
-        path: f.path,
-        size: f.size,
-        mimetype: f.mimetype,
-      })));
-    }
-
     // No error, continue
     next();
   });
@@ -290,17 +253,6 @@ const wtfUploadWithErrorHandling = (req, res, next) => {
       });
     }
 
-    // Log successful file upload for debugging
-    if (req.file) {
-      console.log("✅ File uploaded successfully:", {
-        originalname: req.file.originalname,
-        filename: req.file.filename,
-        path: req.file.path,
-        size: req.file.size,
-        mimetype: req.file.mimetype,
-      });
-    }
-
     // No error, continue
     next();
   });
@@ -327,7 +279,7 @@ const cleanupOrphanedFiles = () => {
         if (age > maxAge) {
           try {
             fs.unlinkSync(filePath);
-            console.log(`🧹 Cleaned up orphaned file: ${file}`);
+            // Cleaned up orphaned file
           } catch (error) {
             console.error(`❌ Failed to clean up file ${file}:`, error.message);
           }

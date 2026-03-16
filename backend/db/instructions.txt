@@ -1,4 +1,6 @@
 1. Export mongodb dump file from the atlas URI
 
-mongodump --uri=mongodb+srv://admin:admin0987@cluster1.kkubs.mongodb.net/isfplayground --out=dump
+mongodump --uri=$MONGO_URI --out=dump
+
+Note: Set MONGO_URI environment variable to your MongoDB Atlas connection string before running.
 

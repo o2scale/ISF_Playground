@@ -4,7 +4,7 @@ const ShopItem = require('../models/shopItem');
 // Load environment variables
 require('dotenv').config({ path: require('path').join(__dirname, '../.env') });
 
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/isf_playground';
+const MONGODB_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
 
 // Repairs category products for testing
 const repairsProducts = [

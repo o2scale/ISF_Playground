@@ -14,7 +14,7 @@ const mongoose = require('mongoose');
 const ShopItem = require('../models/shopItem');
 
 // MongoDB connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/isf-playground';
+const MONGO_URI = process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground';
 
 // Placeholder image (can be replaced with real images)
 const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/300';

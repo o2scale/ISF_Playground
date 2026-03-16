@@ -43,7 +43,7 @@ export default function TitleBar() {
   // Fetch coin balance from API
   const fetchCoinBalance = async () => {
     try {
-      // TODO: Get actual student ID from auth context
+      // Student ID from auth context not yet wired (Sprint 2 backlog)
       const studentId = localStorage.getItem('userId') || 'student123';
       const response = await api.get(`/api/v2/lms/student/${studentId}/coins`);
       if (response.data.success) {
@@ -106,7 +106,7 @@ export default function TitleBar() {
 
   // Handle notification bell click
   const handleNotificationClick = () => {
-    // TODO: Open notification center dropdown (Epic 05 Story 01)
+    // Notification center dropdown not yet implemented (Sprint 2 Epic 5 backlog)
     console.log('Open notification center');
   };
 

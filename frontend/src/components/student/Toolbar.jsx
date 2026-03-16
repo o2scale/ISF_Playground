@@ -81,14 +81,14 @@ export default function Toolbar() {
 
   // Handle Voice Chat button click
   const handleVoiceChatClick = () => {
-    // TODO: Open Amma communication modal (Epic 05 Story 02)
+    // Amma communication modal not yet implemented (Sprint 2 Epic 4 backlog)
     toast('Voice chat coming soon!', { icon: '🎤' });
     console.log('Open voice chat modal');
   };
 
   // Handle Help button click
   const handleHelpClick = () => {
-    // TODO: Open contextual help modal
+    // Contextual help modal not yet implemented
     toast('Help is on the way!', { icon: '❓' });
     console.log('Open help modal');
   };

@@ -67,8 +67,12 @@ export default function UserIdLogin({ onToggle }) {
                 // Show success message
                 showToast(`Welcome back, ${user.name}!`, "success");
 
-                // Navigate to the dashboard
-                navigate('/dashboard');
+                // Navigate to the appropriate dashboard based on role
+                if (user.role === 'student') {
+                  navigate('/student/dashboard');
+                } else {
+                  navigate('/dashboard');
+                }
             } else {
                 throw new Error('Invalid response from server');
             }

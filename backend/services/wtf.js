@@ -116,17 +116,14 @@ class WtfService {
       }
 
       // Handle case where author might be a string (user name) instead of user ID
-      // For now, we'll need to find the user by name or create a placeholder
-      // TODO: In production, this should be a proper user ID lookup
+      // User lookup by name is implemented below as a fallback for non-ObjectId authors
       if (
         typeof mappedPayload.author === "string" &&
         !mappedPayload.author.match(/^[0-9a-fA-F]{24}$/)
       ) {
         // If author is a string name (not a MongoDB ObjectId), we need to handle it
         // For development, we'll use a placeholder approach
-        console.log(
-          `⚠️  Author is a string name: ${mappedPayload.author}. Using placeholder user ID for development.`
-        );
+        // Author is a string name, attempting user ID lookup
 
         // In development mode, we can bypass this or use a default user ID
         if (
@@ -144,9 +141,9 @@ class WtfService {
             const user = await User.findOne({ name: mappedPayload.author });
             if (user) {
               mappedPayload.author = user._id;
-              console.log(`✅ Found user by name: ${mappedPayload.author}`);
+              // Found user by name
             } else {
-              console.log(`❌ User not found by name: ${mappedPayload.author}`);
+              // User not found by name
               // For development, we could create a default user or skip this
               return {
                 success: false,
@@ -1000,31 +997,14 @@ class WtfService {
 
       const alreadyLiked = !!hasLiked?.data?.hasInteracted;
 
-      console.log("🔍 Interaction check:", {
-        studentId,
-        pinId,
-        likeType,
-        hasLiked: alreadyLiked,
-        hasLikedData: hasLiked?.data,
-      });
-
       if (alreadyLiked) {
         // Unlike: delete the specific interaction
-        console.log("🗑️  Attempting to delete interaction:", {
-          studentId,
-          pinId,
-          type: "like",
-          likeType,
-        });
-
         const deleteResult = await deleteInteraction(
           studentId,
           pinId,
           "like",
           likeType
         );
-
-        console.log("🗑️  Delete result:", deleteResult);
 
         if (deleteResult.success) {
           // Update engagement metrics
@@ -1049,7 +1029,6 @@ class WtfService {
       const result = await createInteraction(interactionData);
       if (result.success) {
         // Update engagement metrics
-        console.log("🔧 likePin: Updating engagement metrics for pin:", pinId);
         await updateEngagementMetrics(pinId, { "engagementMetrics.likes": 1 });
 
         // Award coins for interaction (with daily limit)
@@ -1169,7 +1148,6 @@ class WtfService {
       const result = await createInteraction(interactionData);
       if (result.success) {
         // Update engagement metrics
-        console.log("🔧 lovePin: Updating engagement metrics for pin:", pinId);
         await updateEngagementMetrics(pinId, { loves: 1 });
 
         // Award coins for interaction (with daily limit)
@@ -1735,37 +1713,16 @@ class WtfService {
             let pinType = "text";
             let mediaUrl = null;
 
-            console.log("Creating pin from approved submission:", {
-              type: approvedSubmission.type,
-              audioUrl: approvedSubmission.audioUrl,
-              content: approvedSubmission.content,
-              metadata: approvedSubmission.metadata,
-            });
-
             if (approvedSubmission.type === "voice") {
               pinType = "audio";
               mediaUrl = approvedSubmission.audioUrl;
-              console.log(
-                "Voice submission detected, setting pinType to audio, mediaUrl:",
-                mediaUrl
-              );
             } else if (approvedSubmission.metadata?.originalType === "image") {
               pinType = "image";
               mediaUrl = approvedSubmission.content; // content contains the S3 URL for images
-              console.log(
-                "Image submission detected, setting pinType to image, mediaUrl:",
-                mediaUrl
-              );
             } else if (approvedSubmission.metadata?.originalType === "video") {
               pinType = "video";
               mediaUrl = approvedSubmission.content; // content contains the S3 URL for videos
-              console.log(
-                "Video submission detected, setting pinType to video, mediaUrl:",
-                mediaUrl
-              );
             }
-
-            console.log("Final pin configuration:", { pinType, mediaUrl });
 
             // Ensure required fields are populated according to pin type
             const contentForPin =
@@ -1787,11 +1744,8 @@ class WtfService {
               tags: approvedSubmission.tags || [],
             };
 
-            console.log("Creating WTF pin with payload:", pinPayload);
-
             const pinCreateResult = await createWtfPin(pinPayload);
 
-            console.log("Pin creation result:", pinCreateResult);
             if (pinCreateResult?.success) {
               // Link the created pin back to the submission
               await updateWtfSubmission(submissionId, {

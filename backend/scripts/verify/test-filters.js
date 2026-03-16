@@ -1,3 +1,4 @@
+require("dotenv").config({ path: require("path").resolve(__dirname, "../../.env") });
 const mongoose = require("mongoose");
 const Coin = require("./models/coin");
 
@@ -48,7 +49,7 @@ async function testFilters() {
 if (require.main === module) {
   // Connect to MongoDB
   mongoose
-    .connect("mongodb://localhost:27017/isfplayground", {
+    .connect(process.env.MONGO_URI || process.env.MONGODB_URI || "mongodb://localhost:27017/isfplayground", {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     })

@@ -243,8 +243,7 @@ exports.createAssignment = async (req, res) => {
       await Promise.all(notificationPromises);
       notificationsSent.inApp = studentIds.length;
 
-      // TODO: Email notifications (if notifications.email is true)
-      // This would integrate with email service
+      // Email notification integration not yet implemented (Sprint 2 backlog)
       if (notifications?.email) {
         // Email logic would go here
         notificationsSent.email = studentIds.length;

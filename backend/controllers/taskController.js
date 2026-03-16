@@ -9,7 +9,6 @@ const { UserTypes } = require("../constants/users");
 // Create a new task with file upload
 exports.createTask = async (req, res) => {
   try {
-    console.log("abccc", req.body);
     const {
       title,
       description,
@@ -230,7 +229,7 @@ exports.getAllTasksForUser = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -317,7 +316,7 @@ exports.createTaskV1 = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -426,7 +425,7 @@ exports.getAllTasksV1 = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -510,7 +509,7 @@ exports.getTaskListByBalagruhaIdAndFilter = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -562,7 +561,7 @@ exports.getTaskOverviewDetailsByBalagruhaId = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -613,7 +612,7 @@ exports.updateTaskStatus = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -672,7 +671,7 @@ exports.addCommentToTask = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -729,7 +728,7 @@ exports.addOrUpdateTaskAttachment = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -779,7 +778,7 @@ exports.deleteTaskAttachment = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -829,7 +828,7 @@ exports.deleteTaskComment = async (req, res) => {
         .json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",
@@ -882,7 +881,7 @@ exports.getTaskDetailsById = async (req, res) => {
       });
     }
   } catch (error) {
-    console.log("error", error);
+    logger.error({ error: error.message }, "Controller error");
     res.status(HTTP_STATUS_CODE.BAD_REQUEST).json({
       success: false,
       message: "Internal server error.",

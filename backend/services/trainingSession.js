@@ -1,4 +1,5 @@
 const { default: mongoose } = require("mongoose");
+const { errorLogger } = require("../config/pino-config");
 const {
   createTrainingSession,
   fetchAllTrainingSessions,
@@ -34,7 +35,7 @@ class TrainingSession {
       }
       return { success: false, message: result.message };
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -75,7 +76,7 @@ class TrainingSession {
       }
       return { success: false, message: result.message };
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -93,7 +94,7 @@ class TrainingSession {
       }
       return { success: false, message: result.message };
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -111,7 +112,7 @@ class TrainingSession {
       }
       return { success: false, message: result.message };
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }

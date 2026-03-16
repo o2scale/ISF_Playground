@@ -33,7 +33,7 @@ function initializeCache() {
     });
 
     redisClient.on('connect', () => {
-      console.log('✅ FR Cache: Redis connected successfully');
+      // FR Cache: Redis connected successfully
       cacheEnabled = true;
     });
 
@@ -91,13 +91,13 @@ async function warmCache() {
       };
     }
 
-    console.log('🔄 FR Cache: Warming cache with active embeddings...');
+    // Warming cache with active embeddings
 
     // Get all active embeddings
     const embeddings = await FaceEmbedding.getAllActiveEmbeddings();
 
     if (embeddings.length === 0) {
-      console.log('ℹ️  FR Cache: No active embeddings to cache');
+      // No active embeddings to cache
       return {
         success: true,
         cached: 0,
@@ -121,7 +121,7 @@ async function warmCache() {
 
     const duration = Date.now() - startTime;
 
-    console.log(`✅ FR Cache: Warmed cache with ${embeddings.length} embeddings in ${duration}ms`);
+    // Cache warmed successfully
 
     return {
       success: true,
@@ -205,7 +205,7 @@ async function invalidateCache(studentId) {
     const key = getCacheKey(studentId);
     await redisClient.del(key);
 
-    console.log(`✅ FR Cache: Invalidated cache for student ${studentId}`);
+    // Cache invalidated for student
     return true;
   } catch (error) {
     console.error(`❌ FR Cache: Failed to invalidate cache for ${studentId}:`, error.message);
@@ -231,7 +231,7 @@ async function getAllCachedEmbeddings() {
 
     if (keys.length === 0) {
       // Cache cold, warm it up
-      console.log('ℹ️  FR Cache: Cache is cold, warming up...');
+      // Cache is cold, warming up
       await warmCache();
       // Retry after warming
       const retryKeys = await redisClient.keys('fr:embedding:*');
@@ -259,13 +259,13 @@ async function getAllCachedEmbeddings() {
       }
     });
 
-    console.log(`✅ FR Cache: Retrieved ${embeddings.length} embeddings from cache (cache hit)`);
+    // Cache hit - embeddings retrieved
 
     return embeddings;
   } catch (error) {
     console.error('❌ FR Cache: Failed to get all cached embeddings:', error.message);
     // Fallback to database
-    console.log('ℹ️  FR Cache: Falling back to database');
+    // Falling back to database
     return await FaceEmbedding.getAllActiveEmbeddings();
   }
 }
@@ -330,7 +330,7 @@ async function clearCache() {
       await redisClient.del(...keys);
     }
 
-    console.log(`✅ FR Cache: Cleared ${keys.length} cached embeddings`);
+    // Cache cleared
     return true;
   } catch (error) {
     console.error('❌ FR Cache: Failed to clear cache:', error.message);

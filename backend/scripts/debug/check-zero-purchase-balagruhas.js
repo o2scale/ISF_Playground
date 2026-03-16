@@ -1,5 +1,6 @@
+require('dotenv').config({ path: require('path').resolve(__dirname, '../../.env') });
 const mongoose = require('mongoose');
-mongoose.connect('mongodb://localhost:27017/isfplayground');
+mongoose.connect(process.env.MONGO_URI || process.env.MONGODB_URI || 'mongodb://localhost:27017/isfplayground');
 
 async function check() {
   const User = mongoose.model('User', new mongoose.Schema({}, { strict: false }));

@@ -14,7 +14,7 @@ exports.copyDatabase = async () => {
     const collections = await remoteDb.listCollections().toArray();
     for (const collectionInfo of collections) {
       const collectionName = collectionInfo.name;
-      console.log(`Copying collection: ${collectionName}`);
+      // Copying collection
       const remoteCollection = remoteDb.collection(collectionName);
       const localCollection = localDb.collection(collectionName);
       const docs = await remoteCollection.find({}).toArray();
@@ -23,7 +23,7 @@ exports.copyDatabase = async () => {
         await localCollection.insertMany(docs);
       }
     }
-    console.log("Database copied successfully!");
+    // Database copied successfully
   } catch (error) {
     console.error("Error copying database:", error);
   } finally {

@@ -79,3 +79,15 @@ development_status:
   5-1-orm-standardization-audit: done
   5-2-test-coverage-expansion: done
   epic-5-retrospective: optional
+
+  # Epic 6: Codebase Health (Post-Evaluation)
+  epic-6: in-progress
+  6-1-credential-security-cleanup: ready-for-dev
+  6-2-critical-test-coverage: ready-for-dev
+  6-3-user-student-model-consolidation: ready-for-dev
+  6-4-auth-route-refactoring: ready-for-dev
+  6-5-orphaned-model-cleanup: ready-for-dev
+  6-6-rbac-data-isolation-integration-tests: ready-for-dev
+  6-7-missing-database-indexes: ready-for-dev
+  6-8-jest-config-ci-health: ready-for-dev
+  epic-6-retrospective: optional

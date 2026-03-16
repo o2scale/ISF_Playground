@@ -1,4 +1,5 @@
 const { default: mongoose } = require("mongoose");
+const { errorLogger } = require("../config/pino-config");
 const User = require("../models/user");
 const { uploadFileToS3 } = require("./aws/s3");
 const {
@@ -104,7 +105,7 @@ class MusicTask {
       let result = await Task.createTaskV2(payload, isOfflineReq);
       return result;
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -220,7 +221,7 @@ class MusicTask {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -306,7 +307,7 @@ class MusicTask {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -392,7 +393,7 @@ class MusicTask {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -488,7 +489,7 @@ class MusicTask {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -585,7 +586,7 @@ class MusicTask {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }
@@ -679,7 +680,7 @@ class MusicTask {
         };
       }
     } catch (error) {
-      console.log("error", error);
+      errorLogger.error({ error: error.message }, "Service error");
       throw error;
     }
   }

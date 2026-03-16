@@ -472,8 +472,6 @@ exports.markComplete = async (req, res) => {
     const { studentId } = req.params;
     const { itemId, itemType, courseId, quizId } = req.body;
 
-    console.log(`markComplete called for Student: ${studentId}, Course: ${courseId}, Item: ${itemId}`);
-
     if (!itemId || !courseId) {
       return res.status(400).json({ success: false, message: 'Missing itemId or courseId' });
     }
@@ -490,7 +488,6 @@ exports.markComplete = async (req, res) => {
 
     // Create if missing
     if (!progress) {
-      console.log('No progress found, creating new record...');
       progress = new StudentProgress({
         student: studentObjectId, // Use casted ID
         course: courseObjectId,   // Use casted ID
@@ -501,9 +498,8 @@ exports.markComplete = async (req, res) => {
       });
       // CRITICAL: Save it so it has an ID in DB
       await progress.save();
-      console.log(`Created new progress record: ${progress._id}`);
     } else {
-      console.log(`Found existing progress record: ${progress._id}`);
+      // Existing progress record found
     }
 
     // Check if item exists (avoid duplicates)
@@ -528,9 +524,8 @@ exports.markComplete = async (req, res) => {
         },
         { new: true } // Return UPDATED doc
       );
-      console.log('Progress item pushed successfully.');
     } else {
-      console.log('Item already completed.');
+      // Item already completed, skip
     }
 
     res.json({

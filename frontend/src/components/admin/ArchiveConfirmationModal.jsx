@@ -36,7 +36,7 @@ export default function ArchiveConfirmationModal({
     try {
       setLoading(true);
       // Mock impact data for now - in real implementation, this would fetch from backend
-      // TODO: Create backend endpoint GET /api/v2/lms/admin/courses/:courseId/impact
+      // Backend impact analysis endpoint not yet implemented (Sprint 2 backlog)
       setImpactData({
         enrolledStudents: 0,
         completedStudents: 0,

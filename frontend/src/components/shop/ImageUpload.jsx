@@ -6,7 +6,7 @@ import { api } from '../../api';
 /**
  * ImageUpload Component - Sprint5-Story-05
  * Simple image upload with preview (placeholder for S3 integration)
- * TODO: Integrate with AWS S3 in future sprint
+ * AWS S3 integration planned for future sprint
  */
 
 export default function ImageUpload({ currentImageUrl, onUpload }) {
