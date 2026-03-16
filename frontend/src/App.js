@@ -262,23 +262,43 @@ const App = () => {
                   <Route
                     path="/balagruha"
                     element={
-                      // <ProtectedRoute module="Machine Management" action="Read">
-                      // <BalagruhaDashboard />
-                      <BalagruhaManagement />
-                      // </ProtectedRoute>
+                      <ProtectedRoute requiredRoles={['admin']}>
+                        <BalagruhaManagement />
+                      </ProtectedRoute>
                     }
                   />
                   <Route
                     path="/attendance"
                     element={
-                      // <ProtectedRoute module="Machine Management" action="Read">
-                      <AttendanceComponent />
-                      // </ProtectedRoute>
+                      <ProtectedRoute requiredRoles={['admin', 'coach', 'balagruha in-charge']}>
+                        <AttendanceComponent />
+                      </ProtectedRoute>
                     }
                   />
-                  <Route path="/course" element={<CourseManagement />} />
-                  <Route path="/repair" element={<RepairManagement />} />
-                  <Route path="/purchase" element={<PurchaseManagement />} />
+                  <Route
+                    path="/course"
+                    element={
+                      <ProtectedRoute requiredRoles={['admin', 'coach', 'student']}>
+                        <CourseManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/repair"
+                    element={
+                      <ProtectedRoute requiredRoles={['admin', 'purchase-manager', 'coach']}>
+                        <RepairManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/purchase"
+                    element={
+                      <ProtectedRoute requiredRoles={['admin', 'purchase-manager', 'coach']}>
+                        <PurchaseManagement />
+                      </ProtectedRoute>
+                    }
+                  />
 
                   {/* WTF (Wall of Fame) Route */}
                   <Route
