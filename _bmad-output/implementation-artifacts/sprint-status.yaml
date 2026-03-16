@@ -91,3 +91,12 @@ development_status:
   6-7-missing-database-indexes: done
   6-8-jest-config-ci-health: done
   epic-6-retrospective: optional
+
+  # Epic 7: Frontend Stabilization — Discovery Phase
+  epic-7: done
+  7-1-component-page-inventory: done
+  7-2-frontend-test-baseline: done
+  7-3-frontend-code-quality-scan: done
+  7-4-architecture-pattern-audit: done
+  7-5-design-system-compliance: done
+  epic-7-retrospective: optional
