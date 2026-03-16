@@ -231,14 +231,16 @@ coinSchema.methods.updateWtfStats = function (type, amount) {
 
 // Instance method to get transaction history
 coinSchema.methods.getTransactionHistory = function (limit = 50, skip = 0) {
-  return this.transactions.sort({ createdAt: -1 }).slice(skip, skip + limit);
+  return this.transactions
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .slice(skip, skip + limit);
 };
 
 // Instance method to get WTF transaction history
 coinSchema.methods.getWtfTransactionHistory = function (limit = 50) {
   return this.transactions
     .filter((transaction) => transaction.source === "wtf")
-    .sort({ createdAt: -1 })
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
     .slice(0, limit);
 };
 
