@@ -102,5 +102,13 @@ const taskSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance - Story 6.7: Missing Database Indexes
+taskSchema.index({ assignedUser: 1 });
+taskSchema.index({ balagruhaId: 1 });
+taskSchema.index({ status: 1 });
+taskSchema.index({ assignedUser: 1, status: 1 }); // Task list filtering by user + status
+taskSchema.index({ balagruhaId: 1, status: 1 }); // Scope filter + status
+taskSchema.index({ createdAt: -1 }); // Sorting by creation date
+
 const Task = mongoose.models.Task || mongoose.model("Task", taskSchema);
 module.exports = Task;

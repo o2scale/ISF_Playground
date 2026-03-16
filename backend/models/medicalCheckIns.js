@@ -187,6 +187,12 @@ const medicalCheckInSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance - Story 6.7: Missing Database Indexes
+medicalCheckInSchema.index({ studentId: 1 });
+medicalCheckInSchema.index({ healthStatus: 1 });
+medicalCheckInSchema.index({ studentId: 1, date: -1 }); // Student health record lookup + date sorting
+medicalCheckInSchema.index({ createdAt: -1 }); // Sorting by creation date
+
 const MedicalCheckIn = mongoose.models.medical_check_ins || mongoose.model(
   "medical_check_ins",
   medicalCheckInSchema

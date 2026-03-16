@@ -65,5 +65,11 @@ const sportsTaskSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance - Story 6.7: Missing Database Indexes
+sportsTaskSchema.index({ assignedUser: 1 });
+sportsTaskSchema.index({ status: 1 });
+sportsTaskSchema.index({ assignedUser: 1, status: 1 }); // Task list filtering by user + status
+sportsTaskSchema.index({ createdAt: -1 }); // Sorting by creation date
+
 const SportsTask = mongoose.models.sports_tasks || mongoose.model("sports_tasks", sportsTaskSchema);
 module.exports = SportsTask;

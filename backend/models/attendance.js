@@ -51,6 +51,12 @@ const attendanceSchema = new mongoose.Schema(
   }
 );
 
+// Indexes for performance - Story 6.7: Missing Database Indexes
+attendanceSchema.index({ studentId: 1 });
+attendanceSchema.index({ balagruhaId: 1 });
+attendanceSchema.index({ balagruhaId: 1, date: -1 }); // Scope filter + date sorting
+attendanceSchema.index({ studentId: 1, date: -1 }); // Student lookup + date sorting
+
 const Attendance = mongoose.models.Attendance || mongoose.model("Attendance", attendanceSchema);
 
 module.exports = Attendance;

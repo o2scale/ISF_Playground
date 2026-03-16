@@ -213,7 +213,7 @@
 | overrideReason | String | no | null | -- | enum: fr_failed, fr_unavailable, technical_issue, user_preference, emergency, other |
 | markedBy | ObjectId | no | null | User | who manually marked attendance |
 
-**Indexes:** `{ isManualOverride: 1 }` (field-level)
+**Indexes:** `{ isManualOverride: 1 }` (field-level), `{ studentId: 1 }`, `{ balagruhaId: 1 }`, `{ balagruhaId: 1, date: -1 }`, `{ studentId: 1, date: -1 }` (Story 6.7)
 **Virtuals:** none
 **Hooks:** none
 **Methods:** none
@@ -386,7 +386,7 @@
 | balagruhaId | ObjectId | no | -- | Balagruha | for medical tasks |
 | students | [ObjectId] | no | -- | User | for medical tasks |
 
-**Indexes:** none explicitly defined
+**Indexes:** `{ assignedUser: 1 }`, `{ balagruhaId: 1 }`, `{ status: 1 }`, `{ assignedUser: 1, status: 1 }`, `{ balagruhaId: 1, status: 1 }`, `{ createdAt: -1 }` (Story 6.7)
 **Virtuals:** none
 **Hooks:** none
 **Methods:** none
@@ -415,7 +415,7 @@
 | performanceMetrics.score | String | no | "" | -- | -- |
 | performanceMetrics.repetitions | String | no | "" | -- | -- |
 
-**Indexes:** none
+**Indexes:** `{ assignedUser: 1 }`, `{ status: 1 }`, `{ assignedUser: 1, status: 1 }`, `{ createdAt: -1 }` (Story 6.7)
 **Virtuals:** none
 **Hooks:** none
 **Methods:** none
@@ -463,7 +463,7 @@
 | status | String | no | "active" | -- | enum: active, inactive, maintenance |
 | lastLogin | Date | no | null | -- | -- |
 
-**Indexes:** `machineId` (unique), `macAddress` (unique), `serialNumber` (unique)
+**Indexes:** `machineId` (unique), `macAddress` (unique), `serialNumber` (unique), `{ assignedBalagruha: 1 }`, `{ status: 1 }`, `{ assignedBalagruha: 1, status: 1 }` (Story 6.7)
 **Virtuals:** none
 **Hooks:** none
 **Methods:** none
@@ -1160,6 +1160,7 @@ Course uses deeply nested subdocument schemas:
 - `{ courseId: 1 }`
 - `{ "assignedTo.balagruhaId": 1 }`
 - `{ "assignedTo.studentIds": 1 }`
+- `{ "assignedTo.balagruhaIds": 1 }` (Story 6.7 -- multi-balagruha assignment lookup)
 - `{ status: 1 }`
 - `{ dueDate: 1 }`
 
@@ -1733,7 +1734,7 @@ Course uses deeply nested subdocument schemas:
 | followUp | Object | no | -- | -- | DEPRECATED: single follow-up for backward compat |
 | createdBy | ObjectId | yes | -- | User | -- |
 
-**Indexes:** none
+**Indexes:** `{ studentId: 1 }`, `{ healthStatus: 1 }`, `{ studentId: 1, date: -1 }`, `{ createdAt: -1 }` (Story 6.7)
 **Virtuals:** none
 **Hooks:** none
 **Methods:** none
@@ -2411,23 +2412,28 @@ The `machineactivelog.js` and `machineAssignment.js` models use PascalCase field
 
 **Impact:** Currently orphaned so no runtime error, but this is a defect that must be fixed before the model is used.
 
-### Finding 4: Missing Indexes on Frequently Queried Reference Fields (MEDIUM)
+### Finding 4: Missing Indexes on Frequently Queried Reference Fields (MEDIUM) — PARTIALLY RESOLVED (Story 6.7)
 
 **Category:** Missing indexes
 **Severity:** Medium — performance impact on growing collections
+**Status:** Partially resolved in Story 6.7 (March 2026). High-priority indexes added to 6 models (21 indexes total). Remaining models (Medical, TrainingSession, WtfPin, WtfStudentInteraction, WtfSubmission, Student, StudentMoodTracker, UserNotificationView) still need indexes in a future story.
 
-Many models have ObjectId reference fields used in queries but lack indexes. Key examples:
+**Resolved in Story 6.7:**
+
+| Model | Indexes Added |
+|---|---|
+| Attendance | `{ studentId: 1 }`, `{ balagruhaId: 1 }`, `{ balagruhaId: 1, date: -1 }`, `{ studentId: 1, date: -1 }` |
+| Task | `{ assignedUser: 1 }`, `{ balagruhaId: 1 }`, `{ status: 1 }`, `{ assignedUser: 1, status: 1 }`, `{ balagruhaId: 1, status: 1 }`, `{ createdAt: -1 }` |
+| SportsTasks | `{ assignedUser: 1 }`, `{ status: 1 }`, `{ assignedUser: 1, status: 1 }`, `{ createdAt: -1 }` |
+| MedicalCheckIns | `{ studentId: 1 }`, `{ healthStatus: 1 }`, `{ studentId: 1, date: -1 }`, `{ createdAt: -1 }` |
+| Machine | `{ assignedBalagruha: 1 }`, `{ status: 1 }`, `{ assignedBalagruha: 1, status: 1 }` |
+| CourseAssignment | `{ "assignedTo.balagruhaIds": 1 }` (added to existing indexes) |
+
+**Still missing (lower priority):**
 
 | Model | Field(s) Missing Index | Query Pattern |
 |---|---|---|
-| Attendance | studentId, balagruhaId | Queried by student and balagruha |
-| Coin | userId | Queried by user for balance/history |
-| MedicalCheckIns | studentId, createdBy | Queried by student for check-in history |
 | Medical | studentId | Queried by student for medical records |
-| Notification | userId (has compound index), coachId, pinId | Individual field lookups |
-| Schedules | balagruhaId, assignedTo, createdBy | Queried by balagruha and assignee |
-| SportsTasks | assignedUser, createdBy | Queried by assignee |
-| Task | assignedUser, createdBy, balagruhaId | Queried by assignee and balagruha |
 | TrainingSession | balagruhaId, createdBy | Queried by balagruha |
 | WtfPin | author | Queried by author |
 | WtfStudentInteraction | studentId, pinId | Queried by student and pin |
@@ -2437,8 +2443,6 @@ Many models have ObjectId reference fields used in queries but lack indexes. Key
 | UserNotificationView | notificationId | Queried by notification |
 
 **Impact:** Without indexes, these queries perform collection scans. Performance degrades as collections grow.
-
-**Recommendation:** Add indexes to the most frequently queried fields. Priority: `Coin.userId`, `Attendance.studentId`, `MedicalCheckIns.studentId`, `Task.assignedUser`, `Schedules.balagruhaId`.
 
 ### Finding 5: Models with No Validation (LOW)
 
