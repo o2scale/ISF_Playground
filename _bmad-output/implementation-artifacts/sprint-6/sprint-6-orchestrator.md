@@ -255,11 +255,88 @@ When ALL acceptance criteria are met, output your final summary of:
 - **Success check:** forceExit removed from jest config AND test suite exits cleanly AND < 120s execution
 - **Epic completion:** Update `epic-6: done`
 
+### Phase 6: Frontend Discovery (Epic 7 — Frontend Stabilization)
+
+**Discovery-only phase. Each story produces a report, not code changes. Reports feed Phase 7 (fix stories TBD).**
+
+#### Story 7.1 — Component & Page Inventory
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/7-1-component-page-inventory.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/frontend-component-inventory.md` exists with total counts, dead component list, page-to-component map
+
+#### Story 7.2 — Frontend Test Baseline
+- **Agent:** Quinn (QA) — `_bmad/bmm/agents/qa.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/7-2-frontend-test-baseline.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/frontend-test-baseline.md` exists with test counts, coverage, Playwright assessment
+
+#### Story 7.3 — Frontend Code Quality Scan
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/7-3-frontend-code-quality-scan.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/frontend-code-quality.md` exists with console.log count, API migration status, TODO list
+
+#### Story 7.4 — Architecture Pattern Audit
+- **Agent:** Winston (Architect) — `_bmad/bmm/agents/architect.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/7-4-architecture-pattern-audit.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/frontend-architecture-audit.md` exists with state management audit, RBAC coverage, API module usage
+
+#### Story 7.5 — Design System Compliance
+- **Agent:** Sally (UX Designer) — `_bmad/bmm/agents/ux-designer.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/7-5-design-system-compliance.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/frontend-design-compliance.md` exists with token compliance ratio, styling consistency, accessibility gaps
+- **Epic completion:** Update `epic-7: done`
+
+**After Epic 7 completes:** Compile all 5 reports into a combined frontend evaluation summary. Then create Epic 8 fix stories based on findings — same pattern as Epic 6 came from backend evaluation.
+
+### Phase 7: Frontend Fixes (Epic 8 — Post-Discovery Fixes)
+
+**CRITICAL: Story 8.1 (RBAC fix) must run FIRST. Stories 8.2-8.8 run in sequence after.**
+
+#### Story 8.1 — Fix ProtectedRoute RBAC Denial (CRITICAL)
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-1-fix-protectedroute-rbac.md`
+- **Success check:** ProtectedRoute denial logic is active AND all 36 routes wrapped AND unauthorized users are redirected
+
+#### Story 8.2 — Consolidate Permission System
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-2-consolidate-permission-system.md`
+- **Success check:** Single permission hook used consistently AND broken destructuring fixed in 3 pages AND duplicate hook removed
+
+#### Story 8.3 — Wire ErrorBoundary into App.js
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-3-errorboundary-wiring.md`
+- **Success check:** ErrorBoundary imported in App.js AND wraps main content
+
+#### Story 8.4 — Frontend Console.log Cleanup
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-4-frontend-console-log-cleanup.md`
+- **Success check:** `grep -rn "console.log" frontend/src/components/ frontend/src/pages/ frontend/src/hooks/ frontend/src/store/` returns zero
+
+#### Story 8.5 — Fix Failing Frontend Tests
+- **Agent:** Quinn (QA) — `_bmad/bmm/agents/qa.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-5-fix-failing-frontend-tests.md`
+- **Success check:** All frontend tests pass (100% pass rate)
+
+#### Story 8.6 — Dead Code Removal
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-6-dead-code-removal.md`
+- **Success check:** 61 dead component files removed AND app still builds AND tests pass
+
+#### Story 8.7 — Centralize API Client Usage
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-7-centralize-api-client.md`
+- **Success check:** Zero direct axios imports outside `src/api/` directory AND features work
+
+#### Story 8.8 — Accessibility Quick Wins
+- **Agent:** Sally (UX Designer) — `_bmad/bmm/agents/ux-designer.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/8-8-accessibility-quick-wins.md`
+- **Success check:** Alt text on 10 most-used pages AND form labels on 5 critical pages
+- **Epic completion:** Update `epic-8: done`
+
 ---
 
 ## Completion
 
-When all 18 stories are `done` and all 5 epics are `done`:
+When all stories are `done` and all epics are `done`:
 
 1. Run final verification: `cd backend && npx jest --coverage --verbose`
 2. Verify `grep -r "TODO" backend/routes/v2/facialRecognition.js` returns empty
