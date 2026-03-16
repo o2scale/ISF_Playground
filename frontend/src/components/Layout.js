@@ -4,7 +4,7 @@ import { Outlet, useNavigate, Link, useLocation } from "react-router-dom";
 import "./Layout.css";
 import { useAuth } from "../contexts/AuthContext";
 import { useRBAC } from "../contexts/RBACContext";
-import { usePermission } from "../hooks/usePermission";
+// usePermission removed — Layout uses useRBAC directly (Story 8.2)
 import { useCoinBalance } from "../contexts/CoinBalanceContext";
 import CartIcon from "./shop/CartIcon";
 import FloatingDeliveriesButton from "./shop/FloatingDeliveriesButton";
@@ -32,7 +32,7 @@ export const useSidebar = () => {
 const Layout = () => {
   const { user, logout, isAuthenticated, isLoading: authLoading } = useAuth();
   const { isLoading: rbacLoading } = useRBAC();
-  const { canRead } = usePermission();
+  // canRead removed — was destructured from usePermission but never used (Story 8.2)
   const { balance: coinBalance } = useCoinBalance(); // Sprint5-Story-08: Use context for coin balance
   const navigate = useNavigate();
   const location = useLocation(); // Get current location

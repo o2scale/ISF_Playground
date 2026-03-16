@@ -1,43 +1,44 @@
 /**
- * usePermission Hook - RBAC Permission Check
+ * usePermission Hook - Convenience wrapper around useRBAC
  *
- * Purpose: Check if current user has permission for a specific module and action
- * Created: 2025-10-18 22:28:00
- * Sprint: 1.1 - RBAC Refactor
+ * Delegates all permission checks to the RBACContext (which fetches from API).
+ * Provides convenience methods: canCreate, canRead, canUpdate, canDelete.
  *
- * Usage:
+ * Story 8.2: Consolidated from broken localStorage-based hook to useRBAC wrapper.
+ *
+ * Usage (object mode - no args):
+ *   const { canCreate, canRead, canUpdate, canDelete, can } = usePermission();
+ *   const allowed = canRead('User Management');
+ *
+ * Usage (boolean mode - with args):
  *   const hasPermission = usePermission('User Management', 'Read');
- *   const canEdit = usePermission('Student Management', 'Update');
  */
 
-import { useAuth } from '../contexts/AuthContext';
+import { useRBAC } from '../contexts/RBACContext';
 
 export const usePermission = (module, action) => {
-  const { user } = useAuth();
+  const { hasPermission, hasModuleAccess, getAllModules } = useRBAC();
 
   const can = (checkAction, checkModule) => {
-    if (!user) return false;
-    if (user.role === 'admin') return true;
-
-    if (user.permissions && Array.isArray(user.permissions)) {
-      return user.permissions.some((permission) => {
-        return (
-          permission.module === checkModule &&
-          permission.actions &&
-          permission.actions.includes(checkAction)
-        );
-      });
-    }
-    return false;
+    return hasPermission(checkModule, checkAction);
   };
 
-  // If called with args directly, return boolean (legacy usage)
+  const canCreate = (mod) => hasPermission(mod, 'Create');
+  const canRead = (mod) => hasPermission(mod, 'Read');
+  const canUpdate = (mod) => hasPermission(mod, 'Update');
+  const canDelete = (mod) => hasPermission(mod, 'Delete');
+
+  const getAccessibleModules = () => {
+    return getAllModules().filter((mod) => hasModuleAccess(mod));
+  };
+
+  // If called with args directly, return boolean (PermissionGuard usage)
   if (module && action) {
-    return can(action, module);
+    return hasPermission(module, action);
   }
 
-  // If called without args, return object with can() (ProtectedRoute usage)
-  return { can };
+  // If called without args, return object with convenience methods
+  return { can, canCreate, canRead, canUpdate, canDelete, getAccessibleModules };
 };
 
 export default usePermission;
