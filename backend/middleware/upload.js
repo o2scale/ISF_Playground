@@ -291,11 +291,21 @@ const cleanupOrphanedFiles = () => {
   }
 };
 
-// Run cleanup every hour
-setInterval(cleanupOrphanedFiles, 60 * 60 * 1000);
+// Run cleanup every hour (skip in test environment to avoid open handles)
+let cleanupTimer = null;
+if (process.env.NODE_ENV !== "test") {
+  cleanupTimer = setInterval(cleanupOrphanedFiles, 60 * 60 * 1000);
+  // Run initial cleanup
+  cleanupOrphanedFiles();
+}
 
-// Run initial cleanup
-cleanupOrphanedFiles();
+// Stop the cleanup timer (useful for graceful shutdown)
+const stopCleanupTimer = () => {
+  if (cleanupTimer) {
+    clearInterval(cleanupTimer);
+    cleanupTimer = null;
+  }
+};
 
 module.exports = {
   upload,
@@ -305,4 +315,5 @@ module.exports = {
   lmsUpload,
   lmsUploadWithErrorHandling,
   cleanupOrphanedFiles,
+  stopCleanupTimer,
 };
