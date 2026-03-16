@@ -309,11 +309,14 @@ function CoachDashboard() {
 
                 {/* Chat input */}
                 <div className="chat-input">
+                    <label htmlFor={`chat-input-${type}`} className="sr-only">Type a message</label>
                     <input
                         type="text"
+                        id={`chat-input-${type}`}
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
                         placeholder="Type a message..."
+                        aria-label={`Type a message to ${type}`}
                         onKeyPress={(e) => {
                             if (e.key === 'Enter') {
                                 handleSendMessage(type, newMessage);

@@ -839,8 +839,9 @@ function BalagruhaDashboard() {
                         <div className="send-message-form">
                             <h3>{t.sendMessage}</h3>
                             <div className="form-group">
-                                <label>{t.selectRecipient}</label>
+                                <label htmlFor="balagruha-msg-recipient">{t.selectRecipient}</label>
                                 <select
+                                    id="balagruha-msg-recipient"
                                     value={messageRecipient}
                                     onChange={(e) => setMessageRecipient(e.target.value)}
                                     className="recipient-select"

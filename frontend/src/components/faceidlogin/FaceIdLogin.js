@@ -420,6 +420,7 @@ const FaceIdLogin = ({ onToggle }) => {
           ref={videoRef}
           autoPlay
           playsInline
+          aria-label="Camera feed for face recognition login"
           onLoadedMetadata={() => {
             // Set canvas size to match video
             if (canvasRef.current && videoRef.current) {

@@ -111,23 +111,29 @@ const PinLogin = ({ onToggle }) => {
 
         {/* Username input */}
         <div className="input-group">
+          <label htmlFor="pin-login-email" className="sr-only">Email</label>
           <input
             type="text"
+            id="pin-login-email"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             placeholder="Email"
             disabled={isLoading}
+            aria-label="Email address"
           />
         </div>
 
         {/* Password input */}
         <div className="input-group">
+          <label htmlFor="pin-login-password" className="sr-only">Password</label>
           <input
             type="password"
+            id="pin-login-password"
             value={pin}
             onChange={(e) => setPin(e.target.value)}
             placeholder="Password"
             disabled={isLoading}
+            aria-label="Password"
           />
         </div>
 

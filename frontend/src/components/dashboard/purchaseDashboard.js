@@ -126,7 +126,7 @@ const PurchaseDashboard = () => {
     return (
       <div className="file-preview">
         {isImage(file) ? (
-          <img src={preview} alt="preview" className="preview-image" />
+          <img src={preview} alt="Purchase order attachment preview" className="preview-image" />
         ) : (
           <div className="preview-document">
             <i className="fas fa-file-pdf"></i>

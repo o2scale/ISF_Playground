@@ -107,13 +107,15 @@ export default function UserIdLogin({ onToggle }) {
                 {error && <div className="error-message">{error}</div>}
 
                 <div className="input-group">
+                    <label htmlFor="student-user-id" className="sr-only">User ID</label>
                     <input
                         type="text"
+                        id="student-user-id"
                         value={userId}
                         onChange={(e) => setUserId(e.target.value)}
                         placeholder="userId"
                         disabled={isLoading}
-
+                        aria-label="User ID"
                     />
                 </div>
 

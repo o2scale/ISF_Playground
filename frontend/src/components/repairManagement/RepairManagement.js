@@ -267,7 +267,7 @@ export default function RepairManagement() {
     return (
       <div className="file-preview">
         {isImage(file) ? (
-          <img src={preview} alt="preview" className="preview-image" />
+          <img src={preview} alt="Repair request attachment preview" className="preview-image" />
         ) : (
           <div className="preview-document">
             <i className="fas fa-file-pdf"></i>
@@ -505,18 +505,20 @@ export default function RepairManagement() {
             <div className="custom-date-container">
               <div className="from-to-container">
                 <div>
-                  <label htmlFor="from">From date</label>
+                  <label htmlFor="repair-from-date">From date</label>
                   <input
                     type="date"
+                    id="repair-from-date"
                     className="from-to-date-input"
                     value={fromDate}
                     onChange={(e) => setFromDate(e.target.value)}
                   />
                 </div>
                 <div>
-                  <label htmlFor="to">To date</label>
+                  <label htmlFor="repair-to-date">To date</label>
                   <input
                     type="date"
+                    id="repair-to-date"
                     className="from-to-date-input"
                     value={toDate}
                     onChange={(e) => setToDate(e.target.value)}
@@ -555,8 +557,10 @@ export default function RepairManagement() {
         >
           <input
             type="text"
+            id="repair-search"
             placeholder="Search Issue Name"
             onChange={(e) => setRepairSearch(e.target.value)}
+            aria-label="Search repair requests by issue name"
             style={{
               borderRadius: "30px",
               border: "2px solid #7ed6df",
@@ -566,9 +570,11 @@ export default function RepairManagement() {
             }}
           />
           <select
+            id="repair-filter-balagruha"
             value={filterBalagruha}
             onChange={(e) => setFilterBalagruha(e.target.value)}
             className="filter-select"
+            aria-label="Filter by balagruha"
           >
             <option value="all">All Balagruhas</option>
             {balagruhas.map((bg, index) => (
@@ -578,9 +584,11 @@ export default function RepairManagement() {
             ))}
           </select>
           <select
+            id="repair-filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
             className="filter-select"
+            aria-label="Filter by status"
           >
             <option value="all">All Status</option>
             <option value="in-progress">In progress</option>
@@ -716,8 +724,9 @@ export default function RepairManagement() {
             <form onSubmit={handleRepairSubmit}>
               <div className="modal-body">
                 <div className="form-group">
-                  <label>Balagruha *</label>
+                  <label htmlFor="repair-balagruha">Balagruha *</label>
                   <select
+                    id="repair-balagruha"
                     value={repairForm.balagruhaId}
                     onChange={(e) => {
                       setSelectedBalagruha(e.target.value);
@@ -737,9 +746,10 @@ export default function RepairManagement() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Issue Name *</label>
+                  <label htmlFor="repair-issue-name">Issue Name *</label>
                   <input
                     type="text"
+                    id="repair-issue-name"
                     value={repairForm.issueName}
                     onChange={(e) =>
                       setRepairForm((prev) => ({
@@ -751,8 +761,9 @@ export default function RepairManagement() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Description *</label>
+                  <label htmlFor="repair-description">Description *</label>
                   <textarea
+                    id="repair-description"
                     value={repairForm.description}
                     onChange={(e) =>
                       setRepairForm((prev) => ({
@@ -764,9 +775,10 @@ export default function RepairManagement() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Date Reported</label>
+                  <label htmlFor="repair-date-reported">Date Reported</label>
                   <input
                     type="datetime-local"
+                    id="repair-date-reported"
                     value={repairForm.dateReported.slice(0, 16)}
                     onChange={(e) =>
                       setRepairForm((prev) => ({
@@ -778,8 +790,9 @@ export default function RepairManagement() {
                   />
                 </div>
                 <div className="form-group">
-                  <label>Urgency:</label>
+                  <label htmlFor="repair-urgency">Urgency:</label>
                   <select
+                    id="repair-urgency"
                     value={repairForm.urgency}
                     onChange={(e) =>
                       setRepairForm((prev) => ({
@@ -794,9 +807,10 @@ export default function RepairManagement() {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Estimated Cost *</label>
+                  <label htmlFor="repair-estimated-cost">Estimated Cost *</label>
                   <input
                     type="number"
+                    id="repair-estimated-cost"
                     value={repairForm.estimatedCost}
                     onChange={(e) =>
                       setRepairForm((prev) => ({
@@ -809,8 +823,9 @@ export default function RepairManagement() {
                 </div>
                 {editingItem && (
                   <div className="form-group">
-                    <label>Status:</label>
+                    <label htmlFor="repair-status">Status:</label>
                     <select
+                      id="repair-status"
                       value={repairForm.status}
                       onChange={(e) =>
                         setRepairForm((prev) => ({

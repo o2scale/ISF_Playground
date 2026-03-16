@@ -1372,14 +1372,14 @@ const MedicInchargeDashboard = () => {
                   onDateRangeChange={handleDateRangeChange}
                 />
                 <div className="medic-search-filter">
-                  <input type="text" placeholder="Search student..." onChange={(e) => setSearch(e.target.value)} />
-                  <select onChange={(e) => setMedicalStatus(e.target.value)}>
+                  <input type="text" placeholder="Search student..." onChange={(e) => setSearch(e.target.value)} aria-label="Search students by name" />
+                  <select onChange={(e) => setMedicalStatus(e.target.value)} aria-label="Filter by medical status">
                     <option value={'all'}>All Statuses</option>
                     <option value={'normal'}>Normal</option>
                     <option value={'important'}>Important</option>
                     <option value={'critical'}>Critical</option>
                   </select>
-                  <select onChange={(e) => setSelectedBalagruha(e.target.value)}>
+                  <select onChange={(e) => setSelectedBalagruha(e.target.value)} aria-label="Filter by balagruha">
                     <option value={'all'}>All Balagruhas</option>
                     {balagruhaData.map((bal) => (
                       <option key={bal._id} value={bal._id}>{bal.name}</option>

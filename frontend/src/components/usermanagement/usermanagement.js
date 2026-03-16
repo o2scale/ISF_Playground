@@ -882,10 +882,12 @@ const UserManagement = () => {
               <div>
                 <input
                   type="text"
+                  id="user-search"
                   placeholder="Search users..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input"
+                  aria-label="Search users by name or email"
                 />
               </div>
             </div>
@@ -953,6 +955,7 @@ const UserManagement = () => {
                       value={filterBalagruha}
                       onChange={(e) => setFilterBalagruha(e.target.value)}
                       className="filter-select"
+                      aria-label="Filter by balagruha"
                     >
                       <option value="all">All Balagruhas</option>
                       {balagruhaOptions.map((bg, index) => (
@@ -966,6 +969,7 @@ const UserManagement = () => {
                       value={filterRole}
                       onChange={(e) => setFilterRole(e.target.value)}
                       className="filter-select"
+                      aria-label="Filter by role"
                     >
                       <option value="all">All Roles</option>
                       {uniqueRoles.map((role, index) => (
@@ -985,6 +989,7 @@ const UserManagement = () => {
                     value={filterBalagruha}
                     onChange={(e) => setFilterBalagruha(e.target.value)}
                     className="filter-select"
+                    aria-label="Filter by balagruha"
                   >
                     <option value="all">All Balagruhas</option>
                     {balagruhaOptions.map((bg, index) => (
@@ -998,6 +1003,7 @@ const UserManagement = () => {
                     value={filterRole}
                     onChange={(e) => setFilterRole(e.target.value)}
                     className="filter-select"
+                    aria-label="Filter by role"
                   >
                     <option value="all">All Roles</option>
                     {uniqueRoles.map((role, index) => (
@@ -1012,6 +1018,7 @@ const UserManagement = () => {
                   value={filterStatus}
                   onChange={(e) => setFilterStatus(e.target.value)}
                   className="filter-select"
+                  aria-label="Filter by status"
                 >
                   <option value="all">All Statuses</option>
                   <option value="active">Active</option>

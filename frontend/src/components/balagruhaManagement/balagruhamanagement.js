@@ -277,12 +277,15 @@ const BalagruhaManagement = () => {
         <h2>Balagruha Management</h2>
         <div className="header-actions">
           <div className="search-box">
+            <label htmlFor="balagruha-search" className="sr-only">Search balagruhas</label>
             <input
               type="text"
+              id="balagruha-search"
               placeholder="Search balagruhas..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="search-input"
+              aria-label="Search balagruhas"
             />
             <span className="search-icon">🔍</span>
           </div>
@@ -473,8 +476,8 @@ const BalagruhaManagement = () => {
                 )}
               </div>
 
-              <div className="form-group">
-                <label>Assigned Machines</label>
+              <div className="form-group" role="group" aria-labelledby="assigned-machines-label">
+                <label id="assigned-machines-label">Assigned Machines</label>
                 <div className="machine-selection">
                   {machines.filter((machine) =>
                     formData.assignedMachines.some((m) => m._id === machine._id)
@@ -508,8 +511,8 @@ const BalagruhaManagement = () => {
                 </div>
               </div>
 
-              <div className="form-group">
-                <label>Unassigned Machines</label>
+              <div className="form-group" role="group" aria-labelledby="unassigned-machines-label">
+                <label id="unassigned-machines-label">Unassigned Machines</label>
                 <div className="machine-selection">
                   {unassigned.length > 0 ? (
                     unassigned.map((machine) => {
