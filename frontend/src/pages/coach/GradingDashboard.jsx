@@ -2,9 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import axios from 'axios';
 import toast from 'react-hot-toast';
-import config from '../../config';
+import { api } from '../../api';
 import SubmissionQueue from '../../components/coach/grading/SubmissionQueue';
 import ArtGradingInterface from '../../components/coach/grading/ArtGradingInterface';
 import VideoGradingInterface from '../../components/coach/grading/VideoGradingInterface';
@@ -37,8 +36,6 @@ export default function GradingDashboard() {
   const fetchSubmissions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-
       const queryParams = new URLSearchParams({
         courseType: filters.courseType,
         status: filters.status,
@@ -47,11 +44,8 @@ export default function GradingDashboard() {
         offset: 0,
       });
 
-      const response = await axios.get(
-        `${config.API_BASE_URL}/api/v2/lms/coach/grading/${user.id}/submissions?${queryParams}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await api.get(
+        `/api/v2/lms/coach/grading/${user.id}/submissions?${queryParams}`
       );
 
       setAllSubmissions(response.data.submissions || []);
@@ -100,11 +94,9 @@ export default function GradingDashboard() {
 
   const handleSkip = async () => {
     try {
-      const token = localStorage.getItem('token');
-      await axios.put(
-        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/skip`,
-        {},
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(
+        `/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/skip`,
+        {}
       );
       toast.success('Submission skipped');
       handleNavigate('next');
@@ -116,14 +108,12 @@ export default function GradingDashboard() {
 
   const handleFlag = async () => {
     try {
-      const token = localStorage.getItem('token');
       const reason = prompt('Enter reason for flagging this submission:');
       if (!reason) return;
 
-      await axios.put(
-        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/flag`,
-        { reason },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.put(
+        `/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/flag`,
+        { reason }
       );
       toast.success('Submission flagged for admin review');
       handleNavigate('next');

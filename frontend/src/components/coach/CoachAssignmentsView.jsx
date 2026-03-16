@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
-import config from '../../config';
+import { api } from '../../api';
 import CourseAssignmentModal from './CourseAssignmentModal';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -22,16 +21,13 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
   const fetchAssignments = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
+
       // Admin fetches all assignments, coach fetches their own
-      const url = isAdmin 
-        ? `${config.API_BASE_URL}/api/v2/lms/admin/courses/assignments`
-        : `${config.API_BASE_URL}/api/v2/lms/coach/${coachId}/assignments`;
-      
-      const response = await axios.get(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const url = isAdmin
+        ? `/api/v2/lms/admin/courses/assignments`
+        : `/api/v2/lms/coach/${coachId}/assignments`;
+
+      const response = await api.get(url);
       setAssignments(response.data.data || []);
     } catch (error) {
       console.error('Error fetching assignments:', error);
@@ -52,12 +48,8 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
     }
 
     try {
-      const token = localStorage.getItem('token');
-      await axios.delete(
-        `${config.API_BASE_URL}/api/v2/lms/coach/assignments/${assignmentId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      await api.delete(
+        `/api/v2/lms/coach/assignments/${assignmentId}`
       );
       toast.success('Assignment cancelled successfully');
       fetchAssignments();

@@ -1,7 +1,7 @@
 // src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { api } from "../api";
 
 const AuthContext = createContext(null);
 
@@ -30,7 +30,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(true);
 
         // Set up axios default headers
-        axios.defaults.headers.common[
+        api.defaults.headers.common[
           "Authorization"
         ] = `Bearer ${storedToken}`;
       }
@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     if (user.balagruhaIds) localStorage.setItem("balagruhaIds", JSON.stringify(user.balagruhaIds));
 
     // Set up axios default headers
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
   };
 
   // Logout function
@@ -76,7 +76,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("balagruhaIds");
 
     // Clear axios headers
-    delete axios.defaults.headers.common["Authorization"];
+    delete api.defaults.headers.common["Authorization"];
 
     // Redirect to login
     navigate("/login");

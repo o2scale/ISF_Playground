@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
-import config from '../../config';
+import { api } from '../../api';
 import StudentMultiSelect from './StudentMultiSelect';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -37,12 +36,8 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
 
   const fetchPublishedCourses = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${config.API_BASE_URL}/api/v2/lms/coach/courses/published`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await api.get(
+        `/api/v2/lms/coach/courses/published`
       );
       setCourses(response.data.data || []);
     } catch (error) {
@@ -53,12 +48,8 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
 
   const fetchCoachStudents = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${config.API_BASE_URL}/api/v2/lms/coach/${coachId}/students`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await api.get(
+        `/api/v2/lms/coach/${coachId}/students`
       );
       setStudents(response.data.data || []);
       const balagruhas = response.data.balagruhas || [];
@@ -75,14 +66,9 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
 
   const fetchAdminData = async () => {
     try {
-      const token = localStorage.getItem('token');
-      
       // Fetch all Balagruhas
-      const balagruhasResponse = await axios.get(
-        `${config.API_BASE_URL}/api/v1/balagruha`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const balagruhasResponse = await api.get(
+        `/api/v1/balagruha`
       );
       const allBalagruhas = balagruhasResponse.data.data || [];
       setBalagruhasInfo(allBalagruhas);
@@ -93,11 +79,8 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
       }
       
       // Fetch all students
-      const studentsResponse = await axios.get(
-        `${config.API_BASE_URL}/api/users?role=student`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const studentsResponse = await api.get(
+        `/api/users?role=student`
       );
       
       const studentsData = studentsResponse.data.data || [];
@@ -142,8 +125,6 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-
       const payload = {
         courseId: selectedCourse._id,
         assignedBy: coachId,
@@ -163,16 +144,10 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
 
       // Use admin endpoint if admin, otherwise use coach endpoint
       const url = isAdmin
-        ? `${config.API_BASE_URL}/api/v2/lms/admin/courses/assignments`
-        : `${config.API_BASE_URL}/api/v2/lms/coach/assignments`;
+        ? `/api/v2/lms/admin/courses/assignments`
+        : `/api/v2/lms/coach/assignments`;
 
-      const response = await axios.post(
-        url,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await api.post(url, payload);
 
       toast.success(
         `Course assigned to ${response.data.data.studentsAssigned} student(s)!`

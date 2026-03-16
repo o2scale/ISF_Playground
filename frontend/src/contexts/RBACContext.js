@@ -1,8 +1,7 @@
 // src/contexts/RBACContext.js
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useAuth } from "./AuthContext";
-import axios from "axios";
-import config from "../config";
+import { api } from "../api";
 
 const RBACContext = createContext(null);
 
@@ -23,8 +22,8 @@ export const RBACProvider = ({ children }) => {
       try {
         setIsLoading(true);
 
-        const response = await axios.get(
-          `${config.API_BASE_URL}/api/roles/getAllRolePermissions`
+        const response = await api.get(
+          `/api/roles/getAllRolePermissions`
         );
 
         // Check if the response has the expected format

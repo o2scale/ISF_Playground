@@ -1,6 +1,9 @@
 import axios from "axios";
 import config from "../config";
 
+// Re-export axios utilities for consumers that need them without importing axios directly
+export const isCancel = axios.isCancel;
+
 const macAddress = localStorage.getItem("macAddress");
 
 export const api = axios.create({

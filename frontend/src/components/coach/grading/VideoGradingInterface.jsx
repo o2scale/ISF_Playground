@@ -1,8 +1,7 @@
 // frontend/src/components/coach/grading/VideoGradingInterface.jsx
 import React, { useState, useRef } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
-import config from '../../../config';
+import { api } from '../../../api';
 import GradingPanel from './GradingPanel';
 
 export default function VideoGradingInterface({ submission, onClose, coachId, onNavigate, onSkip, onFlag, currentIndex, totalCount }) {
@@ -11,14 +10,9 @@ export default function VideoGradingInterface({ submission, onClose, coachId, on
 
   const handleGrade = async (gradeData) => {
     try {
-      const token = localStorage.getItem('token');
-
-      await axios.post(
-        `${config.API_BASE_URL}/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
-        gradeData,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      await api.post(
+        `/api/v2/lms/coach/grading/submissions/${submission.id}/grade`,
+        gradeData
       );
 
       toast.success(

@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { api } from '../api';
-import axios from 'axios';
+import { api, isCancel } from '../api';
 import toast from 'react-hot-toast';
 
 /**
@@ -21,7 +20,7 @@ export default function useFileUpload() {
       try {
         return await fn();
       } catch (error) {
-        if (axios.isCancel(error)) throw error; // Don't retry cancelled requests
+        if (isCancel(error)) throw error; // Don't retry cancelled requests
         if (i === maxRetries - 1) throw error;
 
         const backoffDelay = delay * Math.pow(2, i);
@@ -122,7 +121,7 @@ export default function useFileUpload() {
       };
 
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (isCancel(error)) {
         // Update status to cancelled
         setUploads(prev => ({
           ...prev,

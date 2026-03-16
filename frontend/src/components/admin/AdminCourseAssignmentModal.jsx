@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
-import config from '../../config';
+import { api } from '../../api';
 import { X, Users } from 'lucide-react';
 
 /**
@@ -30,14 +29,9 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
   const fetchData = async () => {
     setDataLoading(true);
     try {
-      const token = localStorage.getItem('token');
-      
       // First fetch all Balagruhas
-      const balagruhasResponse = await axios.get(
-        `${config.API_BASE_URL}/api/v1/balagruha`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const balagruhasResponse = await api.get(
+        `/api/v1/balagruha`
       );
       const allBalagruhas = balagruhasResponse.data.data || [];
       setBalagruhas(allBalagruhas);
@@ -45,11 +39,8 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
       setSelectedBalagruhas(allBalagruhas);
       
       // Then fetch all students
-      const studentsResponse = await axios.get(
-        `${config.API_BASE_URL}/api/users?role=student`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const studentsResponse = await api.get(
+        `/api/users?role=student`
       );
       
       const studentsData = studentsResponse.data.data || [];
@@ -91,8 +82,6 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
-
       const payload = {
         courseId: course._id,
         assignedTo: {
@@ -106,12 +95,9 @@ export default function AdminCourseAssignmentModal({ isOpen, onClose, course, on
       };
 
       // Use the coach assignment endpoint - it will work for admin too
-      const response = await axios.post(
-        `${config.API_BASE_URL}/api/v2/lms/coach/assignments`,
-        payload,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
+      const response = await api.post(
+        `/api/v2/lms/coach/assignments`,
+        payload
       );
 
       toast.success(

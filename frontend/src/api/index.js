@@ -1,7 +1,7 @@
 // Barrel export: re-exports all API functions from feature modules
 // This maintains backward compatibility — import from 'api' still works.
 
-export { api, apiWithoutContentType, headers } from './client';
+export { api, apiWithoutContentType, headers, isCancel } from './client';
 export * from './auth';
 export * from './users';
 export * from './tasks';
