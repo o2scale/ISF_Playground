@@ -67,6 +67,7 @@ import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
 import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
 import CoachAssignmentsPage from "./pages/coach/CoachAssignmentsPage";
 import GradingDashboard from "./pages/coach/GradingDashboard";
+import ErrorBoundary from "./components/ErrorBoundary";
 import { UserTypes, normalizeUserRole } from "./constants/userTypes";
 
 const CoachOrAdminRoute = ({ children }) => {
@@ -87,6 +88,7 @@ const App = () => {
         <AuthProvider>
           <RBACProvider>
             <CoinBalanceProvider>
+              <ErrorBoundary>
               <Toaster position="top-right" />
               <Cart />
               <Routes>
@@ -584,6 +586,7 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Route>
               </Routes>
+              </ErrorBoundary>
             </CoinBalanceProvider>
           </RBACProvider>
         </AuthProvider>
