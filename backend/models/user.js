@@ -85,9 +85,6 @@ const userSchema = new mongoose.Schema(
     guardianContact1: { type: String },
     guardianContact2: { type: String },
     // guardianContact: { type: String },
-    performanceReports: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Report" },
-    ],
     attendanceRecords: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Attendance" },
     ],

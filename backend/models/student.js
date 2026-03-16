@@ -17,9 +17,6 @@ const studentSchema = new mongoose.Schema(
       enum: ["has both", "has one", "has none", "has guardian"],
     },
     guardianContact: { type: String },
-    performanceReports: [
-      { type: mongoose.Schema.Types.ObjectId, ref: "Report" },
-    ],
     attendanceRecords: [
       { type: mongoose.Schema.Types.ObjectId, ref: "Attendance" },
     ],

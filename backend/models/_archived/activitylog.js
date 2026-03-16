@@ -1,3 +1,8 @@
+/**
+ * @deprecated Story 6.5 — ActivityLog model is orphaned (zero imports across entire codebase).
+ * Archived 2026-03-16. DO NOT import this model. If activity logging is needed in the future,
+ * create a new model with proper integration.
+ */
 const mongoose = require("mongoose");
 
 const activityLogSchema = new mongoose.Schema(

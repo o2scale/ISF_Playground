@@ -88,7 +88,7 @@ exports.getAllTasksByBalagruhaIds = async (balagruhaIds) => {
         loginAttempts: 0,
         parentalStatus: 0,
         guardianContact: 0,
-        performanceReports: 0,
+
         attendanceRecords: 0,
         medicalRecords: 0,
         __v: 0,
@@ -103,7 +103,7 @@ exports.getAllTasksByBalagruhaIds = async (balagruhaIds) => {
         "createdByDetails.attendanceRecords": 0,
         "createdByDetails.medicalRecords": 0,
         "createdByDetails.parentalStatus": 0,
-        "createdByDetails.performanceReports": 0,
+
         "createdByDetails.assignedMachines": 0,
       },
     },
@@ -152,7 +152,7 @@ exports.getTaskOverviewDetailsByBalagruhaIds = async (balagruhaIds) => {
         loginAttempts: 0,
         parentalStatus: 0,
         guardianContact: 0,
-        performanceReports: 0,
+
         attendanceRecords: 0,
         medicalRecords: 0,
         __v: 0,
@@ -167,7 +167,7 @@ exports.getTaskOverviewDetailsByBalagruhaIds = async (balagruhaIds) => {
         "createdByDetails.attendanceRecords": 0,
         "createdByDetails.medicalRecords": 0,
         "createdByDetails.parentalStatus": 0,
-        "createdByDetails.performanceReports": 0,
+
         "createdByDetails.assignedMachines": 0,
       },
     },
@@ -260,7 +260,7 @@ exports.getTaskListByUserId = async (userId) => {
         loginAttempts: 0,
         parentalStatus: 0,
         guardianContact: 0,
-        performanceReports: 0,
+
         attendanceRecords: 0,
         medicalRecords: 0,
         __v: 0,
@@ -275,7 +275,7 @@ exports.getTaskListByUserId = async (userId) => {
         "createdByDetails.attendanceRecords": 0,
         "createdByDetails.medicalRecords": 0,
         "createdByDetails.parentalStatus": 0,
-        "createdByDetails.performanceReports": 0,
+
         "createdByDetails.assignedMachines": 0,
       },
     },

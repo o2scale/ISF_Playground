@@ -1,3 +1,8 @@
+/**
+ * @deprecated Story 6.5 — MachineAssignment model is orphaned (zero imports across entire codebase).
+ * Also has broken ref: "Admin" (Admin model does not exist; should be "User").
+ * Archived 2026-03-16. DO NOT import this model.
+ */
 const mongoose = require("mongoose");
 
 const MachineAssignmentHistorySchema = new mongoose.Schema(

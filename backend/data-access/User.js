@@ -189,7 +189,7 @@ exports.getTasksByBalagruhaIdAndFilter = async ({
               loginAttempts: 0,
               parentalStatus: 0,
               guardianContact: 0,
-              performanceReports: 0,
+
               attendanceRecords: 0,
               medicalRecords: 0,
               __v: 0,
@@ -204,7 +204,7 @@ exports.getTasksByBalagruhaIdAndFilter = async ({
               "createdByDetails.attendanceRecords": 0,
               "createdByDetails.medicalRecords": 0,
               "createdByDetails.parentalStatus": 0,
-              "createdByDetails.performanceReports": 0,
+
               "createdByDetails.assignedMachines": 0,
             },
           },
@@ -395,7 +395,7 @@ exports.getUsersTaskDetailsByStatusAndBalagruhaIds = async ({
               loginAttempts: 0,
               parentalStatus: 0,
               guardianContact: 0,
-              performanceReports: 0,
+
               attendanceRecords: 0,
               medicalRecords: 0,
               __v: 0,
@@ -410,7 +410,7 @@ exports.getUsersTaskDetailsByStatusAndBalagruhaIds = async ({
               "createdByDetails.attendanceRecords": 0,
               "createdByDetails.medicalRecords": 0,
               "createdByDetails.parentalStatus": 0,
-              "createdByDetails.performanceReports": 0,
+
               "createdByDetails.assignedMachines": 0,
             },
           },
@@ -516,7 +516,7 @@ exports.getStudentListByBalagruhaIdWithAttendance = async ({
         passwordResetToken: 0,
         loginAttempts: 0,
         lockUntil: 0,
-        performanceReports: 0,
+
         attendanceRecords: 0,
         medicalRecords: 0,
       },
@@ -924,7 +924,7 @@ exports.getUserSportsTasksByFilters = async ({
               loginAttempts: 0,
               parentalStatus: 0,
               guardianContact: 0,
-              performanceReports: 0,
+
               attendanceRecords: 0,
               medicalRecords: 0,
               facialData: 0,
@@ -940,7 +940,7 @@ exports.getUserSportsTasksByFilters = async ({
               "createdByDetails.attendanceRecords": 0,
               "createdByDetails.medicalRecords": 0,
               "createdByDetails.parentalStatus": 0,
-              "createdByDetails.performanceReports": 0,
+
               "createdByDetails.facialData": 0,
               "createdByDetails.assignedMachines": 0,
             },
@@ -1253,7 +1253,7 @@ exports.getStudentsWithSportsTaskByBalagruhaId = async ({
         passwordResetToken: 0,
         loginAttempts: 0,
         lockUntil: 0,
-        performanceReports: 0,
+
         attendanceRecords: 0,
         medicalRecords: 0,
         facialData: 0,
@@ -1429,7 +1429,7 @@ exports.getSportsTasksByBalagruhaIdAndFilter = async ({
               loginAttempts: 0,
               parentalStatus: 0,
               guardianContact: 0,
-              performanceReports: 0,
+
               attendanceRecords: 0,
               medicalRecords: 0,
               __v: 0,
@@ -1444,7 +1444,7 @@ exports.getSportsTasksByBalagruhaIdAndFilter = async ({
               "createdByDetails.attendanceRecords": 0,
               "createdByDetails.medicalRecords": 0,
               "createdByDetails.parentalStatus": 0,
-              "createdByDetails.performanceReports": 0,
+
               "createdByDetails.assignedMachines": 0,
             },
           },

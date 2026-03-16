@@ -47,7 +47,6 @@ class Student {
     this.guardianName2 = obj.guardianName2 || "";
     this.guardianContact1 = obj.guardianContact1 || "";
     this.guardianContact2 = obj.guardianContact2 || "";
-    this.performanceReports = obj.performanceReports || null;
     this.attendanceRecords = obj.attendanceRecords || null;
     this.medicalRecords = obj.medicalRecords || null;
     this.assignedMachines = obj.assignedMachines || null;
@@ -75,7 +74,6 @@ class Student {
       guardianName2: this.guardianName2,
       guardianContact1: this.guardianContact1,
       guardianContact2: this.guardianContact2,
-      performanceReports: this.performanceReports,
       attendanceRecords: this.attendanceRecords,
       medicalRecords: this.medicalRecords,
       assignedMachines: this.assignedMachines,
@@ -99,7 +97,6 @@ class Student {
       guardianName2: this.guardianName2,
       guardianContact1: this.guardianContact1,
       guardianContact2: this.guardianContact2,
-      performanceReports: this.performanceReports,
       attendanceRecords: this.attendanceRecords,
       medicalRecords: this.medicalRecords,
       assignedMachines: this.assignedMachines,

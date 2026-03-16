@@ -2,7 +2,7 @@
 
 **Generated:** March 16, 2026
 **Stories:** 4.1 (Schema Map), 4.2 (Relationships & Data Flows), 4.3 (Controller Dependencies & Quality Findings), 4.4 (Architecture Diagrams)
-**Total Models:** 45 | **Total Relationships:** 131 | **Total Controllers Mapped:** 51 | **Quality Findings:** 9
+**Total Models:** 43 (2 archived in Story 6.5) | **Total Relationships:** 131 | **Total Controllers Mapped:** 51 | **Quality Findings:** 9
 **Database:** MongoDB 6.8.0 with Mongoose 8.10.2
 
 ---
@@ -19,13 +19,13 @@
 
 ### Schema Map — Models by Domain
 
-### Core Platform (17 models)
+### Core Platform (15 active models, 2 archived)
 1. [User](#user-backendmodelsuserjs)
 2. [Student](#student-backendmodelsstudentjs)
 3. [Role](#role-backendmodelsrolejs)
 4. [Balagruha](#balagruha-backendmodelsbalagruhajs)
 5. [Attendance](#attendance-backendmodelsattendancejs)
-6. [ActivityLog](#activitylog-backendmodelsactivitylogjs)
+6. ~~ActivityLog~~ — **ARCHIVED** (Story 6.5, zero imports, moved to `backend/models/_archived/`)
 7. [Notification](#notification-backendmodelsnotificationjs)
 8. [UserNotificationView](#usernotificationview-backendmodelsusernotificationviewjs)
 9. [Schedules](#schedules-backendmodelsschedulesjs)
@@ -33,7 +33,7 @@
 11. [SportsTasks](#sportstasks-backendmodelssportstasksjs)
 12. [TrainingSession](#trainingsession-backendmodelstrainingsessionjs)
 13. [Machine](#machine-backendmodelsmachinejs)
-14. [MachineAssignment](#machineassignment-backendmodelsmachineassignmentjs)
+14. ~~MachineAssignment~~ — **ARCHIVED** (Story 6.5, zero imports + broken ref: "Admin", moved to `backend/models/_archived/`)
 15. [MachineActiveLog](#machineactivelog-backendmodelsmachineactivelogjs)
 16. [OfflineReqQueue](#offlinereqqueue-backendmodelsofflinereqqueuejs)
 17. [StudentMoodTracker](#studentmoodtracker-backendmodelsstudentmoodtrackerjs)
@@ -1786,7 +1786,7 @@ Course uses deeply nested subdocument schemas:
 
 | Domain | Count | Models |
 |--------|-------|--------|
-| Core Platform | 17 | User, Student, Role, Balagruha, Attendance, ActivityLog, Notification, UserNotificationView, Schedules, Task, SportsTasks, TrainingSession, Machine, MachineAssignment, MachineActiveLog, OfflineReqQueue, StudentMoodTracker |
+| Core Platform | 15 (+ 2 archived) | User, Student, Role, Balagruha, Attendance, Notification, UserNotificationView, Schedules, Task, SportsTasks, TrainingSession, Machine, MachineActiveLog, OfflineReqQueue, StudentMoodTracker (archived: ActivityLog, MachineAssignment) |
 | Shop/Procurement | 8 | Vendor, ShopItem, PurchaseRequest, PurchaseOrders, RepairRequests, InventoryTransaction, Cart, Order |
 | LMS | 8 | Course, ContentLibrary, Quiz, QuestionBank, Assignment, CourseAssignment, StudentProgress, Submission |
 | WTF/Gamification | 5 | WtfPin, WtfSettings, WtfStudentInteraction, WtfSubmission, Coin |
@@ -2356,9 +2356,15 @@ Total models: 45. Models referenced by at least one controller (directly or via 
 
 | Model | File | Notes |
 |---|---|---|
-| **ActivityLog** | `backend/models/activitylog.js` | Defined but never imported in any controller, service, or data-access file. No usage found anywhere in the application layer. |
+| ~~**ActivityLog**~~ | `backend/models/_archived/activitylog.js` | **ARCHIVED (Story 6.5)** — Zero imports confirmed. Moved to `_archived/` on 2026-03-16. |
 | **MachineActiveLog** | `backend/models/machineactivelog.js` | Defined but never imported. Uses PascalCase field names (LogID, MachineID, UserID, LoginTimestamp, etc.) inconsistent with rest of codebase. |
-| **MachineAssignment** | `backend/models/machineAssignment.js` | Defined but never imported. Uses PascalCase field names (HistoryID, MachineID, PreviousBalagruhaID, NewBalagruhaID, AssignedBy). References `ref: "Admin"` which is not a valid model name (should be "User"). |
+| ~~**MachineAssignment**~~ | `backend/models/_archived/machineAssignment.js` | **ARCHIVED (Story 6.5)** — Zero imports confirmed + broken `ref: "Admin"`. Moved to `_archived/` on 2026-03-16. |
+
+### Ghost References Cleaned (Story 6.5)
+
+| Field | Models | Issue | Resolution |
+|---|---|---|---|
+| `performanceReports` | User, Student | Referenced ghost "Report" model that doesn't exist; 19 DA projection exclusions worked around it | Field removed from both schemas; all 19 DA projection exclusions cleaned up |
 
 ---
 

@@ -85,7 +85,6 @@ describe('User Controller', () => {
         userSchema.add({
           assignedMachines: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Machine' }],
           medicalRecords: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MedicalRecord' }],
-          performanceReports: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Report' }],
           attendanceRecords: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Attendance' }],
         });
       }
