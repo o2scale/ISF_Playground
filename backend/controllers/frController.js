@@ -9,7 +9,7 @@
 const frService = require('../services/frService');
 const frCacheService = require('../services/frCacheService');
 const FaceEmbedding = require('../models/FaceEmbedding');
-const Student = require('../models/student');
+const User = require('../models/user');
 const multer = require('multer');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
 
@@ -72,8 +72,8 @@ async function registerFace(req, res) {
       });
     }
 
-    // Check if student exists
-    const student = await Student.findById(studentId);
+    // Check if student exists (User with role='student')
+    const student = await User.findOne({ _id: studentId, role: 'student' });
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -179,8 +179,8 @@ async function recognizeFace(req, res) {
       return res.status(400).json(result);
     }
 
-    // Get student details
-    const student = await Student.findById(result.studentId).select('name email phoneNumber balagruha');
+    // Get student details (User with role='student')
+    const student = await User.findOne({ _id: result.studentId, role: 'student' }).select('name email phoneNumber balagruhaIds');
 
     if (!student) {
       return res.status(404).json({
@@ -199,7 +199,7 @@ async function recognizeFace(req, res) {
           name: student.name,
           email: student.email,
           phoneNumber: student.phoneNumber,
-          balagruha: student.balagruha,
+          balagruhaIds: student.balagruhaIds,
         },
         confidence: result.confidence,
         threshold: result.threshold,
@@ -229,8 +229,8 @@ async function getRegistrationStatus(req, res) {
   try {
     const { studentId } = req.params;
 
-    // Check if student exists
-    const student = await Student.findById(studentId);
+    // Check if student exists (User with role='student')
+    const student = await User.findOne({ _id: studentId, role: 'student' });
     if (!student) {
       return res.status(404).json({
         success: false,
@@ -283,8 +283,8 @@ async function deleteFaceRegistration(req, res) {
   try {
     const { studentId } = req.params;
 
-    // Check if student exists
-    const student = await Student.findById(studentId);
+    // Check if student exists (User with role='student')
+    const student = await User.findOne({ _id: studentId, role: 'student' });
     if (!student) {
       return res.status(404).json({
         success: false,

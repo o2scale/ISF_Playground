@@ -19,7 +19,7 @@ const FaceEmbeddingSchema = new mongoose.Schema({
   // Reference to student
   studentId: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Student',
+    ref: 'User',
     required: true,
     unique: true, // One face embedding per student
     index: true,

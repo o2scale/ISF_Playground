@@ -21,16 +21,18 @@ const frController = require('../../controllers/frController');
 const frService = require('../../services/frService');
 const frCacheService = require('../../services/frCacheService');
 const FaceEmbedding = require('../../models/FaceEmbedding');
-const Student = require('../../models/student');
+const User = require('../../models/user');
 
 const { mockRequest, mockResponse, generateObjectId } = global.testUtils;
 
-// Helper: create a test student in DB
+// Helper: create a test student in DB (uses User model with role='student')
 async function createTestStudent(overrides = {}) {
-  return Student.create({
+  return User.create({
     name: 'Test Student',
     age: 12,
-    gender: 'Male',
+    gender: 'male',
+    role: 'student',
+    userId: Math.floor(Math.random() * 900000) + 100000,
     ...overrides,
   });
 }
