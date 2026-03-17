@@ -2,6 +2,8 @@ const Course = require('../../../models/course');
 const StudentProgress = require('../../../models/StudentProgress');
 const Submission = require('../../../models/Submission');
 const mongoose = require('mongoose');
+const s3Service = require('../../../services/aws/s3');
+const fs = require('fs');
 
 // backend/controllers/lms/student/spokenEnglishController.js
 // Epic 01 Story 04: Spoken English Video Recording
@@ -213,13 +215,20 @@ exports.submitVideoRecording = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { taskId, duration, fileSize } = req.body;
-    // const videoFile = req.file; // Multer handled
+    const videoFile = req.file;
 
     // Validate required fields
     if (!taskId) {
       return res.status(400).json({
         success: false,
         message: 'Task ID is required'
+      });
+    }
+
+    if (!videoFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Video file is required'
       });
     }
 
@@ -247,9 +256,28 @@ exports.submitVideoRecording = async (req, res) => {
       });
     });
 
-    // 2. S3 Upload (Mock for now, but integration point ready)
-    // In production, upload video to S3 and get actual URL
-    const mockS3Url = `https://isf-lms-videos.s3.amazonaws.com/spoken-english/${studentId}/${taskId}/${Date.now()}.webm`;
+    // 2. Upload video to S3
+    const uploadResult = await s3Service.uploadLMSContent(
+      videoFile.path,
+      videoFile.originalname,
+      'video',
+      videoFile.mimetype
+    );
+
+    // Clean up temp file
+    if (fs.existsSync(videoFile.path)) {
+      fs.unlinkSync(videoFile.path);
+    }
+
+    if (!uploadResult.success) {
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload video to storage',
+        error: uploadResult.error
+      });
+    }
+
+    const s3Url = uploadResult.url;
 
     // 3. Create Submission Record
     const submission = new Submission({
@@ -258,7 +286,7 @@ exports.submitVideoRecording = async (req, res) => {
       taskId,
       taskTitle,
       type: "video",
-      fileUrl: mockS3Url, // In real S3, this comes from req.file.location
+      fileUrl: s3Url,
       thumbnailUrl: null,
       metadata: {
         duration: duration || 0,

@@ -1,33 +1,70 @@
 import React, { useState } from 'react';
 import CanvasPreview from './CanvasPreview';
 import toast from 'react-hot-toast';
+import { api } from '../../../api';
 
 /**
- * FreeSketchMode Component
- * Open canvas for creative expression with personal gallery
+ * FreeSketchMode Component - Story 12.9 (FIX-014)
+ * Open canvas for creative expression with personal gallery.
+ * Replaced mock toasts with real API calls for save/submit.
  */
 export default function FreeSketchMode({ data, studentId, onRefresh }) {
-  const [canvasSize, setCanvasSize] = useState({ width: 1024, height: 768 });
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const gallery = data?.gallery || [];
-  const sizeOptions = data?.canvasSizeOptions || [];
 
   const handleSave = async () => {
+    if (!selectedFile) {
+      toast.error('Please select an artwork file first');
+      return;
+    }
     try {
-      // Gallery save not yet implemented (Artweaver IPC stubbed)
-      toast.success('💾 Artwork saved to your gallery!');
+      setSaving(true);
+      const formData = new FormData();
+      formData.append('artwork', selectedFile);
+      formData.append('title', `Sketch - ${new Date().toLocaleDateString()}`);
+
+      await api.post(
+        `/api/v2/lms/student/${studentId}/courses/art/gallery`,
+        formData
+      );
+      toast.success('Artwork saved to your gallery!');
+      setSelectedFile(null);
       if (onRefresh) onRefresh();
     } catch (error) {
-      toast.error('Failed to save artwork');
+      const msg = error.response?.data?.message || 'Failed to save artwork';
+      toast.error(msg);
+    } finally {
+      setSaving(false);
     }
   };
 
   const handleSubmit = async () => {
+    if (!selectedFile) {
+      toast.error('Please select an artwork file first');
+      return;
+    }
     try {
-      // Submission not yet implemented (Artweaver IPC stubbed)
-      toast.success('✓ Artwork submitted for grading!');
+      setSubmitting(true);
+      const formData = new FormData();
+      formData.append('artwork', selectedFile);
+      formData.append('type', 'art');
+      formData.append('mode', 'free_sketch');
+
+      await api.post(
+        `/api/v2/lms/student/${studentId}/courses/art/submissions`,
+        formData
+      );
+      toast.success('Artwork submitted for grading!');
+      setSelectedFile(null);
       if (onRefresh) onRefresh();
     } catch (error) {
-      toast.error('Failed to submit artwork');
+      const msg = error.response?.data?.message || 'Failed to submit artwork';
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -37,43 +74,26 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
       <div className="bg-pink-50 rounded-lg p-4">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Free Sketch</h2>
         <p className="text-gray-700">
-          Create anything you like! Let your imagination run wild. No rules, no instructions - just pure creativity.
+          Create anything you like! Upload your artwork to save it to your gallery or submit for grading.
         </p>
       </div>
 
-      {/* Canvas Size Selector */}
-      {sizeOptions.length > 0 && (
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Canvas Size
-          </label>
-          <select
-            value={`${canvasSize.width}x${canvasSize.height}`}
-            onChange={(e) => {
-              const [width, height] = e.target.value.split('x').map(Number);
-              setCanvasSize({ width, height });
-            }}
-            className="w-full sm:w-64 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500"
-          >
-            {sizeOptions.map((option, idx) => (
-              <option
-                key={idx}
-                value={`${option.width}x${option.height}`}
-                disabled={option.width === 0}
-              >
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {/* Canvas Preview & Actions */}
+      {/* Canvas Preview & Upload */}
       <CanvasPreview
         onSubmit={handleSubmit}
         onSave={handleSave}
         showSaveButton={true}
+        file={selectedFile}
+        onFileChange={setSelectedFile}
       />
+
+      {/* Loading states */}
+      {(saving || submitting) && (
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-pink-600"></div>
+          <span>{saving ? 'Saving to gallery...' : 'Submitting artwork...'}</span>
+        </div>
+      )}
 
       {/* My Gallery */}
       {gallery.length > 0 && (
@@ -102,7 +122,7 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
                   {artwork.submitted && (
                     <div className="mt-1 flex items-center gap-1">
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
-                        ✓ Submitted
+                        Submitted
                       </span>
                       {artwork.grade && (
                         <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">
@@ -114,13 +134,6 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
                 </div>
               </div>
             ))}
-            {/* Add New Placeholder */}
-            <div className="border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center aspect-video cursor-pointer hover:border-pink-400 hover:bg-pink-50 transition-colors">
-              <div className="text-center p-4">
-                <span className="text-3xl text-gray-400">+</span>
-                <p className="text-xs text-gray-500 mt-1">New Sketch</p>
-              </div>
-            </div>
           </div>
         </div>
       )}

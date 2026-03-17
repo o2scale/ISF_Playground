@@ -3,6 +3,8 @@ const StudentProgress = require('../../../models/StudentProgress');
 const Submission = require('../../../models/Submission');
 const mongoose = require('mongoose');
 const { errorLogger } = require('../../../config/pino-config');
+const s3Service = require('../../../services/aws/s3');
+const fs = require('fs');
 
 /**
  * Life Skills Controller - Epic 01 Story 05
@@ -233,24 +235,55 @@ exports.submitVoiceRecording = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { taskId, duration, fileSize } = req.body;
+    const audioFile = req.file;
 
     // Validate existence
     const course = await Course.findOne({ "modules.chapters.contentItems._id": taskId });
     if (!course) return res.status(404).json({ success: false, error: 'Task not found' });
 
-    // In production: Upload file to S3
-    const mockS3Url = `https://isf-lms-voice.s3.amazonaws.com/students/${studentId}/lifeskills/${taskId}_${Date.now()}.webm`;
+    if (!audioFile) {
+      return res.status(400).json({ success: false, error: 'Audio file is required' });
+    }
 
-    // ... submission logic
+    // Upload voice recording to S3
+    const uploadResult = await s3Service.uploadLMSContent(
+      audioFile.path,
+      audioFile.originalname,
+      'audio',
+      audioFile.mimetype
+    );
+
+    // Clean up temp file
+    if (fs.existsSync(audioFile.path)) {
+      fs.unlinkSync(audioFile.path);
+    }
+
+    if (!uploadResult.success) {
+      return res.status(500).json({
+        success: false,
+        error: 'Failed to upload voice recording to storage'
+      });
+    }
+
+    const s3Url = uploadResult.url;
+
+    // Look up task title from course
+    let taskTitle = "Voice Task";
+    course.modules.forEach(m => {
+      m.chapters.forEach(c => {
+        const item = c.contentItems.find(i => i._id.toString() === taskId);
+        if (item) taskTitle = item.title;
+      });
+    });
 
     // Save submission
     const submission = new Submission({
       studentId,
       courseId: course._id,
       taskId,
-      taskTitle: "Voice Task", // Should look up title
-      type: "voice", // or audio
-      fileUrl: mockS3Url,
+      taskTitle,
+      type: "voice",
+      fileUrl: s3Url,
       metadata: { duration, fileSize },
       status: "submitted",
       submittedAt: new Date()
@@ -261,7 +294,7 @@ exports.submitVoiceRecording = async (req, res) => {
     res.status(201).json({
       success: true,
       submissionId: submission._id,
-      fileUrl: mockS3Url,
+      fileUrl: s3Url,
       status: 'pending', // pending | graded | rejected
       coinsEarned: 0, // Coins usually awarded after grading
       message: 'Great work! Your answer has been submitted. Coach will review it soon.'

@@ -6,6 +6,16 @@ const Notification = require("../../../models/notification");
 const Coin = require("../../../models/coin");
 
 /**
+ * Quality-to-coin mapping for auto-calculating coin awards from rubric score.
+ * Coaches can override by explicitly providing coinsAwarded in the request body.
+ */
+const QUALITY_COIN_MAP = {
+  excellent: 10,
+  good: 7,
+  needs_improvement: 2,
+};
+
+/**
  * @route GET /api/v2/lms/coach/:coachId/submissions
  * @desc Get all submissions for grading with filters
  * @access Private (Coach only)
@@ -113,7 +123,7 @@ exports.getSubmissionById = async (req, res) => {
 exports.submitGrade = async (req, res) => {
   try {
     const { submissionId } = req.params;
-    const { quality, coinsAwarded, feedback, evaluationCriteria, gradedBy } = req.body;
+    const { quality, coinsAwarded: coinsOverride, feedback, evaluationCriteria, gradedBy } = req.body;
 
     // Validation
     if (!quality) {
@@ -123,12 +133,11 @@ exports.submitGrade = async (req, res) => {
       });
     }
 
-    if (coinsAwarded === undefined || coinsAwarded === null) {
-      return res.status(400).json({
-        success: false,
-        error: "Coin amount is required",
-      });
-    }
+    // Auto-calculate coins from quality rating; allow coach override
+    const hasCoinsOverride = coinsOverride !== undefined && coinsOverride !== null;
+    const coinsAwarded = hasCoinsOverride
+      ? coinsOverride
+      : (QUALITY_COIN_MAP[quality] !== undefined ? QUALITY_COIN_MAP[quality] : 0);
 
     if (coinsAwarded < 0 || coinsAwarded > 100) {
       return res.status(400).json({
@@ -237,7 +246,7 @@ exports.submitGrade = async (req, res) => {
  */
 exports.bulkGrade = async (req, res) => {
   try {
-    const { submissionIds, quality, coinsAwarded, feedback, gradedBy } = req.body;
+    const { submissionIds, quality, coinsAwarded: coinsOverride, feedback, gradedBy } = req.body;
 
     // Validation
     if (!submissionIds || !Array.isArray(submissionIds) || submissionIds.length === 0) {
@@ -254,12 +263,11 @@ exports.bulkGrade = async (req, res) => {
       });
     }
 
-    if (coinsAwarded === undefined || coinsAwarded === null) {
-      return res.status(400).json({
-        success: false,
-        error: "Coin amount is required",
-      });
-    }
+    // Auto-calculate coins from quality rating; allow coach override
+    const hasCoinsOverride = coinsOverride !== undefined && coinsOverride !== null;
+    const coinsAwarded = hasCoinsOverride
+      ? coinsOverride
+      : (QUALITY_COIN_MAP[quality] !== undefined ? QUALITY_COIN_MAP[quality] : 0);
 
     if (coinsAwarded < 0 || coinsAwarded > 100) {
       return res.status(400).json({
@@ -490,3 +498,6 @@ exports.skipSubmission = async (req, res) => {
     });
   }
 };
+
+// Export mapping for testing
+exports.QUALITY_COIN_MAP = QUALITY_COIN_MAP;

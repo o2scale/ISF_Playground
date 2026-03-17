@@ -9,13 +9,14 @@ const router = express.Router({ mergeParams: true }); // Enables access to :stud
 const lifeSkillsController = require('../../../../controllers/lms/student/lifeSkillsController');
 const { authenticate } = require('../../../../middleware/auth');
 const verifyStudentOwnership = require('../../../../middleware/verifyStudentOwnership');
+const { lmsUpload } = require('../../../../middleware/upload');
 
 // Get all Life Skills tasks (voice questions + quiz)
 router.get('/', authenticate, verifyStudentOwnership, lifeSkillsController.getLifeSkillsTasks);
 
 // Voice Recording Routes
 router.get('/voice/:taskId', authenticate, verifyStudentOwnership, lifeSkillsController.getVoiceTask);
-router.post('/voice/submit', authenticate, verifyStudentOwnership, lifeSkillsController.submitVoiceRecording);
+router.post('/voice/submit', authenticate, verifyStudentOwnership, lmsUpload.single('file'), lifeSkillsController.submitVoiceRecording);
 router.post('/mark-complete', authenticate, verifyStudentOwnership, lifeSkillsController.markItemComplete);
 
 // MCQ Quiz Routes

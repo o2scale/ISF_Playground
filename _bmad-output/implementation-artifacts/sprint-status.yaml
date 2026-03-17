@@ -129,3 +129,83 @@ development_status:
   10-3-security-hardening: done
   10-4-infrastructure-cleanup: done
   epic-10-retrospective: optional
+
+  # Epic 11: QA Validation — Sprint 2 + Sprint 5 (Discovery + Consolidation)
+  epic-11: done
+  11-1-qa-student-lms-coin-economy: done
+  11-2-qa-admin-coach-lms: done
+  11-3-qa-communication-gaps: done
+  11-4-qa-shop-storefront-cart-orders: done
+  11-5-qa-admin-product-inventory-vendor: done
+  11-6-qa-purchase-request-workflow: done
+  11-7-qa-dashboards-analytics: done
+  11-8-qa-regression-integration: done
+  11-9-consolidated-fix-stories: done
+  epic-11-retrospective: optional
+
+  # Epic 12: LMS & Coin Economy Fixes (Sprint 2 domain — 19 stories)
+  epic-12: backlog
+  12-1-rewrite-lms-grading-coin-award: done
+  12-2-atomic-coin-transactions: done
+  12-3-remove-debug-logging-data-leaks: done
+  12-4-backend-test-coverage-lms-controllers: backlog
+  12-5-rbac-student-scoped-lms-endpoints: done
+  12-6-coach-reports-dashboard-fr21: backlog
+  12-7-auto-calculated-coin-awards-fr22: backlog
+  12-8-balagruha-auth-manual-coin-award-fr23: backlog
+  12-9-art-course-real-implementation-fr11: backlog
+  12-10-wire-s3-upload-student-submissions: backlog
+  12-11-fix-bulkgrade-const-counter-bug: done
+  12-12-coin-earning-velocity-analytics-fr35: backlog
+  12-13-homework-count-replace-hardcode: backlog
+  12-14-dual-coin-balance-consolidate: backlog
+  12-15-transaction-source-granularity-fr34: backlog
+  12-16-audit-trail-course-lifecycle: backlog
+  12-17-coach-reports-missing-import: backlog
+  12-18-fix-resume-activity-deep-link-fr10: backlog
+  12-19-notification-badge-polling-interval: backlog
+  epic-12-retrospective: optional
+
+  # Epic 13: Shop & Purchase Workflow Fixes (Sprint 5 domain — 26 stories)
+  epic-13: backlog
+  13-1-unify-purchase-request-inventory-state-machine: done
+  13-2-fr51-route-guard-mismatch: done
+  13-3-order-routes-missing-rbac: done
+  13-4-build-product-detail-page-fr4: backlog
+  13-5-fuzzy-duplicate-product-name-fr18: backlog
+  13-6-master-inventory-per-balagruha-fr24: backlog
+  13-7-capture-supplier-invoice-ordered-fr33: backlog
+  13-8-priority-coach-filters-purchase-request: backlog
+  13-9-coin-economy-health-metrics-fr48: backlog
+  13-10-dead-placeholder-code-shophome: backlog
+  13-11-double-response-shopcontroller: backlog
+  13-12-backend-console-error-cleanup: backlog
+  13-13-enforce-max-3-vendors-per-product: backlog
+  13-14-inventory-transaction-enum-bulk-import: backlog
+  13-15-pm-nav-badge-admin-role-fr44: backlog
+  13-16-priority-detection-model-field-only: backlog
+  13-17-coach-filter-move-to-backend: backlog
+  13-18-order-all-batch-api: backlog
+  13-19-purchase-request-stats-missing-statuses: backlog
+  13-20-category-filter-multi-select: backlog
+  13-21-correct-cancel-window-comments: backlog
+  13-22-migrate-cart-order-console-error-pino: backlog
+  13-23-vendor-deactivation-endpoint: backlog
+  13-24-request-id-race-condition: backlog
+  13-25-update-story-3-3-status-file: backlog
+  13-26-act-warnings-purchase-request-tests: backlog
+  epic-13-retrospective: optional
+
+  # Epic 14: Cross-Cutting + Unbuilt Features (Future Sprint — not Sprint 6 scope)
+  epic-14: backlog
+  14-1-amma-role-enhancement-fr28-31: backlog
+  14-2-whatsapp-integration-fr27: backlog
+  14-3-voice-communication-reusable-component-fr26: backlog
+  14-4-toast-notification-ui-fr24: backlog
+  14-5-s3-upload-offline-queue-fr10: backlog
+  14-6-coin-balance-websocket-push: backlog
+  14-7-external-tool-launch-electron-ipc: deferred
+  14-8-sqlite-offline-caching: deferred
+  14-9-artweaver-ipc-integration: deferred
+  14-10-live-calling-infrastructure: deferred
+  epic-14-retrospective: optional

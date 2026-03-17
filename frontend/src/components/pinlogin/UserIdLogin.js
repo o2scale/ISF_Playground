@@ -39,8 +39,8 @@ export default function UserIdLogin({ onToggle }) {
 
 
 
-            if (response.data && response.data.data) {
-                const { token, user } = response.data.data;
+            if (response.data) {
+                const { token, user } = response.data;
 
                 if (user.status === 'inactive') {
                     const errorMessage = 'Your account is inactive. Please contact support.';

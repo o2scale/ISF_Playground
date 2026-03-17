@@ -193,6 +193,30 @@ async function createProduct(req, res) {
       });
     }
 
+    // FIX-017: Fuzzy duplicate product name detection (FR18)
+    if (name && !req.body.force) {
+      const trimmedName = name.trim();
+      if (trimmedName.length > 0) {
+        const escapedName = escapeRegex(trimmedName);
+        const similarProducts = await ShopItem.find({
+          name: { $regex: new RegExp(`^${escapedName}$`, 'i') }
+        }).select('name sku _id').limit(5).lean();
+
+        if (similarProducts.length > 0) {
+          return res.status(409).json({
+            success: false,
+            message: 'Similar product name(s) already exist. Use force=true to override.',
+            similarProducts: similarProducts.map(p => ({
+              _id: p._id,
+              name: p.name,
+              sku: p.sku
+            })),
+            field: 'name'
+          });
+        }
+      }
+    }
+
     // Create product
     const product = new ShopItem({
       sku: normalizedSku,

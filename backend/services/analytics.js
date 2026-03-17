@@ -778,13 +778,69 @@ class AnalyticsService {
 
     const circulationTrendArray = Object.values(trendMap);
 
+    // Coin velocity: total coins transacted in last 30 days / active users / days active
+    const velocityStats = await Coin.aggregate([
+      { $unwind: '$transactions' },
+      {
+        $match: {
+          'transactions.createdAt': { $gte: thirtyDaysAgo }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalTransacted: { $sum: '$transactions.amount' },
+          activeUsers: { $addToSet: '$userId' },
+          distinctDays: {
+            $addToSet: {
+              $dateToString: { format: '%Y-%m-%d', date: '$transactions.createdAt' }
+            }
+          }
+        }
+      }
+    ]);
+
+    const velStats = velocityStats[0] || { totalTransacted: 0, activeUsers: [], distinctDays: [] };
+    const activeUserCount = velStats.activeUsers.length;
+    const activeDayCount = velStats.distinctDays.length || 1; // avoid division by zero
+    const coinVelocity = activeUserCount > 0
+      ? velStats.totalTransacted / activeUserCount / activeDayCount
+      : 0;
+
+    // Shop conversion rate: users with at least one 'spent' transaction (source=shop) / total users with coins
+    const usersWithPurchases = await Coin.countDocuments({
+      'transactions': {
+        $elemMatch: {
+          type: 'spent',
+          source: 'shop'
+        }
+      }
+    });
+
+    const totalUsersWithCoins = stats.totalAccounts;
+    const shopConversionRate = totalUsersWithCoins > 0
+      ? usersWithPurchases / totalUsersWithCoins
+      : 0;
+
+    // Add velocity and conversion warnings
+    if (coinVelocity < 1 && activeUserCount > 10) {
+      warnings.push('Coin velocity is low - economy may be stagnant');
+    }
+    if (shopConversionRate < 0.3 && totalUsersWithCoins > 10) {
+      warnings.push('Shop conversion rate is low - many students have coins but never purchased');
+    }
+
     return {
       totalInCirculation: Math.round(stats.totalInCirculation * 100) / 100,
       totalEarned: Math.round(totalEarned * 100) / 100,
       totalSpent: Math.round(totalSpent * 100) / 100,
       earnedVsSpentRatio: Math.round(earnedVsSpentRatio * 100) / 100,
+      coinVelocity: Math.round(coinVelocity * 100) / 100,
+      shopConversionRate: Math.round(shopConversionRate * 10000) / 10000,
       avgBalance: Math.round(avgBalance * 100) / 100,
       totalAccounts: stats.totalAccounts,
+      activeUsersLast30Days: activeUserCount,
+      usersWhoPurchased: usersWithPurchases,
       warnings,
       circulationTrend: circulationTrendArray
     };
@@ -906,6 +962,223 @@ class AnalyticsService {
         limit,
         total,
         pages: Math.ceil(total / limit)
+      }
+    };
+  }
+
+  // ============================================================================
+  // Story-12.12 (FIX-023): Coin Earning Velocity Analytics (FR35)
+  // ============================================================================
+
+  /**
+   * Get coin earning velocity metrics for admin engagement dashboard.
+   * Computes coins earned per active user per day over a configurable time range,
+   * plus weekly and monthly historical aggregates.
+   *
+   * @param {Object} options
+   * @param {Date|String} [options.startDate] - Start of window (default: 30 days ago)
+   * @param {Date|String} [options.endDate]   - End of window (default: now)
+   * @param {String}      [options.granularity] - 'daily' | 'weekly' | 'monthly' (default: 'daily')
+   * @returns {Object} { velocity, historical, summary }
+   */
+  static async getCoinEarningVelocity(options = {}) {
+    const now = new Date();
+    const startDate = options.startDate
+      ? new Date(options.startDate)
+      : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const endDate = options.endDate ? new Date(options.endDate) : now;
+    const granularity = options.granularity || 'daily';
+
+    // ---- Per-day velocity: coins earned / active users / day ----
+    const dailyVelocity = await Coin.aggregate([
+      { $unwind: '$transactions' },
+      {
+        $match: {
+          'transactions.type': 'earned',
+          'transactions.createdAt': { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$transactions.createdAt' }
+          },
+          totalEarned: { $sum: '$transactions.amount' },
+          activeUsers: { $addToSet: '$userId' }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: '$_id',
+          totalEarned: 1,
+          activeUserCount: { $size: '$activeUsers' },
+          coinsPerActiveUser: {
+            $cond: [
+              { $gt: [{ $size: '$activeUsers' }, 0] },
+              { $divide: ['$totalEarned', { $size: '$activeUsers' }] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { date: 1 } }
+    ]);
+
+    // ---- Weekly aggregates ----
+    const weeklyAggregates = await Coin.aggregate([
+      { $unwind: '$transactions' },
+      {
+        $match: {
+          'transactions.type': 'earned',
+          'transactions.createdAt': { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            isoWeekYear: { $isoWeekYear: '$transactions.createdAt' },
+            isoWeek: { $isoWeek: '$transactions.createdAt' }
+          },
+          totalEarned: { $sum: '$transactions.amount' },
+          activeUsers: { $addToSet: '$userId' },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: '$_id.isoWeekYear',
+          week: '$_id.isoWeek',
+          totalEarned: 1,
+          activeUserCount: { $size: '$activeUsers' },
+          transactionCount: 1,
+          coinsPerActiveUser: {
+            $cond: [
+              { $gt: [{ $size: '$activeUsers' }, 0] },
+              { $divide: ['$totalEarned', { $size: '$activeUsers' }] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { year: 1, week: 1 } }
+    ]);
+
+    // ---- Monthly aggregates ----
+    const monthlyAggregates = await Coin.aggregate([
+      { $unwind: '$transactions' },
+      {
+        $match: {
+          'transactions.type': 'earned',
+          'transactions.createdAt': { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$transactions.createdAt' },
+            month: { $month: '$transactions.createdAt' }
+          },
+          totalEarned: { $sum: '$transactions.amount' },
+          activeUsers: { $addToSet: '$userId' },
+          transactionCount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          year: '$_id.year',
+          month: '$_id.month',
+          totalEarned: 1,
+          activeUserCount: { $size: '$activeUsers' },
+          transactionCount: 1,
+          coinsPerActiveUser: {
+            $cond: [
+              { $gt: [{ $size: '$activeUsers' }, 0] },
+              { $divide: ['$totalEarned', { $size: '$activeUsers' }] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { year: 1, month: 1 } }
+    ]);
+
+    // ---- Summary stats over the full range ----
+    const totalDays = Math.max(1, Math.ceil((endDate - startDate) / (24 * 60 * 60 * 1000)));
+    const totalEarnedInRange = dailyVelocity.reduce((s, d) => s + d.totalEarned, 0);
+
+    const distinctUsersResult = await Coin.aggregate([
+      { $unwind: '$transactions' },
+      {
+        $match: {
+          'transactions.type': 'earned',
+          'transactions.createdAt': { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          activeUsers: { $addToSet: '$userId' },
+          totalTransactions: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          activeUserCount: { $size: '$activeUsers' },
+          totalTransactions: 1
+        }
+      }
+    ]);
+
+    const summaryData = distinctUsersResult[0] || { activeUserCount: 0, totalTransactions: 0 };
+    const overallVelocity = summaryData.activeUserCount > 0 && totalDays > 0
+      ? totalEarnedInRange / summaryData.activeUserCount / totalDays
+      : 0;
+
+    // Pick the requested granularity for the primary velocity array
+    let velocityData;
+    switch (granularity) {
+      case 'weekly':
+        velocityData = weeklyAggregates;
+        break;
+      case 'monthly':
+        velocityData = monthlyAggregates;
+        break;
+      default:
+        velocityData = dailyVelocity;
+    }
+
+    return {
+      velocity: velocityData.map(v => ({
+        ...v,
+        totalEarned: Math.round(v.totalEarned * 100) / 100,
+        coinsPerActiveUser: Math.round(v.coinsPerActiveUser * 100) / 100
+      })),
+      historical: {
+        weekly: weeklyAggregates.map(w => ({
+          ...w,
+          totalEarned: Math.round(w.totalEarned * 100) / 100,
+          coinsPerActiveUser: Math.round(w.coinsPerActiveUser * 100) / 100
+        })),
+        monthly: monthlyAggregates.map(m => ({
+          ...m,
+          totalEarned: Math.round(m.totalEarned * 100) / 100,
+          coinsPerActiveUser: Math.round(m.coinsPerActiveUser * 100) / 100
+        }))
+      },
+      summary: {
+        totalDays,
+        totalEarned: Math.round(totalEarnedInRange * 100) / 100,
+        activeUserCount: summaryData.activeUserCount,
+        totalTransactions: summaryData.totalTransactions,
+        overallVelocity: Math.round(overallVelocity * 100) / 100,
+        dateRange: {
+          startDate,
+          endDate
+        }
       }
     };
   }

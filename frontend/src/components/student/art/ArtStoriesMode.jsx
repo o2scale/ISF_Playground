@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import CanvasPreview from './CanvasPreview';
 import SubmissionModal from './SubmissionModal';
 import toast from 'react-hot-toast';
+import { api } from '../../../api';
 
 /**
- * ArtStoriesMode Component
- * Drawing based on story prompts with audio narration
+ * ArtStoriesMode Component - Story 12.9 (FIX-014)
+ * Drawing based on story prompts with audio narration.
+ * Now wires real file upload via SubmissionModal.
  */
 export default function ArtStoriesMode({ data, studentId, onRefresh }) {
   const [selectedStory, setSelectedStory] = useState(null);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const stories = data?.stories || [];
 
@@ -20,16 +23,37 @@ export default function ArtStoriesMode({ data, studentId, onRefresh }) {
   }, [stories]);
 
   const handleSubmit = () => {
+    if (!selectedFile) {
+      toast.error('Please select an artwork file before submitting');
+      return;
+    }
     setShowSubmissionModal(true);
   };
 
   const handleConfirmSubmission = async (metadata) => {
+    if (!selectedFile) {
+      toast.error('No file selected');
+      return;
+    }
     try {
+      const formData = new FormData();
+      formData.append('artwork', selectedFile);
+      formData.append('type', 'art');
+      formData.append('mode', 'art_story');
+      formData.append('courseId', selectedStory?.id || '');
+      formData.append('taskTitle', metadata.title || selectedStory?.title || 'Art story artwork');
+
+      await api.post(
+        `/api/v2/lms/student/${studentId}/courses/art/submissions`,
+        formData
+      );
       toast.success('Story artwork submitted successfully!');
       setShowSubmissionModal(false);
+      setSelectedFile(null);
       if (onRefresh) onRefresh();
     } catch (error) {
-      toast.error('Failed to submit artwork');
+      const msg = error.response?.data?.message || 'Failed to submit artwork';
+      toast.error(msg);
     }
   };
 
@@ -63,15 +87,15 @@ export default function ArtStoriesMode({ data, studentId, onRefresh }) {
           <div className="bg-pink-50 rounded-lg p-4">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">{selectedStory.title}</h2>
             <div className="flex gap-4 text-sm text-gray-600">
-              <span>📚 Difficulty: {selectedStory.difficulty}</span>
-              <span>⏱️ Estimated Time: {selectedStory.estimatedTime} mins</span>
+              <span>Difficulty: {selectedStory.difficulty}</span>
+              <span>Estimated Time: {selectedStory.estimatedTime} mins</span>
             </div>
           </div>
 
           {/* Audio Player (if audioUrl exists) */}
           {selectedStory.audioUrl && (
             <div className="bg-gray-50 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">🎧 Listen to the Story</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Listen to the Story</h3>
               <audio controls className="w-full">
                 <source src={selectedStory.audioUrl} type="audio/mpeg" />
                 Your browser does not support the audio element.
@@ -80,23 +104,31 @@ export default function ArtStoriesMode({ data, studentId, onRefresh }) {
           )}
 
           {/* Story Text */}
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">📖 Story</h3>
-            <div className="text-gray-700 whitespace-pre-line leading-relaxed">
-              {selectedStory.storyText}
+          {selectedStory.storyText && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">Story</h3>
+              <div className="text-gray-700 whitespace-pre-line leading-relaxed">
+                {selectedStory.storyText}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Drawing Prompt */}
-          <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
-            <h3 className="text-lg font-semibold text-blue-900 mb-2">🎨 Drawing Prompt</h3>
-            <div className="text-blue-800 whitespace-pre-line">
-              {selectedStory.prompt}
+          {selectedStory.prompt && (
+            <div className="bg-blue-50 rounded-lg p-4 border-l-4 border-blue-500">
+              <h3 className="text-lg font-semibold text-blue-900 mb-2">Drawing Prompt</h3>
+              <div className="text-blue-800 whitespace-pre-line">
+                {selectedStory.prompt}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Canvas Preview & Actions */}
-          <CanvasPreview onSubmit={handleSubmit} />
+          {/* Canvas Preview & File Upload */}
+          <CanvasPreview
+            onSubmit={handleSubmit}
+            file={selectedFile}
+            onFileChange={setSelectedFile}
+          />
         </>
       )}
 
@@ -107,6 +139,7 @@ export default function ArtStoriesMode({ data, studentId, onRefresh }) {
           metadata={{ storyId: selectedStory?.id }}
           onClose={() => setShowSubmissionModal(false)}
           onSubmit={handleConfirmSubmission}
+          file={selectedFile}
         />
       )}
     </div>

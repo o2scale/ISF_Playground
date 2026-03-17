@@ -327,7 +327,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
  */
 exports.getAllPurchaseRequests = async (req, res) => {
   try {
-    const { status, balagruhaId, category, startDate, endDate, page = 1, limit = 20 } = req.query;
+    const { status, balagruhaId, category, startDate, endDate, priority, requestedBy, page = 1, limit = 20 } = req.query;
 
     const validCategories = ['ISF Shop', 'Medicines', 'Consumables', 'Repairs', 'Infra', 'Others'];
     const userId = req.user._id;
@@ -406,10 +406,35 @@ exports.getAllPurchaseRequests = async (req, res) => {
       }
     }
 
+    // FIX-020: Priority filter
+    if (priority && priority !== 'all') {
+      const validPriorities = ['low', 'medium', 'high'];
+      const normalizedPriority = priority.toLowerCase().trim();
+      if (validPriorities.includes(normalizedPriority)) {
+        query.priority = normalizedPriority;
+      }
+    }
+
+    // FIX-020: Coach (requestedBy) filter — only for admin and purchase-manager
+    if (requestedBy && requestedBy !== 'all') {
+      if (userRole === 'admin' || userRole === 'purchase-manager') {
+        if (mongoose.Types.ObjectId.isValid(requestedBy)) {
+          query.requestedBy = new mongoose.Types.ObjectId(requestedBy);
+        }
+      }
+      // Non-admin/PM roles already have query.requestedBy set to their own userId — ignore filter
+    }
+
     // Calculate pagination
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Execute paginated query
+
+    // FIX-020: Priority-first sort (high=3 > medium=2 > low=1), then newest first
+    // MongoDB doesn't natively sort enums by custom order, so use an aggregation-free approach:
+    // Store a priority weight map and sort via a collation-compatible field.
+    // Since priority values are 'high','low','medium' — alphabetical doesn't match importance.
+    // We use a post-query sort for priority ordering.
+
+    // Execute paginated query — fetch with createdAt sort, then re-sort by priority in-memory
     const [requests, total] = await Promise.all([
       PurchaseRequest.find(query)
         .populate('requestedBy', 'name email role')
@@ -422,6 +447,16 @@ exports.getAllPurchaseRequests = async (req, res) => {
         .limit(parseInt(limit)),
       PurchaseRequest.countDocuments(query)
     ]);
+
+    // FIX-020: In-memory priority-first sort (high > medium > low), stable secondary by createdAt desc
+    const priorityWeight = { high: 3, medium: 2, low: 1 };
+    requests.sort((a, b) => {
+      const wA = priorityWeight[a.priority] || 2;
+      const wB = priorityWeight[b.priority] || 2;
+      if (wA !== wB) return wB - wA; // higher priority first
+      // Secondary sort: newest first (createdAt desc) — already from DB, but ensure stability
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
 
     res.json({
       success: true,
@@ -1008,7 +1043,7 @@ exports.updateStatus = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { status, notes, repairTechnicianName } = req.body;  // Story 2.6: Add repairTechnicianName
+    const { status, notes, repairTechnicianName, supplierName, invoiceNumber } = req.body;  // Story 2.6: Add repairTechnicianName; FIX-019: Add supplierName, invoiceNumber
     const userId = req.user._id;
     const userRole = req.user.role;
 
@@ -1116,6 +1151,12 @@ exports.updateStatus = async (req, res) => {
       changedAt: new Date(),
       notes: notes || `Status changed to ${status}`
     });
+
+    // FIX-019: Capture supplier/invoice at 'ordered' transition
+    if (status === 'ordered') {
+      if (supplierName) requestDoc.supplierName = supplierName.trim();
+      if (invoiceNumber) requestDoc.invoiceNumber = invoiceNumber.trim();
+    }
 
     // Story 2.6: Capture Repair Technician Name at delivered_store for Repairs
     if (status === 'delivered_store' && requestDoc.category === 'Repairs' && repairTechnicianName) {

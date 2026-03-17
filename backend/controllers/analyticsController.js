@@ -113,3 +113,62 @@ exports.getStudentParticipationDetails = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get coin earning velocity analytics
+ * GET /api/v2/shop/admin/analytics/coin-velocity
+ * Query params: startDate (ISO), endDate (ISO), granularity ('daily'|'weekly'|'monthly')
+ */
+exports.getCoinEarningVelocity = async (req, res) => {
+  try {
+    const { startDate, endDate, granularity } = req.query;
+
+    // Validate dates if provided
+    if (startDate) {
+      const parsed = new Date(startDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid startDate format. Use ISO 8601 format (YYYY-MM-DD)'
+        });
+      }
+    }
+
+    if (endDate) {
+      const parsed = new Date(endDate);
+      if (isNaN(parsed.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid endDate format. Use ISO 8601 format (YYYY-MM-DD)'
+        });
+      }
+    }
+
+    // Validate granularity
+    const validGranularities = ['daily', 'weekly', 'monthly'];
+    if (granularity && !validGranularities.includes(granularity)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid granularity. Must be one of: ${validGranularities.join(', ')}`
+      });
+    }
+
+    const velocityData = await AnalyticsService.getCoinEarningVelocity({
+      startDate,
+      endDate,
+      granularity
+    });
+
+    res.status(200).json({
+      success: true,
+      data: velocityData
+    });
+  } catch (error) {
+    console.error('Error fetching coin earning velocity:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch coin earning velocity analytics',
+      error: error.message
+    });
+  }
+};

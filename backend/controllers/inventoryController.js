@@ -1,6 +1,7 @@
 const ShopItem = require('../models/shopItem');
 const InventoryTransaction = require('../models/inventoryTransaction');
 const Order = require('../models/order');
+const Balagruha = require('../models/balagruha');
 const mongoose = require('mongoose');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
@@ -666,9 +667,19 @@ exports.getMasterInventoryReport = async (req, res) => {
       .lean();
 
     if (products.length === 0) {
+      // FIX-018: Include empty balagruha breakdown even when no products match
+      const allBalagruhas = await Balagruha.find({}).select('name').lean();
       return res.status(200).json({
         count: 0,
-        products: []
+        products: [],
+        balagruhaBreakdown: allBalagruhas.map(bg => ({
+          balagruhaId: bg._id,
+          balagruhaName: bg.name,
+          totalInStore: 0,
+          totalDeployed: 0,
+          totalQuantity: 0,
+          items: []
+        }))
       });
     }
 
@@ -697,6 +708,106 @@ exports.getMasterInventoryReport = async (req, res) => {
       deployedAggregation.map(row => [row._id?.toString(), row.deployed])
     );
 
+    // FIX-018: Per-Balagruha breakdown aggregation
+    // Join Orders -> Users -> balagruhaIds to segment deployed quantities by Balagruha
+    const balagruhaAggregation = await Order.aggregate([
+      {
+        $match: {
+          status: 'completed',
+          deliveryStatus: 'delivered',
+          'items.shopItemId': { $in: productIds }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      { $unwind: '$items' },
+      { $match: { 'items.shopItemId': { $in: productIds } } },
+      { $unwind: { path: '$user.balagruhaIds', preserveNullAndEmptyArrays: false } },
+      {
+        $group: {
+          _id: {
+            shopItemId: '$items.shopItemId',
+            balagruhaId: '$user.balagruhaIds'
+          },
+          deployed: { $sum: '$items.quantity' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'balagruhas',
+          localField: '_id.balagruhaId',
+          foreignField: '_id',
+          as: 'balagruha'
+        }
+      },
+      { $unwind: { path: '$balagruha', preserveNullAndEmptyArrays: true } },
+      {
+        $group: {
+          _id: '$_id.balagruhaId',
+          balagruhaName: { $first: { $ifNull: ['$balagruha.name', 'Unknown'] } },
+          items: {
+            $push: {
+              shopItemId: '$_id.shopItemId',
+              deployed: '$deployed'
+            }
+          }
+        }
+      }
+    ]);
+
+    // Build lookup: balagruhaId -> Map(shopItemId -> deployed)
+    const balagruhaDeployedMap = new Map();
+    for (const bg of balagruhaAggregation) {
+      const itemMap = new Map();
+      for (const item of bg.items) {
+        itemMap.set(item.shopItemId.toString(), item.deployed);
+      }
+      balagruhaDeployedMap.set(bg._id.toString(), {
+        name: bg.balagruhaName,
+        itemMap
+      });
+    }
+
+    // Also fetch all Balagruhas so we include those with zero deployed
+    const allBalagruhas = await Balagruha.find({}).select('name').lean();
+
+    // Build per-balagruha breakdown
+    const balagruhaBreakdown = allBalagruhas.map(bg => {
+      const bgData = balagruhaDeployedMap.get(bg._id.toString());
+      const items = products.map(product => {
+        const deployed = bgData
+          ? (bgData.itemMap.get(product._id.toString()) || 0)
+          : 0;
+        return {
+          shopItemId: product._id,
+          sku: product.sku,
+          name: product.name,
+          inStore: product.stock,
+          deployed,
+          total: product.stock + deployed
+        };
+      });
+
+      const totalInStore = items.reduce((sum, i) => sum + i.inStore, 0);
+      const totalDeployed = items.reduce((sum, i) => sum + i.deployed, 0);
+
+      return {
+        balagruhaId: bg._id,
+        balagruhaName: bg.name,
+        totalInStore,
+        totalDeployed,
+        totalQuantity: totalInStore + totalDeployed,
+        items
+      };
+    });
+
     const report = products.map(product => ({
       _id: product._id,
       sku: product.sku,
@@ -708,7 +819,8 @@ exports.getMasterInventoryReport = async (req, res) => {
 
     res.status(200).json({
       count: report.length,
-      products: report
+      products: report,
+      balagruhaBreakdown
     });
   } catch (error) {
     console.error('Error generating master inventory report:', error);

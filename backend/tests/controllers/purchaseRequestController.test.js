@@ -579,6 +579,48 @@ describe('PurchaseRequest Controller', () => {
       expect(updated.statusHistory).toHaveLength(1);
     });
 
+    // FIX-019: Capture supplierName and invoiceNumber at 'ordered' transition
+    it('should save supplierName and invoiceNumber when transitioning to ordered', async () => {
+      const pm = await createTestUser({ role: 'purchase-manager' });
+      const pr = await createTestPR({ _user: pm, status: 'pending' });
+
+      const req = mockRequest({
+        params: { id: pr._id.toString() },
+        body: { status: 'ordered', supplierName: ' Acme Supplies ', invoiceNumber: ' INV-2026-100 ' },
+        user: { _id: pm._id, role: 'purchase-manager', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const updated = await PurchaseRequest.findById(pr._id);
+      expect(updated.status).toBe('ordered');
+      expect(updated.supplierName).toBe('Acme Supplies');
+      expect(updated.invoiceNumber).toBe('INV-2026-100');
+    });
+
+    it('should transition to ordered without supplierName/invoiceNumber (fields optional)', async () => {
+      const pm = await createTestUser({ role: 'purchase-manager' });
+      const pr = await createTestPR({ _user: pm, status: 'pending' });
+
+      const req = mockRequest({
+        params: { id: pr._id.toString() },
+        body: { status: 'ordered' },
+        user: { _id: pm._id, role: 'purchase-manager', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(200);
+      const updated = await PurchaseRequest.findById(pr._id);
+      expect(updated.status).toBe('ordered');
+      // Fields should remain undefined/empty when not provided
+      expect(updated.supplierName).toBeFalsy();
+      expect(updated.invoiceNumber).toBeFalsy();
+    });
+
     it('should transition ordered → delivered_store (purchase-manager)', async () => {
       const pm = await createTestUser({ role: 'purchase-manager' });
       const pr = await createTestPR({ _user: pm, status: 'ordered' });

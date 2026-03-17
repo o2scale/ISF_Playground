@@ -146,15 +146,14 @@ export default function ArtCoursePage() {
           )}
         </div>
 
-        {/* Info Message - Electron IPC Pending */}
+        {/* Info Message */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <div className="flex items-start">
-            <span className="text-2xl mr-3">ℹ️</span>
             <div>
-              <h3 className="font-semibold text-blue-900">Artweaver Integration (Coming Soon)</h3>
+              <h3 className="font-semibold text-blue-900">Upload Your Artwork</h3>
               <p className="text-sm text-blue-800 mt-1">
-                Full Artweaver integration with real-time canvas mirroring requires Electron environment.
-                Current implementation shows placeholder functionality for UI testing.
+                Create your artwork using any drawing tool, then upload the image file here.
+                Supported formats: JPEG, PNG, GIF, WebP (max 20MB).
               </p>
             </div>
           </div>

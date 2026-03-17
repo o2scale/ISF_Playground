@@ -48,6 +48,7 @@ import TransactionReports from "./pages/TransactionReports";
 import CoachDeliveries from "./pages/CoachDeliveries";
 import CoachRequestsDashboard from "./pages/CoachRequestsDashboard";
 import StudentProfile from "./pages/StudentProfile";
+import ProductDetail from "./pages/ProductDetail";
 import AdminCourseDashboard from "./pages/admin/AdminCourseDashboard";
 import CourseStructureBuilder from "./pages/admin/CourseStructureBuilder";
 import ContentLibrary from "./pages/admin/ContentLibrary";
@@ -318,6 +319,14 @@ const App = () => {
                     element={
                       <ProtectedRoute>
                         <ShopHome />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/shop/products/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ProductDetail />
                       </ProtectedRoute>
                     }
                   />

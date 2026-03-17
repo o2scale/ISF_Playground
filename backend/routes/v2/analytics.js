@@ -16,4 +16,7 @@ router.get('/', analyticsController.getShopAnalytics);
 // GET /api/v2/shop/admin/analytics/participation - Get student participation details
 router.get('/participation', analyticsController.getStudentParticipationDetails);
 
+// GET /api/v2/shop/admin/analytics/coin-velocity - Get coin earning velocity metrics (FR35)
+router.get('/coin-velocity', analyticsController.getCoinEarningVelocity);
+
 module.exports = router;

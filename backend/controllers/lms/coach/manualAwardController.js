@@ -26,6 +26,45 @@ exports.awardCoins = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Reason for award is required' });
         }
 
+        // FIX-013: Balagruha authorization — coaches can only award students in their assigned Balagruhas
+        const isAdmin = req.user.role === 'admin';
+
+        if (!isAdmin) {
+            const coachBalagruhaIds = (req.user.balagruhaIds || []).map(id => id.toString());
+
+            if (coachBalagruhaIds.length === 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. You have no assigned Balagruhas.'
+                });
+            }
+
+            // Look up all target students and verify Balagruha membership
+            const students = await User.find({ _id: { $in: studentIds } }).select('_id name balagruhaIds');
+            const unauthorizedStudentIds = [];
+
+            for (const sid of studentIds) {
+                const student = students.find(s => s._id.toString() === sid.toString());
+                if (!student) {
+                    // Will be caught later in the per-student loop as 'Student not found'
+                    continue;
+                }
+                const studentBalagruhaIds = (student.balagruhaIds || []).map(id => id.toString());
+                const hasOverlap = studentBalagruhaIds.some(id => coachBalagruhaIds.includes(id));
+                if (!hasOverlap) {
+                    unauthorizedStudentIds.push(sid);
+                }
+            }
+
+            if (unauthorizedStudentIds.length > 0) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. You do not have Balagruha authority over one or more students.',
+                    unauthorizedStudentIds
+                });
+            }
+        }
+
         const results = [];
         const errors = [];
 

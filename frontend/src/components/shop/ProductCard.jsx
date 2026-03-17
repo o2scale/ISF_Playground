@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ShoppingCart, Package } from "lucide-react";
 import useShopStore from "../../store/shopStore";
 import { useAuth } from "../../contexts/AuthContext";
@@ -9,6 +10,7 @@ import { useAuth } from "../../contexts/AuthContext";
  * Design System: WTF Module pin card pattern
  */
 const ProductCard = ({ product, onRequestItem }) => {
+  const navigate = useNavigate();
   const { addToCart } = useShopStore();
   const { user } = useAuth();
   const [isAdding, setIsAdding] = useState(false);
@@ -21,6 +23,18 @@ const ProductCard = ({ product, onRequestItem }) => {
   
   // Staff Roles (Story 2.2)
   const isStaff = isAdmin || isCoach || isPurchaseManager || isMedical;
+
+  // Navigate to product detail page on card click
+  const handleCardClick = () => {
+    navigate(`/shop/products/${product._id}`);
+  };
+
+  const handleCardKeyDown = (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      handleCardClick();
+    }
+  };
 
   const handleAction = async () => {
     // If staff, request item
@@ -43,7 +57,14 @@ const ProductCard = ({ product, onRequestItem }) => {
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-lg hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden flex flex-col h-full">
+    <div
+      className="bg-white border border-slate-200 rounded-lg hover:shadow-lg transition-shadow duration-200 cursor-pointer overflow-hidden flex flex-col h-full"
+      onClick={handleCardClick}
+      onKeyDown={handleCardKeyDown}
+      role="link"
+      tabIndex={0}
+      aria-label={`View details for ${product.name}`}
+    >
       {/* Product Image */}
       <div className="relative aspect-square flex-shrink-0">
         <img
@@ -112,7 +133,7 @@ const ProductCard = ({ product, onRequestItem }) => {
 
         {/* Add to Cart / Request Button */}
         <button
-          onClick={handleAction}
+          onClick={(e) => { e.stopPropagation(); handleAction(); }}
           disabled={(!product.inStock && !isStaff) || isAdding}
           className={`w-full px-4 py-2 rounded-md font-medium flex items-center justify-center gap-2 transition-colors ${
             product.inStock || isStaff

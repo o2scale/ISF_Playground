@@ -2,14 +2,17 @@ import React, { useState, useEffect } from 'react';
 import CanvasPreview from './CanvasPreview';
 import SubmissionModal from './SubmissionModal';
 import toast from 'react-hot-toast';
+import { api } from '../../../api';
 
 /**
- * CompetitionMode Component
- * Themed art contests with leaderboard and countdown
+ * CompetitionMode Component - Story 12.9 (FIX-014)
+ * Themed art contests with leaderboard and countdown.
+ * Now wires real file upload for competition entries.
  */
 export default function CompetitionMode({ data, studentId, onRefresh }) {
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState('');
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const competition = data?.currentCompetition || null;
 
@@ -41,16 +44,37 @@ export default function CompetitionMode({ data, studentId, onRefresh }) {
   }, [competition]);
 
   const handleSubmit = () => {
+    if (!selectedFile) {
+      toast.error('Please select an artwork file before submitting');
+      return;
+    }
     setShowSubmissionModal(true);
   };
 
   const handleConfirmSubmission = async (metadata) => {
+    if (!selectedFile) {
+      toast.error('No file selected');
+      return;
+    }
     try {
+      const formData = new FormData();
+      formData.append('artwork', selectedFile);
+      formData.append('type', 'art');
+      formData.append('mode', 'competition');
+      formData.append('title', metadata.title || 'Competition Entry');
+      formData.append('metadata', JSON.stringify({ competitionId: competition.id }));
+
+      await api.post(
+        `/api/v2/lms/student/${studentId}/courses/art/submissions`,
+        formData
+      );
       toast.success('Competition entry submitted successfully!');
       setShowSubmissionModal(false);
+      setSelectedFile(null);
       if (onRefresh) onRefresh();
     } catch (error) {
-      toast.error('Failed to submit entry');
+      const msg = error.response?.data?.message || 'Failed to submit entry';
+      toast.error(msg);
     }
   };
 
@@ -78,104 +102,113 @@ export default function CompetitionMode({ data, studentId, onRefresh }) {
         </div>
 
         {/* Prize Money */}
-        <div className="flex gap-4 mt-4">
-          <div className="bg-yellow-400 text-yellow-900 rounded-lg px-4 py-2">
-            <div className="text-xs font-medium">🥇 1st Place</div>
-            <div className="text-xl font-bold">{competition.prize.first} Coins</div>
+        {competition.prize && (
+          <div className="flex gap-4 mt-4">
+            <div className="bg-yellow-400 text-yellow-900 rounded-lg px-4 py-2">
+              <div className="text-xs font-medium">1st Place</div>
+              <div className="text-xl font-bold">{competition.prize.first} Coins</div>
+            </div>
+            <div className="bg-gray-300 text-gray-900 rounded-lg px-4 py-2">
+              <div className="text-xs font-medium">2nd Place</div>
+              <div className="text-xl font-bold">{competition.prize.second} Coins</div>
+            </div>
+            <div className="bg-orange-300 text-orange-900 rounded-lg px-4 py-2">
+              <div className="text-xs font-medium">3rd Place</div>
+              <div className="text-xl font-bold">{competition.prize.third} Coins</div>
+            </div>
           </div>
-          <div className="bg-gray-300 text-gray-900 rounded-lg px-4 py-2">
-            <div className="text-xs font-medium">🥈 2nd Place</div>
-            <div className="text-xl font-bold">{competition.prize.second} Coins</div>
-          </div>
-          <div className="bg-orange-300 text-orange-900 rounded-lg px-4 py-2">
-            <div className="text-xs font-medium">🥉 3rd Place</div>
-            <div className="text-xl font-bold">{competition.prize.third} Coins</div>
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Rules */}
-      <div className="bg-gray-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-gray-800 mb-2">📋 Rules</h3>
-        <ul className="space-y-1">
-          {competition.rules.map((rule, idx) => (
-            <li key={idx} className="text-gray-700 flex items-start">
-              <span className="text-pink-600 mr-2">•</span>
-              {rule}
-            </li>
-          ))}
-        </ul>
-      </div>
+      {competition.rules && competition.rules.length > 0 && (
+        <div className="bg-gray-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Rules</h3>
+          <ul className="space-y-1">
+            {competition.rules.map((rule, idx) => (
+              <li key={idx} className="text-gray-700 flex items-start">
+                <span className="text-pink-600 mr-2">&bull;</span>
+                {rule}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {/* Judging Criteria */}
-      <div className="bg-blue-50 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">⚖️ Judging Criteria</h3>
-        <div className="flex flex-wrap gap-2 mb-2">
-          {competition.judging.criteria.map((criterion, idx) => (
-            <span key={idx} className="bg-blue-200 text-blue-900 px-3 py-1 rounded-full text-sm">
-              {criterion}
-            </span>
-          ))}
+      {competition.judging && competition.judging.criteria && competition.judging.criteria.length > 0 && (
+        <div className="bg-blue-50 rounded-lg p-4">
+          <h3 className="text-lg font-semibold text-blue-900 mb-2">Judging Criteria</h3>
+          <div className="flex flex-wrap gap-2 mb-2">
+            {competition.judging.criteria.map((criterion, idx) => (
+              <span key={idx} className="bg-blue-200 text-blue-900 px-3 py-1 rounded-full text-sm">
+                {criterion}
+              </span>
+            ))}
+          </div>
+          {competition.judging.judges && competition.judging.judges.length > 0 && (
+            <p className="text-sm text-blue-800">
+              Judges: {competition.judging.judges.join(', ')}
+            </p>
+          )}
         </div>
-        <p className="text-sm text-blue-800">
-          Judges: {competition.judging.judges.join(', ')}
-        </p>
-      </div>
+      )}
 
-      {/* Canvas Preview */}
-      <CanvasPreview onSubmit={handleSubmit} />
+      {/* Canvas Preview & File Upload */}
+      <CanvasPreview
+        onSubmit={handleSubmit}
+        file={selectedFile}
+        onFileChange={setSelectedFile}
+      />
 
       {/* Leaderboard */}
-      <div>
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-lg font-semibold text-gray-800">🏆 Leaderboard</h3>
-          <span className="text-sm text-gray-600">
-            {competition.totalSubmissions} entries
-          </span>
-        </div>
-        <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Artist</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Artwork</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Votes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {competition.leaderboard.map((entry) => (
-                <tr key={entry.rank} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      {entry.rank === 1 && <span>🥇</span>}
-                      {entry.rank === 2 && <span>🥈</span>}
-                      {entry.rank === 3 && <span>🥉</span>}
-                      <span className="font-semibold">#{entry.rank}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-900">{entry.studentName}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={entry.artworkUrl}
-                        alt={entry.artworkTitle}
-                        className="w-16 h-12 object-cover rounded border border-gray-200"
-                      />
-                      <span className="text-sm text-gray-700">{entry.artworkTitle}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="inline-flex items-center gap-1 bg-pink-100 text-pink-800 px-2 py-1 rounded-full text-sm">
-                      ❤️ {entry.votes}
-                    </span>
-                  </td>
+      {competition.leaderboard && competition.leaderboard.length > 0 && (
+        <div>
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="text-lg font-semibold text-gray-800">Leaderboard</h3>
+            <span className="text-sm text-gray-600">
+              {competition.totalSubmissions} entries
+            </span>
+          </div>
+          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rank</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Artist</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Artwork</th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Votes</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {competition.leaderboard.map((entry) => (
+                  <tr key={entry.rank} className="hover:bg-gray-50">
+                    <td className="px-4 py-3">
+                      <span className="font-semibold">#{entry.rank}</span>
+                    </td>
+                    <td className="px-4 py-3 text-gray-900">{entry.studentName}</td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <img
+                          src={entry.artworkUrl}
+                          alt={entry.artworkTitle}
+                          className="w-16 h-12 object-cover rounded border border-gray-200"
+                        />
+                        <span className="text-sm text-gray-700">{entry.artworkTitle}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-flex items-center gap-1 bg-pink-100 text-pink-800 px-2 py-1 rounded-full text-sm">
+                        {entry.votes}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Submission Modal */}
       {showSubmissionModal && (
@@ -184,6 +217,7 @@ export default function CompetitionMode({ data, studentId, onRefresh }) {
           metadata={{ competitionId: competition.id }}
           onClose={() => setShowSubmissionModal(false)}
           onSubmit={handleConfirmSubmission}
+          file={selectedFile}
         />
       )}
     </div>

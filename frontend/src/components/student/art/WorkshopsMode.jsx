@@ -2,14 +2,17 @@ import React, { useState } from 'react';
 import CanvasPreview from './CanvasPreview';
 import SubmissionModal from './SubmissionModal';
 import toast from 'react-hot-toast';
+import { api } from '../../../api';
 
 /**
- * WorkshopsMode Component
- * Guided art lessons with instructor videos
+ * WorkshopsMode Component - Story 12.9 (FIX-014)
+ * Guided art lessons with instructor videos.
+ * Now wires real file upload via SubmissionModal.
  */
 export default function WorkshopsMode({ data, studentId, onRefresh }) {
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [showSubmissionModal, setShowSubmissionModal] = useState(false);
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const workshops = data?.workshops || [];
 
@@ -21,17 +24,37 @@ export default function WorkshopsMode({ data, studentId, onRefresh }) {
   }, [workshops]);
 
   const handleSubmit = () => {
+    if (!selectedFile) {
+      toast.error('Please select an artwork file before submitting');
+      return;
+    }
     setShowSubmissionModal(true);
   };
 
   const handleConfirmSubmission = async (metadata) => {
+    if (!selectedFile) {
+      toast.error('No file selected');
+      return;
+    }
     try {
-      // File upload not yet implemented (Artweaver IPC stubbed)
+      const formData = new FormData();
+      formData.append('artwork', selectedFile);
+      formData.append('type', 'art');
+      formData.append('mode', 'workshop');
+      formData.append('courseId', selectedWorkshop?.id || '');
+      formData.append('taskTitle', metadata.title || selectedWorkshop?.title || 'Workshop artwork');
+
+      await api.post(
+        `/api/v2/lms/student/${studentId}/courses/art/submissions`,
+        formData
+      );
       toast.success('Workshop artwork submitted successfully!');
       setShowSubmissionModal(false);
+      setSelectedFile(null);
       if (onRefresh) onRefresh();
     } catch (error) {
-      toast.error('Failed to submit artwork');
+      const msg = error.response?.data?.message || 'Failed to submit artwork';
+      toast.error(msg);
     }
   };
 
@@ -76,25 +99,27 @@ export default function WorkshopsMode({ data, studentId, onRefresh }) {
               {selectedWorkshop.title}
             </h2>
             <div className="flex gap-4 text-sm text-gray-600">
-              <span>👨‍🏫 Instructor: {selectedWorkshop.instructor}</span>
-              <span>⏱️ Duration: {selectedWorkshop.duration} mins</span>
-              <span>📊 Level: {selectedWorkshop.level}</span>
+              <span>Instructor: {selectedWorkshop.instructor}</span>
+              <span>Duration: {selectedWorkshop.duration} mins</span>
+              <span>Level: {selectedWorkshop.level}</span>
             </div>
           </div>
 
           {/* Video Player */}
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">Video Tutorial</h3>
-            <div className="relative rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: '16/9' }}>
-              <iframe
-                src={selectedWorkshop.videoUrl}
-                title={selectedWorkshop.title}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-              ></iframe>
+          {selectedWorkshop.videoUrl && (
+            <div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">Video Tutorial</h3>
+              <div className="relative rounded-lg overflow-hidden shadow-lg" style={{ aspectRatio: '16/9' }}>
+                <iframe
+                  src={selectedWorkshop.videoUrl}
+                  title={selectedWorkshop.title}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                ></iframe>
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Instructions */}
           <div className="bg-gray-50 rounded-lg p-4">
@@ -104,8 +129,12 @@ export default function WorkshopsMode({ data, studentId, onRefresh }) {
             </div>
           </div>
 
-          {/* Canvas Preview & Actions */}
-          <CanvasPreview onSubmit={handleSubmit} />
+          {/* Canvas Preview & File Upload */}
+          <CanvasPreview
+            onSubmit={handleSubmit}
+            file={selectedFile}
+            onFileChange={setSelectedFile}
+          />
         </>
       )}
 
@@ -116,6 +145,7 @@ export default function WorkshopsMode({ data, studentId, onRefresh }) {
           metadata={{ workshopId: selectedWorkshop?.id }}
           onClose={() => setShowSubmissionModal(false)}
           onSubmit={handleConfirmSubmission}
+          file={selectedFile}
         />
       )}
     </div>
