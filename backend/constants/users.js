@@ -1,7 +1,7 @@
 exports.UserTypes = {
   ADMIN: "admin",
   COACH: "coach",
-  IN_CHARGE: "balagruha in-charge",
+  IN_CHARGE: "balagruha-incharge",
   STUDENT: "student",
   PURCHASE_MANAGER: "purchase-manager",
   MEDICAL_IN_CHARGE: "medical-incharge",
@@ -33,6 +33,10 @@ exports.WtfPermissions = {
 
   // Analytics
   WTF_ANALYTICS_READ: "WTF Analytics",
+
+  // Admin / Settings
+  WTF_ADMIN: "WTF Management",
+  WTF_READ: "WTF Management",
 };
 
 // User type hierarchy
@@ -48,7 +52,7 @@ exports.userTypeHierarchy = {
     this.UserTypes.MUSIC_COACH,
     this.UserTypes.AMMA,
   ],
-  "balagruha in-charge": [
+  "balagruha-incharge": [
     this.UserTypes.COACH,
     this.UserTypes.IN_CHARGE,
     this.UserTypes.STUDENT,

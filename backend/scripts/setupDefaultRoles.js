@@ -54,6 +54,34 @@ const defaultRoles = [
         module: "notifications",
         actions: ["Create", "Read", "Update", "Delete"],
       },
+      {
+        module: "LMS Management",
+        actions: ["Create", "Read", "Update", "Delete", "Manage"],
+      },
+      {
+        module: "Purchase Management",
+        actions: ["Create", "Read", "Update", "Delete", "Manage"],
+      },
+      {
+        module: "Medical Check-in",
+        actions: ["Create", "Read"],
+      },
+      {
+        module: "Medical Management",
+        actions: ["Create", "Read", "Update", "Delete"],
+      },
+      {
+        module: "Schedule Management",
+        actions: ["Create", "Read", "Update", "Delete"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
+      },
+      {
+        module: "Course Management",
+        actions: ["Create"],
+      },
     ],
   },
   {
@@ -62,6 +90,10 @@ const defaultRoles = [
       {
         module: "Shop Management",
         actions: ["Manage"],
+      },
+      {
+        module: "Purchase Management",
+        actions: ["Create", "Read", "Update", "Manage"],
       },
     ],
   },
@@ -88,6 +120,26 @@ const defaultRoles = [
         module: "WTF Coach Suggestion",
         actions: ["Create", "Read"],
       },
+      {
+        module: "LMS Management",
+        actions: ["Create", "Read", "Update", "Delete"],
+      },
+      {
+        module: "Purchase Management",
+        actions: ["Create", "Read"],
+      },
+      {
+        module: "Schedule Management",
+        actions: ["Read"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
+      },
+      {
+        module: "Course Management",
+        actions: ["Create"],
+      },
     ],
   },
   {
@@ -100,6 +152,10 @@ const defaultRoles = [
       {
         module: "WTF Submission",
         actions: ["Create", "Read"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
       },
     ],
   },
@@ -120,6 +176,90 @@ const defaultRoles = [
       },
       {
         module: "WTF Submission",
+        actions: ["Read"],
+      },
+      {
+        module: "Purchase Management",
+        actions: ["Create", "Read"],
+      },
+      {
+        module: "Schedule Management",
+        actions: ["Read"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
+      },
+    ],
+  },
+  {
+    roleName: "medical-incharge",
+    permissions: [
+      {
+        module: "Medical Check-in",
+        actions: ["Create", "Read"],
+      },
+      {
+        module: "Medical Management",
+        actions: ["Create", "Read", "Update", "Delete"],
+      },
+      {
+        module: "Schedule Management",
+        actions: ["Read"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
+      },
+    ],
+  },
+  {
+    roleName: "sports-coach",
+    permissions: [
+      {
+        module: "LMS Management",
+        actions: ["Create", "Read", "Update"],
+      },
+      {
+        module: "Schedule Management",
+        actions: ["Read"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
+      },
+      {
+        module: "Course Management",
+        actions: ["Create"],
+      },
+    ],
+  },
+  {
+    roleName: "music-coach",
+    permissions: [
+      {
+        module: "LMS Management",
+        actions: ["Create", "Read", "Update"],
+      },
+      {
+        module: "Schedule Management",
+        actions: ["Read"],
+      },
+      {
+        module: "Daily Schedule",
+        actions: ["Read"],
+      },
+      {
+        module: "Course Management",
+        actions: ["Create"],
+      },
+    ],
+  },
+  {
+    roleName: "amma",
+    permissions: [
+      {
+        module: "Daily Schedule",
         actions: ["Read"],
       },
     ],

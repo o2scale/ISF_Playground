@@ -279,7 +279,7 @@ router.get(
   roleController.getAllRoles
 );
 
-router.get("/getAllRolePermissions", roleController.getAllRolePermissions);
+router.get("/getAllRolePermissions", authenticate, roleController.getAllRolePermissions);
 
 router.delete(
   "/:roleId",

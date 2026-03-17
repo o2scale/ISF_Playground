@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const { authorize, authenticate } = require("../../middleware/auth");
 const { upload, fontUpload } = require("../../middleware/upload");
-const { WtfPermissions } = require("../../constants/users");
 const {
   getCurrentSettings,
   updateSettings,
@@ -18,11 +17,7 @@ const {
 router.get(
   "/current",
   authenticate,
-  authorize([
-    WtfPermissions.WTF_READ,
-    WtfPermissions.WTF_ADMIN,
-    WtfPermissions.WTF_COACH_SUGGESTION_READ,
-  ]),
+  authorize("WTF Management", "Read"),
   getCurrentSettings
 );
 
@@ -30,7 +25,7 @@ router.get(
 router.put(
   "/update",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   updateSettings
 );
 
@@ -38,7 +33,7 @@ router.put(
 router.post(
   "/background-image",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   upload.single("backgroundImage"),
   uploadBackgroundImage
 );
@@ -47,7 +42,7 @@ router.post(
 router.post(
   "/font",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   fontUpload.single("font"),
   uploadFontFile
 );
@@ -56,7 +51,7 @@ router.post(
 router.delete(
   "/background-image",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   deleteBackgroundImage
 );
 
@@ -64,7 +59,7 @@ router.delete(
 router.get(
   "/history",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   getSettingsHistory
 );
 
@@ -72,7 +67,7 @@ router.get(
 router.get(
   "/coin-reward",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   getCoinReward
 );
 
@@ -80,7 +75,7 @@ router.get(
 router.put(
   "/coin-reward",
   authenticate,
-  authorize([WtfPermissions.WTF_ADMIN]),
+  authorize("WTF Management", "Update"),
   updateCoinReward
 );
 

@@ -1,7 +1,7 @@
 export const UserTypes = {
   ADMIN: 'admin',
   COACH: 'coach',
-  IN_CHARGE: 'balagruha in-charge',
+  IN_CHARGE: 'balagruha-incharge',
   STUDENT: 'student',
   PURCHASE_MANAGER: 'purchase-manager',
   MEDICAL_IN_CHARGE: 'medical-incharge',

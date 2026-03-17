@@ -272,7 +272,7 @@ const App = () => {
                   <Route
                     path="/attendance"
                     element={
-                      <ProtectedRoute requiredRoles={['admin', 'coach', 'balagruha in-charge']}>
+                      <ProtectedRoute requiredRoles={['admin', 'coach', 'balagruha-incharge']}>
                         <AttendanceComponent />
                       </ProtectedRoute>
                     }

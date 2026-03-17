@@ -226,6 +226,14 @@ exports.studentLogin = async (req, res) => {
         .json({ success: false, message: "Invalid credentials" });
     }
 
+    // Check if user is active
+    if (user.status === "inactive") {
+      return res.status(403).json({
+        success: false,
+        message: "Account is inactive. Please contact administrator",
+      });
+    }
+
     // Update last login
     user.lastLogin = new Date();
     await user.save();
@@ -246,6 +254,7 @@ exports.studentLogin = async (req, res) => {
           email: user.email,
           role: user.role,
           status: user.status,
+          balagruhaIds: user.balagruhaIds || [],
         },
       },
     });
