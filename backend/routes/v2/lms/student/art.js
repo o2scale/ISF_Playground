@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router({ mergeParams: true }); // mergeParams to access :studentId from parent router
 const artCourseController = require('../../../../controllers/lms/student/artCourseController');
 const { authenticate } = require('../../../../middleware/auth');
+const verifyStudentOwnership = require('../../../../middleware/verifyStudentOwnership');
 
 /**
  * Art Course Routes - Epic 01 Story 03
@@ -9,12 +10,12 @@ const { authenticate } = require('../../../../middleware/auth');
  */
 
 // Get Art Course data (all modes: workshops, free_sketch, art_stories, competition)
-router.get('/', authenticate, artCourseController.getArtCourseData);
+router.get('/', authenticate, verifyStudentOwnership, artCourseController.getArtCourseData);
 
 // Submit artwork for grading or competition
-router.post('/submissions', authenticate, artCourseController.submitArtwork);
+router.post('/submissions', authenticate, verifyStudentOwnership, artCourseController.submitArtwork);
 
 // Save artwork to personal gallery (Free Sketch mode)
-router.post('/gallery', authenticate, artCourseController.saveToGallery);
+router.post('/gallery', authenticate, verifyStudentOwnership, artCourseController.saveToGallery);
 
 module.exports = router;

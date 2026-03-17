@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const studentDashboardController = require('../../../../controllers/lms/student/studentDashboardController');
 const { authenticate } = require('../../../../middleware/auth');
+const verifyStudentOwnership = require('../../../../middleware/verifyStudentOwnership');
 
 // ==================== STUDENT DASHBOARD ROUTES - Epic 01 Story 01 ====================
 
@@ -13,6 +14,7 @@ const { authenticate } = require('../../../../middleware/auth');
 router.get(
   '/:studentId/dashboard',
   authenticate,
+  verifyStudentOwnership,
   studentDashboardController.getDashboard
 );
 
@@ -24,6 +26,7 @@ router.get(
 router.get(
   '/:studentId/coins',
   authenticate,
+  verifyStudentOwnership,
   studentDashboardController.getCoinBalance
 );
 
@@ -35,6 +38,7 @@ router.get(
 router.get(
   '/:studentId/notifications/count',
   authenticate,
+  verifyStudentOwnership,
   studentDashboardController.getNotificationCount
 );
 
@@ -46,6 +50,7 @@ router.get(
 router.get(
   '/:studentId/homework/pending',
   authenticate,
+  verifyStudentOwnership,
   studentDashboardController.getPendingHomeworkCount
 );
 
@@ -57,6 +62,7 @@ router.get(
 router.post(
   '/:studentId/emotion',
   authenticate,
+  verifyStudentOwnership,
   studentDashboardController.saveEmotion
 );
 
@@ -68,6 +74,7 @@ router.post(
 router.post(
   '/:studentId/emotions/batch',
   authenticate,
+  verifyStudentOwnership,
   studentDashboardController.batchSaveEmotions
 );
 

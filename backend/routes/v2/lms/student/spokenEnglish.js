@@ -6,6 +6,7 @@ const router = express.Router({ mergeParams: true }); // mergeParams to access :
 
 const spokenEnglishController = require('../../../../controllers/lms/student/spokenEnglishController');
 const { authenticate } = require('../../../../middleware/auth');
+const verifyStudentOwnership = require('../../../../middleware/verifyStudentOwnership');
 
 /**
  * Spoken English Course Routes
@@ -13,15 +14,15 @@ const { authenticate } = require('../../../../middleware/auth');
  */
 
 // GET all tasks for spoken English course
-router.get('/', authenticate, spokenEnglishController.getSpokenEnglishTasks);
+router.get('/', authenticate, verifyStudentOwnership, spokenEnglishController.getSpokenEnglishTasks);
 
 // GET specific task details
-router.get('/:taskId', authenticate, spokenEnglishController.getSpokenEnglishTask);
+router.get('/:taskId', authenticate, verifyStudentOwnership, spokenEnglishController.getSpokenEnglishTask);
 
 // GET student's submissions
-router.get('/submissions/history', authenticate, spokenEnglishController.getStudentSubmissions);
+router.get('/submissions/history', authenticate, verifyStudentOwnership, spokenEnglishController.getStudentSubmissions);
 
 // POST submit video recording
-router.post('/submissions', authenticate, spokenEnglishController.submitVideoRecording);
+router.post('/submissions', authenticate, verifyStudentOwnership, spokenEnglishController.submitVideoRecording);
 
 module.exports = router;

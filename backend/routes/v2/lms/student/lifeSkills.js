@@ -8,20 +8,21 @@ const router = express.Router({ mergeParams: true }); // Enables access to :stud
 
 const lifeSkillsController = require('../../../../controllers/lms/student/lifeSkillsController');
 const { authenticate } = require('../../../../middleware/auth');
+const verifyStudentOwnership = require('../../../../middleware/verifyStudentOwnership');
 
 // Get all Life Skills tasks (voice questions + quiz)
-router.get('/', authenticate, lifeSkillsController.getLifeSkillsTasks);
+router.get('/', authenticate, verifyStudentOwnership, lifeSkillsController.getLifeSkillsTasks);
 
 // Voice Recording Routes
-router.get('/voice/:taskId', authenticate, lifeSkillsController.getVoiceTask);
-router.post('/voice/submit', authenticate, lifeSkillsController.submitVoiceRecording);
-router.post('/mark-complete', authenticate, lifeSkillsController.markItemComplete);
+router.get('/voice/:taskId', authenticate, verifyStudentOwnership, lifeSkillsController.getVoiceTask);
+router.post('/voice/submit', authenticate, verifyStudentOwnership, lifeSkillsController.submitVoiceRecording);
+router.post('/mark-complete', authenticate, verifyStudentOwnership, lifeSkillsController.markItemComplete);
 
 // MCQ Quiz Routes
-router.get('/quiz/:quizId', authenticate, lifeSkillsController.getQuiz);
-router.post('/quiz/submit', authenticate, lifeSkillsController.submitQuiz);
+router.get('/quiz/:quizId', authenticate, verifyStudentOwnership, lifeSkillsController.getQuiz);
+router.post('/quiz/submit', authenticate, verifyStudentOwnership, lifeSkillsController.submitQuiz);
 
 // Submission History
-router.get('/submissions', authenticate, lifeSkillsController.getSubmissionHistory);
+router.get('/submissions', authenticate, verifyStudentOwnership, lifeSkillsController.getSubmissionHistory);
 
 module.exports = router;
