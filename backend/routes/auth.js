@@ -101,6 +101,7 @@ router.put("/change-password", authenticate, authController.changePassword);
 // Facial login
 router.post(
   "/student/facial/login",
+  authLimiter,
   upload.fields([
     { name: "facialData", maxCount: 5 },
   ]),

@@ -8,9 +8,22 @@
 
 const express = require('express');
 const router = express.Router();
+const rateLimit = require('express-rate-limit');
 const frController = require('../../controllers/frController');
 const { authenticate } = require('../../middleware/auth');
 const checkPermission = require('../../middleware/checkPermission');
+
+// Rate limiting for facial recognition endpoints
+const frLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  message: {
+    success: false,
+    message: 'Too many facial recognition attempts. Please try again after 15 minutes.',
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 /**
  * @route POST /api/v2/fr/register
@@ -33,6 +46,7 @@ router.post(
  */
 router.post(
   '/recognize',
+  frLimiter,
   frController.upload.single('photo'),
   frController.recognizeFace
 );

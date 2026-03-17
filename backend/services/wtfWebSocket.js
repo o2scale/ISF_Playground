@@ -103,6 +103,12 @@ class WtfWebSocketService {
             message: "Authentication token required",
           },
         });
+        // Close unauthenticated connection after brief delay for error message delivery
+        setTimeout(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.close(4001, "Authentication token required");
+          }
+        }, 100);
         return;
       }
 
@@ -145,6 +151,12 @@ class WtfWebSocketService {
           message: "Invalid authentication token",
         },
       });
+      // Close unauthenticated connection after brief delay for error message delivery
+      setTimeout(() => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close(4002, "Invalid authentication token");
+        }
+      }, 100);
     }
   }
 
@@ -473,7 +485,7 @@ class WtfWebSocketService {
     this.broadcastToRoom(`wtf_pin_${pinId}`, message);
 
     // Send to pin author
-    this.sendToUser(pinData.author, message);
+    this.sendToUser(likeData.author, message);
   }
 
   handlePinSeen(pinId, userId, viewData) {
@@ -522,7 +534,7 @@ class WtfWebSocketService {
     };
 
     // Send to submission author
-    this.sendToUser(submissionData.studentId, message);
+    this.sendToUser(reviewData.studentId, message);
 
     // Send to admin users
     for (const [connectionId, clientInfo] of this.clients) {

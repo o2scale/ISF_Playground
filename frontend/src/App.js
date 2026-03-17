@@ -471,7 +471,7 @@ const App = () => {
                   <Route
                     path="/admin/students/:userId"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute requiredRoles={['admin']}>
                         <StudentProfile />
                       </ProtectedRoute>
                     }
@@ -549,7 +549,7 @@ const App = () => {
                   <Route
                     path="/coach/assignments"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute requiredRoles={['coach', 'admin']}>
                         <CoachAssignmentsPage />
                       </ProtectedRoute>
                     }
@@ -559,7 +559,7 @@ const App = () => {
                   <Route
                     path="/coach/grading"
                     element={
-                      <ProtectedRoute>
+                      <ProtectedRoute requiredRoles={['coach', 'admin']}>
                         <GradingDashboard />
                       </ProtectedRoute>
                     }
