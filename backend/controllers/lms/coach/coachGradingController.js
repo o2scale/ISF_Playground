@@ -272,7 +272,7 @@ exports.bulkGrade = async (req, res) => {
       });
     }
 
-    const gradedCount = 0;
+    let gradedCount = 0;
     const failedSubmissions = [];
 
     // Get coach info
