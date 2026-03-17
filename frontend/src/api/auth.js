@@ -32,7 +32,7 @@ export const pinLogin = async (data) => {
 export const studentPinLogin = async (data) => {
   try {
     const response = await api.post("/api/auth/student/login", data);
-    return response;
+    return response.data;
   } catch (error) {
     console.error("Error in student pin login:", error);
     throw error;

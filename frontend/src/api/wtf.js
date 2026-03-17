@@ -19,9 +19,7 @@ export const createWtfPin = async (data) => {
         formData.append(key, data[key]);
       }
     });
-    const response = await api.post(`/api/v1/wtf/pins`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.post(`/api/v1/wtf/pins`, formData);
     return response.data;
   } catch (error) {
     console.error("Error creating WTF pin:", error);
@@ -72,9 +70,7 @@ export const createCoachSuggestion = async (suggestionData) => {
     formData.append("balagruha", suggestionData.balagruha || "");
     formData.append("reason", suggestionData.reason);
     formData.append("file", suggestionData.file);
-    const response = await api.post("/api/v1/wtf/coach-suggestions", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.post("/api/v1/wtf/coach-suggestions", formData);
     return response.data;
   } catch (error) {
     console.error("Error creating coach suggestion:", error);
@@ -137,9 +133,7 @@ export const uploadWtfBackgroundImage = async (file) => {
   try {
     const formData = new FormData();
     formData.append("backgroundImage", file);
-    const response = await api.post("/api/v1/wtf/settings/background-image", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.post("/api/v1/wtf/settings/background-image", formData);
     return response.data;
   } catch (error) {
     console.error("Error uploading WTF background image:", error);
@@ -151,9 +145,7 @@ export const uploadWtfFont = async (file) => {
   try {
     const formData = new FormData();
     formData.append("font", file);
-    const response = await api.post("/api/v1/wtf/settings/font", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await api.post("/api/v1/wtf/settings/font", formData);
     return response.data;
   } catch (error) {
     console.error("Error uploading WTF font:", error);
@@ -285,9 +277,7 @@ export const submitVoiceNote = async (data) => {
         }
       }
     }
-    const response = await apiWithoutContentType.post(`/api/v1/wtf/submissions/voice`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const response = await apiWithoutContentType.post(`/api/v1/wtf/submissions/voice`, formData);
     return response.data;
   } catch (error) {
     console.error("Error submitting voice note:", error);

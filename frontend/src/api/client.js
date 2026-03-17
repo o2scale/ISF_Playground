@@ -11,7 +11,6 @@ export const api = axios.create({
   headers: {
     "Content-Type": "application/json",
     "MAC-Address": `${macAddress}`,
-    mode: "no-cors",
   },
   timeout: config.API_TIMEOUT,
 });
@@ -20,14 +19,13 @@ export const apiWithoutContentType = axios.create({
   baseURL: config.API_BASE_URL,
   headers: {
     "MAC-Address": `${macAddress}`,
-    mode: "no-cors",
   },
   timeout: config.API_TIMEOUT,
 });
 
-export const headers = {
-  "Content-Type": "multipart/form-data",
-};
+// Exported as empty — let Axios auto-detect Content-Type from FormData
+export const headers = {};
+
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -44,7 +42,10 @@ api.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      localStorage.removeItem("name");
+      localStorage.removeItem("role");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("balagruhaIds");
       window.location.href = "/login";
     }
     return Promise.reject(error);
@@ -67,7 +68,10 @@ apiWithoutContentType.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       localStorage.removeItem("token");
-      localStorage.removeItem("user");
+      localStorage.removeItem("name");
+      localStorage.removeItem("role");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("balagruhaIds");
       window.location.href = "/login";
     }
     return Promise.reject(error);

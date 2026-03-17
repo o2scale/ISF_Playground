@@ -77,9 +77,6 @@ export default function useFileUpload() {
       // Upload file to backend with progress tracking and retry logic
       const uploadResponse = await retryWithBackoff(async () => {
         return await api.post('/api/v2/lms/admin/content/upload', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          },
           signal: controller.signal, // Pass signal for cancellation
           onUploadProgress: (progressEvent) => {
             const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
