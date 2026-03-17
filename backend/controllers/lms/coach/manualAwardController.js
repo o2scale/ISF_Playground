@@ -1,5 +1,6 @@
 const Coin = require('../../../models/coin');
 const User = require('../../../models/user');
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Manual Award Controller - Epic 03 Story 03
@@ -86,19 +87,19 @@ exports.awardCoins = async (req, res) => {
                     reason: reason
                 };
 
-                // Source = 'general' (or specific category if supported)
+                // Source = 'manual_award' for granular tracking (FIX-027)
                 // Description = reason
                 await coinRecord.addCoins(
                     amount,
                     'earned',
                     reason,
-                    category || 'general',
+                    'manual_award',
                     metadata
                 );
 
                 results.push({ studentId, name: student.name, amount });
             } catch (err) {
-                console.error(`Error awarding coins to ${studentId}:`, err);
+                errorLogger.error({ err: err }, `Error awarding coins to ${studentId}:`);
                 errors.push({ studentId, message: err.message });
             }
         }));
@@ -111,7 +112,7 @@ exports.awardCoins = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Manual Award Error:', error);
+        errorLogger.error({ err: error }, 'Manual Award Error:');
         res.status(500).json({
             success: false,
             message: 'Server error while awarding coins',
@@ -169,7 +170,7 @@ exports.getAwardHistory = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Get Award History Error:', error);
+        errorLogger.error({ err: error }, 'Get Award History Error:');
         res.status(500).json({
             success: false,
             message: 'Server error while fetching award history',

@@ -1,6 +1,7 @@
 const Quiz = require('../models/Quiz');
 const QuestionBank = require('../models/QuestionBank');
 const Course = require('../models/course');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Quiz Controller - Sprint 2 Epic 02 Story 03
@@ -96,7 +97,7 @@ exports.getAllQuizzes = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching quizzes:', error);
+    errorLogger.error({ err: error }, 'Error fetching quizzes:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch quizzes',
@@ -132,7 +133,7 @@ exports.getQuizById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching quiz:', error);
+    errorLogger.error({ err: error }, 'Error fetching quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch quiz',
@@ -225,7 +226,7 @@ exports.createQuiz = async (req, res) => {
           }
         }
       } catch (linkError) {
-        console.error('Failed to link quiz to course:', linkError);
+        errorLogger.error({ err: linkError }, 'Failed to link quiz to course:');
         // Don't fail the request, just log it
       }
     }
@@ -243,7 +244,7 @@ exports.createQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating quiz:', error);
+    errorLogger.error({ err: error }, 'Error creating quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to create quiz',
@@ -395,7 +396,7 @@ exports.updateQuiz = async (req, res) => {
         }
 
       } catch (syncError) {
-        console.error('Failed to sync quiz with course:', syncError);
+        errorLogger.error({ err: syncError }, 'Failed to sync quiz with course:');
       }
     }
 
@@ -413,7 +414,7 @@ exports.updateQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating quiz:', error);
+    errorLogger.error({ err: error }, 'Error updating quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to update quiz',
@@ -457,7 +458,7 @@ exports.duplicateQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error duplicating quiz:', error);
+    errorLogger.error({ err: error }, 'Error duplicating quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to duplicate quiz',
@@ -513,7 +514,7 @@ exports.deleteQuiz = async (req, res) => {
           }
         }
       } catch (linkError) {
-        console.error('Failed to remove quiz from course:', linkError);
+        errorLogger.error({ err: linkError }, 'Failed to remove quiz from course:');
       }
     }
 
@@ -525,7 +526,7 @@ exports.deleteQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error deleting quiz:', error);
+    errorLogger.error({ err: error }, 'Error deleting quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to delete quiz',
@@ -584,7 +585,7 @@ exports.publishQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error publishing quiz:', error);
+    errorLogger.error({ err: error }, 'Error publishing quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to publish quiz',
@@ -619,7 +620,7 @@ exports.unpublishQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error unpublishing quiz:', error);
+    errorLogger.error({ err: error }, 'Error unpublishing quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to unpublish quiz',
@@ -668,7 +669,7 @@ exports.reorderQuestions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error reordering questions:', error);
+    errorLogger.error({ err: error }, 'Error reordering questions:');
     res.status(500).json({
       success: false,
       message: 'Failed to reorder questions',
@@ -705,7 +706,7 @@ exports.archiveQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error archiving quiz:', error);
+    errorLogger.error({ err: error }, 'Error archiving quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to archive quiz',
@@ -743,7 +744,7 @@ exports.restoreQuiz = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error restoring quiz:', error);
+    errorLogger.error({ err: error }, 'Error restoring quiz:');
     res.status(500).json({
       success: false,
       message: 'Failed to restore quiz',
@@ -785,7 +786,7 @@ exports.getQuizStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching quiz stats:', error);
+    errorLogger.error({ err: error }, 'Error fetching quiz stats:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch quiz statistics',

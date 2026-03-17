@@ -4,6 +4,7 @@ const Submission = require('../../../models/Submission');
 const mongoose = require('mongoose');
 const s3Service = require('../../../services/aws/s3');
 const fs = require('fs');
+const { errorLogger } = require('../../../config/pino-config');
 
 // backend/controllers/lms/student/spokenEnglishController.js
 // Epic 01 Story 04: Spoken English Video Recording
@@ -87,7 +88,7 @@ exports.getSpokenEnglishTask = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching spoken English task:', error);
+    errorLogger.error({ err: error }, 'Error fetching spoken English task:');
     res.status(500).json({
       success: false,
       message: 'Failed to load task data',
@@ -197,7 +198,7 @@ exports.getSpokenEnglishTasks = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching spoken English tasks:', error);
+    errorLogger.error({ err: error }, 'Error fetching spoken English tasks:');
     res.status(500).json({
       success: false,
       message: 'Failed to load tasks',
@@ -308,7 +309,7 @@ exports.submitVideoRecording = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error submitting video:', error);
+    errorLogger.error({ err: error }, 'Error submitting video:');
     res.status(500).json({
       success: false,
       message: 'Failed to submit video',
@@ -356,7 +357,7 @@ exports.getStudentSubmissions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching submissions:', error);
+    errorLogger.error({ err: error }, 'Error fetching submissions:');
     res.status(500).json({
       success: false,
       message: 'Failed to load submissions',

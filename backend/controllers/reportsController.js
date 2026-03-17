@@ -2,6 +2,7 @@
 // HTTP handlers for transaction reports and leaderboards
 
 const AnalyticsService = require('../services/analytics');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Get transaction log with filters and pagination
@@ -50,7 +51,7 @@ exports.getTransactionLog = async (req, res) => {
       data: result
     });
   } catch (error) {
-    console.error('Error fetching transaction log:', error);
+    errorLogger.error({ err: error }, 'Error fetching transaction log:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch transaction log',
@@ -104,7 +105,7 @@ exports.getStudentLeaderboard = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching student leaderboard:', error);
+    errorLogger.error({ err: error }, 'Error fetching student leaderboard:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch student leaderboard',
@@ -158,7 +159,7 @@ exports.getZeroPurchaseStudents = async (req, res) => {
       data: result
     });
   } catch (error) {
-    console.error('Error fetching zero-purchase students:', error);
+    errorLogger.error({ err: error }, 'Error fetching zero-purchase students:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch zero-purchase students',
@@ -201,7 +202,7 @@ exports.sendZeroPurchaseReminder = async (req, res) => {
       message: `Reminder sent successfully${studentName ? ` to ${studentName}` : ''}`
     });
   } catch (error) {
-    console.error('Error sending zero-purchase reminder:', error);
+    errorLogger.error({ err: error }, 'Error sending zero-purchase reminder:');
     res.status(500).json({
       success: false,
       message: 'Failed to send reminder',
@@ -223,7 +224,7 @@ exports.getCoinEconomyHealth = async (req, res) => {
       data: economyHealth
     });
   } catch (error) {
-    console.error('Error fetching coin economy health:', error);
+    errorLogger.error({ err: error }, 'Error fetching coin economy health:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch coin economy health',
@@ -266,7 +267,7 @@ exports.getParticipationDetails = async (req, res) => {
       data: participationDetails
     });
   } catch (error) {
-    console.error('Error fetching participation details:', error);
+    errorLogger.error({ err: error }, 'Error fetching participation details:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch participation details',
@@ -404,7 +405,7 @@ exports.exportReport = async (req, res) => {
     res.status(200).send(csvContent);
 
   } catch (error) {
-    console.error('Error exporting report:', error);
+    errorLogger.error({ err: error }, 'Error exporting report:');
     res.status(500).json({
       success: false,
       message: 'Failed to export report',

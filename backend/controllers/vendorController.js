@@ -1,5 +1,6 @@
 const Vendor = require('../models/vendor');
 const ShopItem = require('../models/shopItem');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * @desc    Create new vendor
@@ -109,7 +110,7 @@ exports.getAllVendors = async (req, res) => {
       vendors
     });
   } catch (error) {
-    console.error('Error fetching vendors:', error);
+    errorLogger.error({ err: error }, 'Error fetching vendors:');
     res.status(500).json({
       success: false,
       error: 'Server Error'

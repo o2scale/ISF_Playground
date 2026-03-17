@@ -180,10 +180,6 @@ exports.getVendorsWithProductCount = async (req, res, next) => {
       });
     }
 
-    res.status(200).json(result.data); // Return .data (vendors array) directly or full object? Check api.js usage. 
-    // api.js uses response.vendors, but standard is result.data. Let's fix Service to return standard structure.
-    // Actually, let's stick to standard `res.status(200).json(result)` which usually contains { success: true, data: ... }
-    // But let's check correct specific usage in api.js later. For now, this is safe.
     res.status(200).json(result.data);
   } catch (error) {
     errorLogger.error({ error: error.message }, 'Error in getVendorsWithProductCount controller');

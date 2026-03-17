@@ -583,7 +583,7 @@ exports.submitQuiz = async (req, res) => {
             baseCoins,
             'earned',
             `Quiz Completed: ${quiz.title}`,
-            'task',
+            'quiz_pass',
             { quizId: quiz._id, courseId: cId },
             { session }
           );

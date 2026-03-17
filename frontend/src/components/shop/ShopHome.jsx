@@ -49,7 +49,12 @@ const ShopHome = () => {
         sort: filters.sort
       };
 
-      if (filters.category) params.category = filters.category;
+      // FIX-043: Support multi-select categories (comma-separated)
+      if (filters.category) {
+        params.category = Array.isArray(filters.category)
+          ? filters.category.join(',')
+          : filters.category;
+      }
       if (filters.search) params.search = filters.search;
       if (filters.minPrice) params.minPrice = filters.minPrice;
       if (filters.maxPrice !== null && filters.maxPrice !== undefined) params.maxPrice = filters.maxPrice;
@@ -110,11 +115,6 @@ const ShopHome = () => {
     setPagination(prev => ({ ...prev, page: 1 }));
   };
 
-  // Handle add to cart (will be implemented in Story-02)
-  const handleAddToCart = (product) => {
-    alert(`"${product.name}" will be added to cart in Story-02`);
-  };
-
   // Handle request item (Story 2.2)
   const handleRequestItem = (product) => {
     setSelectedProductForRequest(product);
@@ -157,7 +157,6 @@ const ShopHome = () => {
             loading={loading}
             error={error}
             pagination={pagination}
-            onAddToCart={handleAddToCart}
             onRequestItem={handleRequestItem}
             onPageChange={handlePageChange}
             onSortChange={handleSortChange}

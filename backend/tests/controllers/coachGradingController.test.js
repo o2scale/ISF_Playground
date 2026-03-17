@@ -97,7 +97,7 @@ describe('CoachGradingController', () => {
         15,
         'earned',
         expect.stringContaining('Draw a Tree'),
-        'task',
+        'grading',
         expect.objectContaining({
           submissionId: submissionId,
           courseId: courseId,
@@ -177,7 +177,7 @@ describe('CoachGradingController', () => {
         10, // excellent = 10 coins
         'earned',
         expect.stringContaining('Draw a Tree'),
-        'task',
+        'grading',
         expect.objectContaining({ quality: 'excellent' })
       );
       expect(res.json).toHaveBeenCalledWith(
@@ -227,7 +227,7 @@ describe('CoachGradingController', () => {
         25, // coach override, not 7
         'earned',
         expect.stringContaining('Draw a Tree'),
-        'task',
+        'grading',
         expect.objectContaining({ quality: 'good' })
       );
     });
@@ -266,7 +266,7 @@ describe('CoachGradingController', () => {
         2, // needs_improvement = 2 coins
         'earned',
         expect.stringContaining('Draw a Tree'),
-        'task',
+        'grading',
         expect.objectContaining({ quality: 'needs_improvement' })
       );
     });
@@ -427,7 +427,7 @@ describe('CoachGradingController', () => {
       expect(Coin.findOrCreateForUser).toHaveBeenCalledTimes(3);
       expect(mockAddCoins).toHaveBeenCalledTimes(3);
       expect(mockAddCoins).toHaveBeenCalledWith(
-        10, 'earned', expect.stringContaining('Graded submission'), 'task', expect.any(Object)
+        10, 'earned', expect.stringContaining('Graded submission'), 'grading', expect.any(Object)
       );
     });
 

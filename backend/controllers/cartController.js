@@ -1,4 +1,5 @@
 const cartService = require('../services/cart');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Cart Controller - Sprint5-Story-02
@@ -25,7 +26,7 @@ const getCart = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Get cart error:', error);
+    errorLogger.error({ err: error }, 'Get cart error:');
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch cart'
@@ -47,7 +48,7 @@ const addToCart = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Add to cart error:', error);
+    errorLogger.error({ err: error }, 'Add to cart error:');
 
     // Determine appropriate status code
     let statusCode = 500;
@@ -77,7 +78,7 @@ const updateQuantity = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Update quantity error:', error);
+    errorLogger.error({ err: error }, 'Update quantity error:');
 
     let statusCode = 500;
     if (error.message.includes('not found')) statusCode = 404;
@@ -104,7 +105,7 @@ const removeFromCart = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Remove from cart error:', error);
+    errorLogger.error({ err: error }, 'Remove from cart error:');
 
     let statusCode = 500;
     if (error.message.includes('not found')) statusCode = 404;
@@ -129,7 +130,7 @@ const clearCart = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Clear cart error:', error);
+    errorLogger.error({ err: error }, 'Clear cart error:');
 
     let statusCode = 500;
     if (error.message.includes('not found')) statusCode = 404;
@@ -154,7 +155,7 @@ const validateStock = async (req, res) => {
 
     res.status(200).json(result);
   } catch (error) {
-    console.error('Validate stock error:', error);
+    errorLogger.error({ err: error }, 'Validate stock error:');
 
     res.status(500).json({
       success: false,

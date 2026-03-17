@@ -152,3 +152,30 @@ export const getPurchaseRequestStats = async () => {
     throw error;
   }
 };
+
+// FIX-037: Get unique requesters from backend for filter dropdown
+export const getPurchaseRequestRequesters = async (params = {}) => {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.balagruhaId) queryParams.append('balagruhaId', params.balagruhaId);
+    const response = await api.get(`/api/v2/shop/admin/purchase-requests/requesters?${queryParams.toString()}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching requesters:", error);
+    throw error;
+  }
+};
+
+// FIX-038: Batch order multiple purchase requests
+export const batchOrderPurchaseRequests = async (requestIds, notes) => {
+  try {
+    const response = await api.post('/api/v2/shop/admin/purchase-requests/batch-order', {
+      requestIds,
+      notes
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error in batch order:", error);
+    throw error;
+  }
+};

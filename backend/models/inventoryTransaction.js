@@ -15,7 +15,7 @@ const inventoryTransactionSchema = new mongoose.Schema(
     },
     transactionType: {
       type: String,
-      enum: ['purchase', 'sale', 'adjustment', 'return', 'correction', 'purchase_request', 'received', 'deployed'],
+      enum: ['purchase', 'sale', 'adjustment', 'return', 'correction', 'purchase_request', 'received', 'deployed', 'bulk_import'],
       required: true
     },
     quantity: {

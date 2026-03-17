@@ -1,4 +1,5 @@
 const QuestionBank = require('../models/QuestionBank');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Question Bank Controller - Sprint 2 Epic 02 Story 03
@@ -86,7 +87,7 @@ exports.getAllQuestions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching question bank:', error);
+    errorLogger.error({ err: error }, 'Error fetching question bank:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch question bank',
@@ -121,7 +122,7 @@ exports.getQuestionById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching question:', error);
+    errorLogger.error({ err: error }, 'Error fetching question:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch question',
@@ -190,7 +191,7 @@ exports.createQuestion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating question:', error);
+    errorLogger.error({ err: error }, 'Error creating question:');
     res.status(500).json({
       success: false,
       message: 'Failed to save question to bank',
@@ -258,7 +259,7 @@ exports.updateQuestion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating question:', error);
+    errorLogger.error({ err: error }, 'Error updating question:');
     res.status(500).json({
       success: false,
       message: 'Failed to update question',
@@ -310,7 +311,7 @@ exports.deleteQuestion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error deleting question:', error);
+    errorLogger.error({ err: error }, 'Error deleting question:');
     res.status(500).json({
       success: false,
       message: 'Failed to delete question',
@@ -333,7 +334,7 @@ exports.getAllTags = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching tags:', error);
+    errorLogger.error({ err: error }, 'Error fetching tags:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch tags',
@@ -358,7 +359,7 @@ exports.getMostUsedQuestions = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching most used questions:', error);
+    errorLogger.error({ err: error }, 'Error fetching most used questions:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch most used questions',
@@ -405,7 +406,7 @@ exports.getQuestionBankStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching question bank stats:', error);
+    errorLogger.error({ err: error }, 'Error fetching question bank stats:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch question bank statistics',

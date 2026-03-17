@@ -3,6 +3,7 @@ const Course = require("../../../models/course");
 const User = require("../../../models/user");
 const Notification = require("../../../models/notification");
 const mongoose = require("mongoose");
+const { errorLogger } = require('../../../config/pino-config');
 
 // ====================COURSE ASSIGNMENT OPERATIONS ====================
 
@@ -42,8 +43,8 @@ exports.getPublishedCourses = async (req, res) => {
       data: coursesWithCounts,
     });
   } catch (error) {
-    console.error("Error fetching published courses:", error);
-    console.error("Stack trace:", error.stack);
+    errorLogger.error({ err: error }, "Error fetching published courses:");
+    errorLogger.error({ err: error.stack }, "Stack trace:");
     res.status(500).json({ 
       error: "Internal server error",
       message: error.message,
@@ -103,8 +104,8 @@ exports.getCoachStudents = async (req, res) => {
       data: studentsWithBalagruha,
     });
   } catch (error) {
-    console.error("Error fetching coach students:", error);
-    console.error("Stack trace:", error.stack);
+    errorLogger.error({ err: error }, "Error fetching coach students:");
+    errorLogger.error({ err: error.stack }, "Stack trace:");
     res.status(500).json({ 
       error: "Internal server error",
       message: error.message,
@@ -266,7 +267,7 @@ exports.createAssignment = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error creating assignment:", error);
+    errorLogger.error({ err: error }, "Error creating assignment:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -320,7 +321,7 @@ exports.getCoachAssignments = async (req, res) => {
       data: filteredAssignments,
     });
   } catch (error) {
-    console.error("Error fetching coach assignments:", error);
+    errorLogger.error({ err: error }, "Error fetching coach assignments:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -354,7 +355,7 @@ exports.getAssignmentById = async (req, res) => {
       data: assignmentWithVirtuals,
     });
   } catch (error) {
-    console.error("Error fetching assignment:", error);
+    errorLogger.error({ err: error }, "Error fetching assignment:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -407,7 +408,7 @@ exports.updateAssignment = async (req, res) => {
       data: assignment,
     });
   } catch (error) {
-    console.error("Error updating assignment:", error);
+    errorLogger.error({ err: error }, "Error updating assignment:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -439,7 +440,7 @@ exports.deleteAssignment = async (req, res) => {
       message: "Assignment cancelled successfully",
     });
   } catch (error) {
-    console.error("Error deleting assignment:", error);
+    errorLogger.error({ err: error }, "Error deleting assignment:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -463,7 +464,7 @@ exports.getCoachStats = async (req, res) => {
       data: stats,
     });
   } catch (error) {
-    console.error("Error fetching coach stats:", error);
+    errorLogger.error({ err: error }, "Error fetching coach stats:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -502,7 +503,7 @@ exports.updateAssignmentProgress = async (req, res) => {
       data: assignment,
     });
   } catch (error) {
-    console.error("Error updating assignment progress:", error);
+    errorLogger.error({ err: error }, "Error updating assignment progress:");
     res.status(500).json({ error: "Internal server error" });
   }
 };

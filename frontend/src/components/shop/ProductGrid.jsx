@@ -12,7 +12,6 @@ const ProductGrid = ({
   loading,
   error,
   pagination,
-  onAddToCart,
   onRequestItem,
   onPageChange,
   onSortChange,

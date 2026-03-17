@@ -3,6 +3,7 @@ const Course = require("../../../models/course");
 const User = require("../../../models/user");
 const Notification = require("../../../models/notification");
 const mongoose = require("mongoose");
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * POST /api/v2/lms/admin/assignments
@@ -147,7 +148,7 @@ exports.createAdminAssignment = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("Error creating admin assignment:", error);
+    errorLogger.error({ err: error }, "Error creating admin assignment:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -193,7 +194,7 @@ exports.getAllAssignments = async (req, res) => {
       data: filteredAssignments,
     });
   } catch (error) {
-    console.error("Error fetching all assignments:", error);
+    errorLogger.error({ err: error }, "Error fetching all assignments:");
     res.status(500).json({ error: "Internal server error" });
   }
 };

@@ -5,6 +5,7 @@ import TransactionHistoryModal from './coins/TransactionHistoryModal';
 import MilestoneCelebrationModal from './coins/MilestoneCelebrationModal';
 import useMilestones from '../../hooks/useMilestones';
 import { useAuth } from '../../contexts/AuthContext';
+import { useCoinBalance } from '../../contexts/CoinBalanceContext';
 import CartIcon from '../shop/CartIcon';
 import Cart from '../shop/Cart';
 
@@ -20,9 +21,11 @@ import Cart from '../shop/Cart';
  */
 export default function TitleBar() {
   const { logout } = useAuth();
-  
+
+  // Coin balance from single source of truth (CoinBalanceContext)
+  const { balance: coinBalance, loading: coinLoading, refreshBalance } = useCoinBalance();
+
   // State management
-  const [coinBalance, setCoinBalance] = useState(0);
   const [unreadCount, setUnreadCount] = useState(0);
   const [sessionTime, setSessionTime] = useState(0); // seconds
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
@@ -38,27 +41,6 @@ export default function TitleBar() {
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
     return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
-
-  // Fetch coin balance from API
-  const fetchCoinBalance = async () => {
-    try {
-      // Student ID from auth context not yet wired (Sprint 2 backlog)
-      const studentId = localStorage.getItem('userId') || 'student123';
-      const response = await api.get(`/api/v2/lms/student/${studentId}/coins`);
-      if (response.data.success) {
-        setCoinBalance(response.data.balance || 0);
-      }
-    } catch (error) {
-      console.error('Failed to fetch coin balance:', error);
-      // Use cached value if offline
-      if (isOffline) {
-        const cachedBalance = localStorage.getItem('cachedCoinBalance');
-        if (cachedBalance) {
-          setCoinBalance(parseInt(cachedBalance, 10));
-        }
-      }
-    }
   };
 
   // Fetch unread notification count
@@ -96,7 +78,7 @@ export default function TitleBar() {
   // Handle online/offline events
   const handleOnline = () => {
     setIsOffline(false);
-    fetchCoinBalance();
+    refreshBalance();
     fetchNotificationCount();
   };
 
@@ -114,13 +96,12 @@ export default function TitleBar() {
     // Initialize session timer
     initSessionTimer();
 
-    // Fetch initial data
-    fetchCoinBalance();
+    // Fetch initial data (coin balance handled by CoinBalanceContext)
     fetchNotificationCount();
     setLoading(false);
 
-    // Set up coin balance polling (every 2 seconds - Epic 01 Story 06 - Phase 4)
-    const coinInterval = setInterval(fetchCoinBalance, 2000);
+    // Set up coin balance polling via context (every 30 seconds)
+    const coinInterval = setInterval(refreshBalance, 30000);
 
     // Set up notification count polling (every 30 seconds)
     const notificationInterval = setInterval(fetchNotificationCount, 30000);
@@ -147,13 +128,6 @@ export default function TitleBar() {
       window.removeEventListener('offline', handleOffline);
     };
   }, []);
-
-  // Cache coin balance for offline use
-  useEffect(() => {
-    if (coinBalance > 0) {
-      localStorage.setItem('cachedCoinBalance', String(coinBalance));
-    }
-  }, [coinBalance]);
 
   return (
     <>
@@ -189,7 +163,7 @@ export default function TitleBar() {
             >
               <span className="text-2xl">💰</span>
               <span className="font-bold text-xl text-gray-900">
-                {loading ? '...' : coinBalance.toLocaleString()}
+                {coinLoading ? '...' : coinBalance.toLocaleString()}
               </span>
               {isOffline && (
                 <span className="text-xs text-gray-600 ml-1">(Offline)</span>

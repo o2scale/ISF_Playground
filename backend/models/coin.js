@@ -46,6 +46,9 @@ const coinSchema = new mongoose.Schema(
             "music",
             "general",
             "shop", // Sprint5-Story-08: Added for shop purchases
+            "quiz_pass", // FIX-027: Granular source for quiz completion coins
+            "grading", // FIX-027: Granular source for grading-awarded coins
+            "manual_award", // FIX-027: Granular source for coach/admin manual awards
           ],
           required: true,
         },

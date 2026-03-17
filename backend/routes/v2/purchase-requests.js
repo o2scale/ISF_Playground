@@ -95,6 +95,22 @@ router.get(
   purchaseRequestController.getPendingCount
 );
 
+// FIX-037: Get unique requesters for filter dropdown (server-side coach filter)
+router.get(
+  '/requesters',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  purchaseRequestController.getRequesters
+);
+
+// FIX-038: Batch order multiple purchase requests
+router.post(
+  '/batch-order',
+  authenticate,
+  checkPurchaseRequestAccess(),
+  purchaseRequestController.batchOrder
+);
+
 // Get purchase request statistics
 router.get(
   '/stats',

@@ -3,6 +3,7 @@ const ShopItem = require('../models/shopItem');
 const User = require('../models/user');
 const InventoryTransaction = require('../models/inventoryTransaction');
 const mongoose = require('mongoose');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Purchase Request Controller - Sprint5-Story-17
@@ -220,7 +221,7 @@ exports.createPurchaseRequest = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error creating purchase request:', error);
+    errorLogger.error({ err: error }, 'Error creating purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error creating purchase request',
@@ -307,7 +308,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
       data: { requests, count: requests.length }
     });
   } catch (error) {
-    console.error('Error fetching purchase requests:', error);
+    errorLogger.error({ err: error }, 'Error fetching purchase requests:');
     res.status(500).json({
       success: false,
       message: 'Error fetching purchase requests',
@@ -472,7 +473,7 @@ exports.getAllPurchaseRequests = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching purchase requests:', error);
+    errorLogger.error({ err: error }, 'Error fetching purchase requests:');
     res.status(500).json({
       success: false,
       message: 'Error fetching purchase requests',
@@ -525,7 +526,7 @@ exports.cancelPurchaseRequest = async (req, res) => {
       data: { request }
     });
   } catch (error) {
-    console.error('Error cancelling purchase request:', error);
+    errorLogger.error({ err: error }, 'Error cancelling purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error cancelling purchase request',
@@ -592,7 +593,7 @@ exports.getPurchaseRequestById = async (req, res) => {
       data: { request }
     });
   } catch (error) {
-    console.error('Error fetching purchase request:', error);
+    errorLogger.error({ err: error }, 'Error fetching purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error fetching purchase request',
@@ -658,7 +659,7 @@ exports.approvePurchaseRequest = async (req, res) => {
       data: { request }
     });
   } catch (error) {
-    console.error('Error approving purchase request:', error);
+    errorLogger.error({ err: error }, 'Error approving purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error approving purchase request',
@@ -723,7 +724,7 @@ exports.rejectPurchaseRequest = async (req, res) => {
       data: { request }
     });
   } catch (error) {
-    console.error('Error rejecting purchase request:', error);
+    errorLogger.error({ err: error }, 'Error rejecting purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error rejecting purchase request',
@@ -748,13 +749,18 @@ exports.getPurchaseRequestStats = async (req, res) => {
       }
     ]);
 
-    // Convert to object format
+    // Convert to object format — initialize all 10 statuses (FIX-039)
     const statsObj = {
+      pending: 0,
       pending_approval: 0,
       approved: 0,
-      rejected: 0,
+      ordered: 0,
+      delivered_store: 0,
+      delivered_balagruha: 0,
       completed: 0,
       cancelled: 0,
+      rejected: 0,
+      on_hold: 0,
       total: 0
     };
 
@@ -768,7 +774,7 @@ exports.getPurchaseRequestStats = async (req, res) => {
       data: { stats: statsObj }
     });
   } catch (error) {
-    console.error('Error fetching purchase request stats:', error);
+    errorLogger.error({ err: error }, 'Error fetching purchase request stats:');
     res.status(500).json({
       success: false,
       message: 'Error fetching statistics',
@@ -816,7 +822,7 @@ exports.getLowStockProducts = async (req, res) => {
       count: products.length
     });
   } catch (error) {
-    console.error('Error fetching low-stock products:', error);
+    errorLogger.error({ err: error }, 'Error fetching low-stock products:');
     res.status(500).json({
       success: false,
       message: 'Error fetching low-stock products',
@@ -1021,7 +1027,7 @@ exports.completePurchaseRequest = async (req, res) => {
     await session.abortTransaction();
     session.endSession();
 
-    console.error('Error completing purchase request:', error);
+    errorLogger.error({ err: error }, 'Error completing purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error completing purchase request. All changes have been rolled back.',
@@ -1275,7 +1281,7 @@ exports.updateStatus = async (req, res) => {
       await session.abortTransaction();
       session.endSession();
     }
-    console.error('Error updating status:', error);
+    errorLogger.error({ err: error }, 'Error updating status:');
     if (error.name === 'ValidationError' || error.name === 'CastError') {
       return res.status(400).json({
         success: false,
@@ -1427,7 +1433,7 @@ exports.assignFromStock = async (req, res) => {
       await session.abortTransaction();
       session.endSession();
     }
-    console.error('Error assigning from stock:', error);
+    errorLogger.error({ err: error }, 'Error assigning from stock:');
     res.status(400).json({ // 400 for business logic errors (like insufficient stock)
       success: false,
       message: error.message || 'Error assigning from stock'
@@ -1499,7 +1505,7 @@ exports.getPendingCount = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error getting pending count:', error);
+    errorLogger.error({ err: error }, 'Error getting pending count:');
     res.status(500).json({
       success: false,
       message: 'Error fetching pending request count'
@@ -1677,7 +1683,7 @@ exports.updatePurchaseRequest = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error updating purchase request:', error);
+    errorLogger.error({ err: error }, 'Error updating purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error updating purchase request',
@@ -1730,10 +1736,151 @@ exports.deletePurchaseRequest = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error deleting purchase request:', error);
+    errorLogger.error({ err: error }, 'Error deleting purchase request:');
     res.status(500).json({
       success: false,
       message: 'Error deleting purchase request',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   GET /api/v2/shop/admin/purchase-requests/requesters
+ * @desc    Get unique requesters (coaches, etc.) for filter dropdown (FIX-037)
+ * @access  Private (Purchase Management access)
+ */
+exports.getRequesters = async (req, res) => {
+  try {
+    const { balagruhaId } = req.query;
+
+    const matchStage = {};
+    if (balagruhaId && balagruhaId !== 'all') {
+      if (balagruhaId === 'STOCK') {
+        matchStage.balagruhaId = 'STOCK';
+      } else if (mongoose.Types.ObjectId.isValid(balagruhaId)) {
+        matchStage.balagruhaId = new mongoose.Types.ObjectId(balagruhaId);
+      }
+    }
+
+    const pipeline = [];
+    if (Object.keys(matchStage).length > 0) {
+      pipeline.push({ $match: matchStage });
+    }
+
+    pipeline.push(
+      {
+        $group: {
+          _id: '$requestedBy'
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'user'
+        }
+      },
+      { $unwind: '$user' },
+      {
+        $project: {
+          _id: '$user._id',
+          name: '$user.name',
+          email: '$user.email'
+        }
+      },
+      { $sort: { name: 1 } }
+    );
+
+    const requesters = await PurchaseRequest.aggregate(pipeline);
+
+    res.json({
+      success: true,
+      data: requesters
+    });
+  } catch (error) {
+    errorLogger.error({ err: error }, 'Error fetching requesters:');
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching requesters',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @route   POST /api/v2/shop/admin/purchase-requests/batch-order
+ * @desc    Batch update multiple purchase requests to "ordered" status (FIX-038)
+ * @access  Private (Purchase Management access)
+ */
+exports.batchOrder = async (req, res) => {
+  try {
+    const { requestIds, notes } = req.body;
+
+    if (!Array.isArray(requestIds) || requestIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'requestIds array is required and must not be empty'
+      });
+    }
+
+    // Validate all IDs
+    for (const id of requestIds) {
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid request ID: ${id}`
+        });
+      }
+    }
+
+    // Fetch all requests
+    const requests = await PurchaseRequest.find({
+      _id: { $in: requestIds },
+      status: 'pending'
+    });
+
+    if (requests.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'No pending requests found for the given IDs'
+      });
+    }
+
+    const userId = req.user._id;
+    const updateNote = notes || 'Bulk ordered via batch-order endpoint';
+
+    // Batch update all pending requests to 'ordered'
+    const result = await PurchaseRequest.updateMany(
+      { _id: { $in: requests.map(r => r._id) } },
+      {
+        $set: { status: 'ordered' },
+        $push: {
+          statusHistory: {
+            status: 'ordered',
+            changedBy: userId,
+            changedAt: new Date(),
+            notes: updateNote
+          }
+        }
+      }
+    );
+
+    res.json({
+      success: true,
+      message: `${result.modifiedCount} request(s) marked as ordered`,
+      data: {
+        totalRequested: requestIds.length,
+        totalUpdated: result.modifiedCount,
+        skipped: requestIds.length - requests.length
+      }
+    });
+  } catch (error) {
+    errorLogger.error({ err: error }, 'Error in batch order:');
+    res.status(500).json({
+      success: false,
+      message: 'Error processing batch order',
       error: error.message
     });
   }

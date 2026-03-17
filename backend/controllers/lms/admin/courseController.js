@@ -1,5 +1,52 @@
 const Course = require("../../../models/course");
+const Notification = require("../../../models/notification");
+const CourseAssignment = require("../../../models/CourseAssignment");
 const mongoose = require("mongoose");
+const { errorLogger } = require('../../../config/pino-config');
+
+/**
+ * Helper: Create audit log entry for course status changes and notify assigned coaches
+ * @param {Object} course - The course document
+ * @param {string} action - 'published', 'unpublished', 'archived'
+ * @param {Object} req - Express request object (for user info)
+ * @param {string} reason - Optional reason for the change
+ */
+async function _auditAndNotifyCoaches(course, action, req, reason) {
+  try {
+    // Find coaches assigned to this course
+    const assignments = await CourseAssignment.find({
+      courseId: course._id,
+      status: 'active'
+    }).select('assignedBy').lean();
+
+    const coachIds = [...new Set(assignments.map(a => a.assignedBy.toString()))];
+
+    // Create notification for each assigned coach
+    if (coachIds.length > 0) {
+      const notifications = coachIds.map(coachId => ({
+        userId: coachId,
+        title: `Course ${action}: ${course.title}`,
+        message: reason
+          ? `Course "${course.title}" has been ${action}. Reason: ${reason}`
+          : `Course "${course.title}" has been ${action} by an administrator.`,
+        type: 'PERSONAL',
+        category: 'GENERAL',
+        metadata: {
+          courseId: course._id,
+          action,
+          changedBy: req.user?._id,
+          reason: reason || null,
+          changedAt: new Date().toISOString()
+        }
+      }));
+
+      await Notification.insertMany(notifications);
+    }
+  } catch (error) {
+    // Log but do not fail the main operation
+    errorLogger.error({ err: error }, 'Error creating audit notifications for course status change');
+  }
+}
 
 // ==================== COURSE CRUD OPERATIONS ====================
 
@@ -42,7 +89,7 @@ exports.getAllCourses = async (req, res) => {
       data: coursesWithCounts,
     });
   } catch (error) {
-    console.error("Error fetching courses:", error);
+    errorLogger.error({ err: error }, "Error fetching courses:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -78,7 +125,7 @@ exports.getCourseById = async (req, res) => {
       data: courseWithCounts,
     });
   } catch (error) {
-    console.error("Error fetching course:", error);
+    errorLogger.error({ err: error }, "Error fetching course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -147,7 +194,7 @@ exports.createCourse = async (req, res) => {
       data: course,
     });
   } catch (error) {
-    console.error("Error creating course:", error);
+    errorLogger.error({ err: error }, "Error creating course:");
     res.status(500).json({
       error: "Internal server error",
       details: error.message,
@@ -201,7 +248,7 @@ exports.updateCourse = async (req, res) => {
       data: course,
     });
   } catch (error) {
-    console.error("Error updating course:", error);
+    errorLogger.error({ err: error }, "Error updating course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -229,7 +276,7 @@ exports.deleteCourse = async (req, res) => {
       message: "Course deleted permanently",
     });
   } catch (error) {
-    console.error("Error deleting course:", error);
+    errorLogger.error({ err: error }, "Error deleting course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -275,7 +322,7 @@ exports.addModule = async (req, res) => {
       data: addedModule,
     });
   } catch (error) {
-    console.error("Error adding module:", error);
+    errorLogger.error({ err: error }, "Error adding module:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -310,7 +357,7 @@ exports.updateModule = async (req, res) => {
       data: module,
     });
   } catch (error) {
-    console.error("Error updating module:", error);
+    errorLogger.error({ err: error }, "Error updating module:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -341,7 +388,7 @@ exports.deleteModule = async (req, res) => {
       message: "Module deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting module:", error);
+    errorLogger.error({ err: error }, "Error deleting module:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -390,7 +437,7 @@ exports.addChapter = async (req, res) => {
       data: addedChapter,
     });
   } catch (error) {
-    console.error("Error adding chapter:", error);
+    errorLogger.error({ err: error }, "Error adding chapter:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -430,7 +477,7 @@ exports.updateChapter = async (req, res) => {
       data: chapter,
     });
   } catch (error) {
-    console.error("Error updating chapter:", error);
+    errorLogger.error({ err: error }, "Error updating chapter:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -466,7 +513,7 @@ exports.deleteChapter = async (req, res) => {
       message: "Chapter deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting chapter:", error);
+    errorLogger.error({ err: error }, "Error deleting chapter:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -560,7 +607,7 @@ exports.addContentItem = async (req, res) => {
       data: addedContentItem,
     });
   } catch (error) {
-    console.error("Error adding content item:", error);
+    errorLogger.error({ err: error }, "Error adding content item:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -626,7 +673,7 @@ exports.updateContentItem = async (req, res) => {
       data: contentItem,
     });
   } catch (error) {
-    console.error("Error updating content item:", error);
+    errorLogger.error({ err: error }, "Error updating content item:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -667,7 +714,7 @@ exports.deleteContentItem = async (req, res) => {
       message: "Content item deleted successfully",
     });
   } catch (error) {
-    console.error("Error deleting content item:", error);
+    errorLogger.error({ err: error }, "Error deleting content item:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -771,7 +818,7 @@ exports.reorderItems = async (req, res) => {
       message: "Order updated successfully",
     });
   } catch (error) {
-    console.error("Error reordering items:", error);
+    errorLogger.error({ err: error }, "Error reordering items:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -904,7 +951,7 @@ exports.validateCourseDetailed = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("Error validating course:", error);
+    errorLogger.error({ err: error }, "Error validating course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -935,13 +982,16 @@ exports.publishCourse = async (req, res) => {
     // Publish course
     await course.publish();
 
+    // Audit log + notify assigned coaches
+    await _auditAndNotifyCoaches(course, 'published', req, null);
+
     res.status(200).json({
       success: true,
       publishedAt: course.publishedAt,
       message: "Course published successfully",
     });
   } catch (error) {
-    console.error("Error publishing course:", error);
+    errorLogger.error({ err: error }, "Error publishing course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -963,17 +1013,18 @@ exports.archiveCourse = async (req, res) => {
     // Archive course
     await course.archive();
 
-    // Audit trail and coach notifications not yet implemented (Sprint 2 backlog)
+    // Audit log + notify assigned coaches (FIX-034)
+    await _auditAndNotifyCoaches(course, 'archived', req, reason);
 
     res.status(200).json({
       success: true,
       archivedAt: course.archivedAt,
       message: "Course archived successfully",
       reason: reason || null,
-      notifiedCoaches: notifyCoaches || false
+      notifiedCoaches: true
     });
   } catch (error) {
-    console.error("Error archiving course:", error);
+    errorLogger.error({ err: error }, "Error archiving course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -1009,7 +1060,7 @@ exports.restoreCourse = async (req, res) => {
       message: `Course restored to ${course.status} status`,
     });
   } catch (error) {
-    console.error("Error restoring course:", error);
+    errorLogger.error({ err: error }, "Error restoring course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -1039,17 +1090,18 @@ exports.unpublishCourse = async (req, res) => {
     course.status = "draft";
     await course.save();
 
-    // Audit trail and coach notifications not yet implemented (Sprint 2 backlog)
+    // Audit log + notify assigned coaches (FIX-034)
+    await _auditAndNotifyCoaches(course, 'unpublished', req, reason);
 
     res.status(200).json({
       success: true,
       message: "Course unpublished successfully",
       status: course.status,
       reason: reason || null,
-      notifiedCoaches: notifyCoaches || false,
+      notifiedCoaches: true,
     });
   } catch (error) {
-    console.error("Error unpublishing course:", error);
+    errorLogger.error({ err: error }, "Error unpublishing course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -1104,7 +1156,7 @@ exports.duplicateCourse = async (req, res) => {
       data: duplicateCourse,
     });
   } catch (error) {
-    console.error("Error duplicating course:", error);
+    errorLogger.error({ err: error }, "Error duplicating course:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -1134,7 +1186,7 @@ exports.getModulesByCourseId = async (req, res) => {
       modules: course.modules || [],
     });
   } catch (error) {
-    console.error("Error fetching modules:", error);
+    errorLogger.error({ err: error }, "Error fetching modules:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -1168,7 +1220,7 @@ exports.getChaptersByModuleId = async (req, res) => {
       chapters: module.chapters || [],
     });
   } catch (error) {
-    console.error("Error fetching chapters:", error);
+    errorLogger.error({ err: error }, "Error fetching chapters:");
     res.status(500).json({ error: "Internal server error" });
   }
 };

@@ -35,9 +35,13 @@ class ShopService {
         ]
       };
 
-      // Category filter
+      // Category filter — FIX-043: Support comma-separated categories for multi-select
       if (category) {
-        query.category = category;
+        if (category.includes(',')) {
+          query.category = { $in: category.split(',').map(c => c.trim()) };
+        } else {
+          query.category = category;
+        }
       }
 
       // Story 2.5: Purchase category filter (scopes catalog by procurement bucket)

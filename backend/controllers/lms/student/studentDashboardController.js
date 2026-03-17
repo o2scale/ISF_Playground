@@ -4,7 +4,9 @@ const Notification = require('../../../models/notification');
 const EmotionTracking = require('../../../models/EmotionTracking');
 const Course = require('../../../models/course');
 const StudentProgress = require('../../../models/StudentProgress');
+const CourseAssignment = require('../../../models/CourseAssignment');
 const mongoose = require('mongoose');
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Student Dashboard Controller - Epic 01 Story 01
@@ -82,12 +84,22 @@ exports.getDashboard = async (req, res) => {
       const lastProg = sortedProgress[0];
       const lastCourse = allCourses.find(c => c._id.toString() === lastProg.course.toString());
       if (lastCourse) {
+        // Resolve taskId from the most recently completed item in StudentProgress
+        let taskId = null;
+        if (lastProg.completedItems && lastProg.completedItems.length > 0) {
+          // Sort by completedAt descending to get the most recent item
+          const sortedItems = [...lastProg.completedItems].sort(
+            (a, b) => new Date(b.completedAt) - new Date(a.completedAt)
+          );
+          taskId = sortedItems[0].itemId ? sortedItems[0].itemId.toString() : null;
+        }
+
         lastActivity = {
           courseId: lastCourse._id,
           courseTitle: lastCourse.title,
           courseType: lastCourse.category,
           progress: lastProg.completionPercentage || 0,
-          taskId: null // Could find actual last item if needed
+          taskId
         };
       }
     }
@@ -109,7 +121,7 @@ exports.getDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get Dashboard Error:', error);
+    errorLogger.error({ err: error }, 'Get Dashboard Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching dashboard data',
@@ -147,7 +159,7 @@ exports.getCoinBalance = async (req, res) => {
       balance
     });
   } catch (error) {
-    console.error('Get Coin Balance Error:', error);
+    errorLogger.error({ err: error }, 'Get Coin Balance Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching coin balance',
@@ -187,7 +199,7 @@ exports.getNotificationCount = async (req, res) => {
       unreadCount
     });
   } catch (error) {
-    console.error('Get Notification Count Error:', error);
+    errorLogger.error({ err: error }, 'Get Notification Count Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching notification count',
@@ -216,15 +228,42 @@ exports.getPendingHomeworkCount = async (req, res) => {
       });
     }
 
-    // Placeholder homework count (Epic 05 not yet implemented)
-    const count = 3;
+    // Query actual pending assignments for this student
+    // 1. Find active course assignments targeting this student (directly or via balagruha)
+    const assignments = await CourseAssignment.find({
+      status: 'active',
+      $or: [
+        { 'assignedTo.studentIds': studentId },
+        { 'assignedTo.balagruhaIds': { $in: student.balagruhaIds || [] } },
+        { 'assignedTo.balagruhaId': { $in: student.balagruhaIds || [] } }
+      ]
+    }).select('courseId').lean();
+
+    const assignedCourseIds = assignments.map(a => a.courseId);
+
+    // 2. Find progress records for those courses
+    const progressRecords = await StudentProgress.find({
+      student: studentId,
+      course: { $in: assignedCourseIds }
+    }).select('course status').lean();
+
+    const completedCourseIds = new Set(
+      progressRecords
+        .filter(p => p.status === 'completed')
+        .map(p => p.course.toString())
+    );
+
+    // 3. Count assigned courses not yet completed
+    const count = assignedCourseIds.filter(
+      cId => !completedCourseIds.has(cId.toString())
+    ).length;
 
     res.json({
       success: true,
       count
     });
   } catch (error) {
-    console.error('Get Homework Count Error:', error);
+    errorLogger.error({ err: error }, 'Get Homework Count Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching homework count',
@@ -283,7 +322,7 @@ exports.saveEmotion = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Save Emotion Error:', error);
+    errorLogger.error({ err: error }, 'Save Emotion Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while saving emotion',
@@ -350,7 +389,7 @@ exports.batchSaveEmotions = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Batch Save Emotions Error:', error);
+    errorLogger.error({ err: error }, 'Batch Save Emotions Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while batch saving emotions',

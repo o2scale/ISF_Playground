@@ -525,7 +525,7 @@ const Layout = () => {
                 >
                   {menu.name}
                   {/* Story 3.9: PM pending badge for Purchases menu */}
-                  {isPurchases && role === "purchase-manager" && pendingPurchaseCount.total > 0 && (
+                  {isPurchases && (role === "purchase-manager" || role === "admin") && pendingPurchaseCount.total > 0 && (
                     <span
                       className="pm-pending-badge"
                       title={`${pendingPurchaseCount.total} pending requests${pendingPurchaseCount.highPriority > 0 ? ` (${pendingPurchaseCount.highPriority} high priority)` : ''}`}

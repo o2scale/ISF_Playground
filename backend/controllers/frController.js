@@ -11,6 +11,7 @@ const frCacheService = require('../services/frCacheService');
 const FaceEmbedding = require('../models/FaceEmbedding');
 const User = require('../models/user');
 const multer = require('multer');
+const { errorLogger } = require('../config/pino-config');
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } }); // 10MB limit
 
 /**
@@ -105,7 +106,7 @@ async function registerFace(req, res) {
       },
     });
   } catch (error) {
-    console.error('Error in registerFace:', error);
+    errorLogger.error({ err: error }, 'Error in registerFace:');
     return res.status(500).json({
       success: false,
       error: 'Face registration failed due to server error',
@@ -208,7 +209,7 @@ async function recognizeFace(req, res) {
       },
     });
   } catch (error) {
-    console.error('Error in recognizeFace:', error);
+    errorLogger.error({ err: error }, 'Error in recognizeFace:');
     return res.status(500).json({
       success: false,
       error: 'Face recognition failed due to server error',
@@ -262,7 +263,7 @@ async function getRegistrationStatus(req, res) {
       },
     });
   } catch (error) {
-    console.error('Error in getRegistrationStatus:', error);
+    errorLogger.error({ err: error }, 'Error in getRegistrationStatus:');
     return res.status(500).json({
       success: false,
       error: 'Failed to get registration status',
@@ -318,7 +319,7 @@ async function deleteFaceRegistration(req, res) {
       },
     });
   } catch (error) {
-    console.error('Error in deleteFaceRegistration:', error);
+    errorLogger.error({ err: error }, 'Error in deleteFaceRegistration:');
     return res.status(500).json({
       success: false,
       error: 'Failed to delete face registration',
@@ -372,7 +373,7 @@ async function getFRStats(req, res) {
       },
     });
   } catch (error) {
-    console.error('Error in getFRStats:', error);
+    errorLogger.error({ err: error }, 'Error in getFRStats:');
     return res.status(500).json({
       success: false,
       error: 'Failed to get FR statistics',

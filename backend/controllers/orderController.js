@@ -1,4 +1,5 @@
 const orderService = require('../services/order');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Order Controller - Sprint5-Story-03
@@ -26,7 +27,7 @@ async function createOrder(req, res) {
       remainingBalance: result.remainingBalance
     });
   } catch (error) {
-    console.error('Create order error:', error);
+    errorLogger.error({ err: error }, 'Create order error:');
 
     // Send appropriate error status
     if (error.message.includes('Cart is empty')) {
@@ -90,7 +91,7 @@ async function getOrder(req, res) {
       order
     });
   } catch (error) {
-    console.error('Get order error:', error);
+    errorLogger.error({ err: error }, 'Get order error:');
 
     if (error.message.includes('not found')) {
       return res.status(404).json({
@@ -135,7 +136,7 @@ async function getUserOrders(req, res) {
       pagination: result.pagination
     });
   } catch (error) {
-    console.error('Get user orders error:', error);
+    errorLogger.error({ err: error }, 'Get user orders error:');
 
     res.status(500).json({
       success: false,
@@ -163,7 +164,7 @@ async function getOrderById(req, res) {
       order
     });
   } catch (error) {
-    console.error('Get order by ID error:', error);
+    errorLogger.error({ err: error }, 'Get order by ID error:');
 
     if (error.message.includes('not found')) {
       return res.status(404).json({
@@ -209,7 +210,7 @@ async function cancelOrder(req, res) {
       newBalance: result.newBalance
     });
   } catch (error) {
-    console.error('Cancel order error:', error);
+    errorLogger.error({ err: error }, 'Cancel order error:');
 
     if (error.message.includes('not found')) {
       return res.status(404).json({
@@ -268,7 +269,7 @@ async function getAllOrders(req, res) {
       pagination: result.pagination
     });
   } catch (error) {
-    console.error('Get all orders error:', error);
+    errorLogger.error({ err: error }, 'Get all orders error:');
 
     res.status(500).json({
       success: false,

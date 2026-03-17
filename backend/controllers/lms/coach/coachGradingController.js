@@ -4,6 +4,7 @@ const User = require("../../../models/user");
 const Course = require("../../../models/course");
 const Notification = require("../../../models/notification");
 const Coin = require("../../../models/coin");
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Quality-to-coin mapping for auto-calculating coin awards from rubric score.
@@ -73,7 +74,7 @@ exports.getSubmissions = async (req, res) => {
       stats,
     });
   } catch (error) {
-    console.error("Error fetching submissions:", error);
+    errorLogger.error({ err: error }, "Error fetching submissions:");
     res.status(500).json({
       success: false,
       error: "Failed to fetch submissions",
@@ -107,7 +108,7 @@ exports.getSubmissionById = async (req, res) => {
       submission,
     });
   } catch (error) {
-    console.error("Error fetching submission:", error);
+    errorLogger.error({ err: error }, "Error fetching submission:");
     res.status(500).json({
       success: false,
       error: "Failed to fetch submission",
@@ -190,7 +191,7 @@ exports.submitGrade = async (req, res) => {
         coinsAwarded,
         "earned",
         `Graded submission for "${submission.taskTitle}"`,
-        "task",
+        "grading",
         {
           submissionId: submission._id,
           courseId: submission.courseId._id,
@@ -231,7 +232,7 @@ exports.submitGrade = async (req, res) => {
       message: `Grade submitted successfully! ${submission.studentId.firstName} ${submission.studentId.lastName} has been notified and earned ${coinsAwarded} ISF Coins.`,
     });
   } catch (error) {
-    console.error("Error submitting grade:", error);
+    errorLogger.error({ err: error }, "Error submitting grade:");
     res.status(500).json({
       success: false,
       error: "Failed to submit grade",
@@ -311,7 +312,7 @@ exports.bulkGrade = async (req, res) => {
             coinsAwarded,
             "earned",
             `Graded submission for "${submission.taskTitle}"`,
-            "task",
+            "grading",
             {
               submissionId: submission._id,
               courseId: submission.courseId._id,
@@ -341,7 +342,7 @@ exports.bulkGrade = async (req, res) => {
 
         gradedCount++;
       } catch (error) {
-        console.error(`Error grading submission ${submissionId}:`, error);
+        errorLogger.error({ err: error }, `Error grading submission ${submissionId}:`);
         failedSubmissions.push(submissionId);
       }
     }
@@ -353,7 +354,7 @@ exports.bulkGrade = async (req, res) => {
       message: `${gradedCount} submissions graded successfully! Students notified.`,
     });
   } catch (error) {
-    console.error("Error bulk grading submissions:", error);
+    errorLogger.error({ err: error }, "Error bulk grading submissions:");
     res.status(500).json({
       success: false,
       error: "Failed to bulk grade submissions",
@@ -394,7 +395,7 @@ exports.saveDraft = async (req, res) => {
       message: "Draft saved",
     });
   } catch (error) {
-    console.error("Error saving draft:", error);
+    errorLogger.error({ err: error }, "Error saving draft:");
     res.status(500).json({
       success: false,
       error: "Failed to save draft",
@@ -456,7 +457,7 @@ exports.flagSubmission = async (req, res) => {
       message: "Submission flagged for admin review",
     });
   } catch (error) {
-    console.error("Error flagging submission:", error);
+    errorLogger.error({ err: error }, "Error flagging submission:");
     res.status(500).json({
       success: false,
       error: "Failed to flag submission",
@@ -491,7 +492,7 @@ exports.skipSubmission = async (req, res) => {
       message: "Submission marked for later review",
     });
   } catch (error) {
-    console.error("Error skipping submission:", error);
+    errorLogger.error({ err: error }, "Error skipping submission:");
     res.status(500).json({
       success: false,
       error: "Failed to skip submission",

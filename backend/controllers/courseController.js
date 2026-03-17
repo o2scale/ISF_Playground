@@ -1,4 +1,5 @@
 const CourseService = require("../services/course");
+const { errorLogger } = require('../config/pino-config');
 
 exports.createCourse = async (req, res) => {
   try {
@@ -18,7 +19,7 @@ exports.createCourse = async (req, res) => {
       res.status(400).json({ success: false, message: result.message });
     }
   } catch (error) {
-    console.error("Error creating course:", error);
+    errorLogger.error({ err: error }, "Error creating course:");
     res
       .status(500)
       .json({

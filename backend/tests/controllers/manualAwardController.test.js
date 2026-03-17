@@ -159,7 +159,7 @@ describe('manualAwardController - Balagruha Authorization (FIX-013)', () => {
       expect.objectContaining({ success: true })
     );
     expect(mockCoinRecord.addCoins).toHaveBeenCalledWith(
-      10, 'earned', 'Good work', 'general', expect.any(Object)
+      10, 'earned', 'Good work', 'manual_award', expect.any(Object)
     );
   });
 

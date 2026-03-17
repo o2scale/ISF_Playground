@@ -1,5 +1,6 @@
 const ShopItem = require('../models/shopItem');
 const Vendor = require('../models/vendor');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Escape regex special characters to prevent ReDoS attacks
@@ -35,8 +36,13 @@ async function getAllProducts(req, res) {
     // Build query
     const query = {};
 
+    // FIX-043: Support comma-separated categories for multi-select
     if (category) {
-      query.category = category;
+      if (category.includes(',')) {
+        query.category = { $in: category.split(',').map(c => c.trim()) };
+      } else {
+        query.category = category;
+      }
     }
 
     if (isActive !== undefined) {
@@ -77,7 +83,7 @@ async function getAllProducts(req, res) {
       }
     });
   } catch (error) {
-    console.error('Get all products error:', error);
+    errorLogger.error({ err: error }, 'Get all products error:');
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve products',
@@ -109,7 +115,7 @@ async function getProduct(req, res) {
       product
     });
   } catch (error) {
-    console.error('Get product error:', error);
+    errorLogger.error({ err: error }, 'Get product error:');
     res.status(500).json({
       success: false,
       message: 'Failed to retrieve product',
@@ -161,9 +167,17 @@ async function createProduct(req, res) {
       });
     }
 
+    // FIX-032: Reject more than 3 approved vendors
+    if (approvedVendors.length > 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum of 3 Approved Vendors allowed per product'
+      });
+    }
+
     // Verify all vendor IDs exist and check for duplicates
     const vendorIds = approvedVendors.map(v => v.vendorId);
-    
+
     // Check for duplicate vendor IDs in the request
     const uniqueVendorIds = new Set(vendorIds.map(id => id.toString()));
     if (uniqueVendorIds.size !== vendorIds.length) {
@@ -247,7 +261,7 @@ async function createProduct(req, res) {
       product
     });
   } catch (error) {
-    console.error('Create product error:', error);
+    errorLogger.error({ err: error }, 'Create product error:');
 
     // Handle validation errors
     if (error.name === 'ValidationError') {
@@ -312,9 +326,17 @@ async function updateProduct(req, res) {
         });
       }
 
+      // FIX-032: Reject more than 3 approved vendors
+      if (updateData.approvedVendors.length > 3) {
+        return res.status(400).json({
+          success: false,
+          message: 'Maximum of 3 Approved Vendors allowed per product'
+        });
+      }
+
       // Verify all vendor IDs exist and check for duplicates
       const vendorIds = updateData.approvedVendors.map(v => v.vendorId);
-      
+
       // Check for duplicate vendor IDs in the request
       const uniqueVendorIds = new Set(vendorIds.map(id => id.toString()));
       if (uniqueVendorIds.size !== vendorIds.length) {
@@ -363,7 +385,7 @@ async function updateProduct(req, res) {
       product
     });
   } catch (error) {
-    console.error('Update product error:', error);
+    errorLogger.error({ err: error }, 'Update product error:');
 
     // Handle validation errors
     if (error.name === 'ValidationError') {
@@ -413,7 +435,7 @@ async function deleteProduct(req, res) {
       product
     });
   } catch (error) {
-    console.error('Delete product error:', error);
+    errorLogger.error({ err: error }, 'Delete product error:');
     res.status(500).json({
       success: false,
       message: 'Failed to delete product',
@@ -450,7 +472,7 @@ async function restoreProduct(req, res) {
       product
     });
   } catch (error) {
-    console.error('Restore product error:', error);
+    errorLogger.error({ err: error }, 'Restore product error:');
     res.status(500).json({
       success: false,
       message: 'Failed to restore product',
@@ -527,6 +549,15 @@ async function createPendingProduct(req, res) {
       });
     }
 
+    // FIX-032: Reject more than 3 approved vendors
+    if (approvedVendors.length > 3) {
+      return res.status(400).json({
+        success: false,
+        message: 'Maximum of 3 Approved Vendors allowed per product',
+        error: 'Validation Error'
+      });
+    }
+
     // Verify all vendor IDs exist and check for duplicates
     const vendorIds = approvedVendors.map(v => v.vendorId);
     const uniqueVendorIds = new Set(vendorIds.map(id => id.toString()));
@@ -594,7 +625,7 @@ async function createPendingProduct(req, res) {
       product: newProduct
     });
   } catch (error) {
-    console.error('Error creating pending product:', error);
+    errorLogger.error({ err: error }, 'Error creating pending product:');
 
     if (error.name === 'ValidationError') {
       return res.status(400).json({
@@ -630,7 +661,7 @@ async function getPendingProducts(req, res) {
       products
     });
   } catch (error) {
-    console.error('Error fetching pending products:', error);
+    errorLogger.error({ err: error }, 'Error fetching pending products:');
     res.status(500).json({
       success: false,
       error: error.message

@@ -5,8 +5,8 @@ const ArtGallery = require('../../../models/ArtGallery');
 const ArtCompetition = require('../../../models/ArtCompetition');
 const s3Service = require('../../../services/aws/s3');
 const mongoose = require('mongoose');
-const path = require('path');
 const fs = require('fs');
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Art Course Controller - Epic 01 Story 03 / Story 12.9 (FIX-014)
@@ -157,7 +157,7 @@ exports.getArtCourseData = async (req, res) => {
 
     res.json(artCourseData);
   } catch (error) {
-    console.error('Get Art Course Data Error:', error);
+    errorLogger.error({ err: error }, 'Get Art Course Data Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching Art Course data',
@@ -305,7 +305,7 @@ exports.submitArtwork = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Submit Artwork Error:', error);
+    errorLogger.error({ err: error }, 'Submit Artwork Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while submitting artwork',
@@ -388,7 +388,7 @@ exports.saveToGallery = async (req, res) => {
       message: 'Artwork saved to your gallery!'
     });
   } catch (error) {
-    console.error('Save to Gallery Error:', error);
+    errorLogger.error({ err: error }, 'Save to Gallery Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while saving artwork',
@@ -425,7 +425,7 @@ exports.getGallery = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Get Gallery Error:', error);
+    errorLogger.error({ err: error }, 'Get Gallery Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching gallery',
@@ -465,7 +465,7 @@ exports.deleteGalleryItem = async (req, res) => {
       message: 'Artwork deleted from gallery'
     });
   } catch (error) {
-    console.error('Delete Gallery Item Error:', error);
+    errorLogger.error({ err: error }, 'Delete Gallery Item Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while deleting gallery item',
@@ -522,7 +522,7 @@ exports.getActiveCompetition = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get Active Competition Error:', error);
+    errorLogger.error({ err: error }, 'Get Active Competition Error:');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching competition',

@@ -3,6 +3,7 @@ const StudentProgress = require('../../../models/StudentProgress');
 const Coin = require('../../../models/coin');
 const CourseAssignment = require('../../../models/CourseAssignment');
 const mongoose = require('mongoose');
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Coach Reports Controller - Epic 03 Story 04
@@ -68,7 +69,7 @@ exports.getOverviewStats = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Coach Overview Stats Error:', error);
+        errorLogger.error({ err: error }, 'Coach Overview Stats Error:');
         res.status(500).json({
             success: false,
             message: 'Server error fetching stats',
@@ -145,7 +146,7 @@ exports.getLeaderboard = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Leaderboard Error:', error);
+        errorLogger.error({ err: error }, 'Leaderboard Error:');
         res.status(500).json({
             success: false,
             message: 'Server error fetching leaderboard',
@@ -233,7 +234,7 @@ exports.getCourseCompletionRates = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Course Completion Rates Error:', error);
+        errorLogger.error({ err: error }, 'Course Completion Rates Error:');
         res.status(500).json({
             success: false,
             message: 'Server error fetching course completion rates',
@@ -328,7 +329,7 @@ exports.getSlowLearners = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('Slow Learners Error:', error);
+        errorLogger.error({ err: error }, 'Slow Learners Error:');
         res.status(500).json({
             success: false,
             message: 'Server error identifying slow learners',

@@ -13,6 +13,7 @@ const Order = require('../models/order');
 const User = require('../models/user');
 const Balagruha = require('../models/balagruha');
 const Notification = require('../models/notification');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Get pending deliveries for coach (with on-demand confirmation)
@@ -192,7 +193,7 @@ exports.getCoachDeliveries = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching coach deliveries:', error);
+    errorLogger.error({ err: error }, 'Error fetching coach deliveries:');
     res.status(500).json({
       success: false,
       error: error.message
@@ -280,7 +281,7 @@ exports.markOrderDelivered = async (req, res) => {
         actionUrl: `/shop/orders/${order._id}`
       }
     ).catch(err => {
-      console.error(`Failed to notify student about delivery:`, err);
+      errorLogger.error({ err: err }, `Failed to notify student about delivery:`);
     });
 
     res.json({
@@ -297,7 +298,7 @@ exports.markOrderDelivered = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error marking order as delivered:', error);
+    errorLogger.error({ err: error }, 'Error marking order as delivered:');
     res.status(500).json({
       success: false,
       error: error.message
@@ -435,7 +436,7 @@ exports.getCoachDeliveryStats = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching delivery stats:', error);
+    errorLogger.error({ err: error }, 'Error fetching delivery stats:');
     res.status(500).json({
       success: false,
       error: error.message

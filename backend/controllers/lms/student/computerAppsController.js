@@ -382,7 +382,7 @@ exports.submitQuiz = async (req, res) => {
         if (passed && !alreadyPassed && baseCoins > 0) {
           const coinRecord = await Coin.findOrCreateForUser(studentId);
           const meta = { quizId: quiz._id, courseId: courseId };
-          await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'task', meta, { session });
+          await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'quiz_pass', meta, { session });
           await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } }, { session });
           coinsAwarded = baseCoins;
         }

@@ -9,7 +9,9 @@ import {
   getUserBalagruhas,  // Sprint5-Story-24: Get user's assigned Balagruhas
   getStockLevels,     // Story 3.6: Present Stock tab
   getMostConsumed,    // Story 3.6: Most Consumed tab
-  getVendorsWithProductCount  // Story 3.6: Supplier List tab
+  getVendorsWithProductCount,  // Story 3.6: Supplier List tab
+  getPurchaseRequestRequesters,  // FIX-037: Server-side coach filter
+  batchOrderPurchaseRequests     // FIX-038: Batch order endpoint
 } from '../../../api';
 import showToast from '../../../utils/toast';
 import { formatDate, formatDateOnly, formatDateTime, getReadableDate } from '../../../utils/dateFormatter';  // Sprint5-Story-23: Date formatting utilities
@@ -53,6 +55,7 @@ dayjs.extend(relativeTime);
 dayjs.extend(isSameOrAfter);
 dayjs.extend(isSameOrBefore);
 
+// FIX-036: Priority detection uses model's priority field ONLY — no text parsing of description/title
 export const getPriority = (request) => {
   const explicit = (request?.priority || '').toString().toLowerCase();
   if (explicit === 'high') {
@@ -61,20 +64,7 @@ export const getPriority = (request) => {
   if (explicit === 'low') {
     return 'Low';
   }
-  if (explicit === 'medium') {
-    return 'Medium';
-  }
-
-  const reason = (request?.reason || '').trim();
-  if (reason.toUpperCase().startsWith('[HIGH PRIORITY]')) {
-    return 'High';
-  }
-
-  const justification = request?.justification || '';
-  if (/\bpriority:\s*high\b/i.test(justification)) {
-    return 'High';
-  }
-
+  // Default to Medium for any unrecognized or missing priority
   return 'Medium';
 };
 
@@ -179,6 +169,9 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
   const [loading, setLoading] = useState(true);
   const [statusUpdating, setStatusUpdating] = useState({});
 
+  // FIX-037: Server-side requester list for filter dropdown
+  const [availableRequesters, setAvailableRequesters] = useState([]);
+
   // Story 3.6: State for new tab views
   const [stockLevels, setStockLevels] = useState([]);
   const [stockSummary, setStockSummary] = useState({ total: 0, inStock: 0, lowStock: 0, outOfStock: 0 });
@@ -230,9 +223,27 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     [requests, userId]
   );
 
+  // FIX-037: Fetch requesters from backend
+  const fetchRequesters = async (balagruhaId) => {
+    try {
+      const params = {};
+      if (balagruhaId && balagruhaId !== 'all') {
+        params.balagruhaId = balagruhaId;
+      }
+      const response = await getPurchaseRequestRequesters(params);
+      if (response.success) {
+        setAvailableRequesters(response.data || []);
+      }
+    } catch (error) {
+      // Silently fail - filter will just show no options
+      setAvailableRequesters([]);
+    }
+  };
+
   useEffect(() => {
     fetchBalagruhas();
     fetchPurchaseRequests();
+    fetchRequesters(filters.balagruha);
   }, []);
 
   // Fix: Update status filter when normalizedRole is determined
@@ -722,7 +733,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     });
   };
 
-  // Story 3.5: Order All - Mark all requests for a bunched item as ordered
+  // FIX-038: Order All - Uses batch API endpoint instead of sequential calls
   const handleOrderAll = async (bunchedItem, status) => {
     // Only allow "Order All" for pending items
     if (status !== PurchaseRequestStatuses.PENDING) {
@@ -738,27 +749,24 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     }
 
     try {
-      // Update each request sequentially
-      let successCount = 0;
-      for (const requestId of requestIds) {
-        const response = await updatePurchaseRequestStatus(requestId, {
-          status: PurchaseRequestStatuses.ORDERED,
-          notes: `Bulk ordered via "Order All" for ${bunchedItem.productName}`
-        });
-        if (response.success) {
-          successCount++;
-        }
-      }
+      const response = await batchOrderPurchaseRequests(
+        requestIds,
+        `Bulk ordered via "Order All" for ${bunchedItem.productName}`
+      );
 
-      if (successCount === requestIds.length) {
-        showToast(`All ${successCount} requests marked as ordered`, 'success');
+      if (response.success) {
+        const { totalUpdated, skipped } = response.data;
+        if (skipped > 0) {
+          showToast(`${totalUpdated} request(s) marked as ordered (${skipped} skipped - not pending)`, 'warning');
+        } else {
+          showToast(`All ${totalUpdated} requests marked as ordered`, 'success');
+        }
       } else {
-        showToast(`${successCount} of ${requestIds.length} requests updated`, 'warning');
+        showToast(response.message || 'Error processing batch order', 'error');
       }
       fetchPurchaseRequests();
     } catch (error) {
-      console.error('Error in Order All:', error);
-      showToast('Error updating some requests', 'error');
+      showToast(error.response?.data?.message || 'Error updating requests', 'error');
     }
   };
 
@@ -833,35 +841,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
     return Array.from(uniqueManagers.values());
   };
 
-  // Story 3.8: Get unique requesters (coaches, medical in charge, etc.) for filter dropdown
-  const getAvailableRequesters = () => {
-    let relevantRequests = requests;
-
-    // If a balagruha is selected, only show requesters who have requests for that balagruha
-    if (filters.balagruha !== 'all') {
-      relevantRequests = requests.filter(req => {
-        const balagruhaId = req.balagruhaId;
-        const requestBalagruhaId = balagruhaId === 'STOCK' ? 'STOCK' : (balagruhaId?._id ?? balagruhaId);
-        return String(requestBalagruhaId) === String(filters.balagruha);
-      });
-    }
-
-    // Extract unique requesters and sort by name
-    const uniqueRequesters = new Map();
-    relevantRequests.forEach(req => {
-      if (req.requestedBy && req.requestedBy._id) {
-        uniqueRequesters.set(req.requestedBy._id, {
-          _id: req.requestedBy._id,
-          name: req.requestedBy.name || 'Unknown',
-          email: req.requestedBy.email || ''
-        });
-      }
-    });
-
-    return Array.from(uniqueRequesters.values()).sort((a, b) =>
-      (a.name || '').localeCompare(b.name || '')
-    );
-  };
+  // FIX-037: getAvailableRequesters now returns server-side data
+  const getAvailableRequesters = () => availableRequesters;
 
   // Reset filters when balagruha changes
   const handleBalagruhaChange = (balagruhaId) => {
@@ -871,6 +852,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
       purchaseManager: 'all', // Reset purchase manager when balagruha changes
       requester: 'all' // Story 3.8: Reset requester when balagruha changes
     });
+    // FIX-037: Refetch requesters from backend when balagruha changes
+    fetchRequesters(balagruhaId);
   };
 
   // Story 3.4: Handle category tab click

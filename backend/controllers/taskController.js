@@ -2,7 +2,7 @@ const Task = require("../models/task");
 const User = require("../models/user");
 const mongoose = require("mongoose");
 const { HTTP_STATUS_CODE } = require("../constants/general");
-const { logger } = require("../config/pino-config");
+const { logger, errorLogger } = require("../config/pino-config");
 const Tasks = require("../services/task");
 const { isRequestFromLocalhost } = require("../utils/helper");
 const { UserTypes } = require("../constants/users");
@@ -58,7 +58,7 @@ exports.createTask = async (req, res) => {
     await task.save();
     res.status(201).json({ message: "Task created successfully.", task });
   } catch (error) {
-    console.error("Error creating task:", error);
+    errorLogger.error({ err: error }, "Error creating task:");
     res
       .status(500)
       .json({ message: "Internal server error.", error: error.message });
@@ -122,7 +122,7 @@ exports.updateTask = async (req, res) => {
     await task.save();
     res.status(200).json({ message: "Task updated successfully.", task });
   } catch (error) {
-    console.error("Error updating task:", error);
+    errorLogger.error({ err: error }, "Error updating task:");
     res
       .status(500)
       .json({ message: "Internal server error.", error: error.message });
@@ -176,7 +176,7 @@ exports.getAllTasks = async (req, res) => {
       totalPages: Math.ceil(totalTasks / limit),
     });
   } catch (error) {
-    console.error("Error fetching all tasks:", error);
+    errorLogger.error({ err: error }, "Error fetching all tasks:");
     res.status(500).json({
       success: false,
       message: "Internal server error.",

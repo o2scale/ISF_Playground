@@ -978,7 +978,7 @@ exports.updateUserDetails = async (req, res) => {
         updateNextActionDate(userId, req.body.nextActionDate);
       }
     } catch (medicalError) {
-      console.error("Error updating medical records:", medicalError);
+      errorLogger.error({ err: medicalError }, "Error updating medical records:");
       // Continue with user update even if medical records fail
       // You might want to log this error but not fail the entire update
     }

@@ -5,6 +5,7 @@ const Balagruha = require('../models/balagruha');
 const mongoose = require('mongoose');
 const csv = require('csv-parser');
 const { Readable } = require('stream');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Inventory Controller - Sprint5-Story-06
@@ -262,7 +263,7 @@ exports.adjustStock = async (req, res) => {
             { $set: { stock: updateResult.previousStock } }
           );
         } catch (revertError) {
-          console.error('Failed to revert stock after audit log failure:', revertError);
+          errorLogger.error({ err: revertError }, 'Failed to revert stock after audit log failure:');
         }
 
         throw txError;
@@ -289,7 +290,7 @@ exports.adjustStock = async (req, res) => {
       transaction
     });
   } catch (error) {
-    console.error('Error adjusting stock:', error);
+    errorLogger.error({ err: error }, 'Error adjusting stock:');
     res.status(500).json({
       message: 'Failed to adjust stock',
       error: error.message
@@ -407,7 +408,7 @@ exports.bulkUpdateStock = async (req, res) => {
       results
     });
   } catch (error) {
-    console.error('Error in bulk update:', error);
+    errorLogger.error({ err: error }, 'Error in bulk update:');
     res.status(500).json({
       message: 'Failed to process bulk update',
       error: error.message
@@ -491,7 +492,7 @@ exports.getAuditTrail = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching audit trail:', error);
+    errorLogger.error({ err: error }, 'Error fetching audit trail:');
     res.status(500).json({
       message: 'Failed to fetch audit trail',
       error: error.message
@@ -623,7 +624,7 @@ exports.getInventoryDashboard = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching inventory dashboard:', error);
+    errorLogger.error({ err: error }, 'Error fetching inventory dashboard:');
     res.status(500).json({
       message: 'Failed to fetch inventory dashboard',
       error: error.message
@@ -823,7 +824,7 @@ exports.getMasterInventoryReport = async (req, res) => {
       balagruhaBreakdown
     });
   } catch (error) {
-    console.error('Error generating master inventory report:', error);
+    errorLogger.error({ err: error }, 'Error generating master inventory report:');
     res.status(500).json({
       message: 'Failed to generate master inventory report',
       error: error.message
@@ -854,7 +855,7 @@ exports.exportInventory = async (req, res) => {
     res.setHeader('Content-Disposition', 'attachment; filename="inventory-export.csv"');
     res.status(200).send(csvContent);
   } catch (error) {
-    console.error('Error exporting inventory:', error);
+    errorLogger.error({ err: error }, 'Error exporting inventory:');
     res.status(500).json({
       message: 'Failed to export inventory',
       error: error.message
@@ -882,7 +883,7 @@ exports.getLowStockProducts = async (req, res) => {
       products
     });
   } catch (error) {
-    console.error('Error fetching low stock products:', error);
+    errorLogger.error({ err: error }, 'Error fetching low stock products:');
     res.status(500).json({
       message: 'Failed to fetch low stock products',
       error: error.message
@@ -909,7 +910,7 @@ exports.getOutOfStockProducts = async (req, res) => {
       products
     });
   } catch (error) {
-    console.error('Error fetching out of stock products:', error);
+    errorLogger.error({ err: error }, 'Error fetching out of stock products:');
     res.status(500).json({
       message: 'Failed to fetch out of stock products',
       error: error.message
@@ -943,7 +944,7 @@ exports.getStockAlerts = async (req, res) => {
       total: lowStockCount + outOfStockCount
     });
   } catch (error) {
-    console.error('Error fetching stock alerts:', error);
+    errorLogger.error({ err: error }, 'Error fetching stock alerts:');
     res.status(500).json({
       message: 'Failed to fetch stock alerts',
       error: error.message
@@ -971,7 +972,7 @@ exports.getQuickStats = async (req, res) => {
       totalOrders
     });
   } catch (error) {
-    console.error('Error fetching quick stats:', error);
+    errorLogger.error({ err: error }, 'Error fetching quick stats:');
     res.status(500).json({
       message: 'Failed to fetch quick stats',
       error: error.message
@@ -1059,7 +1060,7 @@ exports.getStockLevels = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching stock levels:', error);
+    errorLogger.error({ err: error }, 'Error fetching stock levels:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch stock levels',
@@ -1135,7 +1136,7 @@ exports.getMostConsumed = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching most consumed products:', error);
+    errorLogger.error({ err: error }, 'Error fetching most consumed products:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch consumption data',

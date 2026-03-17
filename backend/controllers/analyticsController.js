@@ -2,6 +2,7 @@
 // HTTP handlers for shop analytics endpoints
 
 const AnalyticsService = require('../services/analytics');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Get shop analytics for a date range
@@ -43,7 +44,7 @@ exports.getShopAnalytics = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching shop analytics:', error);
+    errorLogger.error({ err: error }, 'Error fetching shop analytics:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch shop analytics',
@@ -105,7 +106,7 @@ exports.getStudentParticipationDetails = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching student participation details:', error);
+    errorLogger.error({ err: error }, 'Error fetching student participation details:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch student participation details',
@@ -164,7 +165,7 @@ exports.getCoinEarningVelocity = async (req, res) => {
       data: velocityData
     });
   } catch (error) {
-    console.error('Error fetching coin earning velocity:', error);
+    errorLogger.error({ err: error }, 'Error fetching coin earning velocity:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch coin earning velocity analytics',

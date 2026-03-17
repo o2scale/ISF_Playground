@@ -1,6 +1,7 @@
 const PurchaseOrder = require("../services/purchaseAndRepair/purchaseOrder");
 const RepairRequest = require("../services/purchaseAndRepair/repairRequests");
 const { isRequestFromLocalhost } = require("../utils/helper");
+const { errorLogger } = require('../config/pino-config');
 
 const repairRequestController = {
   // Create a new repair request
@@ -27,7 +28,7 @@ const repairRequestController = {
         data: newRepairRequest.data,
       });
     } catch (error) {
-      console.error("Error creating repair request:", error);
+      errorLogger.error({ err: error }, "Error creating repair request:");
       return res.status(500).json({
         success: false,
         message: "Failed to create repair request",
@@ -74,7 +75,7 @@ const repairRequestController = {
         },
       });
     } catch (error) {
-      console.error("Error fetching repair requests:", error);
+      errorLogger.error({ err: error }, "Error fetching repair requests:");
       return res.status(500).json({
         success: false,
         message: "Failed to fetch repair requests",
@@ -103,7 +104,7 @@ const repairRequestController = {
         msg: "Repair request fetched successfully",
       });
     } catch (error) {
-      console.error("Error fetching repair request:", error);
+      errorLogger.error({ err: error }, "Error fetching repair request:");
       return res.status(500).json({
         success: false,
         message: "Failed to fetch repair request",
@@ -161,7 +162,7 @@ const repairRequestController = {
         data: { repairRequest: updatedRequest },
       });
     } catch (error) {
-      console.error("Error updating repair request:", error);
+      errorLogger.error({ err: error }, "Error updating repair request:");
       return res.status(500).json({
         success: false,
         message: "Failed to update repair request",
@@ -190,7 +191,7 @@ const repairRequestController = {
         message: "Repair request deleted successfully",
       });
     } catch (error) {
-      console.error("Error deleting repair request:", error);
+      errorLogger.error({ err: error }, "Error deleting repair request:");
       return res.status(500).json({
         success: false,
         message: "Failed to delete repair request",
@@ -222,7 +223,7 @@ const repairRequestController = {
         data: { repairRequest: updatedRequest },
       });
     } catch (error) {
-      console.error("Error toggling repair request status:", error);
+      errorLogger.error({ err: error }, "Error toggling repair request status:");
       return res.status(500).json({
         success: false,
         message: "Failed to toggle repair request status",
@@ -254,7 +255,7 @@ const repairRequestController = {
         data: newPurchaseOrder.data,
       });
     } catch (error) {
-      console.error("Error creating purchase order:", error);
+      errorLogger.error({ err: error }, "Error creating purchase order:");
       return res.status(500).json({
         success: false,
         message: "Failed to create purchase order",
@@ -301,7 +302,7 @@ const repairRequestController = {
         },
       });
     } catch (error) {
-      console.error("Error fetching purchase orders:", error);
+      errorLogger.error({ err: error }, "Error fetching purchase orders:");
       return res.status(500).json({
         success: false,
         message: "Failed to fetch purchase orders",
@@ -330,7 +331,7 @@ const repairRequestController = {
         msg: "Purchase order fetched successfully",
       });
     } catch (error) {
-      console.error("Error fetching purchase order:", error);
+      errorLogger.error({ err: error }, "Error fetching purchase order:");
       return res.status(500).json({
         success: false,
         message: "Failed to fetch purchase order",
@@ -387,7 +388,7 @@ const repairRequestController = {
         data: { purchaseOrder: updatedOrder },
       });
     } catch (error) {
-      console.error("Error updating purchase order:", error);
+      errorLogger.error({ err: error }, "Error updating purchase order:");
       return res.status(500).json({
         success: false,
         message: "Failed to update purchase order",
@@ -416,7 +417,7 @@ const repairRequestController = {
         message: "Purchase order deleted successfully",
       });
     } catch (error) {
-      console.error("Error deleting purchase order:", error);
+      errorLogger.error({ err: error }, "Error deleting purchase order:");
       return res.status(500).json({
         success: false,
         message: "Failed to delete purchase order",
@@ -457,7 +458,7 @@ const repairRequestController = {
         data: { purchaseOrder: updatedOrder },
       });
     } catch (error) {
-      console.error("Error updating purchase order status:", error);
+      errorLogger.error({ err: error }, "Error updating purchase order status:");
       return res.status(500).json({
         success: false,
         message: "Failed to update purchase order status",
@@ -477,7 +478,7 @@ const repairRequestController = {
         message: "Purchase manager overview fetched successfully",
       });
     } catch (error) {
-      console.error("Error fetching purchase manager overview:", error);
+      errorLogger.error({ err: error }, "Error fetching purchase manager overview:");
       return res.status(500).json({
         success: false,
         message: "Failed to fetch purchase manager overview",

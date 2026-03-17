@@ -1,6 +1,7 @@
 const Course = require('../../../models/course');
 const Quiz = require('../../../models/Quiz');
 const mongoose = require('mongoose');
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Translation Controller - Sprint 2 Epic 02 Story 04
@@ -60,7 +61,7 @@ exports.getTranslationProgress = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching translation progress:', error);
+    errorLogger.error({ err: error }, 'Error fetching translation progress:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch translation progress',
@@ -131,7 +132,7 @@ exports.getTranslatableItems = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching translatable items:', error);
+    errorLogger.error({ err: error }, 'Error fetching translatable items:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch translatable items',
@@ -243,7 +244,7 @@ exports.saveTranslation = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error saving translation:', error);
+    errorLogger.error({ err: error }, 'Error saving translation:');
     res.status(500).json({
       success: false,
       message: 'Failed to save translation',
@@ -321,7 +322,7 @@ exports.publishTranslations = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error publishing translations:', error);
+    errorLogger.error({ err: error }, 'Error publishing translations:');
     res.status(500).json({
       success: false,
       message: 'Failed to publish translations',

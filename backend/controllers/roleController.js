@@ -1,4 +1,5 @@
 const Role = require("../models/role");
+const { errorLogger } = require('../config/pino-config');
 
 exports.createRole = async (req, res) => {
   try {
@@ -23,7 +24,7 @@ exports.createRole = async (req, res) => {
 
     res.status(201).json({ message: "Role created successfully", role });
   } catch (error) {
-    console.error("Error creating role:", error);
+    errorLogger.error({ err: error }, "Error creating role:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -74,7 +75,7 @@ exports.updateRolePermissions = async (req, res) => {
 
     res.status(200).json({ message: "Permissions updated successfully", role });
   } catch (error) {
-    console.error("Error updating role permissions:", error);
+    errorLogger.error({ err: error }, "Error updating role permissions:");
     res
       .status(500)
       .json({ error: "Internal server error", details: error.message });
@@ -91,7 +92,7 @@ exports.getAllRoles = async (req, res) => {
 
     res.status(200).json({ success: true, roles });
   } catch (error) {
-    console.error("Error fetching roles:", error);
+    errorLogger.error({ err: error }, "Error fetching roles:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -107,7 +108,7 @@ exports.getRoleById = async (req, res) => {
 
     res.status(200).json({ success: true, role });
   } catch (error) {
-    console.error("Error fetching role by ID:", error);
+    errorLogger.error({ err: error }, "Error fetching role by ID:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -123,7 +124,7 @@ exports.deleteRole = async (req, res) => {
 
     res.status(200).json({ message: "Role deleted successfully" });
   } catch (error) {
-    console.error("Error deleting role:", error);
+    errorLogger.error({ err: error }, "Error deleting role:");
     res.status(500).json({ error: "Internal server error" });
   }
 };
@@ -138,7 +139,7 @@ exports.getAllRolePermissions = async (req, res) => {
 
     res.status(200).json({ success: true, roles });
   } catch (error) {
-    console.error("Error fetching roles:", error);
+    errorLogger.error({ err: error }, "Error fetching roles:");
     res.status(500).json({ error: "Internal server error" });
   }
 };

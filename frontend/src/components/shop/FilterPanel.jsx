@@ -20,8 +20,16 @@ const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
     onFilterChange({ search: e.target.value });
   };
 
+  // FIX-043: Multi-select category filter
   const handleCategoryChange = (category) => {
-    onFilterChange({ category: filters.category === category ? null : category });
+    const current = filters.category ? (Array.isArray(filters.category) ? filters.category : [filters.category]) : [];
+    let updated;
+    if (current.includes(category)) {
+      updated = current.filter(c => c !== category);
+    } else {
+      updated = [...current, category];
+    }
+    onFilterChange({ category: updated.length > 0 ? updated : null });
   };
 
   const handlePriceChange = (e) => {
@@ -38,7 +46,7 @@ const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold text-slate-900">Filters</h3>
-        {(filters.search || filters.category || filters.maxPrice < 500) && (
+        {(filters.search || (filters.category && (!Array.isArray(filters.category) || filters.category.length > 0)) || filters.maxPrice < 500) && (
           <button
             onClick={onClearFilters}
             className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
@@ -67,21 +75,25 @@ const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
       <div className="mb-6">
         <h4 className="text-sm font-medium text-slate-700 mb-2">Categories</h4>
         <div className="space-y-2">
-          {categories.map(cat => (
-            <label
-              key={cat.value}
-              className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors"
-            >
-              <input
-                type="radio"
-                name="category"
-                checked={filters.category === cat.value}
-                onChange={() => handleCategoryChange(cat.value)}
-                className="w-4 h-4 text-purple-600 border-gray-300 focus:ring-purple-500"
-              />
-              <span className="text-sm text-slate-700">{cat.label}</span>
-            </label>
-          ))}
+          {categories.map(cat => {
+            const selectedCategories = filters.category
+              ? (Array.isArray(filters.category) ? filters.category : [filters.category])
+              : [];
+            return (
+              <label
+                key={cat.value}
+                className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-2 rounded transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedCategories.includes(cat.value)}
+                  onChange={() => handleCategoryChange(cat.value)}
+                  className="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <span className="text-sm text-slate-700">{cat.label}</span>
+              </label>
+            );
+          })}
         </div>
       </div>
 

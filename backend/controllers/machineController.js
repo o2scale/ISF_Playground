@@ -4,6 +4,7 @@ const MachineActivityStamp = require("../models/machineactivelog");
 const { getBalagruhaById } = require("../data-access/balagruha");
 const { default: mongoose } = require("mongoose");
 const { getMachineById, deleteMachine } = require("../data-access/machines");
+const { errorLogger } = require('../config/pino-config');
 // Register a new machine
 // exports.registerMachine = async (req, res) => {
 //     try {
@@ -305,7 +306,7 @@ exports.getAllMachines = async (req, res) => {
       message: "successfully fetched machines list",
     });
   } catch (error) {
-    console.error("Error fetching machines:", error);
+    errorLogger.error({ err: error }, "Error fetching machines:");
     res
       .status(500)
       .json({ success: false, data: {}, message: "Internal server error" });
@@ -364,7 +365,7 @@ exports.registerMachine = async (req, res) => {
       data: { machine: machine },
     });
   } catch (error) {
-    console.error("Error registering machine:", error);
+    errorLogger.error({ err: error }, "Error registering machine:");
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -391,7 +392,7 @@ exports.toggleMachineStatus = async (req, res) => {
       data: { machine: machine },
     });
   } catch (error) {
-    console.error("Error toggling machine status:", error);
+    errorLogger.error({ err: error }, "Error toggling machine status:");
     res
       .status(500)
       .json({ success: false, data: {}, message: "Internal server error" });
@@ -441,7 +442,7 @@ exports.assignMachine = async (req, res) => {
         .json({ success: false, message: "New Balagruha is required." });
     }
   } catch (error) {
-    console.error("Error assigning machine:", error);
+    errorLogger.error({ err: error }, "Error assigning machine:");
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -463,7 +464,7 @@ exports.getMachineHistory = async (req, res) => {
 
     res.status(200).json({ success: true, history: machine.allocationHistory });
   } catch (error) {
-    console.error("Error fetching machine history:", error);
+    errorLogger.error({ err: error }, "Error fetching machine history:");
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
@@ -496,7 +497,7 @@ exports.deleteMachine = async (req, res) => {
           .json({ success: true, message: "Machine deleted successfully" });
       })
       .catch((error) => {
-        console.error("Error deleting machine:", error);
+        errorLogger.error({ err: error }, "Error deleting machine:");
         res
           .status(500)
           .json({ success: false, message: "Internal server error" });
@@ -519,7 +520,7 @@ exports.getUnassignedMachines = async (req, res) => {
       message: "Successfully fetched unassigned machines list",
     });
   } catch (error) {
-    console.error("Error fetching unassigned machines:", error);
+    errorLogger.error({ err: error }, "Error fetching unassigned machines:");
     res.status(500).json({
       success: false,
       data: {},
@@ -579,7 +580,7 @@ exports.getMachineLogs = async (req, res) => {
       message: "Successfully fetched machine usage logs",
     });
   } catch (error) {
-    console.error("Error fetching machine logs:", error);
+    errorLogger.error({ err: error }, "Error fetching machine logs:");
     res.status(500).json({
       success: false,
       data: {},

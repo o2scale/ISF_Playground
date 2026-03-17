@@ -1,6 +1,7 @@
 const ContentLibrary = require('../models/ContentLibrary');
 const s3Service = require('../services/aws/s3');
 const fs = require('fs');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Helper function to determine file type from MIME type
@@ -115,7 +116,7 @@ exports.uploadFiles = async (req, res) => {
           }
         }
       } catch (uploadError) {
-        console.error('Upload error:', uploadError);
+        errorLogger.error({ err: uploadError }, 'Upload error:');
 
         failedUploads.push({
           filename: file.originalname,
@@ -148,7 +149,7 @@ exports.uploadFiles = async (req, res) => {
       }),
     });
   } catch (error) {
-    console.error('Content upload controller error:', error);
+    errorLogger.error({ err: error }, 'Content upload controller error:');
 
     // Cleanup any remaining files
     if (req.files) {
@@ -242,7 +243,7 @@ exports.getAllFiles = async (req, res) => {
       limit: parseInt(limit),
     });
   } catch (error) {
-    console.error('Error fetching files:', error);
+    errorLogger.error({ err: error }, 'Error fetching files:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch files',
@@ -279,7 +280,7 @@ exports.getFileById = async (req, res) => {
       file,
     });
   } catch (error) {
-    console.error('Error fetching file:', error);
+    errorLogger.error({ err: error }, 'Error fetching file:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch file',
@@ -318,7 +319,7 @@ exports.updateFileMetadata = async (req, res) => {
       file,
     });
   } catch (error) {
-    console.error('Error updating file metadata:', error);
+    errorLogger.error({ err: error }, 'Error updating file metadata:');
     res.status(500).json({
       success: false,
       message: 'Failed to update file metadata',
@@ -357,7 +358,7 @@ exports.deleteFile = async (req, res) => {
     const deleteResult = await s3Service.deleteLMSContent(file.s3Key);
 
     if (!deleteResult.success) {
-      console.error('S3 deletion failed:', deleteResult.error);
+      errorLogger.error({ err: deleteResult.error }, 'S3 deletion failed:');
       // Continue with MongoDB deletion even if S3 fails
     }
 
@@ -374,7 +375,7 @@ exports.deleteFile = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error deleting file:', error);
+    errorLogger.error({ err: error }, 'Error deleting file:');
     res.status(500).json({
       success: false,
       message: 'Failed to delete file',
@@ -424,7 +425,7 @@ exports.getContentStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error fetching content stats:', error);
+    errorLogger.error({ err: error }, 'Error fetching content stats:');
     res.status(500).json({
       success: false,
       message: 'Failed to fetch content statistics',

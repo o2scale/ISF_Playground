@@ -68,7 +68,7 @@ exports.deleteMedicalHistoryItem = async (req, res) => {
         const key = urlParts[urlParts.length - 1];
         await deleteFileFromS3(process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS, key);
       } catch (error) {
-        console.error(`Error deleting file from S3: ${fileUrl}`, error);
+        errorLogger.error({ err: error }, `Error deleting file from S3: ${fileUrl}`);
         // Continue with deletion even if S3 deletion fails
       }
     }
