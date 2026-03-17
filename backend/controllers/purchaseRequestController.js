@@ -794,6 +794,11 @@ exports.getLowStockProducts = async (req, res) => {
  * @route   POST /api/v2/shop/admin/purchase-requests/:id/complete
  * @desc    Complete purchase request with multi-product stock update (Purchase Manager only) - Sprint5-Story-19
  * @access  Private (Purchase Management:Update)
+ * @deprecated FIX-007: This is the LEGACY completion path that requires status='approved'.
+ *   The standard 4-step workflow (pending->ordered->delivered_store->delivered_balagruha)
+ *   now handles inventory updates via updateStatus(). This endpoint is retained for
+ *   backward compatibility with the old approval-based workflow but should not be used
+ *   for new integrations. Use the state machine transitions in updateStatus() instead.
  * @features
  *   - ATOMIC multi-product stock update using MongoDB transactions
  *   - Creates multiple InventoryTransaction records (one per product)
@@ -996,6 +1001,11 @@ exports.completePurchaseRequest = async (req, res) => {
  * @access  Private (Role based)
  */
 exports.updateStatus = async (req, res) => {
+  // FIX-007: Use session for delivered_store/delivered_balagruha transitions
+  // that now create InventoryTransactions atomically.
+  // Bypass transactions in test environment to avoid replica set errors.
+  let session = null;
+
   try {
     const { id } = req.params;
     const { status, notes, repairTechnicianName } = req.body;  // Story 2.6: Add repairTechnicianName
@@ -1085,9 +1095,22 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
+    // FIX-007: Start session for inventory-affecting transitions
+    const needsInventory = (status === 'delivered_store' || status === 'delivered_balagruha');
+    if (needsInventory && process.env.NODE_ENV !== 'test') {
+      session = await mongoose.startSession();
+      session.startTransaction();
+    }
+
+    // Re-fetch with session if using transactions
+    let requestDoc = request;
+    if (session) {
+      requestDoc = await PurchaseRequest.findById(id).session(session);
+    }
+
     // Update Status
-    request.status = status;
-    request.statusHistory.push({
+    requestDoc.status = status;
+    requestDoc.statusHistory.push({
       status,
       changedBy: userId,
       changedAt: new Date(),
@@ -1095,24 +1118,122 @@ exports.updateStatus = async (req, res) => {
     });
 
     // Story 2.6: Capture Repair Technician Name at delivered_store for Repairs
-    if (status === 'delivered_store' && request.category === 'Repairs' && repairTechnicianName) {
-      request.repairTechnicianName = repairTechnicianName.trim();
+    if (status === 'delivered_store' && requestDoc.category === 'Repairs' && repairTechnicianName) {
+      requestDoc.repairTechnicianName = repairTechnicianName.trim();
     }
 
     // Story 2.6: Auto-capture delivery info at delivered_balagruha
     if (status === 'delivered_balagruha') {
-      request.deliveredByCoachId = userId;
-      request.deliveredToBalagruhaAt = new Date();
+      requestDoc.deliveredByCoachId = userId;
+      requestDoc.deliveredToBalagruhaAt = new Date();
     }
 
-    await request.save();
+    // FIX-007: Inventory updates on state machine transitions
+    const inventoryTransactionIds = [];
+
+    if (status === 'delivered_store') {
+      // delivered_store: Items received at store — increase stock
+      for (const item of requestDoc.items) {
+        let productQuery = ShopItem.findById(item.productId);
+        if (session) productQuery = productQuery.session(session);
+        const product = await productQuery;
+
+        if (!product) {
+          throw new Error(`Product ${item.productName || item.productId} not found`);
+        }
+
+        const receivedQty = item.requestedQuantity;
+        const previousStock = product.stock;
+        product.stock += receivedQty;
+        await product.save({ session });
+
+        const txnData = {
+          productId: product._id,
+          transactionType: 'received',
+          quantity: receivedQty,
+          previousStock: previousStock,
+          newStock: product.stock,
+          reference: {
+            type: 'purchase_request',
+            id: requestDoc._id
+          },
+          reason: `Purchase request ${requestDoc.requestId} delivered to store`,
+          notes: notes || `Status transition: ordered -> delivered_store`,
+          performedBy: userId
+        };
+
+        if (session) {
+          const [txn] = await InventoryTransaction.create([txnData], { session });
+          inventoryTransactionIds.push(txn._id);
+        } else {
+          const txn = await InventoryTransaction.create(txnData);
+          inventoryTransactionIds.push(txn._id);
+        }
+      }
+    } else if (status === 'delivered_balagruha') {
+      // delivered_balagruha: Items deployed from store to balagruha — track deployment
+      for (const item of requestDoc.items) {
+        let productQuery = ShopItem.findById(item.productId);
+        if (session) productQuery = productQuery.session(session);
+        const product = await productQuery;
+
+        if (!product) {
+          throw new Error(`Product ${item.productName || item.productId} not found`);
+        }
+
+        const deployedQty = item.requestedQuantity;
+
+        const txnData = {
+          productId: product._id,
+          transactionType: 'deployed',
+          quantity: -deployedQty,
+          previousStock: product.stock,
+          newStock: product.stock,  // Stock doesn't change — already at store
+          reference: {
+            type: 'purchase_request',
+            id: requestDoc._id
+          },
+          reason: `Purchase request ${requestDoc.requestId} deployed to balagruha`,
+          notes: notes || `Status transition: delivered_store -> delivered_balagruha`,
+          performedBy: userId
+        };
+
+        if (session) {
+          const [txn] = await InventoryTransaction.create([txnData], { session });
+          inventoryTransactionIds.push(txn._id);
+        } else {
+          const txn = await InventoryTransaction.create(txnData);
+          inventoryTransactionIds.push(txn._id);
+        }
+      }
+    }
+
+    // FIX-007: Store inventory transaction references on the request
+    if (inventoryTransactionIds.length > 0) {
+      requestDoc.inventoryTransactionIds = [
+        ...(requestDoc.inventoryTransactionIds || []),
+        ...inventoryTransactionIds
+      ];
+    }
+
+    await requestDoc.save({ session });
+
+    if (session) {
+      await session.commitTransaction();
+      session.endSession();
+      session = null;
+    }
 
     res.status(200).json({
       success: true,
       message: `Status updated to ${status}`,
-      data: { request }
+      data: { request: requestDoc }
     });
   } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
     console.error('Error updating status:', error);
     if (error.name === 'ValidationError' || error.name === 'CastError') {
       return res.status(400).json({
