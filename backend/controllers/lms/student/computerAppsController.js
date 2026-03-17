@@ -1,6 +1,7 @@
 const Course = require('../../../models/course');
 const StudentProgress = require('../../../models/StudentProgress');
 const mongoose = require('mongoose');
+const { errorLogger } = require('../../../config/pino-config');
 
 // ==================== GET APPS LIST ====================
 
@@ -57,11 +58,10 @@ exports.getComputerApps = async (req, res) => {
 
     res.json({
       success: true,
-      apps,
-      debug: progressRecords // TEMPORARY DEBUG
+      apps
     });
   } catch (error) {
-    console.error('Get Computer Apps Error:', error);
+    errorLogger.error({ err: error }, 'Get Computer Apps Error');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching Computer Apps',
@@ -133,7 +133,7 @@ exports.getCourseHierarchy = async (req, res) => {
       modules
     });
   } catch (error) {
-    console.error('Get Course Hierarchy Error:', error);
+    errorLogger.error({ err: error }, 'Get Course Hierarchy Error');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching course hierarchy',
@@ -187,7 +187,7 @@ exports.getContentDetails = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Get Content Details Error:', error);
+    errorLogger.error({ err: error }, 'Get Content Details Error');
     res.status(500).json({
       success: false,
       message: 'Server error while fetching content details',
@@ -233,21 +233,12 @@ exports.getQuiz = async (req, res) => {
       quiz
     });
   } catch (error) {
-    console.error('Get Quiz Error:', error);
+    errorLogger.error({ err: error }, 'Get Quiz Error');
     res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
 exports.submitQuiz = async (req, res) => {
-  let debugInfo = {};
-  const fs = require('fs');
-  const path = require('path');
-  const logPath = path.join(__dirname, '../../../quiz_debug.log');
-
-  const log = (msg) => {
-    try { fs.appendFileSync(logPath, msg + '\n'); } catch (e) { }
-  };
-
   try {
     const { studentId } = req.params;
     const { quizId, answers, courseId: bodyCourseId } = req.body;
@@ -259,14 +250,10 @@ exports.submitQuiz = async (req, res) => {
     const Coin = require('../../../models/coin');
     const User = require('../../../models/user');
 
-    log(`SubmitQuiz: Stud=${studentId}, Quiz=${quizId}, Course=${bodyCourseId}`);
-
     const quiz = await Quiz.findById(quizId).lean();
     if (!quiz) {
-      log('Quiz not found');
       return res.status(404).json({ success: false, message: 'Quiz not found' });
     }
-    log('Quiz Fetched');
 
     // Check Max Attempts before accepting submission
     const maxAttempts = quiz.settings?.maxAttempts || 3;
@@ -280,7 +267,6 @@ exports.submitQuiz = async (req, res) => {
       });
 
       if (attemptCount >= maxAttempts) {
-        log(`Submission Rejected: Attempts (${attemptCount}) >= Max (${maxAttempts})`);
         return res.status(403).json({
           success: false,
           error: `Maximum attempts (${maxAttempts}) exceeded for this quiz.`
@@ -296,18 +282,12 @@ exports.submitQuiz = async (req, res) => {
       }).select('_id');
       if (fallback) courseId = fallback._id;
     }
-    debugInfo.courseId = courseId;
-    debugInfo.answersReceived = answers ? answers.length : 0;
-    log(`Resolved CourseID: ${courseId}`);
 
     if (!answers || !Array.isArray(answers)) {
-      log('Invalid Answers Format');
       throw new Error('Invalid answers format');
     }
-    log(`Answers Count: ${answers.length}`);
 
     // Grading Logic
-    log('Starting Grading');
     let correctAnswers = 0;
     let baseCoins = 0;
     const breakdown = quiz.questions.map((q, idx) => {
@@ -356,12 +336,9 @@ exports.submitQuiz = async (req, res) => {
           explanation: q.explanation
         };
       } catch (err) {
-        log(`Error Grading Q ${idx}: ${err.message}`);
         throw err;
       }
     });
-
-    log('Grading Done');
 
     const totalQuestions = quiz.questions.length;
     const score = Math.round((correctAnswers / totalQuestions) * 100);
@@ -378,9 +355,8 @@ exports.submitQuiz = async (req, res) => {
           'completedItems.score': { $gte: (quiz.minScore || 60) }
         });
         if (record) alreadyPassed = true;
-      } catch (e) { log('Progress Check Error: ' + e.message); }
+      } catch (e) { errorLogger.error({ err: e }, 'Progress Check Error'); }
     }
-    log(`Passed: ${passed}, Already: ${alreadyPassed}`);
 
     // Save Submission
     const submission = new Submission({
@@ -396,26 +372,22 @@ exports.submitQuiz = async (req, res) => {
       submittedAt: new Date()
     });
     if (courseId) await submission.save();
-    log('Submission Saved');
 
     let coinsAwarded = 0;
     if (passed && !alreadyPassed && baseCoins > 0) {
-      log('Awarding Coins');
       try {
         const coinRecord = await Coin.findOrCreateForUser(studentId);
         const meta = { quizId: quiz._id, courseId: courseId };
         await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'task', meta);
         await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
         coinsAwarded = baseCoins;
-        log('Coins Awarded');
       } catch (e) {
-        log('Coin Error: ' + e.message);
+        errorLogger.error({ err: e }, 'Coin Award Error');
       }
     }
 
     // Update Progress
     if (passed && courseId && !alreadyPassed) {
-      log('Updating Progress');
       try {
         await StudentProgress.findOneAndUpdate(
           { student: studentId, course: courseId },
