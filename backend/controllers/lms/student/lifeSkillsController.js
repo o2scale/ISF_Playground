@@ -515,63 +515,58 @@ exports.submitQuiz = async (req, res) => {
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     const passed = score >= (quiz.minScore || 60);
 
-    // Save Submission
-    // Using Submission model or specific QuizSubmission? 
-    // Let's use Submission generic for now
-    const submission = new Submission({
-      studentId,
-      courseId: quiz.course || courseRef, // Use cached ref if quiz doesn't have it
-      taskId: quizId,
-      taskTitle: quiz.title || 'Quiz Submission',
-      submissionType: 'quiz',
-      fileUrl: 'quiz-submission', // Placeholder for required field
-      status: 'graded',
-      grade: {
-        score,
-        points: baseCoins
-      },
-      metadata: { breakdown }, // Store details
-      submittedAt: new Date()
-    });
-    await submission.save();
+    // Save Submission, award coins, and update progress atomically
+    const session = await mongoose.startSession();
 
-    // Award Coins
-    if (baseCoins > 0) {
-      try {
-        const Coin = require('../../../models/coin');
-        const User = require('../../../models/user');
+    try {
+      await session.withTransaction(async () => {
+        // Save Submission
+        const submission = new Submission({
+          studentId,
+          courseId: quiz.course || courseRef,
+          taskId: quizId,
+          taskTitle: quiz.title || 'Quiz Submission',
+          submissionType: 'quiz',
+          fileUrl: 'quiz-submission',
+          status: 'graded',
+          grade: {
+            score,
+            points: baseCoins
+          },
+          metadata: { breakdown },
+          submittedAt: new Date()
+        });
+        await submission.save({ session });
 
-        const coinRecord = await Coin.findOrCreateForUser(studentId);
+        // Award Coins
+        if (baseCoins > 0) {
+          const Coin = require('../../../models/coin');
+          const User = require('../../../models/user');
 
-        // Determine courseId (use quiz.course or courseRef)
-        const cId = quiz.course || courseRef;
+          const coinRecord = await Coin.findOrCreateForUser(studentId);
+          const cId = quiz.course || courseRef;
 
-        await coinRecord.addCoins(
-          baseCoins,
-          'earned',
-          `Quiz Completed: ${quiz.title}`,
-          'task',
-          { quizId: quiz._id, courseId: cId }
-        );
+          await coinRecord.addCoins(
+            baseCoins,
+            'earned',
+            `Quiz Completed: ${quiz.title}`,
+            'task',
+            { quizId: quiz._id, courseId: cId },
+            { session }
+          );
 
-        // Update User Balance Legacy
-        await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
-      } catch (coinError) {
-        errorLogger.error({ err: coinError }, 'Error awarding coins in Life Skills');
-        // Fallback to just User update if Coin model fails?
-        // Better to log and persist main balance at least
-        const User = require('../../../models/user');
-        await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
-      }
-    }
+          // Update User Balance Legacy
+          await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } }, { session });
+        }
 
-    // Amount of coins logic handled earlier
-
-    // Update Progress
-    if (passed) {
-      // Ensure we pass the ID, not the object
-      const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
-      await updateProgress(studentId, courseIdToUse, quizId, 'quiz', score);
+        // Update Progress
+        if (passed) {
+          const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
+          await updateProgress(studentId, courseIdToUse, quizId, 'quiz', score);
+        }
+      });
+    } finally {
+      await session.endSession();
     }
 
     res.json({

@@ -357,56 +357,58 @@ exports.submitQuiz = async (req, res) => {
       } catch (e) { errorLogger.error({ err: e }, 'Progress Check Error'); }
     }
 
-    // Save Submission
-    const submission = new Submission({
-      studentId,
-      courseId: courseId || quizId,
-      taskId: quizId,
-      taskTitle: quiz.title,
-      submissionType: 'quiz',
-      fileUrl: 'quiz-submission',
-      status: 'graded',
-      grade: { score, points: (passed && !alreadyPassed) ? baseCoins : 0 },
-      metadata: { breakdown },
-      submittedAt: new Date()
-    });
-    if (courseId) await submission.save();
-
+    // Save Submission, award coins, and update progress atomically
+    const session = await mongoose.startSession();
     let coinsAwarded = 0;
-    if (passed && !alreadyPassed && baseCoins > 0) {
-      try {
-        const coinRecord = await Coin.findOrCreateForUser(studentId);
-        const meta = { quizId: quiz._id, courseId: courseId };
-        await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'task', meta);
-        await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
-        coinsAwarded = baseCoins;
-      } catch (e) {
-        errorLogger.error({ err: e }, 'Coin Award Error');
-      }
-    }
 
-    // Update Progress
-    if (passed && courseId && !alreadyPassed) {
-      try {
-        await StudentProgress.findOneAndUpdate(
-          { student: studentId, course: courseId },
-          {
-            $push: {
-              completedItems: {
-                itemId: quizId,
-                itemType: 'quiz',
-                completedAt: new Date(),
-                quizId: quizId,
-                score: score
-              }
+    try {
+      await session.withTransaction(async () => {
+        // Save Submission
+        const submission = new Submission({
+          studentId,
+          courseId: courseId || quizId,
+          taskId: quizId,
+          taskTitle: quiz.title,
+          submissionType: 'quiz',
+          fileUrl: 'quiz-submission',
+          status: 'graded',
+          grade: { score, points: (passed && !alreadyPassed) ? baseCoins : 0 },
+          metadata: { breakdown },
+          submittedAt: new Date()
+        });
+        if (courseId) await submission.save({ session });
+
+        // Award coins
+        if (passed && !alreadyPassed && baseCoins > 0) {
+          const coinRecord = await Coin.findOrCreateForUser(studentId);
+          const meta = { quizId: quiz._id, courseId: courseId };
+          await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'task', meta, { session });
+          await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } }, { session });
+          coinsAwarded = baseCoins;
+        }
+
+        // Update Progress
+        if (passed && courseId && !alreadyPassed) {
+          await StudentProgress.findOneAndUpdate(
+            { student: studentId, course: courseId },
+            {
+              $push: {
+                completedItems: {
+                  itemId: quizId,
+                  itemType: 'quiz',
+                  completedAt: new Date(),
+                  quizId: quizId,
+                  score: score
+                }
+              },
+              $set: { lastAccessedAt: new Date() }
             },
-            $set: { lastAccessedAt: new Date() }
-          },
-          { upsert: true, new: true }
-        );
-      } catch (e) {
-        errorLogger.error({ err: e }, 'Progress Update Error');
-      }
+            { upsert: true, new: true, session }
+          );
+        }
+      });
+    } finally {
+      await session.endSession();
     }
 
     res.json({

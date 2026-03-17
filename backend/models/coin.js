@@ -124,7 +124,8 @@ coinSchema.methods.addCoins = function (
   type,
   description,
   source,
-  metadata = {}
+  metadata = {},
+  options = {}
 ) {
   if (amount <= 0) {
     throw new Error("Coin amount must be positive");
@@ -149,7 +150,12 @@ coinSchema.methods.addCoins = function (
     this.updateWtfStats(type, amount);
   }
 
-  return this.save();
+  // Pass session to save() for transaction support
+  const saveOptions = {};
+  if (options.session) {
+    saveOptions.session = options.session;
+  }
+  return this.save(saveOptions);
 };
 
 // Instance method to spend coins
@@ -158,7 +164,8 @@ coinSchema.methods.spendCoins = function (
   type,
   description,
   source,
-  metadata = {}
+  metadata = {},
+  options = {}
 ) {
   if (amount <= 0) {
     throw new Error("Coin amount must be positive");
@@ -182,7 +189,12 @@ coinSchema.methods.spendCoins = function (
   // Update weekly and monthly stats
   this.updateStats(amount, "spent");
 
-  return this.save();
+  // Pass session to save() for transaction support
+  const saveOptions = {};
+  if (options.session) {
+    saveOptions.session = options.session;
+  }
+  return this.save(saveOptions);
 };
 
 // Instance method to update stats
