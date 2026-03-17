@@ -417,21 +417,9 @@ describe('OrderController (Story 5.2)', () => {
       }));
     });
 
-    it('should return 403 for non-admin users', async () => {
-      const req = mockRequest({
-        user: { id: 'user1', role: 'student' },
-        query: {},
-      });
-      const res = mockResponse();
-
-      await orderController.getAllOrders(req, res);
-
-      expect(res.status).toHaveBeenCalledWith(403);
-      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
-        success: false,
-        message: 'Unauthorized: Admin access required',
-      }));
-    });
+    // Note: Non-admin access is now blocked by authorize('Shop Management', 'Manage')
+    // middleware at the route level, not in the controller. Middleware-level RBAC
+    // tests are covered in route/integration tests.
 
     it('should pass filter query params to service', async () => {
       const req = mockRequest({

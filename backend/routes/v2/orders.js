@@ -3,7 +3,7 @@ const router = express.Router();
 const orderController = require('../../controllers/orderController');
 const { param, query } = require('express-validator');
 const { validate } = require('../../middleware/validator');
-const { authenticate } = require('../../middleware/auth');
+const { authenticate, authorize } = require('../../middleware/auth');
 
 /**
  * Order Routes - Sprint5-Story-03
@@ -60,7 +60,7 @@ router.post('/', authenticate, orderController.createOrder);
  * @access  Private (Admin)
  * @query   page, limit, status, coachId, balagruhaId (optional)
  */
-router.get('/all', authenticate, orderController.getAllOrders);
+router.get('/all', authenticate, authorize('Shop Management', 'Manage'), orderController.getAllOrders);
 
 /**
  * @route   GET /api/v2/shop/orders

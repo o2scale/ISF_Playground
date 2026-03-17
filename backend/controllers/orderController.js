@@ -248,15 +248,8 @@ async function cancelOrder(req, res) {
  */
 async function getAllOrders(req, res) {
   try {
-    // RBAC: Scope filter is set by authorize middleware
-    // Admin gets {} (no restriction), others get appropriate filter
+    // RBAC: authorize('Shop Management', 'Manage') middleware enforces admin-only access
     // Non-admin users without proper authorization are blocked at the middleware level
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Unauthorized: Admin access required'
-      });
-    }
 
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
