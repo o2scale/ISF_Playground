@@ -288,7 +288,7 @@ const App = () => {
                   <Route
                     path="/repair"
                     element={
-                      <ProtectedRoute requiredRoles={['admin', 'purchase-manager', 'coach']}>
+                      <ProtectedRoute requiredRoles={['admin', 'purchase-manager', 'coach', 'medical-incharge', 'balagruha-incharge', 'sports-coach', 'music-coach', 'amma']}>
                         <RepairManagement />
                       </ProtectedRoute>
                     }
@@ -296,7 +296,7 @@ const App = () => {
                   <Route
                     path="/purchase"
                     element={
-                      <ProtectedRoute requiredRoles={['admin', 'purchase-manager', 'coach']}>
+                      <ProtectedRoute requiredRoles={['admin', 'purchase-manager', 'coach', 'medical-incharge', 'balagruha-incharge', 'sports-coach', 'music-coach', 'amma']}>
                         <PurchaseManagement />
                       </ProtectedRoute>
                     }

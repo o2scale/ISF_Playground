@@ -99,7 +99,8 @@ const Layout = () => {
       id: 9,
       name: "Repairs",
       link: "/repair",
-      roles: ["admin"],
+      // FIX-008: All non-student roles can access Repair Management (matches /purchase roles)
+      roles: ["admin", "purchase-manager", "coach", "medical-incharge", "balagruha-incharge", "sports-coach", "music-coach", "amma"],
     },
     {
       id: 10,
