@@ -332,6 +332,46 @@ When ALL acceptance criteria are met, output your final summary of:
 - **Success check:** Alt text on 10 most-used pages AND form labels on 5 critical pages
 - **Epic completion:** Update `epic-8: done`
 
+### Phase 8: Full-Stack Integration Audit (Epic 9 — Discovery)
+
+**All 5 stories are discovery-only (no code changes). Story 9.5 compiles the combined summary and creates Epic 10 fix stories.**
+
+#### Story 9.1 — API Route Alignment & Stale References
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/9-1-api-route-alignment.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/integration-api-alignment.md` exists with cross-reference table
+
+#### Story 9.2 — RBAC & Permission Consistency
+- **Agent:** Winston (Architect) — `_bmad/bmm/agents/architect.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/9-2-rbac-permission-consistency.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/integration-rbac-consistency.md` exists with role comparison table
+
+#### Story 9.3 — Auth Flow End-to-End Trace
+- **Agent:** Amelia (Dev) — `_bmad/bmm/agents/dev.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/9-3-auth-flow-e2e-trace.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/integration-auth-flow.md` exists with 3 flow traces
+
+#### Story 9.4 — Data Shape & Error Handling Consistency
+- **Agent:** Quinn (QA) — `_bmad/bmm/agents/qa.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/9-4-data-shape-error-handling.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/integration-data-shapes.md` exists with 5 API shape analyses
+
+#### Story 9.5 — Infrastructure Integration + Combined Summary
+- **Agent:** Winston (Architect) — `_bmad/bmm/agents/architect.md`
+- **Story:** `_bmad-output/implementation-artifacts/sprint-6/9-5-infrastructure-integration.md`
+- **Success check:** `_bmad-output/implementation-artifacts/evaluation-reports/integration-infrastructure.md` AND `fullstack-integration-summary.md` exist
+- **Epic completion:** Update `epic-9: done`
+
+### Phase 9: Integration Fixes (Epic 10 — Created from Epic 9 findings)
+
+**After Epic 9 completes:**
+1. Read `_bmad-output/implementation-artifacts/evaluation-reports/fullstack-integration-summary.md`
+2. For each CRITICAL and HIGH finding, create a fix story file in `_bmad-output/implementation-artifacts/sprint-6/`
+3. Update `sprint-status.yaml` with Epic 10 stories
+4. Execute Epic 10 stories in priority order (CRITICAL first)
+5. After all fixes: run backend tests (`cd backend && npx jest --verbose`) AND frontend tests AND verify builds
+6. Update `epic-10: done`
+
 ---
 
 ## Completion

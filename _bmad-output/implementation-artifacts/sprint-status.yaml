@@ -112,3 +112,20 @@ development_status:
   8-7-centralize-api-client: done
   8-8-accessibility-quick-wins: done
   epic-8-retrospective: optional
+
+  # Epic 9: Full-Stack Integration Audit (Discovery)
+  epic-9: done
+  9-1-api-route-alignment: done
+  9-2-rbac-permission-consistency: done
+  9-3-auth-flow-e2e-trace: done
+  9-4-data-shape-error-handling: done
+  9-5-infrastructure-integration: done
+  epic-9-retrospective: optional
+
+  # Epic 10: Integration Fixes (created from Epic 9 findings)
+  epic-10: in-progress
+  10-1-permission-seed-data-fixes: ready-for-dev
+  10-2-client-auth-api-fixes: ready-for-dev
+  10-3-security-hardening: ready-for-dev
+  10-4-infrastructure-cleanup: ready-for-dev
+  epic-10-retrospective: optional
