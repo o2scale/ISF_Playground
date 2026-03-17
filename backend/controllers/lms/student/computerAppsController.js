@@ -293,7 +293,6 @@ exports.submitQuiz = async (req, res) => {
     const breakdown = quiz.questions.map((q, idx) => {
       try {
         const qId = q._id.toString();
-        // log(`Grading Q ${idx}: ${qId}`);
         const ans = answers.find(a => a.questionId === qId);
 
         let isCorrect = false;
@@ -405,9 +404,8 @@ exports.submitQuiz = async (req, res) => {
           },
           { upsert: true, new: true }
         );
-        log('Progress Updated');
       } catch (e) {
-        log('Progress Error: ' + e.message);
+        errorLogger.error({ err: e }, 'Progress Update Error');
       }
     }
 
@@ -420,14 +418,10 @@ exports.submitQuiz = async (req, res) => {
         passed,
         coinsEarned: coinsAwarded,
         breakdown
-      },
-      debug: debugInfo
+      }
     });
   } catch (error) {
-    log(`CRASH: ${error.message}\n${error.stack}`);
-    console.error('Submit Quiz Crash:', error);
-    const fs = require('fs');
-    try { fs.appendFileSync('quiz_crash.log', error.stack + '\n'); } catch (e) { }
+    errorLogger.error({ err: error }, 'Submit Quiz Error');
     res.status(500).json({ success: false, message: error.message });
   }
 };
@@ -503,12 +497,11 @@ exports.markComplete = async (req, res) => {
     res.json({
       success: true,
       message: 'Content marked as complete',
-      progress: progress, // Send back updated progress
-      debug_item_count: progress.completedItems?.length
+      progress: progress
     });
 
   } catch (error) {
-    console.error('Mark Complete Error:', error);
+    errorLogger.error({ err: error }, 'Mark Complete Error');
     res.status(500).json({
       success: false,
       message: 'Server error marking content complete',

@@ -2,6 +2,7 @@ const Course = require('../../../models/course');
 const StudentProgress = require('../../../models/StudentProgress');
 const Submission = require('../../../models/Submission');
 const mongoose = require('mongoose');
+const { errorLogger } = require('../../../config/pino-config');
 
 /**
  * Life Skills Controller - Epic 01 Story 05
@@ -63,7 +64,7 @@ const updateProgress = async (studentId, courseId, itemId, itemType, score = nul
     await progress.save();
 
   } catch (err) {
-    console.error('Error updating progress:', err);
+    errorLogger.error({ err }, 'Error updating progress');
   }
 };
 
@@ -137,7 +138,7 @@ exports.getLifeSkillsTasks = async (req, res) => {
       totalTasks: course.modules.reduce((acc, m) => acc + m.chapters.reduce((cAcc, c) => cAcc + c.contentItems.length, 0), 0)
     });
   } catch (error) {
-    console.error('Error fetching Life Skills tasks:', error);
+    errorLogger.error({ err: error }, 'Error fetching Life Skills tasks');
     res.status(500).json({
       success: false,
       error: 'Failed to fetch Life Skills tasks'
@@ -216,7 +217,7 @@ exports.getVoiceTask = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching voice task:', error);
+    errorLogger.error({ err: error }, 'Error fetching voice task');
     res.status(500).json({
       success: false,
       error: 'Failed to fetch voice task'
@@ -266,7 +267,7 @@ exports.submitVoiceRecording = async (req, res) => {
       message: 'Great work! Your answer has been submitted. Coach will review it soon.'
     });
   } catch (error) {
-    console.error('Error submitting voice recording:', error);
+    errorLogger.error({ err: error }, 'Error submitting voice recording');
     res.status(500).json({
       success: false,
       error: 'Failed to submit voice recording'
@@ -384,7 +385,7 @@ exports.getQuiz = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error fetching quiz:', error);
+    errorLogger.error({ err: error }, 'Error fetching quiz');
     res.status(500).json({
       success: false,
       error: 'Failed to fetch quiz'
@@ -556,7 +557,7 @@ exports.submitQuiz = async (req, res) => {
         // Update User Balance Legacy
         await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } });
       } catch (coinError) {
-        console.error('Error awarding coins in Life Skills:', coinError);
+        errorLogger.error({ err: coinError }, 'Error awarding coins in Life Skills');
         // Fallback to just User update if Coin model fails?
         // Better to log and persist main balance at least
         const User = require('../../../models/user');
@@ -581,14 +582,12 @@ exports.submitQuiz = async (req, res) => {
         correctAnswers,
         totalQuestions,
         passed,
-        passed,
         coinsEarned: baseCoins,
-        alreadyPassed: alreadyPassed, // Debug info for client
         breakdown
       }
     });
   } catch (error) {
-    console.error('Error submitting quiz:', error);
+    errorLogger.error({ err: error }, 'Error submitting quiz');
     res.status(500).json({
       success: false,
       error: 'Failed to submit quiz'
@@ -621,7 +620,7 @@ exports.getSubmissionHistory = async (req, res) => {
       }))
     });
   } catch (error) {
-    console.error('Error fetching submission history:', error);
+    errorLogger.error({ err: error }, 'Error fetching submission history');
     res.status(500).json({
       success: false,
       error: 'Failed to fetch submission history'
@@ -646,7 +645,7 @@ exports.markItemComplete = async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
-    console.error('Error marking completion:', error);
+    errorLogger.error({ err: error }, 'Error marking completion');
     res.status(500).json({ success: false, error: 'Failed' });
   }
 };

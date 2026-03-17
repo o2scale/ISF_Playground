@@ -173,26 +173,25 @@ exports.submitGrade = async (req, res) => {
     // Mark as graded
     await submission.markAsGraded(gradeData);
 
-    // Update student coin balance
+    // Award coins to student using Coin model's findOrCreateForUser + addCoins pattern
+    let coinBalance = 0;
     if (coinsAwarded > 0) {
-      const coinTransaction = new Coin({
-        userId: submission.studentId._id,
-        amount: coinsAwarded,
-        type: "earned",
-        source: "submission_grade",
-        description: `Graded submission for "${submission.taskTitle}"`,
-        metadata: {
+      const coinRecord = await Coin.findOrCreateForUser(submission.studentId._id);
+      await coinRecord.addCoins(
+        coinsAwarded,
+        "earned",
+        `Graded submission for "${submission.taskTitle}"`,
+        "task",
+        {
           submissionId: submission._id,
           courseId: submission.courseId._id,
           quality,
-        },
-      });
-      await coinTransaction.save();
-
-      // Update user's coin balance
-      await User.findByIdAndUpdate(submission.studentId._id, {
-        $inc: { coins: coinsAwarded },
-      });
+        }
+      );
+      coinBalance = coinRecord.balance;
+    } else {
+      const existingBalance = await Coin.getUserBalance(submission.studentId._id);
+      coinBalance = existingBalance;
     }
 
     // Send notification to student
@@ -215,14 +214,11 @@ exports.submitGrade = async (req, res) => {
     });
     await notification.save();
 
-    // Get updated student coin balance
-    const student = await User.findById(submission.studentId._id);
-
     res.status(200).json({
       success: true,
       submissionId: submission._id,
       studentId: submission.studentId._id,
-      studentCoinBalance: student.coins || 0,
+      studentCoinBalance: coinBalance,
       message: `Grade submitted successfully! ${submission.studentId.firstName} ${submission.studentId.lastName} has been notified and earned ${coinsAwarded} ISF Coins.`,
     });
   } catch (error) {
@@ -300,25 +296,20 @@ exports.bulkGrade = async (req, res) => {
         // Mark as graded
         await submission.markAsGraded(gradeData);
 
-        // Update student coin balance
+        // Award coins to student using Coin model's findOrCreateForUser + addCoins pattern
         if (coinsAwarded > 0) {
-          const coinTransaction = new Coin({
-            userId: submission.studentId._id,
-            amount: coinsAwarded,
-            type: "earned",
-            source: "submission_grade",
-            description: `Graded submission for "${submission.taskTitle}"`,
-            metadata: {
+          const coinRecord = await Coin.findOrCreateForUser(submission.studentId._id);
+          await coinRecord.addCoins(
+            coinsAwarded,
+            "earned",
+            `Graded submission for "${submission.taskTitle}"`,
+            "task",
+            {
               submissionId: submission._id,
               courseId: submission.courseId._id,
               quality,
-            },
-          });
-          await coinTransaction.save();
-
-          await User.findByIdAndUpdate(submission.studentId._id, {
-            $inc: { coins: coinsAwarded },
-          });
+            }
+          );
         }
 
         // Send notification
