@@ -123,9 +123,9 @@ development_status:
   epic-9-retrospective: optional
 
   # Epic 10: Integration Fixes (created from Epic 9 findings)
-  epic-10: in-progress
+  epic-10: done
   10-1-permission-seed-data-fixes: done
-  10-2-client-auth-api-fixes: ready-for-dev
-  10-3-security-hardening: ready-for-dev
-  10-4-infrastructure-cleanup: ready-for-dev
+  10-2-client-auth-api-fixes: done
+  10-3-security-hardening: done
+  10-4-infrastructure-cleanup: done
   epic-10-retrospective: optional
