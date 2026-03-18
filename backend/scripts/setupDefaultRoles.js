@@ -88,6 +88,10 @@ const defaultRoles = [
     roleName: "purchase-manager",
     permissions: [
       {
+        module: "User Management",
+        actions: ["Read"],
+      },
+      {
         module: "Shop Management",
         actions: ["Manage"],
       },
