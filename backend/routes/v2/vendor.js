@@ -17,14 +17,16 @@ const isAdmin = (req, res, next) => {
   }
 };
 
-// All routes require authentication and admin role
+// All routes require authentication
 router.use(authenticate);
-router.use(isAdmin);
 
-router.post('/', vendorController.createVendor);
+// Read-only vendor routes accessible to admin and purchase-manager
 router.get('/', vendorController.getAllVendors);
 router.get('/:id', vendorController.getVendorById);
-router.put('/:id', vendorController.updateVendor);
-router.delete('/:id', vendorController.deactivateVendor);
+
+// Write routes require admin role
+router.post('/', isAdmin, vendorController.createVendor);
+router.put('/:id', isAdmin, vendorController.updateVendor);
+router.delete('/:id', isAdmin, vendorController.deactivateVendor);
 
 module.exports = router;

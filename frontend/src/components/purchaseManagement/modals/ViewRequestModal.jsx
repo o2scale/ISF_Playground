@@ -2,7 +2,7 @@ import React from 'react';
 import { useState } from 'react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
-import { cancelPurchaseRequest, updatePurchaseRequestStatus } from '../../../api';
+import { cancelPurchaseRequest, updatePurchaseRequestStatus, approvePurchaseRequest, rejectPurchaseRequest } from '../../../api';
 import showToast from '../../../utils/toast';
 import { formatDateTime } from '../../../utils/dateFormatter';  // Sprint5-Story-23
 import { UserTypes, normalizeUserRole } from '../../../constants/userTypes';
@@ -54,6 +54,45 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
     } catch (error) {
       console.error('Error cancelling request:', error);
       showToast(error.response?.data?.message || 'Error cancelling request', 'error');
+    }
+  };
+
+  const handleApprove = async () => {
+    if (!window.confirm('Approve this purchase request?')) return;
+    setStatusUpdating(true);
+    try {
+      const response = await approvePurchaseRequest(request._id, {});
+      if (response.success) {
+        showToast('Request approved successfully', 'success');
+        onRefresh();
+        onClose();
+      } else {
+        showToast(response.message || 'Error approving request', 'error');
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Error approving request', 'error');
+    } finally {
+      setStatusUpdating(false);
+    }
+  };
+
+  const handleReject = async () => {
+    const reason = window.prompt('Reason for rejection (optional):');
+    if (reason === null) return; // user cancelled
+    setStatusUpdating(true);
+    try {
+      const response = await rejectPurchaseRequest(request._id, { reviewNotes: reason });
+      if (response.success) {
+        showToast('Request rejected', 'success');
+        onRefresh();
+        onClose();
+      } else {
+        showToast(response.message || 'Error rejecting request', 'error');
+      }
+    } catch (error) {
+      showToast(error.response?.data?.message || 'Error rejecting request', 'error');
+    } finally {
+      setStatusUpdating(false);
     }
   };
 
@@ -570,6 +609,25 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                 ✕
               </button>
             </div>
+          )}
+
+          {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.ADMIN && (
+            <>
+              <button
+                className="btn btn-primary"
+                onClick={handleApprove}
+                disabled={statusUpdating}
+              >
+                ✅ Approve
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleReject}
+                disabled={statusUpdating}
+              >
+                ❌ Reject
+              </button>
+            </>
           )}
 
           {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (

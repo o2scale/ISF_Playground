@@ -35,7 +35,7 @@ const ProductDetail = () => {
   const isAdmin = user?.role?.toLowerCase() === "admin";
   const isCoach = user?.role?.toLowerCase() === "coach";
   const isPurchaseManager = user?.role?.toLowerCase() === "purchase-manager";
-  const isMedical = user?.role?.toLowerCase() === "medical-in-charge";
+  const isMedical = user?.role?.toLowerCase() === "medical-incharge";
   const isStaff = isAdmin || isCoach || isPurchaseManager || isMedical;
 
   // Fetch product by ID

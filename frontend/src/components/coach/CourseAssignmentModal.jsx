@@ -36,9 +36,11 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
 
   const fetchPublishedCourses = async () => {
     try {
-      const response = await api.get(
-        `/api/v2/lms/coach/courses/published`
-      );
+      const url = isAdmin
+        ? `/api/v2/lms/admin/courses`
+        : `/api/v2/lms/coach/courses/published`;
+      const params = isAdmin ? { params: { status: 'published' } } : {};
+      const response = await api.get(url, params);
       setCourses(response.data.data || []);
     } catch (error) {
       console.error('Error fetching courses:', error);

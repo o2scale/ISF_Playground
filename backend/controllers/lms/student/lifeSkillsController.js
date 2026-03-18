@@ -20,10 +20,7 @@ const fs = require('fs');
 // Helper to find life skills course
 const getLifeSkillsCourse = async () => {
   return await Course.findOne({ category: 'Life Skills', status: 'published' })
-    .populate({
-      path: 'modules.chapters.contentItems',
-      populate: { path: 'quizRef' } // Deep populate Quiz
-    })
+    .populate('modules.chapters.contentItems.quizRef') // Populate quizRef inside embedded contentItems
     .lean();
 };
 
@@ -491,22 +488,29 @@ exports.submitQuiz = async (req, res) => {
     let baseCoins = 0;
 
     // Check if user already passed this quiz (to prevent duplicate coins)
-    // 1. Check Submissions (Legacy)
+    // Normalize to quiz._id to avoid duplicate misses when quizId is a content item _id
+    const canonicalTaskId = quiz._id.toString();
+    // 1. Check Submissions (Legacy) — match either stored form to handle legacy records
     const existingSubmission = await Submission.findOne({
       studentId,
-      taskId: quizId,
+      $or: [{ taskId: quizId }, { taskId: canonicalTaskId }],
       submissionType: 'quiz',
       'grade.score': { $gte: (quiz.minScore || 60) }
     });
 
-    // 2. Check StudentProgress (Robust)
+    // 2. Check StudentProgress (Robust) — require passing score to prevent false positives
     const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
     let existingProgress = false;
     if (courseIdToUse) {
       const progress = await StudentProgress.findOne({
         student: studentId,
         course: courseIdToUse,
-        'completedItems.itemId': quizId
+        completedItems: {
+          $elemMatch: {
+            itemId: quizId,
+            score: { $gte: (quiz.minScore || 60) }
+          }
+        }
       });
       if (progress) existingProgress = true;
     }
@@ -557,7 +561,7 @@ exports.submitQuiz = async (req, res) => {
         const submission = new Submission({
           studentId,
           courseId: quiz.course || courseRef,
-          taskId: quizId,
+          taskId: canonicalTaskId,
           taskTitle: quiz.title || 'Quiz Submission',
           submissionType: 'quiz',
           fileUrl: 'quiz-submission',

@@ -86,10 +86,7 @@ exports.getCourseHierarchy = async (req, res) => {
     }
 
     const course = await Course.findOne({ _id: courseId, status: 'published' })
-      .populate({
-        path: 'modules.chapters.contentItems',
-        model: 'ContentLibrary'
-      })
+      .populate('modules.chapters.contentItems.quizRef') // contentItems are embedded; populate only the quizRef refs
       .lean();
 
     if (!course) {
