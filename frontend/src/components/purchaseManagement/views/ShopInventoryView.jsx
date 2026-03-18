@@ -1777,7 +1777,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                     )}
 
                     {/* Admin Actions - Story 18 */}
-                    {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.ADMIN && (
+                    {(request.status === PurchaseRequestStatuses.PENDING_APPROVAL || request.status === PurchaseRequestStatuses.PENDING) && normalizedRole === UserTypes.ADMIN && (
                       <>
                         <button
                           className="btn-icon btn-approve"

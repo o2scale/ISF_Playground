@@ -548,7 +548,7 @@ const WeeklyCalendar = ({
             }
             setShowModal(false);
         } catch (error) {
-            showToast(`${error.response.data.message} Task: ${error.response.data.overlappingSchedules[0].overlappingSchedule.title}, Slot time: ${new Date(error.response.data.overlappingSchedules[0].overlappingSchedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${new Date(error.response.data.overlappingSchedules[0].overlappingSchedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`, 'error')
+            showToast(`${error.response.data.message} Task: ${error.response.data.overlappingSchedules[0].overlappingSchedule.title}, Slot time: ${new Date(error.response.data.overlappingSchedules[0].overlappingSchedule.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} - ${new Date(error.response.data.overlappingSchedules[0].overlappingSchedule.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`, 'error')
         }
     }
 
@@ -707,9 +707,11 @@ const WeeklyCalendar = ({
                                 {/* Sprint6-Story-1-AC2: Extended to 9 PM (15 hours total) */}
                                 {Array.from({ length: 15 }, (_, i) => {
                                     const hour = i + 7;
+                                    const date = new Date();
+                                    date.setHours(hour, 0, 0, 0);
                                     return (
                                         <div className="time-slot" key={hour}>
-                                            {`${hour.toString().padStart(2, '0')}:00`}
+                                            {date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                         </div>
                                     );
                                 })}
@@ -832,8 +834,8 @@ const WeeklyCalendar = ({
                                                                         <div className="event-title">{schedule.title}</div>
                                                                         <div className="event-coach">Coach: {schedule?.assignedToUser?.name}</div>
                                                                         <div className="event-time">
-                                                                            {new Date(schedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                                                                            {new Date(schedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                            {new Date(schedule.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })} -
+                                                                            {new Date(schedule.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
                                                                         </div>
                                                                         <div
                                                                             className="event-status-indicator"
@@ -1243,7 +1245,7 @@ const WeeklyCalendar = ({
                                             </div>
                                         ) : (
                                             <div style={{ display: "flex", gap: "10px" }}>
-                                                <p className='schedule-p'>{new Date(singleSchedule?.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                <p className='schedule-p'>{new Date(singleSchedule?.startTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                                                 <p className='edit-schedule' onClick={() => handleEditInput('startTime')}>✏️</p>
                                             </div>
                                         )}
@@ -1264,7 +1266,7 @@ const WeeklyCalendar = ({
                                             </div>
                                         ) : (
                                             <div style={{ display: "flex", gap: "10px" }}>
-                                                <p className='schedule-p'>{new Date(singleSchedule?.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                                                <p className='schedule-p'>{new Date(singleSchedule?.endTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</p>
                                                 <p className='edit-schedule' onClick={() => handleEditInput('endTime')}>✏️</p>
                                             </div>
                                         )}

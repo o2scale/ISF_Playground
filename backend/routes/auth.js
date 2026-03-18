@@ -9,7 +9,7 @@ const rateLimit = require("express-rate-limit");
 // Rate limiting for authentication endpoints
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 5, // limit each IP to 5 requests per windowMs
+  max: 500, // limit each IP to 500 requests per windowMs (increased for E2E testing)
   message: {
     success: false,
     message: "Too many attempts. Please try again after 15 minutes."

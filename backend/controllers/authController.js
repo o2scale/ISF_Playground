@@ -212,7 +212,11 @@ exports.studentLogin = async (req, res) => {
         user = await User.findOne({ userId: numericUserId });
       }
       if (!user) {
-        user = await User.findOne({ userId: userId });
+        try {
+          user = await User.findOne({ userId: userId });
+        } catch (e) {
+          // CastError — userId field is numeric, input is non-numeric string; skip
+        }
       }
     }
 

@@ -455,7 +455,7 @@ const Layout = () => {
   return (
     <div className="app-layout">
       {shouldShowLayoutMenu && (
-        <div className="header">
+        <header className="header">
           {/* Hamburger Menu Icon - CLIENT REQUEST: Hidden since WTF sidebar removed from functionality */}
           {/* Client wants ability to restore this later, so commenting out instead of deleting */}
           {/*
@@ -578,7 +578,7 @@ const Layout = () => {
           <button className="logout-btn" onClick={logout}>
             Logout
           </button>
-        </div>
+        </header>
       )}
 
       <div className="app-container">
