@@ -404,7 +404,7 @@ const useShopStore = create(
       },
 
       /**
-       * Cancel order (within 24 hours)
+       * Cancel order (within 5 minutes)
        */
       cancelOrder: async (orderNumber) => {
         try {

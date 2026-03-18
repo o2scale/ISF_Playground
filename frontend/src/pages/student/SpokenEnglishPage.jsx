@@ -212,9 +212,6 @@ export default function SpokenEnglishPage() {
 
       const studentId = localStorage.getItem('userId') || 'student1';
 
-      // Mock upload for now (S3 integration deferred)
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate upload
-
       const response = await api.post(
         `/api/v2/lms/student/${studentId}/courses/spoken-english/submissions`,
         formData,

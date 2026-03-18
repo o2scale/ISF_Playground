@@ -25,5 +25,6 @@ router.post('/', vendorController.createVendor);
 router.get('/', vendorController.getAllVendors);
 router.get('/:id', vendorController.getVendorById);
 router.put('/:id', vendorController.updateVendor);
+router.delete('/:id', vendorController.deactivateVendor);
 
 module.exports = router;

@@ -1,5 +1,6 @@
 const Cart = require('../models/cart');
 const ShopItem = require('../models/shopItem');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Cart Service - Sprint5-Story-02
@@ -41,7 +42,7 @@ const getCart = async (userId) => {
       }
     };
   } catch (error) {
-    console.error('Error fetching cart:', error);
+    errorLogger.error({ err: error }, 'Error fetching cart');
     throw new Error('Failed to fetch cart');
   }
 };
@@ -105,7 +106,7 @@ const addToCart = async (userId, productId, quantity = 1) => {
       }
     };
   } catch (error) {
-    console.error('Error adding to cart:', error);
+    errorLogger.error({ err: error }, 'Error adding to cart');
     throw error;
   }
 };
@@ -170,7 +171,7 @@ const updateQuantity = async (userId, shopItemId, quantity) => {
       }
     };
   } catch (error) {
-    console.error('Error updating quantity:', error);
+    errorLogger.error({ err: error }, 'Error updating quantity');
     throw error;
   }
 };
@@ -209,7 +210,7 @@ const removeFromCart = async (userId, shopItemId) => {
       }
     };
   } catch (error) {
-    console.error('Error removing from cart:', error);
+    errorLogger.error({ err: error }, 'Error removing from cart');
     throw error;
   }
 };
@@ -236,7 +237,7 @@ const clearCart = async (userId) => {
       message: 'Cart cleared'
     };
   } catch (error) {
-    console.error('Error clearing cart:', error);
+    errorLogger.error({ err: error }, 'Error clearing cart');
     throw error;
   }
 };
@@ -264,7 +265,7 @@ const validateCartStock = async (userId) => {
       issues: validation.issues
     };
   } catch (error) {
-    console.error('Error validating cart stock:', error);
+    errorLogger.error({ err: error }, 'Error validating cart stock');
     throw error;
   }
 };

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Order Model - Sprint5-Story-03
@@ -273,12 +274,12 @@ orderSchema.statics.checkAndConfirmOrders = async function(orderIds = []) {
 
       // Notify coaches (async, don't block)
       notifyCoachesForOrder(order).catch(err => {
-        console.error(`Failed to notify coaches for order ${order.orderNumber}:`, err);
+        errorLogger.error({ err, orderNumber: order.orderNumber }, 'Failed to notify coaches for order');
       });
 
       confirmedCount++;
     } catch (error) {
-      console.error(`Error confirming order ${order.orderNumber}:`, error);
+      errorLogger.error({ err: error, orderNumber: order.orderNumber }, 'Error confirming order');
     }
   }
 
@@ -315,13 +316,13 @@ async function notifyCoachesForOrder(order) {
           actionUrl: `/coach/deliveries`
         }
       ).catch(err => {
-        console.error(`Failed to notify coach ${coach.name}:`, err);
+        errorLogger.error({ err, coachName: coach.name }, 'Failed to notify coach');
       })
     );
 
     await Promise.allSettled(notificationPromises);
   } catch (error) {
-    console.error('Error in notifyCoachesForOrder:', error);
+    errorLogger.error({ err: error }, 'Error in notifyCoachesForOrder');
   }
 }
 

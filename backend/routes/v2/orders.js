@@ -88,7 +88,7 @@ router.get('/id/:orderId', authenticate, validateOrderId, orderController.getOrd
 
 /**
  * @route   POST /api/v2/shop/orders/:orderNumber/cancel
- * @desc    Cancel order (within 24 hours of placement)
+ * @desc    Cancel order (within 5 minutes of placement)
  * @access  Private
  * @params  orderNumber - Order number (ORD-YYYYMMDD-XXXXX)
  */

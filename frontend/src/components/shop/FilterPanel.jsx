@@ -95,6 +95,33 @@ const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
             );
           })}
         </div>
+
+        {/* FIX-043: Selected category pills */}
+        {(() => {
+          const selected = filters.category
+            ? (Array.isArray(filters.category) ? filters.category : [filters.category])
+            : [];
+          return selected.length > 0 ? (
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {selected.map(cat => (
+                <span
+                  key={cat}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 text-xs font-medium rounded-full"
+                >
+                  {cat}
+                  <button
+                    type="button"
+                    onClick={() => handleCategoryChange(cat)}
+                    className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full hover:bg-purple-200 transition-colors"
+                    aria-label={`Remove ${cat} filter`}
+                  >
+                    <X className="w-2.5 h-2.5" />
+                  </button>
+                </span>
+              ))}
+            </div>
+          ) : null;
+        })()}
       </div>
 
       {/* Price Range */}

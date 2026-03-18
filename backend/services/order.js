@@ -4,6 +4,7 @@ const Cart = require('../models/cart');
 const ShopItem = require('../models/shopItem');
 const Coin = require('../models/coin');
 const { generateOrderNumber } = require('../utils/orderNumberGenerator');
+const { errorLogger } = require('../config/pino-config');
 
 /**
  * Order Service - Sprint5-Story-03
@@ -199,7 +200,7 @@ async function createOrder(userId) {
     await session.abortTransaction();
     session.endSession();
 
-    console.error('Order creation failed:', error);
+    errorLogger.error({ err: error }, 'Order creation failed');
     throw error;
   }
 }
@@ -355,7 +356,7 @@ async function cancelOrder(orderNumber, userId, cancellationReason = '') {
     await session.abortTransaction();
     session.endSession();
 
-    console.error('Order cancellation failed:', error);
+    errorLogger.error({ err: error }, 'Order cancellation failed');
     throw error;
   }
 }

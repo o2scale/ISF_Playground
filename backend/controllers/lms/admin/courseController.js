@@ -1192,6 +1192,68 @@ exports.getModulesByCourseId = async (req, res) => {
 };
 
 /**
+ * GET /api/v2/lms/admin/courses/audit-log
+ * Admin-queryable audit log for course lifecycle changes (publish/unpublish/archive).
+ * Queries Notification records created by _auditAndNotifyCoaches().
+ * Supports pagination and optional courseId filter.
+ */
+exports.getCourseAuditLog = async (req, res) => {
+  try {
+    const { courseId, page = 1, limit = 25 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.min(100, Math.max(1, parseInt(limit, 10) || 25));
+    const skip = (pageNum - 1) * limitNum;
+
+    // Course lifecycle notifications have metadata.action in [published, unpublished, archived]
+    // and metadata.courseId set
+    const filter = {
+      'metadata.action': { $in: ['published', 'unpublished', 'archived'] },
+      'metadata.courseId': { $exists: true, $ne: null },
+    };
+
+    if (courseId) {
+      if (!mongoose.Types.ObjectId.isValid(courseId)) {
+        return res.status(400).json({ error: 'Invalid courseId' });
+      }
+      filter['metadata.courseId'] = new mongoose.Types.ObjectId(courseId);
+    }
+
+    const [entries, total] = await Promise.all([
+      Notification.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum)
+        .select('title message metadata createdAt')
+        .lean(),
+      Notification.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: entries.map(e => ({
+        id: e._id,
+        action: e.metadata?.action,
+        courseId: e.metadata?.courseId,
+        changedBy: e.metadata?.changedBy,
+        reason: e.metadata?.reason || null,
+        title: e.title,
+        message: e.message,
+        timestamp: e.metadata?.changedAt || e.createdAt,
+      })),
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
+    });
+  } catch (error) {
+    errorLogger.error({ err: error }, 'Error fetching course audit log');
+    res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+/**
  * GET /api/v2/lms/admin/modules/:moduleId/chapters
  * Get all chapters for a specific module
  */

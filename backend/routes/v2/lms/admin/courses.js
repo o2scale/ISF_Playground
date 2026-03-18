@@ -30,6 +30,23 @@ router.post(
   adminAssignmentController.createAdminAssignment
 );
 
+// ==================== COURSE AUDIT LOG ====================
+
+/**
+ * @route GET /api/v2/lms/admin/courses/audit-log
+ * @desc Admin-queryable audit log for course lifecycle changes (publish/unpublish/archive)
+ * @query {string} [courseId] - Optional filter by course ID
+ * @query {number} [page=1] - Page number
+ * @query {number} [limit=25] - Items per page (max 100)
+ * @access Private (Admin only)
+ */
+router.get(
+  '/audit-log',
+  authenticate,
+  authorize('LMS Management', 'Manage'),
+  courseController.getCourseAuditLog
+);
+
 // ==================== COURSE CRUD OPERATIONS ====================
 
 /**

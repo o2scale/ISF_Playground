@@ -948,6 +948,115 @@ describe('PurchaseRequest Controller', () => {
     });
   });
 
+  // ─── FIX-020: getAllPurchaseRequests — priority & requestedBy filters, priority sort ──
+  describe('getAllPurchaseRequests — FIX-020 priority/requestedBy filters', () => {
+    it('should filter by priority query param', async () => {
+      const admin = await createTestUser({ role: 'admin' });
+      await createTestPR({ _user: admin, priority: 'high' });
+      await createTestPR({ _user: admin, priority: 'low' });
+      await createTestPR({ _user: admin, priority: 'high' });
+
+      const req = mockRequest({
+        query: { priority: 'high' },
+        user: { _id: admin._id, role: 'admin', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getAllPurchaseRequests(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+      const jsonArg = res.json.mock.calls[0][0];
+      const requests = jsonArg.data.requests;
+      // Every returned request should have priority 'high'
+      expect(requests.length).toBeGreaterThanOrEqual(2);
+      requests.forEach(r => {
+        expect(r.priority).toBe('high');
+      });
+    });
+
+    it('should filter by requestedBy (coach ID) for admin', async () => {
+      const coach = await createTestUser({ role: 'coach' });
+      const otherCoach = await createTestUser({ role: 'coach' });
+      const admin = await createTestUser({ role: 'admin' });
+
+      await createTestPR({ _user: coach });
+      await createTestPR({ _user: coach });
+      await createTestPR({ _user: otherCoach });
+
+      const req = mockRequest({
+        query: { requestedBy: coach._id.toString() },
+        user: { _id: admin._id, role: 'admin', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getAllPurchaseRequests(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+      const jsonArg = res.json.mock.calls[0][0];
+      const requests = jsonArg.data.requests;
+      expect(requests.length).toBeGreaterThanOrEqual(2);
+      requests.forEach(r => {
+        // requestedBy is populated, so check _id
+        const reqById = r.requestedBy._id ? r.requestedBy._id.toString() : r.requestedBy.toString();
+        expect(reqById).toBe(coach._id.toString());
+      });
+    });
+
+    it('should ignore requestedBy filter for non-admin/non-PM roles', async () => {
+      const coach = await createTestUser({ role: 'coach' });
+      const otherCoach = await createTestUser({ role: 'coach' });
+
+      await createTestPR({ _user: coach });
+      await createTestPR({ _user: otherCoach });
+
+      // Coach tries to use requestedBy filter to see another coach's requests
+      const req = mockRequest({
+        query: { requestedBy: otherCoach._id.toString() },
+        user: { _id: coach._id, role: 'coach' },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getAllPurchaseRequests(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+      const jsonArg = res.json.mock.calls[0][0];
+      const requests = jsonArg.data.requests;
+      // Coach should only see their own requests, not the other coach's
+      requests.forEach(r => {
+        const reqById = r.requestedBy._id ? r.requestedBy._id.toString() : r.requestedBy.toString();
+        expect(reqById).toBe(coach._id.toString());
+      });
+    });
+
+    it('should return results sorted priority-first: high > medium > low', async () => {
+      const admin = await createTestUser({ role: 'admin' });
+      // Create PRs in non-priority order
+      await createTestPR({ _user: admin, priority: 'low' });
+      await createTestPR({ _user: admin, priority: 'high' });
+      await createTestPR({ _user: admin, priority: 'medium' });
+
+      const req = mockRequest({
+        query: {},
+        user: { _id: admin._id, role: 'admin', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getAllPurchaseRequests(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+      const jsonArg = res.json.mock.calls[0][0];
+      const requests = jsonArg.data.requests;
+
+      // Verify priority-first ordering: all 'high' before all 'medium' before all 'low'
+      const priorityWeight = { high: 3, medium: 2, low: 1 };
+      for (let i = 1; i < requests.length; i++) {
+        const prevWeight = priorityWeight[requests[i - 1].priority] || 2;
+        const currWeight = priorityWeight[requests[i].priority] || 2;
+        expect(prevWeight).toBeGreaterThanOrEqual(currWeight);
+      }
+    });
+  });
+
   // ─── GET MY REQUESTS ─────────────────────────────────────────
   describe('getMyPurchaseRequests', () => {
     it('should return only own requests', async () => {

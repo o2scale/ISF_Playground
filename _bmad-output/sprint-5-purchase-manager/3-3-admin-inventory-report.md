@@ -84,4 +84,4 @@ OpenAI GPT-5.2
 
 ## Status
 
-ready-for-dev
+done

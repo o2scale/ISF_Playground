@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
 import '@testing-library/jest-dom';
 
 import CreatePurchaseRequestModal from '../../../components/purchaseManagement/modals/CreatePurchaseRequestModal';
@@ -29,23 +29,28 @@ describe('CreatePurchaseRequestModal - PRD alignment (admin-only New Item)', () 
 
   const selectBalagruha = async () => {
     const balagruhaSelect = screen.getAllByRole('combobox')[0];
-    fireEvent.change(balagruhaSelect, { target: { value: 'STOCK' } });
+    await act(async () => {
+      fireEvent.change(balagruhaSelect, { target: { value: 'STOCK' } });
+    });
     await waitFor(() => expect(getAllShopItems).toHaveBeenCalled());
   };
 
   const selectCategory = async () => {
-    // Category is the second combobox
     const categorySelect = screen.getAllByRole('combobox')[1];
-    fireEvent.change(categorySelect, { target: { value: 'ISF Shop' } });
+    await act(async () => {
+      fireEvent.change(categorySelect, { target: { value: 'ISF Shop' } });
+    });
   };
 
-  it('hides “+ Add New Product” for non-admin roles and shows helper message', async () => {
-    render(
-      <CreatePurchaseRequestModal
-        {...baseProps}
-        userRole="purchase-manager"
-      />
-    );
+  it('hides "+ Add New Product" for non-admin roles and shows helper message', async () => {
+    await act(async () => {
+      render(
+        <CreatePurchaseRequestModal
+          {...baseProps}
+          userRole="purchase-manager"
+        />
+      );
+    });
 
     await selectBalagruha();
     await selectCategory();
@@ -59,13 +64,15 @@ describe('CreatePurchaseRequestModal - PRD alignment (admin-only New Item)', () 
     ).toBeInTheDocument();
   });
 
-  it('shows “+ Add New Product” for admin', async () => {
-    render(
-      <CreatePurchaseRequestModal
-        {...baseProps}
-        userRole="admin"
-      />
-    );
+  it('shows "+ Add New Product" for admin', async () => {
+    await act(async () => {
+      render(
+        <CreatePurchaseRequestModal
+          {...baseProps}
+          userRole="admin"
+        />
+      );
+    });
 
     await selectBalagruha();
     await selectCategory();

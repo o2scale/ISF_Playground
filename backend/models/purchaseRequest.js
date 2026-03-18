@@ -333,10 +333,21 @@ purchaseRequestSchema.index({ createdAt: -1 });
 
 // Auto-generate requestId and calculate totalEstimatedCost
 purchaseRequestSchema.pre('save', async function (next) {
-  // Generate requestId for new documents
+  // Generate requestId for new documents using atomic findOneAndUpdate counter
+  // to avoid race conditions when multiple requests are created concurrently
   if (this.isNew && !this.requestId) {
-    const count = await mongoose.model('PurchaseRequest').countDocuments();
-    this.requestId = `PR-${String(count + 1).padStart(5, '0')}`;
+    const Counter = mongoose.models.Counter || mongoose.model('Counter', new mongoose.Schema({
+      _id: { type: String, required: true },
+      seq: { type: Number, default: 0 }
+    }));
+
+    const counter = await Counter.findOneAndUpdate(
+      { _id: 'purchaseRequest' },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
+
+    this.requestId = `PR-${String(counter.seq).padStart(5, '0')}`;
   }
 
   // Calculate totalEstimatedCost from items

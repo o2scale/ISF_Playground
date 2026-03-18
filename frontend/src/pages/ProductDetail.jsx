@@ -29,6 +29,7 @@ const ProductDetail = () => {
   const [error, setError] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
 
   // Role checks (mirrors ProductCard logic)
   const isAdmin = user?.role?.toLowerCase() === "admin";
@@ -113,6 +114,28 @@ const ProductDetail = () => {
     }
   };
 
+  // Quantity helpers
+  const maxQuantity = product ? Math.min(product.stock ?? 99, 99) : 99;
+
+  const handleQuantityChange = (e) => {
+    const val = parseInt(e.target.value, 10);
+    if (isNaN(val) || val < 1) {
+      setQuantity(1);
+    } else if (val > maxQuantity) {
+      setQuantity(maxQuantity);
+    } else {
+      setQuantity(val);
+    }
+  };
+
+  const incrementQuantity = () => {
+    setQuantity((prev) => Math.min(prev + 1, maxQuantity));
+  };
+
+  const decrementQuantity = () => {
+    setQuantity((prev) => Math.max(prev - 1, 1));
+  };
+
   // Add to cart / request action
   const handleAction = async () => {
     if (!product) return;
@@ -127,7 +150,7 @@ const ProductDetail = () => {
 
     setIsAdding(true);
     try {
-      await addToCart(product, 1);
+      await addToCart(product, quantity);
     } catch {
       // Error toast handled in store
     } finally {
@@ -412,6 +435,47 @@ const ProductDetail = () => {
                     )}
                   </dl>
                 </div>
+
+                {/* Quantity Selector (students only, when in stock) */}
+                {!isStaff && product.inStock && (
+                  <div className="mb-6">
+                    <h2 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-2">
+                      Quantity
+                    </h2>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={decrementQuantity}
+                        disabled={quantity <= 1}
+                        className="w-10 h-10 rounded-md border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-lg font-bold"
+                        aria-label="Decrease quantity"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={maxQuantity}
+                        value={quantity}
+                        onChange={handleQuantityChange}
+                        className="w-16 h-10 text-center border border-slate-300 rounded-md text-slate-900 font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                        aria-label="Quantity"
+                      />
+                      <button
+                        onClick={incrementQuantity}
+                        disabled={quantity >= maxQuantity}
+                        className="w-10 h-10 rounded-md border border-slate-300 flex items-center justify-center text-slate-700 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-lg font-bold"
+                        aria-label="Increase quantity"
+                      >
+                        +
+                      </button>
+                      {maxQuantity < 99 && (
+                        <span className="text-xs text-slate-500 ml-2">
+                          Max {maxQuantity}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Spacer */}
                 <div className="flex-1" />

@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import CanvasPreview from './CanvasPreview';
+import CanvasDrawingTool from './CanvasDrawingTool';
 import toast from 'react-hot-toast';
 import { api } from '../../../api';
 
 /**
  * FreeSketchMode Component - Story 12.9 (FIX-014)
  * Open canvas for creative expression with personal gallery.
- * Replaced mock toasts with real API calls for save/submit.
+ * Now supports both in-browser drawing (HTML5 Canvas) and file upload.
  */
 export default function FreeSketchMode({ data, studentId, onRefresh }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [saving, setSaving] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [inputMode, setInputMode] = useState('draw'); // 'draw' | 'upload'
 
   const gallery = data?.gallery || [];
 
@@ -68,24 +70,96 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
     }
   };
 
+  /**
+   * Called by CanvasDrawingTool when the user clicks "Save & Submit Drawing".
+   * Converts the canvas Blob into a File and submits it via the existing API.
+   */
+  const handleCanvasBlobReady = async (blob) => {
+    if (!blob) {
+      toast.error('Failed to export drawing');
+      return;
+    }
+
+    const file = new File(
+      [blob],
+      `sketch-${Date.now()}.png`,
+      { type: 'image/png' }
+    );
+
+    try {
+      setSubmitting(true);
+      const formData = new FormData();
+      formData.append('artwork', file);
+      formData.append('type', 'art');
+      formData.append('mode', 'free_sketch');
+      formData.append('title', `Sketch - ${new Date().toLocaleDateString()}`);
+
+      await api.post(
+        `/api/v2/lms/student/${studentId}/courses/art/submissions`,
+        formData
+      );
+      toast.success('Drawing submitted for grading!');
+      if (onRefresh) onRefresh();
+    } catch (error) {
+      const msg = error.response?.data?.message || 'Failed to submit drawing';
+      toast.error(msg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="bg-pink-50 rounded-lg p-4">
         <h2 className="text-2xl font-bold text-gray-900 mb-2">Free Sketch</h2>
         <p className="text-gray-700">
-          Create anything you like! Upload your artwork to save it to your gallery or submit for grading.
+          Create anything you like! Draw directly in the browser or upload your artwork.
         </p>
       </div>
 
-      {/* Canvas Preview & Upload */}
-      <CanvasPreview
-        onSubmit={handleSubmit}
-        onSave={handleSave}
-        showSaveButton={true}
-        file={selectedFile}
-        onFileChange={setSelectedFile}
-      />
+      {/* Input Mode Toggle */}
+      <div className="flex items-center gap-2">
+        <span className="text-sm font-medium text-gray-600">Create with:</span>
+        <button
+          type="button"
+          onClick={() => setInputMode('draw')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            inputMode === 'draw'
+              ? 'bg-pink-600 text-white shadow-sm'
+              : 'bg-white text-gray-700 border border-pink-300 hover:bg-pink-50'
+          }`}
+        >
+          Draw Here
+        </button>
+        <button
+          type="button"
+          onClick={() => setInputMode('upload')}
+          className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+            inputMode === 'upload'
+              ? 'bg-pink-600 text-white shadow-sm'
+              : 'bg-white text-gray-700 border border-pink-300 hover:bg-pink-50'
+          }`}
+        >
+          Upload a File
+        </button>
+      </div>
+
+      {/* Drawing Canvas */}
+      {inputMode === 'draw' && (
+        <CanvasDrawingTool onBlobReady={handleCanvasBlobReady} />
+      )}
+
+      {/* File Upload (existing CanvasPreview) */}
+      {inputMode === 'upload' && (
+        <CanvasPreview
+          onSubmit={handleSubmit}
+          onSave={handleSave}
+          showSaveButton={true}
+          file={selectedFile}
+          onFileChange={setSelectedFile}
+        />
+      )}
 
       {/* Loading states */}
       {(saving || submitting) && (

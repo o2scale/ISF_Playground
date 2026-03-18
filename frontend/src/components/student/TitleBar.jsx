@@ -9,6 +9,9 @@ import { useCoinBalance } from '../../contexts/CoinBalanceContext';
 import CartIcon from '../shop/CartIcon';
 import Cart from '../shop/Cart';
 
+/** Polling interval for notification badge and coin balance (in ms) */
+const POLLING_INTERVAL_MS = 30000;
+
 /**
  * TitleBar Component - Epic 01 Story 01 + Story 06
  * Persistent header for student pages showing:
@@ -100,11 +103,11 @@ export default function TitleBar() {
     fetchNotificationCount();
     setLoading(false);
 
-    // Set up coin balance polling via context (every 30 seconds)
-    const coinInterval = setInterval(refreshBalance, 30000);
+    // Set up coin balance polling via context
+    const coinInterval = setInterval(refreshBalance, POLLING_INTERVAL_MS);
 
-    // Set up notification count polling (every 30 seconds)
-    const notificationInterval = setInterval(fetchNotificationCount, 30000);
+    // Set up notification count polling
+    const notificationInterval = setInterval(fetchNotificationCount, POLLING_INTERVAL_MS);
 
     // Set up session timer (every 1 second)
     const timerInterval = setInterval(() => {
