@@ -2,10 +2,117 @@ const CourseAssignment = require("../../../models/CourseAssignment");
 const Course = require("../../../models/course");
 const User = require("../../../models/user");
 const Notification = require("../../../models/notification");
+const StudentProgress = require("../../../models/StudentProgress");
 const mongoose = require("mongoose");
 const { errorLogger } = require('../../../config/pino-config');
 
 // ====================COURSE ASSIGNMENT OPERATIONS ====================
+
+/**
+ * Compute real-time progress for a list of assignments from StudentProgress.
+ * Returns a map of assignmentId -> computed progress object.
+ */
+async function computeProgressForAssignments(assignments) {
+  if (!assignments.length) return {};
+
+  // Gather unique courseIds and collect student lookups
+  const courseIds = [...new Set(assignments.map(a => (a.courseId?._id || a.courseId).toString()))];
+  const courses = await Course.find({ _id: { $in: courseIds } });
+  const courseItemCountMap = {};
+  courses.forEach(c => { courseItemCountMap[c._id.toString()] = c.contentItemCount || 0; });
+
+  // For balagruha assignments, resolve student IDs
+  const balagruhaIds = [];
+  assignments.forEach(a => {
+    if (a.assignedTo.type === 'balagruha') {
+      const bgIds = a.assignedTo.balagruhaIds?.length
+        ? a.assignedTo.balagruhaIds
+        : (a.assignedTo.balagruhaId ? [a.assignedTo.balagruhaId] : []);
+      bgIds.forEach(id => balagruhaIds.push(id.toString()));
+    }
+  });
+
+  // Batch-fetch balagruha students
+  const balagruhaStudentsMap = {};
+  if (balagruhaIds.length) {
+    const balagruhaStudents = await User.find({
+      balagruhaIds: { $in: balagruhaIds },
+      role: 'student',
+    }).select('_id balagruhaIds');
+    balagruhaStudents.forEach(s => {
+      s.balagruhaIds.forEach(bgId => {
+        const key = bgId.toString();
+        if (!balagruhaStudentsMap[key]) balagruhaStudentsMap[key] = [];
+        balagruhaStudentsMap[key].push(s._id.toString());
+      });
+    });
+  }
+
+  // Collect all (studentId, courseId) pairs for batch StudentProgress query
+  const allStudentIds = new Set();
+  const assignmentStudentMap = {};
+  assignments.forEach(a => {
+    let studentIds = [];
+    if (a.assignedTo.type === 'balagruha') {
+      const bgIds = a.assignedTo.balagruhaIds?.length
+        ? a.assignedTo.balagruhaIds
+        : (a.assignedTo.balagruhaId ? [a.assignedTo.balagruhaId] : []);
+      bgIds.forEach(bgId => {
+        (balagruhaStudentsMap[bgId.toString()] || []).forEach(sid => studentIds.push(sid));
+      });
+    } else {
+      studentIds = (a.assignedTo.studentIds || []).map(id => id.toString());
+    }
+    assignmentStudentMap[a._id.toString()] = [...new Set(studentIds)];
+    studentIds.forEach(sid => allStudentIds.add(sid));
+  });
+
+  // Batch-fetch all relevant StudentProgress records
+  const progressRecords = await StudentProgress.find({
+    student: { $in: [...allStudentIds] },
+    course: { $in: courseIds },
+  }).select('student course completedItems').lean();
+
+  // Index progress: key = "studentId:courseId"
+  const progressIndex = {};
+  progressRecords.forEach(p => {
+    const key = `${p.student.toString()}:${p.course.toString()}`;
+    progressIndex[key] = p.completedItems?.length || 0;
+  });
+
+  // Compute progress for each assignment
+  const result = {};
+  assignments.forEach(a => {
+    const courseId = (a.courseId?._id || a.courseId).toString();
+    const totalItems = courseItemCountMap[courseId] || 0;
+    const studentIds = assignmentStudentMap[a._id.toString()] || [];
+    const totalStudents = studentIds.length;
+
+    if (totalStudents === 0 || totalItems === 0) {
+      result[a._id.toString()] = { totalStudents, studentsStarted: 0, studentsCompleted: 0, averageCompletionPercentage: 0 };
+      return;
+    }
+
+    let studentsStarted = 0;
+    let studentsCompleted = 0;
+    let totalCompletion = 0;
+    studentIds.forEach(sid => {
+      const completed = progressIndex[`${sid}:${courseId}`] || 0;
+      if (completed > 0) studentsStarted++;
+      if (completed >= totalItems) studentsCompleted++;
+      totalCompletion += Math.min(completed / totalItems * 100, 100);
+    });
+
+    result[a._id.toString()] = {
+      totalStudents,
+      studentsStarted,
+      studentsCompleted,
+      averageCompletionPercentage: Math.round(totalCompletion / totalStudents),
+    };
+  });
+
+  return result;
+}
 
 /**
  * GET /api/v2/lms/coach/courses/published
@@ -315,10 +422,26 @@ exports.getCoachAssignments = async (req, res) => {
       });
     }
 
+    // Compute real-time progress from StudentProgress
+    let progressMap = {};
+    try {
+      progressMap = await computeProgressForAssignments(filteredAssignments);
+    } catch (progErr) {
+      errorLogger.error({ err: progErr }, "Error computing assignment progress");
+    }
+
+    const assignmentsWithProgress = filteredAssignments.map(a => {
+      const computed = progressMap[a._id.toString()];
+      if (!computed) return a;
+      const aObj = a.toObject ? a.toObject({ virtuals: true }) : a;
+      aObj.progress = computed;
+      return aObj;
+    });
+
     res.status(200).json({
       success: true,
-      count: filteredAssignments.length,
-      data: filteredAssignments,
+      count: assignmentsWithProgress.length,
+      data: assignmentsWithProgress,
     });
   } catch (error) {
     errorLogger.error({ err: error }, "Error fetching coach assignments:");

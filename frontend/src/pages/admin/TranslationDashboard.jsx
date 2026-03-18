@@ -32,7 +32,7 @@ const TranslationDashboard = () => {
       const response = await api.get('/api/v2/lms/admin/courses', {
         params: { status: 'published' }
       });
-      setCourses(response.data.courses || []);
+      setCourses(response.data.data || []);
     } catch (err) {
       console.error('Error fetching courses:', err);
       setError('Failed to load courses');

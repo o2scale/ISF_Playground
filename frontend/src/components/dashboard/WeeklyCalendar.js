@@ -832,8 +832,8 @@ const WeeklyCalendar = ({
                                                                         <div className="event-title">{schedule.title}</div>
                                                                         <div className="event-coach">Coach: {schedule?.assignedToUser?.name}</div>
                                                                         <div className="event-time">
-                                                                            {new Date(schedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                                                                            {new Date(schedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                                            {new Date(schedule.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })} -
+                                                                            {new Date(schedule.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                                                                         </div>
                                                                         <div
                                                                             className="event-status-indicator"

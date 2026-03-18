@@ -2,7 +2,7 @@
 // Displays comprehensive student profile with aggregated data from all systems
 
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -19,6 +19,7 @@ import QuickActionsPanel from '../components/profile/QuickActionsPanel';
 export default function StudentProfile() {
   const { userId: paramUserId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // If no userId in params, viewing own profile
   const targetUserId = paramUserId || user?._id;
@@ -105,6 +106,18 @@ export default function StudentProfile() {
 
   return (
     <div className="min-h-screen bg-slate-50">
+      {/* Back button — only shown when viewing someone else's profile (admin view) */}
+      {!isOwnProfile && (
+        <div className="bg-white border-b border-slate-200 px-4 sm:px-6 lg:px-8 py-3">
+          <button
+            onClick={() => navigate(-1)}
+            className="inline-flex items-center gap-2 text-slate-600 hover:text-purple-600 transition-colors text-sm font-medium"
+          >
+            ← Back
+          </button>
+        </div>
+      )}
+
       {/* Profile Header */}
       <ProfileHeader
         user={profileData.user}

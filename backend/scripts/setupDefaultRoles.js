@@ -101,6 +101,10 @@ const defaultRoles = [
     roleName: "coach",
     permissions: [
       {
+        module: "User Management",
+        actions: ["Create", "Read"],
+      },
+      {
         module: "Task Management",
         actions: ["Create", "Read", "Update"],
       },
