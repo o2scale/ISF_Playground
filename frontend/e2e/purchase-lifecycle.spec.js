@@ -13,8 +13,8 @@ test.describe('Purchase Request Lifecycle', () => {
   // Login before all tests in this suite
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin/login');
-    await page.getByPlaceholderText(/email/i).fill(process.env.E2E_ADMIN_EMAIL || 'admin@isf.org');
-    await page.getByPlaceholderText(/password/i).fill(process.env.E2E_ADMIN_PASSWORD || 'admin123');
+    await page.getByPlaceholder(/email/i).fill(process.env.E2E_ADMIN_EMAIL || 'admin@isf.org');
+    await page.getByPlaceholder(/password/i).fill(process.env.E2E_ADMIN_PASSWORD || 'admin123');
     await page.getByRole('button', { name: /login|sign in|submit/i }).click();
     await expect(page).toHaveURL(/dashboard/, { timeout: 15000 });
   });
