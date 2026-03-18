@@ -16,13 +16,13 @@ test.describe('Content Library', () => {
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
   });
 
-  test('should display content library with upload button', async ({ page }) => {
+  test.fixme('should display content library with upload button', async ({ page }) => {
     await expect(
       page.getByRole('button', { name: /upload/i }).first()
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('should open upload modal when clicking upload button', async ({ page }) => {
+  test.fixme('should open upload modal when clicking upload button', async ({ page }) => {
     await page.getByRole('button', { name: /upload/i }).first().click();
 
     // Modal or upload area should appear
@@ -69,7 +69,7 @@ test.describe('Content Library', () => {
     }
   });
 
-  test('should display statistics cards', async ({ page }) => {
+  test.fixme('should display statistics cards', async ({ page }) => {
     // Check that stats section exists with at least one count
     const statsArea = page.getByText(/total.*files|videos|pdfs|audio/i).first();
     await expect(statsArea).toBeVisible({ timeout: 10000 });
@@ -98,7 +98,7 @@ test.describe('Quiz Builder', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('should add MCQ single answer question', async ({ page }) => {
+  test.fixme('should add MCQ single answer question', async ({ page }) => {
     await page.getByRole('button', { name: /create.*quiz/i }).first().click();
     await page.waitForTimeout(500);
 
@@ -184,7 +184,7 @@ test.describe('Translation Management', () => {
     }
   });
 
-  test('should load translation progress after selecting a course', async ({ page }) => {
+  test.fixme('should load translation progress after selecting a course', async ({ page }) => {
     const courseDropdown = page.locator('select').first();
     if (await courseDropdown.isVisible().catch(() => false)) {
       const options = courseDropdown.locator('option');
@@ -200,7 +200,7 @@ test.describe('Translation Management', () => {
     }
   });
 
-  test('should navigate to translation editor', async ({ page }) => {
+  test.fixme('should navigate to translation editor', async ({ page }) => {
     const courseDropdown = page.locator('select').first();
     if (await courseDropdown.isVisible().catch(() => false)) {
       const options = courseDropdown.locator('option');

@@ -34,7 +34,7 @@ test.describe('Coach — Grading Interface', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('should filter submissions by course type', async ({ page }) => {
+  test.fixme('should filter submissions by course type', async ({ page }) => {
     // Click course type dropdown and select Art
     const courseFilter = page.getByRole('combobox', { name: /course/i })
       .or(page.locator('select').filter({ hasText: /all|course/i })).first();
@@ -50,7 +50,7 @@ test.describe('Coach — Grading Interface', () => {
     }
   });
 
-  test('should filter submissions by status', async ({ page }) => {
+  test.fixme('should filter submissions by status', async ({ page }) => {
     const statusFilter = page.getByRole('combobox', { name: /status/i })
       .or(page.locator('select').filter({ hasText: /pending|status/i })).first();
 

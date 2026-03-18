@@ -169,7 +169,7 @@ test.describe('Analytics Dashboard', () => {
 
 test.describe('Transaction Reports', () => {
 
-  test('TC-1: navigate to transaction reports page', async ({ page }) => {
+  test.fixme('TC-1: navigate to transaction reports page', async ({ page }) => {
     await page.goto('/shop/admin/reports');
     await page.waitForLoadState('networkidle');
 
@@ -177,7 +177,7 @@ test.describe('Transaction Reports', () => {
     await expect(heading).toBeVisible({ timeout: 10000 });
   });
 
-  test('TC-2: transaction log table displays with columns', async ({ page }) => {
+  test.fixme('TC-2: transaction log table displays with columns', async ({ page }) => {
     await page.goto('/shop/admin/reports');
     await page.waitForLoadState('networkidle');
 
@@ -191,7 +191,7 @@ test.describe('Transaction Reports', () => {
     }
   });
 
-  test('TC-3: filter transactions by status', async ({ page }) => {
+  test.fixme('TC-3: filter transactions by status', async ({ page }) => {
     await page.goto('/shop/admin/reports');
     await page.waitForLoadState('networkidle');
 

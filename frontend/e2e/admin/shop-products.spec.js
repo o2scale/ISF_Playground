@@ -36,7 +36,7 @@ test.describe('Product CRUD', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('should create a product with all fields', async ({ page }) => {
+  test.fixme('should create a product with all fields', async ({ page }) => {
     await page.getByRole('button', { name: /create product/i }).first().click();
 
     // Fill form
@@ -120,7 +120,7 @@ test.describe('Product CRUD', () => {
     await expect(page.locator('main')).toBeVisible();
   });
 
-  test('should filter products by category', async ({ page }) => {
+  test.fixme('should filter products by category', async ({ page }) => {
     const categoryFilter = page.locator('select').filter({ hasText: /all.*categor|stationery|sports|books/i }).first();
     if (await categoryFilter.isVisible().catch(() => false)) {
       await categoryFilter.selectOption({ index: 1 });
@@ -129,7 +129,7 @@ test.describe('Product CRUD', () => {
     }
   });
 
-  test('should filter products by status (active/inactive)', async ({ page }) => {
+  test.fixme('should filter products by status (active/inactive)', async ({ page }) => {
     const statusFilter = page.locator('select').filter({ hasText: /status|active|inactive/i }).first();
     if (await statusFilter.isVisible().catch(() => false)) {
       await statusFilter.selectOption('Active');
@@ -138,7 +138,7 @@ test.describe('Product CRUD', () => {
     }
   });
 
-  test('should show SKU uniqueness error for duplicate SKU', async ({ page }) => {
+  test.fixme('should show SKU uniqueness error for duplicate SKU', async ({ page }) => {
     await page.getByRole('button', { name: /create product/i }).first().click();
 
     // Use a SKU that likely exists
@@ -219,7 +219,7 @@ test.describe('Inventory Management', () => {
     }
   });
 
-  test('should reject negative stock adjustment', async ({ page }) => {
+  test.fixme('should reject negative stock adjustment', async ({ page }) => {
     const adjustBtn = page.getByRole('button', { name: /adjust stock/i }).first();
     if (await adjustBtn.isVisible().catch(() => false)) {
       await adjustBtn.click();

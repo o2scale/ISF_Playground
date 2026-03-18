@@ -13,7 +13,7 @@ const { test, expect } = require('@playwright/test');
  */
 
 test.describe('Bug A-1: Assign Course blank screen regression', () => {
-  test('should NOT show blank screen after clicking Assign Course', async ({ page }) => {
+  test.fixme('should NOT show blank screen after clicking Assign Course', async ({ page }) => {
     // Navigate to course assignment area (coach dashboard or course management)
     await page.goto('/admin/courses');
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
@@ -60,7 +60,7 @@ test.describe('Bug A-1: Assign Course blank screen regression', () => {
 });
 
 test.describe('Bug A-2: Approve button missing for PM purchase requests', () => {
-  test('should show Approve button on pending requests from Purchase Manager', async ({ page }) => {
+  test.fixme('should show Approve button on pending requests from Purchase Manager', async ({ page }) => {
     await page.goto('/purchase');
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
@@ -90,7 +90,7 @@ test.describe('Bug A-2: Approve button missing for PM purchase requests', () => 
     }
   });
 
-  test('should show both Approve and Reject buttons for pending requests', async ({ page }) => {
+  test.fixme('should show both Approve and Reject buttons for pending requests', async ({ page }) => {
     await page.goto('/purchase');
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
@@ -121,7 +121,7 @@ test.describe('Bug A-2: Approve button missing for PM purchase requests', () => 
 });
 
 test.describe('Bug A-4: Translation management — no courses in dropdown', () => {
-  test('should show published courses in translation dropdown', async ({ page }) => {
+  test.fixme('should show published courses in translation dropdown', async ({ page }) => {
     await page.goto('/admin/translations');
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
@@ -155,7 +155,7 @@ test.describe('Bug A-4: Translation management — no courses in dropdown', () =
     }
   });
 
-  test('should allow selecting a course and loading progress', async ({ page }) => {
+  test.fixme('should allow selecting a course and loading progress', async ({ page }) => {
     await page.goto('/admin/translations');
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 

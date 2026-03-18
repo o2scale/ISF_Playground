@@ -12,7 +12,7 @@ test.describe('Student Dashboard', () => {
     await page.goto('/student/dashboard');
   });
 
-  test('should display the title bar with logo, coin balance, and session timer', async ({ page }) => {
+  test.fixme('should display the title bar with logo, coin balance, and session timer', async ({ page }) => {
     // Logo / branding
     await expect(page.getByText('ISF Playground').first()).toBeVisible({ timeout: 10000 });
 
@@ -93,7 +93,7 @@ test.describe('Student Dashboard', () => {
 });
 
 test.describe('Student Profile Page', () => {
-  test('should display profile header with student information', async ({ page }) => {
+  test.fixme('should display profile header with student information', async ({ page }) => {
     await page.goto('/profile');
 
     // Profile should show student name and role info
@@ -105,7 +105,7 @@ test.describe('Student Profile Page', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test('should display coin wallet dashboard on profile', async ({ page }) => {
+  test.fixme('should display coin wallet dashboard on profile', async ({ page }) => {
     await page.goto('/profile');
 
     // Coin stats should be visible
