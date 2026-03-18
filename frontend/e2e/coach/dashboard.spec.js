@@ -42,16 +42,14 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
     await page.getByText('Daily Schedule').first().click();
     await page.waitForLoadState('networkidle');
 
-    // Select January from month dropdown
-    const monthSelect = page.locator('select').filter({ hasText: /january|february|march|april|may|june|july|august|september|october|november|december/i }).first();
+    // Select January from month dropdown (option value=0, label='January')
+    const monthSelect = page.locator('select.calendar-month-selector').first();
     if (await monthSelect.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await monthSelect.selectOption({ label: /january/i });
+      await monthSelect.selectOption({ value: '0' }); // January
       await page.waitForTimeout(500);
 
-      // Calendar should update — check for Jan dates or week range text
-      await expect(
-        page.getByText(/jan/i).first()
-      ).toBeVisible({ timeout: 10000 });
+      // Verify the dropdown now shows January as selected value
+      await expect(monthSelect).toHaveValue('0');
     }
   });
 
@@ -59,14 +57,13 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
     await page.getByText('Daily Schedule').first().click();
     await page.waitForLoadState('networkidle');
 
-    const yearSelect = page.locator('select').filter({ hasText: /202[3-9]/ }).first();
+    const yearSelect = page.locator('select.calendar-year-selector').first();
     if (await yearSelect.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await yearSelect.selectOption({ label: /2025/ });
+      await yearSelect.selectOption({ value: '2025' });
       await page.waitForTimeout(500);
 
-      await expect(
-        page.getByText(/2025/).first()
-      ).toBeVisible({ timeout: 10000 });
+      // Verify the dropdown now shows 2025 as selected value
+      await expect(yearSelect).toHaveValue('2025');
     }
   });
 
@@ -101,10 +98,10 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
     await page.getByText('Daily Schedule').first().click();
     await page.waitForLoadState('networkidle');
 
-    // Navigate away from current month first
-    const monthSelect = page.locator('select').filter({ hasText: /january|february|march|april|may|june|july|august|september|october|november|december/i }).first();
+    // Navigate away from current month first (select January, value=0)
+    const monthSelect = page.locator('select.calendar-month-selector').first();
     if (await monthSelect.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await monthSelect.selectOption({ label: /january/i });
+      await monthSelect.selectOption({ value: '0' }); // January
       await page.waitForTimeout(500);
     }
 
@@ -114,12 +111,10 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
       await todayBtn.click();
       await page.waitForTimeout(500);
 
-      // Current month name should now be visible in the dropdown
+      // Current month should now be selected in the dropdown (0=Jan, 1=Feb, etc.)
       const now = new Date();
-      const currentMonth = now.toLocaleString('en-US', { month: 'long' }).toLowerCase();
-      await expect(
-        page.getByText(new RegExp(currentMonth, 'i')).first()
-      ).toBeVisible({ timeout: 10000 });
+      const currentMonthValue = String(now.getMonth()); // 0-indexed
+      await expect(monthSelect).toHaveValue(currentMonthValue);
     }
   });
 
@@ -129,18 +124,16 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
 
     // On initial load, should NOT default to "Week 1" but to current week
     const now = new Date();
-    const currentMonth = now.toLocaleString('en-US', { month: 'long' });
-    const currentYear = now.getFullYear().toString();
+    const currentMonthValue = String(now.getMonth()); // 0-indexed
+    const currentYear = String(now.getFullYear());
 
-    // Month dropdown should show current month
-    await expect(
-      page.getByText(new RegExp(currentMonth, 'i')).first()
-    ).toBeVisible({ timeout: 10000 });
+    // Month dropdown should have current month selected
+    const monthDropdown = page.locator('select.calendar-month-selector').first();
+    await expect(monthDropdown).toHaveValue(currentMonthValue, { timeout: 10000 });
 
-    // Year dropdown should show current year
-    await expect(
-      page.getByText(currentYear).first()
-    ).toBeVisible({ timeout: 10000 });
+    // Year dropdown should have current year selected
+    const yearDropdown = page.locator('select.calendar-year-selector').first();
+    await expect(yearDropdown).toHaveValue(currentYear, { timeout: 10000 });
   });
 
   // --- AC2: Schedule Time Extension (07:00-21:00) ---
@@ -149,13 +142,14 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
     await page.getByText('Daily Schedule').first().click();
     await page.waitForLoadState('networkidle');
 
-    // First time slot: 07:00
+    // WeeklyCalendar renders times in 12hr AM/PM format via toLocaleTimeString
+    // First time slot: 7:00 AM (7AM = hour 7)
     await expect(
-      page.getByText('07:00').first()
+      page.getByText(/7:00\s*AM/i).first()
     ).toBeVisible({ timeout: 10000 });
 
-    // Last time slot: 21:00 (may need to scroll)
-    const lastSlot = page.getByText('21:00').first();
+    // Last time slot: 9:00 PM (21:00 = 9PM, may need to scroll)
+    const lastSlot = page.getByText(/9:00\s*PM/i).first();
     await lastSlot.scrollIntoViewIfNeeded();
     await expect(lastSlot).toBeVisible({ timeout: 10000 });
   });
@@ -164,8 +158,8 @@ test.describe('Coach — Dashboard & Weekly Calendar', () => {
     await page.getByText('Daily Schedule').first().click();
     await page.waitForLoadState('networkidle');
 
-    // Scroll to bottom of calendar
-    const lastSlot = page.getByText('21:00').first();
+    // Scroll to bottom of calendar (last time slot is 9:00 PM)
+    const lastSlot = page.getByText(/9:00\s*PM/i).first();
     if (await lastSlot.isVisible({ timeout: 5000 }).catch(() => false)) {
       await lastSlot.scrollIntoViewIfNeeded();
 

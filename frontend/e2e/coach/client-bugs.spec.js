@@ -177,9 +177,8 @@ test.describe('Coach — Client Bug Regressions', () => {
   // Schedule display should use 12hr format with AM/PM, not 24hr format.
   // =========================================================================
 
-  test.fixme('C-7: schedule should display times in 12hr format (AM/PM)', async ({ page }) => {
-    // TODO: selector needs update — WeeklyCalendar currently uses 24hr format (07:00-21:00)
-    // This test expects AM/PM format which is not yet implemented in the component
+  test('C-7: schedule should display times in 12hr format (AM/PM)', async ({ page }) => {
+    // WeeklyCalendar renders times via toLocaleTimeString (12hr AM/PM format)
     await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
