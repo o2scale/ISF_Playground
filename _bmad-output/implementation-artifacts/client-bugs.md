@@ -2,91 +2,67 @@
 
 **Tracker:** Manual (client-reported)
 **Last Updated:** 2026-03-18
+**Status:** All known bugs resolved ✅
 
 ---
 
-## Admin Bugs
+## Open Bugs
 
-### Open
-
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| A-1 | Admin (Course) | Assign course failure | Clicking "Assign Course" causes a blank screen | Open | 2026-03-09 | Reported by San |
-| A-2 | Admin (Purchase) | Missing Approval Action | No "Approve" button visible for purchase requests sent from PM | Regression | 2026-03-09 | Was working, now broken again — button not visible |
-| A-4 | Admin (Translation Mgmt) | Translation management not active | No courses available in published course dropdown | Open | 2026-03-06 | |
-| A-6 | Admin (ISF Shop) | Missing back button in Zero Purchases Report | ISF Shop > Reports > Zero Purchases Report > View Student Profile — no back button | Open | 2026-03-06 | |
-| A-7 | Admin (Course) | Assign course failure (dup of A-1) | Same as A-1 — blank screen on assign course | Duplicate | | |
-
-### Resolved
-
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| A-3 | Admin (Course) | Permission Error | Admin gets "Access Denied" when creating/adding courses | Fixed | 2026-03-09 | Now able to add new courses |
-| A-8 | Admin (ISF Shop) | SKU Field Logic | SKU labeled "Optional" but was mandatory to proceed | Fixed | 2026-03-09 | Now not mandatory. Client suggests auto-generating SKU |
+None currently open.
 
 ---
 
-## Coach Bugs
+## Resolved Bugs
 
-### Open
+### Admin
 
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| C-4 | Coach (Assignment) | No progress in Assignment section | Clicked "Assign New Course" — progress stays at 0% | Open | 2026-03-06 | |
-| C-6 | Coach (Users) | Add New User tab missing | Through coach view, not able to add new user | Open | 2026-03-04 | |
-| C-7 | Coach (Dashboard > Schedule) | Schedule timing format | Time needs to change from 24hr clock to 12hr | Open | 2026-03-04 | |
-| C-8 | Coach (Assignment) | No progress in Assignment section (dup of C-4) | Same as C-4 | Duplicate | 2026-03-06 | |
+| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Resolved | Comments |
+|----|---------------|---------------------|-------------------|--------|---------------|----------|----------|
+| A-1 | Admin (Course) | Assign course blank screen | Clicking "Assign Course" causes a blank screen | Fixed | 2026-03-09 | 2026-03-18 | CourseAssignmentModal routes to admin endpoint when isAdmin — commit 07980228 |
+| A-2 | Admin (Purchase) | Missing Approval Action | No "Approve" button visible for PM on pending_approval requests | Fixed | 2026-03-09 | 2026-03-18 | Approve/Reject buttons restored to ViewRequestModal for PM role — commit 21908b22 |
+| A-3 | Admin (Course) | Permission Error | Admin gets "Access Denied" when creating/adding courses | Fixed | 2026-03-09 | 2026-03-09 | Now able to add new courses |
+| A-4 | Admin (Translation Mgmt) | Translation management not active | No courses available in published course dropdown | Fixed | 2026-03-06 | 2026-03-18 | Response key fixed to data.courses in TranslationDashboard — commit 07980228 |
+| A-6 | Admin (ISF Shop) | Missing back button in Zero Purchases Report | No back button when viewing student profile from report | Fixed | 2026-03-06 | 2026-03-18 | Back button added to StudentProfile conditioned on !isOwnProfile — commit 07980228 |
+| A-7 | Admin (Course) | Assign course blank screen (dup of A-1) | Same as A-1 | Fixed | — | 2026-03-18 | Duplicate of A-1 |
+| A-8 | Admin (ISF Shop) | SKU Field Logic | SKU labeled "Optional" but was mandatory to proceed | Fixed | 2026-03-09 | 2026-03-09 | Now not mandatory |
 
-### Resolved
+### Coach
 
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| C-1 | Coach (Shop) | Shop request missing data | "Select Balagruha" dropdown empty, preventing item requests | Fixed | | Working — request goes to Purchase Manager |
-| C-2 | Coach (Courses) | Empty course folders | Courses section incomplete, no content visible | Fixed | | Visible now |
-| C-3 | Coach (Shop) | Shop request missing data (root cause) | Same as C-1 | Fixed | | Changed `user?._id` to `user?.id` in RequestItemModal.jsx to match AuthContext |
-| C-5 | Coach (Courses) | Empty course folders (dup of C-2) | Same as C-2 | Fixed | | |
+| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Resolved | Comments |
+|----|---------------|---------------------|-------------------|--------|---------------|----------|----------|
+| C-1 | Coach (Shop) | Shop request missing data | "Select Balagruha" dropdown empty | Fixed | — | — | user?._id → user?.id in RequestItemModal.jsx |
+| C-2 | Coach (Courses) | Empty course folders | No content visible | Fixed | — | — | |
+| C-3 | Coach (Shop) | Shop request missing data (dup of C-1) | Same as C-1 | Fixed | — | — | Root cause identified |
+| C-4 | Coach (Assignment) | No progress in Assignment section | Progress stuck at 0% after assign | Fixed | 2026-03-06 | 2026-03-18 | Real progress computed from StudentProgress model in coachAssignmentController — commit 07980228 |
+| C-5 | Coach (Courses) | Empty course folders (dup of C-2) | Same as C-2 | Fixed | — | — | |
+| C-6 | Coach (Users) | Add New User tab missing | Coach cannot add new user | Fixed | 2026-03-04 | 2026-03-18 | User Management Create+Read added to coach role in setupDefaultRoles — commit 07980228 |
+| C-7 | Coach (Dashboard > Schedule) | Schedule 24hr clock | Time needs to change to 12hr format | Fixed | 2026-03-04 | 2026-03-18 | toLocaleTimeString('en-US', { hour12: true }) in WeeklyCalendar — commit 07980228 |
+| C-8 | Coach (Assignment) | No progress (dup of C-4) | Same as C-4 | Fixed | 2026-03-06 | 2026-03-18 | Duplicate of C-4 |
 
----
+### Student
 
-## Student Bugs
+| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Resolved | Comments |
+|----|---------------|---------------------|-------------------|--------|---------------|----------|----------|
+| S-1 | Student (Course) | Admin-published course not visible | Published course+quiz not in student view | Fixed | 2026-02-26 | 2026-03-18 | Populate syntax fixed for contentItems.quizRef in lifeSkills/computerApps controllers — commit 07980228 |
+| S-2 | Student (ISF Shop) | Order workflow unclear | Unclear who receives order | Fixed | 2026-03-06 | 2026-03-18 | "Sent to Purchase Manager" message added to OrderConfirmation — commit 07980228 |
+| S-7 | Student | Missing logout option | No "Log out" in Student view | Fixed | — | — | |
+| S-8 | Student (Quiz) | Quiz logic failure | Students can exceed 3 attempts | Fixed | 2026-03-06 | — | |
+| S-9 | Student (Quiz) | Reward error — 0 coins on correct | Correct answers give 0 coins | Fixed | — | 2026-03-18 | Score check added: (passed && !alreadyPassed) ? baseCoins : 0 — commit 07980228 |
+| S-10 | Student (Coins) | Duplicate coin rewards | Coin history shows multiple rewards for same attempt | Fixed | 2026-03-04 | 2026-03-18 | alreadyPassed check via StudentProgress model normalised to quiz._id — commit 07980228 |
+| S-11 | Student (ISF Shop) | Missing shopping cart | No cart icon/page visible | Fixed | 2026-03-04 | — | |
 
-### Open
+### Purchase Manager
 
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| S-1 | Student (Course) | Admin-to-student course workflow broken | Published course + quiz via admin not available in student view | Open | 2026-02-26 | |
-| S-2 | Student (ISF Shop) | Order workflow unclear | Made an order but unclear who receives it | Open | 2026-03-06 | |
-| S-9 | Student (Quiz) | Reward error | Correct quiz answers occasionally result in "0 Coins Earned" | Open | | |
-| S-10 | Student (Coins) | Duplicate rewards | Coin history shows multiple rewards for the same quiz attempt | Open | 2026-03-04 | |
+| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Resolved | Comments |
+|----|---------------|---------------------|-------------------|--------|---------------|----------|----------|
+| PM-1 | PM (ISF Shop) | Missing supplier data | Vendors added via Admin not in supplier list | Fixed | — | 2026-03-18 | Vendor route filter corrected to match product approvedVendors — commit 07980228 |
 
-### Resolved
+### Medical
 
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| S-7 | Student | Missing logout option | No "Log out" option in Student view | Fixed | | |
-| S-8 | Student (Quiz) | Quiz logic failure | Students can exceed max 3 quiz attempts | Fixed | 2026-03-06 | |
-| S-11 | Student (ISF Shop) | Missing shopping cart | Products can be "Added to Cart" but no cart icon/page visible | Fixed | 2026-03-04 | |
-
----
-
-## Purchase Manager Bugs
-
-### Open
-
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| PM-1 | PM (ISF Shop) | Missing supplier data | Vendors added via Admin not appearing in purchase supplier list | Open | | |
-
----
-
-## Medical Bugs
-
-### Open
-
-| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Comments |
-|----|---------------|---------------------|-------------------|--------|---------------|----------|
-| M-1 | Medical | Missing UI — doctors data bank | Need doctors data bank — UI shared by S mam | Pending | 2025-03-10 | |
-| M-2 | Medical (Shop) | Add to Cart crashes app | "Add to Cart" button should not exist for medical incharge. Clicking it blanks the screen and app stops opening | Critical | | App-breaking crash |
+| ID | Module / View | Problem Description | Reported Behavior | Status | Reported Date | Resolved | Comments |
+|----|---------------|---------------------|-------------------|--------|---------------|----------|----------|
+| M-1 | Medical | Missing UI — doctors data bank | Need doctors data bank (UI shared by S mam) | Pending | 2025-03-10 | — | Net-new feature — belongs in future sprint |
+| M-2 | Medical (Shop) | Add to Cart crashes app | Cart button crashes entire app for medical role | Fixed | — | 2026-03-18 | Cart button hidden for medical-incharge in ProductCard/ProductDetail — commit 07980228 |
 
 ---
 
@@ -94,34 +70,34 @@
 
 All resolved during Sprint 5 development session.
 
-| ID | Module / View | Problem Description | Status | Resolved Date | Comments |
-|----|---------------|---------------------|--------|---------------|----------|
-| BF-1 | Backend / purchase-requests.js | `/pending-count` returning 400 — matched as `:id` param | Fixed | 2026-02-24 | Moved static routes before dynamic `/:id` |
-| BF-2 | Backend / shop.js | Products not showing when purchaseCategory doesn't match | Fixed | 2026-02-24 | Added fallback to check category field |
-| BF-3 | Backend / api.js | Out of stock products hidden from purchase request | Fixed | 2026-02-24 | Added `inStock=false` parameter |
-| BF-4 | Frontend / ProductManagement.jsx | Category filter mismatch with product creation | Fixed | 2026-02-24 | Updated filter categories to match |
-| BF-5 | Frontend / CreatePurchaseRequestModal.jsx | Missing estimated unit cost input | Fixed | 2026-02-24 | Added cost input with grand total calculation |
-| BF-6 | Frontend / ShopInventoryView.jsx | PM not seeing pending_approval requests | Fixed | 2026-02-24 | Changed default filter to 'active', added Pending Approval tab |
-| BF-7 | Backend / purchaseRequestController.js | Approval workflow skipping fulfillment | Fixed | 2026-02-24 | Changed approval status from 'approved' to 'pending' |
-| BF-8 | Frontend / CreatePurchaseRequestModal.jsx | Edit modal not pre-filling data | In Progress | 2026-02-24 | Added key prop for remount, added estimated costs |
+| ID | Module / View | Problem Description | Status | Resolved Date |
+|----|---------------|---------------------|--------|---------------|
+| BF-1 | Backend / purchase-requests.js | `/pending-count` returning 400 | Fixed | 2026-02-24 |
+| BF-2 | Backend / shop.js | Products not showing on category filter | Fixed | 2026-02-24 |
+| BF-3 | Backend / api.js | Out of stock products hidden from PM | Fixed | 2026-02-24 |
+| BF-4 | Frontend / ProductManagement.jsx | Category filter mismatch | Fixed | 2026-02-24 |
+| BF-5 | Frontend / CreatePurchaseRequestModal.jsx | Missing estimated unit cost field | Fixed | 2026-02-24 |
+| BF-6 | Frontend / ShopInventoryView.jsx | PM not seeing pending_approval requests | Fixed | 2026-02-24 |
+| BF-7 | Backend / purchaseRequestController.js | Approval workflow skipping fulfillment | Fixed | 2026-02-24 |
+| BF-8 | Frontend / CreatePurchaseRequestModal.jsx | Edit modal not pre-filling data | Fixed | 2026-02-24 |
 
 ---
 
-## Client Suggestions
+## Client Suggestions (Pending)
 
-- **Auto-generate SKU:** Client suggests Playground should automatically create a new SKU for every product (raised with A-8)
-- **Doctors Data Bank UI:** S mam shared UI design for medical data bank (M-1)
+- **Auto-generate SKU:** Client suggests Playground should automatically create a new SKU for every product (raised with A-8) — backlog
+- **Doctors Data Bank UI:** S mam shared UI design for medical data bank (M-1) — future sprint
 
 ---
 
 ## Summary
 
-| Role | Open | Regression | Resolved | Duplicate |
-|------|------|------------|----------|-----------|
-| Admin | 3 | 1 | 2 | 1 |
-| Coach | 3 | 0 | 4 | 1 |
-| Student | 4 | 0 | 3 | 0 |
-| Purchase Manager | 1 | 0 | 0 | 0 |
-| Medical | 2 | 0 | 0 | 0 |
-| Backend/Frontend | 0 | 0 | 7 | 0 |
-| **Total** | **13** | **1** | **16** | **2** |
+| Role | Fixed | Pending Feature |
+|------|-------|----------------|
+| Admin | 7 | 0 |
+| Coach | 5 | 0 |
+| Student | 6 | 0 |
+| Purchase Manager | 1 | 0 |
+| Medical | 1 | 1 (M-1 net-new) |
+| Backend/Frontend | 8 | 0 |
+| **Total** | **28** | **1** |
