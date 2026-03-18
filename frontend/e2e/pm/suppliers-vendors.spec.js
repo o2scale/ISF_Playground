@@ -19,9 +19,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Switch to Shop Inventory
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /shop inventory/i });
+    // Switch to Shop Inventory (option value="shop-inventory")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create purchase request modal
@@ -45,9 +45,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Switch to Shop Inventory
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /shop inventory/i });
+    // Switch to Shop Inventory (option value="shop-inventory")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -71,9 +71,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Switch to Shop Inventory
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /shop inventory/i });
+    // Switch to Shop Inventory (option value="shop-inventory")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -103,9 +103,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Switch to Shop Inventory
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /shop inventory/i });
+    // Switch to Shop Inventory (option value="shop-inventory")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -135,9 +135,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Switch to Shop Inventory
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /shop inventory/i });
+    // Switch to Shop Inventory (option value="shop-inventory")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -169,9 +169,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Switch to Shop Inventory
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /shop inventory/i });
+    // Switch to Shop Inventory (option value="shop-inventory")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -192,9 +192,9 @@ test.describe('Suppliers & Vendors', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Default should be Machine Repairs or we can select it
-    const typeDropdown = page.locator('select').first();
-    await typeDropdown.selectOption({ label: /machine repairs/i });
+    // Default should be Machine Repairs or we can select it (option value="machine-repairs")
+    const typeDropdown = page.locator('select#purchase-type');
+    await typeDropdown.selectOption({ value: 'machine-repairs' });
     await page.waitForTimeout(500);
 
     // Verify Machine Repairs content is shown

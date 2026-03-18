@@ -20,10 +20,11 @@ test.describe('Purchase Request Lifecycle', () => {
 
   test('TC-1: navigate to purchase management page', async ({ page }) => {
     await page.goto('/purchase');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.getByText(/purchase management/i).first()).toBeVisible({ timeout: 10000 });
 
-    // Verify the purchase-type dropdown exists with Machine Repairs and Shop Inventory
-    const dropdown = page.locator('select').filter({ hasText: /machine repairs|shop inventory/i }).first();
+    // Verify the purchase-type dropdown exists (select#purchase-type)
+    const dropdown = page.locator('select#purchase-type').first();
     await expect(dropdown).toBeVisible({ timeout: 10000 });
   });
 
@@ -31,9 +32,9 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.goto('/purchase');
     await page.waitForLoadState('networkidle');
 
-    // Select Shop Inventory from the dropdown
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    // Select Shop Inventory from the dropdown (option value="shop-inventory")
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
 
     // Verify Shop Inventory header or content appears
     await expect(page.getByText(/shop inventory/i).first()).toBeVisible({ timeout: 10000 });
@@ -49,8 +50,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Click New Purchase Request
@@ -101,8 +102,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(1000);
 
     // Verify table has at least one row
@@ -125,8 +126,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(1000);
 
     // Click view button on first pending request
@@ -153,8 +154,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(1000);
 
     // Click cancel button on a pending request
@@ -181,8 +182,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -203,8 +204,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(500);
 
     // Open create modal
@@ -248,8 +249,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(1000);
 
     // Verify stats footer is visible with count labels
@@ -262,8 +263,8 @@ test.describe('Purchase Request Lifecycle', () => {
     await page.waitForLoadState('networkidle');
 
     // Switch to Shop Inventory
-    const dropdown = page.locator('select').first();
-    await dropdown.selectOption({ label: /shop inventory/i });
+    const dropdown = page.locator('select#purchase-type');
+    await dropdown.selectOption({ value: 'shop-inventory' });
     await page.waitForTimeout(1000);
 
     // Verify export PDF button exists

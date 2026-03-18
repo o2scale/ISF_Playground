@@ -17,7 +17,8 @@ const { test, expect } = require('@playwright/test');
 test.describe('Coach — Dashboard & Weekly Calendar', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
   });
 

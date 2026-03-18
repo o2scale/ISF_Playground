@@ -2,7 +2,7 @@
 const { test: setup, expect } = require('@playwright/test');
 const path = require('path');
 
-const roles = [
+const adminRoles = [
   {
     name: 'admin',
     email: process.env.E2E_ADMIN_EMAIL || 'admin@gmail.com',
@@ -13,19 +13,11 @@ const roles = [
   },
   {
     name: 'coach',
-    email: process.env.E2E_COACH_EMAIL || 'isfinbengaluru@gmail.com',
+    email: process.env.E2E_COACH_EMAIL || 'coach@gmail.com',
     password: process.env.E2E_COACH_PASSWORD || 'test123',
     file: path.join(__dirname, '../.auth/coach.json'),
     loginPath: '/admin/login',
     dashboardPattern: /dashboard/,
-  },
-  {
-    name: 'student',
-    email: process.env.E2E_STUDENT_EMAIL || 'vis@gmail.com',
-    password: process.env.E2E_STUDENT_PASSWORD || 'test123',
-    file: path.join(__dirname, '../.auth/student.json'),
-    loginPath: '/',
-    dashboardPattern: /dashboard|home/,
   },
   {
     name: 'pm',
@@ -45,7 +37,8 @@ const roles = [
   },
 ];
 
-for (const role of roles) {
+// Admin/coach/pm/medical: email + password login at /admin/login
+for (const role of adminRoles) {
   setup(`authenticate as ${role.name}`, async ({ page }) => {
     await page.goto(role.loginPath);
     await page.getByPlaceholder(/email/i).fill(role.email);
@@ -55,3 +48,15 @@ for (const role of roles) {
     await page.context().storageState({ path: role.file });
   });
 }
+
+// Student: PIN/userId-based login at /login (no password field)
+setup('authenticate as student', async ({ page }) => {
+  const userId = process.env.E2E_STUDENT_USERID || '1234';
+  const file = path.join(__dirname, '../.auth/student.json');
+
+  await page.goto('/login');
+  await page.getByPlaceholder('userId').fill(userId);
+  await page.getByRole('button', { name: /login/i }).click();
+  await expect(page).toHaveURL(/student\/dashboard|dashboard|home/, { timeout: 15000 });
+  await page.context().storageState({ path: file });
+});
