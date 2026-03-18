@@ -95,6 +95,10 @@ const defaultRoles = [
         module: "Purchase Management",
         actions: ["Create", "Read", "Update", "Manage"],
       },
+      {
+        module: "Machine Management",
+        actions: ["Read"],
+      },
     ],
   },
   {
@@ -144,6 +148,10 @@ const defaultRoles = [
         module: "Course Management",
         actions: ["Create"],
       },
+      {
+        module: "Machine Management",
+        actions: ["Read"],
+      },
     ],
   },
   {
@@ -187,6 +195,10 @@ const defaultRoles = [
         actions: ["Create", "Read"],
       },
       {
+        module: "Machine Management",
+        actions: ["Read"],
+      },
+      {
         module: "Schedule Management",
         actions: ["Read"],
       },
@@ -225,6 +237,10 @@ const defaultRoles = [
         actions: ["Create", "Read", "Update"],
       },
       {
+        module: "Machine Management",
+        actions: ["Read"],
+      },
+      {
         module: "Schedule Management",
         actions: ["Read"],
       },
@@ -244,6 +260,10 @@ const defaultRoles = [
       {
         module: "LMS Management",
         actions: ["Create", "Read", "Update"],
+      },
+      {
+        module: "Machine Management",
+        actions: ["Read"],
       },
       {
         module: "Schedule Management",
