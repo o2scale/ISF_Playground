@@ -631,13 +631,29 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
           )}
 
           {request.status === PurchaseRequestStatuses.PENDING_APPROVAL && normalizedRole === UserTypes.PURCHASE_MANAGER && (
-            <button
-              className="btn btn-danger"
-              onClick={handleCancel}
-              disabled={statusUpdating}
-            >
-              ✖️ Cancel Request
-            </button>
+            <>
+              <button
+                className="btn btn-success"
+                onClick={handleApprove}
+                disabled={statusUpdating}
+              >
+                ✅ Approve
+              </button>
+              <button
+                className="btn btn-warning"
+                onClick={handleReject}
+                disabled={statusUpdating}
+              >
+                ❌ Reject
+              </button>
+              <button
+                className="btn btn-danger"
+                onClick={handleCancel}
+                disabled={statusUpdating}
+              >
+                ✖️ Cancel Request
+              </button>
+            </>
           )}
           <button
             className="btn btn-secondary"
