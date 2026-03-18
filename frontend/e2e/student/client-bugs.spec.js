@@ -20,9 +20,12 @@ test.describe('S-1: Published courses visible in student view', () => {
 
   test('published course should be navigable from dashboard', async ({ page }) => {
     await page.goto('/student/dashboard');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
 
     // Click on Computer Apps card to verify it leads to the course page
-    await page.getByText(/computer apps/i).first().click();
+    const courseLink = page.getByText(/computer apps/i).first();
+    await expect(courseLink).toBeVisible({ timeout: 10000 });
+    await courseLink.click();
     await expect(page).toHaveURL(/student\/computer-apps/, { timeout: 10000 });
 
     // Course content should load (not 404 or error)
