@@ -12,6 +12,7 @@ const { test, expect } = require('@playwright/test');
 test.describe('Course CRUD Operations', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin/courses');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.getByRole('heading', { name: /course/i }).first()).toBeVisible({ timeout: 10000 });
   });
 
@@ -115,6 +116,7 @@ test.describe('Course CRUD Operations', () => {
 test.describe('Course Structure Builder', () => {
   test('should navigate to structure builder from context menu', async ({ page }) => {
     await page.goto('/admin/courses');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.getByRole('heading', { name: /course/i }).first()).toBeVisible({ timeout: 10000 });
 
     const menuBtn = page.locator('button').filter({ hasText: /⋮|more/i }).first()
@@ -129,6 +131,7 @@ test.describe('Course Structure Builder', () => {
 
   test('should add a module to a course', async ({ page }) => {
     await page.goto('/admin/courses');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
     // Navigate to structure builder for first course
@@ -157,6 +160,7 @@ test.describe('Course Structure Builder', () => {
 test.describe('Course Publishing & Archiving', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/admin/courses');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.getByRole('heading', { name: /course/i }).first()).toBeVisible({ timeout: 10000 });
   });
 

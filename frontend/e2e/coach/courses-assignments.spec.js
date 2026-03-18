@@ -15,7 +15,8 @@ const { test, expect } = require('@playwright/test');
 
 test.describe('Coach — Courses & Assignments', () => {
   test('should display coach dashboard with expected cards', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     // AC3: exactly 5 cards — Daily Schedule, Task Tracker, Medical, Purchase, ISF Shop
@@ -28,7 +29,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should NOT display removed dashboard cards', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     // AC3: these 6 cards should have been removed
@@ -39,7 +41,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should navigate to Task Tracker from dashboard card', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     const taskCard = page.getByText('Task Tracker').first();
@@ -52,7 +55,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should open task creation form with Assign To dropdown', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     // Navigate to Task Tracker
@@ -71,7 +75,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should show students in task assignment dropdown (AC8)', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     await page.getByText('Task Tracker').first().click();
@@ -94,7 +99,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should create a task and assign to a student', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     await page.getByText('Task Tracker').first().click();
@@ -129,7 +135,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should display Daily Schedule card with count', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     // AC3: Daily Schedule card should show a numeric count
@@ -142,7 +149,8 @@ test.describe('Coach — Courses & Assignments', () => {
   });
 
   test('should display Task Tracker card with count', async ({ page }) => {
-    await page.goto('/coach');
+    // Coach dashboard is served at /dashboard (role-aware rendering)
+    await page.goto('/dashboard');
     await page.waitForLoadState('networkidle');
 
     const taskCard = page.getByText('Task Tracker').first();

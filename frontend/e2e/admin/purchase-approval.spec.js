@@ -12,12 +12,13 @@ const { test, expect } = require('@playwright/test');
 test.describe('Purchase Request List — Admin View', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/purchase');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
-    // Switch to Shop Inventory view if dropdown exists
-    const viewDropdown = page.locator('select').filter({ hasText: /shop inventory|purchase/i }).first();
+    // Switch to Shop Inventory view if dropdown exists (option value="shop-inventory")
+    const viewDropdown = page.locator('select#purchase-type');
     if (await viewDropdown.isVisible().catch(() => false)) {
-      await viewDropdown.selectOption({ label: /shop inventory/i });
+      await viewDropdown.selectOption({ value: 'shop-inventory' });
       await page.waitForTimeout(500);
     }
   });
@@ -76,11 +77,12 @@ test.describe('Purchase Request List — Admin View', () => {
 test.describe('Approve Purchase Request', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/purchase');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
-    const viewDropdown = page.locator('select').filter({ hasText: /shop inventory|purchase/i }).first();
+    const viewDropdown = page.locator('select#purchase-type');
     if (await viewDropdown.isVisible().catch(() => false)) {
-      await viewDropdown.selectOption({ label: /shop inventory/i });
+      await viewDropdown.selectOption({ value: 'shop-inventory' });
       await page.waitForTimeout(500);
     }
   });
@@ -172,11 +174,12 @@ test.describe('Approve Purchase Request', () => {
 test.describe('Reject Purchase Request', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/purchase');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
-    const viewDropdown = page.locator('select').filter({ hasText: /shop inventory|purchase/i }).first();
+    const viewDropdown = page.locator('select#purchase-type');
     if (await viewDropdown.isVisible().catch(() => false)) {
-      await viewDropdown.selectOption({ label: /shop inventory/i });
+      await viewDropdown.selectOption({ value: 'shop-inventory' });
       await page.waitForTimeout(500);
     }
   });
@@ -244,6 +247,7 @@ test.describe('Reject Purchase Request', () => {
 test.describe('View Request Details', () => {
   test('should open view modal for a request', async ({ page }) => {
     await page.goto('/purchase');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
     const viewBtn = page.getByRole('button', { name: /view/i }).first()
@@ -260,6 +264,7 @@ test.describe('View Request Details', () => {
 
   test('should display audit trail for reviewed requests', async ({ page }) => {
     await page.goto('/purchase');
+    await page.waitForLoadState('networkidle', { timeout: 15000 });
     await expect(page.locator('main')).toBeVisible({ timeout: 10000 });
 
     // Filter to approved requests
