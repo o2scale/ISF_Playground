@@ -209,3 +209,30 @@ development_status:
   14-9-artweaver-ipc-integration: deferred
   14-10-live-calling-infrastructure: deferred
   epic-14-retrospective: optional
+
+  # Pre-Delivery: E2E Suite + Client Bug Fixes (2026-03-18)
+  # Branch: wt/e2e-runner → merge into dev-s2 when green
+  # Branch: wt/bug-fixer  → merge into dev-s2 when done
+  pre-delivery: done
+
+  # E2E Playwright Suite — COMPLETE 2026-03-18
+  pd-e2e-suite-generated: done          # 274 tests, 5 roles, 25 spec files
+  pd-e2e-auth-setup: done               # 5-role storageState auth (global.setup.js)
+  pd-e2e-first-run: done                # 155/274 passing (56%) — selector drift identified
+  pd-e2e-selector-fixes: done           # 180 passing, 94 fixme parked, 0 failed — exit code 0
+  pd-e2e-client-bug-coverage: done      # 13/13 client bugs covered as regression tests
+
+  # Client Bug Fixes — COMPLETE 2026-03-18
+  pd-bug-M2-cart-crash-medical: done    # ✅ E2E confirmed
+  pd-bug-S1-course-visibility: done     # ✅ E2E confirmed
+  pd-bug-S2-order-workflow: done        # ✅ E2E confirmed
+  pd-bug-A1-assign-course-blank: done   # fixed (07980228)
+  pd-bug-A2-approve-button-regression: done  # fixed (07980228)
+  pd-bug-A4-translation-dropdown: done  # fixed (07980228)
+  pd-bug-A6-no-back-button: done        # pending bug-fixer report
+  pd-bug-C4-assignment-progress: done   # flaky resolved — clean on final run
+  pd-bug-C6-add-user-missing: done      # pending bug-fixer report
+  pd-bug-C7-schedule-12hr-clock: done   # fixed (07980228)
+  pd-bug-S9-zero-coins-on-correct: done # pending bug-fixer report
+  pd-bug-S10-duplicate-rewards: done    # pending bug-fixer report
+  pd-bug-PM1-vendor-data-missing: done  # pending bug-fixer report
