@@ -67,6 +67,15 @@ describe('manualAwardController - Balagruha Authorization (FIX-013)', () => {
     expect(res.status).toHaveBeenCalledWith(400);
   });
 
+  test('returns 400 if amount exceeds 100', async () => {
+    req.body.amount = 101;
+    await awardCoins(req, res);
+    expect(res.status).toHaveBeenCalledWith(400);
+    expect(res.json).toHaveBeenCalledWith(
+      expect.objectContaining({ success: false, message: expect.stringContaining('exceed 100') })
+    );
+  });
+
   // --- FIX-013: Balagruha authorization ---
 
   test('returns 403 when coach has no assigned Balagruhas', async () => {

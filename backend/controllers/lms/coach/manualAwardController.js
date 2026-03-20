@@ -23,6 +23,9 @@ exports.awardCoins = async (req, res) => {
         if (!amount || amount <= 0) {
             return res.status(400).json({ success: false, message: 'Valid positive amount is required' });
         }
+        if (amount > 100) {
+            return res.status(400).json({ success: false, message: 'Amount cannot exceed 100 coins per award' });
+        }
         if (!reason) {
             return res.status(400).json({ success: false, message: 'Reason for award is required' });
         }
