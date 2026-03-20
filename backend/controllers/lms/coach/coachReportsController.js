@@ -244,6 +244,93 @@ exports.getCourseCompletionRates = async (req, res) => {
 };
 
 /**
+ * @desc Get detailed analytics for a specific course (FR21)
+ * @route GET /api/v2/lms/coach/reports/course/:courseId
+ * @access Private (Coach)
+ */
+exports.getCourseDetail = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const coachBalagruhaIds = req.user.balagruhaIds || [];
+
+        const studentIds = await getBalagruhaStudentIds(coachBalagruhaIds);
+
+        if (studentIds.length === 0) {
+            return res.json({
+                success: true,
+                courseId,
+                stats: { totalStudents: 0, completionRate: 0, avgScore: 0, studentsStarted: 0, studentsCompleted: 0 }
+            });
+        }
+
+        // Get progress for this course across balagruha students
+        const progressRecords = await StudentProgress.find({
+            student: { $in: studentIds },
+            course: new mongoose.Types.ObjectId(courseId)
+        }).populate('student', 'name');
+
+        let totalCompletion = 0;
+        let totalScore = 0;
+        let scoreCount = 0;
+        let studentsStarted = 0;
+        let studentsCompleted = 0;
+
+        const studentDetails = [];
+        for (const prog of progressRecords) {
+            const completion = prog.completionPercentage || 0;
+            totalCompletion += completion;
+
+            if (prog.status === 'completed') {
+                studentsCompleted++;
+                studentsStarted++;
+            } else if (prog.status === 'in_progress') {
+                studentsStarted++;
+            }
+
+            if (prog.quizScore !== undefined && prog.quizScore !== null) {
+                totalScore += prog.quizScore;
+                scoreCount++;
+            }
+
+            studentDetails.push({
+                studentId: prog.student?._id,
+                studentName: prog.student?.name,
+                completionPercentage: completion,
+                status: prog.status,
+                quizScore: prog.quizScore || null,
+                lastActivity: prog.updatedAt
+            });
+        }
+
+        const completionRate = studentIds.length > 0
+            ? Math.round((studentsCompleted / studentIds.length) * 100)
+            : 0;
+        const avgScore = scoreCount > 0 ? Math.round(totalScore / scoreCount) : 0;
+
+        res.json({
+            success: true,
+            courseId,
+            stats: {
+                totalStudents: studentIds.length,
+                studentsStarted,
+                studentsCompleted,
+                completionRate,
+                avgScore,
+            },
+            students: studentDetails.sort((a, b) => (b.completionPercentage || 0) - (a.completionPercentage || 0))
+        });
+
+    } catch (error) {
+        errorLogger.error({ err: error }, 'Course Detail Report Error:');
+        res.status(500).json({
+            success: false,
+            message: 'Server error fetching course detail',
+            error: error.message
+        });
+    }
+};
+
+/**
  * @desc Identify slow learners (students below average progress)
  * @route GET /api/v2/lms/coach/reports/slow-learners
  * @access Private (Coach)

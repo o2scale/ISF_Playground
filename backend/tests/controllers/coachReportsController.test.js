@@ -481,4 +481,90 @@ describe('CoachReportsController', () => {
       }));
     });
   });
+
+  // =====================================================
+  // getCourseDetail (FR21)
+  // =====================================================
+  describe('getCourseDetail', () => {
+    it('should return per-course stats scoped to balagruha', async () => {
+      const req = buildReq({ params: { courseId: courseId1.toString() } });
+      const res = mockResponse();
+
+      // Mock balagruha student lookup
+      User.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([
+          { _id: studentId1 },
+          { _id: studentId2 },
+        ])
+      });
+
+      // Mock StudentProgress.find with populate chain
+      StudentProgress.find.mockReturnValue({
+        populate: jest.fn().mockResolvedValue([
+          {
+            student: { _id: studentId1, name: 'Student A' },
+            course: courseId1,
+            completionPercentage: 80,
+            status: 'completed',
+            quizScore: 90,
+            updatedAt: new Date()
+          },
+          {
+            student: { _id: studentId2, name: 'Student B' },
+            course: courseId1,
+            completionPercentage: 40,
+            status: 'in_progress',
+            quizScore: 60,
+            updatedAt: new Date()
+          }
+        ])
+      });
+
+      await coachReportsController.getCourseDetail(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        courseId: courseId1.toString(),
+        stats: expect.objectContaining({
+          totalStudents: 2,
+          studentsStarted: 2,
+          studentsCompleted: 1,
+          completionRate: 50,
+          avgScore: 75,
+        })
+      }));
+    });
+
+    it('should return empty stats when no students in balagruha', async () => {
+      const req = buildReq({ params: { courseId: courseId1.toString() } });
+      const res = mockResponse();
+
+      User.find.mockReturnValue({
+        select: jest.fn().mockResolvedValue([])
+      });
+
+      await coachReportsController.getCourseDetail(req, res);
+
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: true,
+        stats: expect.objectContaining({
+          totalStudents: 0,
+          completionRate: 0,
+        })
+      }));
+    });
+
+    it('should return 500 on error', async () => {
+      const req = buildReq({ params: { courseId: courseId1.toString() } });
+      const res = mockResponse();
+
+      User.find.mockReturnValue({
+        select: jest.fn().mockRejectedValue(new Error('DB error'))
+      });
+
+      await coachReportsController.getCourseDetail(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(500);
+    });
+  });
 });

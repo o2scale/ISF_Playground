@@ -18,6 +18,7 @@ router.get('/awards/history', authenticate, authorize("LMS Management", "Read"),
 router.get('/reports/overview', authenticate, authorize("LMS Management", "Read"), coachReportsController.getOverviewStats);
 router.get('/reports/leaderboard', authenticate, authorize("LMS Management", "Read"), coachReportsController.getLeaderboard);
 router.get('/reports/course-completion', authenticate, authorize("LMS Management", "Read"), coachReportsController.getCourseCompletionRates);
+router.get('/reports/course/:courseId', authenticate, authorize("LMS Management", "Read"), coachReportsController.getCourseDetail);
 router.get('/reports/slow-learners', authenticate, authorize("LMS Management", "Read"), coachReportsController.getSlowLearners);
 
 module.exports = router;
