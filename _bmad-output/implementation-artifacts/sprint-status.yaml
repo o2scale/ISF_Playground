@@ -236,3 +236,8 @@ development_status:
   pd-bug-S9-zero-coins-on-correct: done # pending bug-fixer report
   pd-bug-S10-duplicate-rewards: done    # pending bug-fixer report
   pd-bug-PM1-vendor-data-missing: done  # pending bug-fixer report
+
+  # Post-Delivery RBAC Navigation Fixes (2026-03-19)
+  post-delivery: done
+  pd-rbac-machine-nav-access-denied: done   # Machine Management Read added to purchase-manager, coach, balagruha-incharge, sports-coach, music-coach (b6749fa0)
+  pd-rbac-balagruha-403-pm-role: done       # User Management Read added to purchase-manager — fixes getBalagruha 403 on Machines tab (5fce76b4)

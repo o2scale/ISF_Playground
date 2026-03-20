@@ -23,7 +23,7 @@ test.describe('Purchase Request List — Admin View', () => {
     }
   });
 
-  test.fixme('should display all purchase requests for admin', async ({ page }) => {
+  test('should display all purchase requests for admin', async ({ page }) => {
     // Admin should see requests table
     await expect(
       page.getByText(/request|purchase/i).first()
