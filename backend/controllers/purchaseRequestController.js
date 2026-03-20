@@ -6,6 +6,31 @@ const mongoose = require('mongoose');
 const { errorLogger } = require('../config/pino-config');
 
 /**
+ * PM Error Codes — Sprint 2 E5 Story 5
+ * Structured error codes for role-specific error handling
+ */
+const PR_ERROR = {
+  NOT_FOUND: 'PR_NOT_FOUND',
+  INVALID_TRANSITION: 'PR_INVALID_TRANSITION',
+  UNAUTHORIZED: 'PR_UNAUTHORIZED',
+  VALIDATION_FAILED: 'PR_VALIDATION_FAILED',
+  DUPLICATE_ACTION: 'PR_DUPLICATE_ACTION',
+  INSUFFICIENT_STOCK: 'PR_INSUFFICIENT_STOCK',
+};
+
+/** Log a failed PM operation for audit trail */
+function logPmOperation(userId, requestId, action, error) {
+  errorLogger.error({
+    pmOperation: true,
+    userId: userId?.toString(),
+    requestId: requestId?.toString(),
+    action,
+    error: typeof error === 'string' ? error : error?.message,
+    timestamp: new Date().toISOString(),
+  }, `PM operation failed: ${action}`);
+}
+
+/**
  * Purchase Request Controller - Sprint5-Story-17
  * Handles purchase request creation and management
  */
@@ -495,24 +520,30 @@ exports.cancelPurchaseRequest = async (req, res) => {
     const request = await PurchaseRequest.findById(id);
 
     if (!request) {
+      logPmOperation(userId, id, 'cancel', 'Purchase request not found');
       return res.status(404).json({
         success: false,
+        errorCode: PR_ERROR.NOT_FOUND,
         message: 'Purchase request not found'
       });
     }
 
     // Validate: Only requester can cancel
     if (request.requestedBy.toString() !== userId.toString()) {
+      logPmOperation(userId, id, 'cancel', 'Not the requester');
       return res.status(403).json({
         success: false,
+        errorCode: PR_ERROR.UNAUTHORIZED,
         message: 'You can only cancel your own requests'
       });
     }
 
     // Validate: Can only cancel pending requests
     if (request.status !== 'pending_approval') {
+      logPmOperation(userId, id, 'cancel', `Invalid transition from ${request.status}`);
       return res.status(400).json({
         success: false,
+        errorCode: PR_ERROR.INVALID_TRANSITION,
         message: `Cannot cancel ${request.status} request. Only pending requests can be cancelled.`
       });
     }
@@ -556,6 +587,7 @@ exports.getPurchaseRequestById = async (req, res) => {
     if (!request) {
       return res.status(404).json({
         success: false,
+        errorCode: PR_ERROR.NOT_FOUND,
         message: 'Purchase request not found'
       });
     }
@@ -624,16 +656,20 @@ exports.approvePurchaseRequest = async (req, res) => {
 
     // Validate: Can only approve pending requests
     if (request.status !== 'pending_approval') {
+      logPmOperation(adminId, id, 'approve', `Invalid transition from ${request.status}`);
       return res.status(400).json({
         success: false,
+        errorCode: PR_ERROR.INVALID_TRANSITION,
         message: `Cannot approve ${request.status} request. Only pending requests can be approved.`
       });
     }
 
-    // 🔥 VALIDATION: Cannot approve own request
+    // VALIDATION: Cannot approve own request
     if (request.requestedBy.toString() === adminId.toString()) {
+      logPmOperation(adminId, id, 'approve', 'Self-approval attempted');
       return res.status(403).json({
         success: false,
+        errorCode: PR_ERROR.UNAUTHORIZED,
         message: 'Cannot approve your own request. Another admin must approve.'
       });
     }
@@ -1056,6 +1092,7 @@ exports.updateStatus = async (req, res) => {
     if (!status) {
       return res.status(400).json({
         success: false,
+        errorCode: PR_ERROR.VALIDATION_FAILED,
         message: 'Status is required'
       });
     }
@@ -1072,6 +1109,7 @@ exports.updateStatus = async (req, res) => {
     if (!allowedStatuses.has(status)) {
       return res.status(400).json({
         success: false,
+        errorCode: PR_ERROR.VALIDATION_FAILED,
         message: `Invalid status: ${status}`
       });
     }
@@ -1079,8 +1117,10 @@ exports.updateStatus = async (req, res) => {
     const request = await PurchaseRequest.findById(id);
 
     if (!request) {
+      logPmOperation(userId, id, 'updateStatus', 'Purchase request not found');
       return res.status(404).json({
         success: false,
+        errorCode: PR_ERROR.NOT_FOUND,
         message: 'Purchase request not found'
       });
     }
@@ -1130,8 +1170,10 @@ exports.updateStatus = async (req, res) => {
     }
 
     if (!allowed) {
+      logPmOperation(userId, id, 'updateStatus', `Transition ${currentStatus} → ${status} denied for role ${userRole}`);
       return res.status(403).json({
         success: false,
+        errorCode: PR_ERROR.INVALID_TRANSITION,
         message: `Transition from ${currentStatus} to ${status} not allowed for your role.`
       });
     }

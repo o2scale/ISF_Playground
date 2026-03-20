@@ -1150,4 +1150,65 @@ describe('PurchaseRequest Controller', () => {
       }));
     });
   });
+
+  describe('PM Error Codes (Story 15.7)', () => {
+    test('should return PR_NOT_FOUND error code when request does not exist', async () => {
+      const admin = await createTestUser({ role: 'admin' });
+      const fakeId = generateObjectId();
+
+      const req = mockRequest({
+        params: { id: fakeId },
+        user: { _id: admin._id, role: 'admin', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.getPurchaseRequestById(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(404);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        errorCode: 'PR_NOT_FOUND',
+      }));
+    });
+
+    test('should return PR_INVALID_TRANSITION error code on bad status transition', async () => {
+      const pm = await createTestUser({ role: 'purchase-manager', balagruhaIds: [] });
+      const pr = await createTestPR({ status: 'ordered', _user: pm });
+
+      const req = mockRequest({
+        params: { id: pr._id.toString() },
+        body: { status: 'pending' },
+        user: { _id: pm._id, role: 'purchase-manager', balagruhaIds: ['STOCK'] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(403);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        errorCode: 'PR_INVALID_TRANSITION',
+      }));
+    });
+
+    test('should return PR_VALIDATION_FAILED error code when status is missing', async () => {
+      const admin = await createTestUser({ role: 'admin' });
+      const pr = await createTestPR({ _user: admin });
+
+      const req = mockRequest({
+        params: { id: pr._id.toString() },
+        body: {},
+        user: { _id: admin._id, role: 'admin', balagruhaIds: [] },
+      });
+      const res = mockResponse();
+
+      await purchaseRequestController.updateStatus(req, res);
+
+      expect(res.status).toHaveBeenCalledWith(400);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
+        success: false,
+        errorCode: 'PR_VALIDATION_FAILED',
+      }));
+    });
+  });
 });
