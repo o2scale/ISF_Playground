@@ -17,12 +17,14 @@ test.describe('Content Library', () => {
   });
 
   test.fixme('should display content library with upload button', async ({ page }) => {
+    // fixme: /admin/content-library returns 404 — route not implemented
     await expect(
       page.getByRole('button', { name: /upload/i }).first()
     ).toBeVisible({ timeout: 10000 });
   });
 
   test.fixme('should open upload modal when clicking upload button', async ({ page }) => {
+    // fixme: /admin/content-library returns 404 — route not implemented
     await page.getByRole('button', { name: /upload/i }).first().click();
 
     // Modal or upload area should appear
@@ -70,6 +72,7 @@ test.describe('Content Library', () => {
   });
 
   test.fixme('should display statistics cards', async ({ page }) => {
+    // fixme: /admin/content-library returns 404 — route not implemented
     // Check that stats section exists with at least one count
     const statsArea = page.getByText(/total.*files|videos|pdfs|audio/i).first();
     await expect(statsArea).toBeVisible({ timeout: 10000 });
@@ -98,7 +101,7 @@ test.describe('Quiz Builder', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test.fixme('should add MCQ single answer question', async ({ page }) => {
+  test('should add MCQ single answer question', async ({ page }) => {
     await page.getByRole('button', { name: /create.*quiz/i }).first().click();
     await page.waitForTimeout(500);
 
@@ -120,8 +123,7 @@ test.describe('Quiz Builder', () => {
 
         // Question editor should open
         await expect(
-          page.getByPlaceholder(/question/i).first()
-            .or(page.getByText(/question.*text/i).first())
+          page.getByPlaceholder(/enter your question/i).first()
         ).toBeVisible({ timeout: 10000 });
       }
     }
@@ -184,7 +186,7 @@ test.describe('Translation Management', () => {
     }
   });
 
-  test.fixme('should load translation progress after selecting a course', async ({ page }) => {
+  test('should load translation progress after selecting a course', async ({ page }) => {
     const courseDropdown = page.locator('select').first();
     if (await courseDropdown.isVisible().catch(() => false)) {
       const options = courseDropdown.locator('option');
@@ -200,7 +202,7 @@ test.describe('Translation Management', () => {
     }
   });
 
-  test.fixme('should navigate to translation editor', async ({ page }) => {
+  test('should navigate to translation editor', async ({ page }) => {
     const courseDropdown = page.locator('select').first();
     if (await courseDropdown.isVisible().catch(() => false)) {
       const options = courseDropdown.locator('option');
