@@ -34,13 +34,13 @@ test.describe('Coach — Grading Interface', () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
-  test.fixme('should filter submissions by course type', async ({ page }) => {
+  test('should filter submissions by course type', async ({ page }) => {
     // Click course type dropdown and select Art
     const courseFilter = page.getByRole('combobox', { name: /course/i })
       .or(page.locator('select').filter({ hasText: /all|course/i })).first();
 
     if (await courseFilter.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await courseFilter.selectOption({ label: /art/i });
+      await courseFilter.selectOption({ label: 'Art' });
       await page.waitForTimeout(500);
 
       // Submission cards should be visible (or empty-state if no art submissions)
@@ -50,12 +50,12 @@ test.describe('Coach — Grading Interface', () => {
     }
   });
 
-  test.fixme('should filter submissions by status', async ({ page }) => {
+  test('should filter submissions by status', async ({ page }) => {
     const statusFilter = page.getByRole('combobox', { name: /status/i })
       .or(page.locator('select').filter({ hasText: /pending|status/i })).first();
 
     if (await statusFilter.isVisible({ timeout: 5000 }).catch(() => false)) {
-      await statusFilter.selectOption({ label: /graded/i });
+      await statusFilter.selectOption({ label: 'Graded' });
       await page.waitForTimeout(500);
 
       // Should show graded submissions or empty state
