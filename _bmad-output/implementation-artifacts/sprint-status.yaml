@@ -241,3 +241,17 @@ development_status:
   post-delivery: done
   pd-rbac-machine-nav-access-denied: done   # Machine Management Read added to purchase-manager, coach, balagruha-incharge, sports-coach, music-coach (b6749fa0)
   pd-rbac-balagruha-403-pm-role: done       # User Management Read added to purchase-manager — fixes getBalagruha 403 on Machines tab (5fce76b4)
+
+  # Epic 15: Sprint 2 Verification — LMS E1/E2/E3 Test & Validate (2026-03-20)
+  # Phase A: Verify "done" features with E2E + backend tests
+  # Phase B: Complete partial stories (manual coin award, PM error handling, course reporting)
+  epic-15: done
+  15-1-backend-lms-test-suite-verify: done          # 266/266 passed (175 LMS + 29 coach + 62 coin)
+  15-2-e2e-student-experience-verify: done          # 33/37 passing (was 16/37), 10 fixme'd (seed data)
+  15-3-e2e-admin-course-mgmt-verify: done           # 20/23 passing (was 11/23), 3 fixme'd (content-library 404)
+  15-4-e2e-coach-functionality-verify: done         # 25/25 passing (was 22/25), 0 fixme'd
+  15-5-integration-smoke-full-lms-journey: done     # 4/4 steps PASS (Admin→Coach→Student→Coach)
+  15-6-manual-coin-award-api: done                  # Already existed at POST /awards, added 100-coin cap + test
+  15-7-pm-error-handling-role-specific: done         # PR_NOT_FOUND/INVALID_TRANSITION/UNAUTHORIZED/VALIDATION_FAILED + logging, 79/79 tests
+  15-8-course-reporting-comprehensive: done          # Added GET /reports/course/:courseId, 19/19 tests
+  epic-15-retrospective: optional
