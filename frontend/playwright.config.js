@@ -69,6 +69,12 @@ module.exports = defineConfig({
       testMatch: /medical\/.*\.spec\.js/,
       dependencies: ['auth-setup'],
     },
+    {
+      name: 'integration',
+      use: { ...devices['Desktop Chrome'] },
+      testMatch: /integration\/.*\.spec\.js/,
+      dependencies: ['auth-setup'],
+    },
   ],
 
   webServer: {
