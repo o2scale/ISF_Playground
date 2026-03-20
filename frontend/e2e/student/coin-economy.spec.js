@@ -77,7 +77,7 @@ test.describe('Transaction History Modal', () => {
     }
   });
 
-  test.fixme('should allow filtering by transaction type', async ({ page }) => {
+  test('should allow filtering by transaction type', async ({ page }) => {
     // Look for filter dropdown
     const typeFilter = page.getByRole('combobox').first()
       .or(page.locator('select').first());
