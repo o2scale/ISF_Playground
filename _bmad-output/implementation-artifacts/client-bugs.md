@@ -1,14 +1,45 @@
 # Client Bug Reports
 
 **Tracker:** Manual (client-reported)
-**Last Updated:** 2026-03-18
-**Status:** All known bugs resolved ✅
+**Last Updated:** 2026-03-23
+**Status:** 6 open bugs (LMS course creation & publishing)
 
 ---
 
 ## Open Bugs
 
-None currently open.
+### Admin — LMS Course Creation & Publishing (Reported 2026-03-23)
+
+**Source:** Team bug report (`docs/bugs/bugs230326.md`)
+**Reporter:** Team member (via Anjay)
+**Domain:** Admin LMS — Course Builder, Content Upload, Publishing
+
+| ID | Severity | Module / View | Problem Description | Reported Behavior | Status | Source Files | Root Cause Analysis |
+|----|----------|---------------|---------------------|-------------------|--------|-------------|---------------------|
+| A-9 | Critical | Admin (Course > Upload) | Thumbnail upload not updating | Thumbnail does not update after upload; notification appears but image does not refresh | Open | `CourseCreationModal.jsx` (handleThumbnailChange), `useFileUpload.js` (uploadFile) | Frontend state not refreshing after CDN upload completes. `thumbnailUrl` is set via `uploadResult.cdnUrl` but component does not re-render with new image. |
+| A-10 | Critical | Admin (Course > Chapter) | Chapter PDF upload fails | PDF file does not upload; no attachment visible, no error message | Open | `EditContentItemModal.jsx` (handleFile), `AddContentItemModal.jsx` (handleFile), `upload.js` (lmsFileFilter) | Full-stack: frontend MIME type validation uses loose matching (`file.type.includes(expectedType)`) which may reject PDFs; backend silently rejects if MIME type mismatch. No error feedback to user. |
+| A-11 | High | Admin (Course > Publish) | Course cannot be published | Course does not publish; no clear error message explaining why | Open | `courseController.js` (validateCourseForPublish, publishCourse), `CourseStructureBuilder.jsx` (handlePublish) | Full-stack: `validateCourseForPublish()` returns generic validation errors. If thumbnail is missing (blocked by A-9), publish silently fails. Frontend shows generic "Failed to publish course" toast. |
+| A-12 | Medium | Admin (Course > Chapter) | URL field behaves incorrectly in preview | URL is accepted and saved, but opens incorrectly in preview (see A-13) | Open | `courseController.js` (updateContentItem) | Backend accepts any string in `externalUrl` field without URL format validation. |
+| A-13 | Medium | Admin (Course > Preview) | Preview opens URL externally | Clicking Preview (3-dot menu) on a chapter with a URL opens it in a new browser tab instead of embedded within the platform | Open | `ContentItemCard.jsx` (handlePreview) | Frontend uses `window.open(url, '_blank')` for all content; no embedded preview modal or iframe exists. Design gap — not a crash bug. |
+| A-14 | Low | Admin (Course) | Draft state blocks progress | Course remains stuck in draft even after adding content | Open | `CourseStructureBuilder.jsx`, `course.js` (model) | Cascading failure: depends on A-9 (thumbnail) and A-10 (PDF upload). If uploads fail, course cannot meet publish validation requirements. Resolves when A-9 and A-10 are fixed. |
+
+#### Bug Dependency Map
+
+```
+A-9 (thumbnail upload) ──┐
+                         ├──► A-11 (publish fails) ──► A-14 (stuck in draft)
+A-10 (PDF upload) ───────┘
+                              A-12 (URL validation) ──► A-13 (external preview)
+```
+
+#### Recommended Fix Order
+
+1. **A-10** — PDF upload: unblocks content creation
+2. **A-9** — Thumbnail upload: unblocks publishing
+3. **A-11** — Publish error messaging: improve validation feedback
+4. **A-12** — URL validation: add format check on save
+5. **A-14** — Resolves automatically when A-9 + A-10 are fixed
+6. **A-13** — Embedded preview: design enhancement, lowest priority
 
 ---
 
@@ -92,12 +123,12 @@ All resolved during Sprint 5 development session.
 
 ## Summary
 
-| Role | Fixed | Pending Feature |
-|------|-------|----------------|
-| Admin | 7 | 0 |
-| Coach | 5 | 0 |
-| Student | 6 | 0 |
-| Purchase Manager | 1 | 0 |
-| Medical | 1 | 1 (M-1 net-new) |
-| Backend/Frontend | 8 | 0 |
-| **Total** | **28** | **1** |
+| Role | Fixed | Open | Pending Feature |
+|------|-------|------|----------------|
+| Admin | 7 | 6 (A-9 through A-14) | 0 |
+| Coach | 5 | 0 | 0 |
+| Student | 6 | 0 | 0 |
+| Purchase Manager | 1 | 0 | 0 |
+| Medical | 1 | 0 | 1 (M-1 net-new) |
+| Backend/Frontend | 8 | 0 | 0 |
+| **Total** | **28** | **6** | **1** |
