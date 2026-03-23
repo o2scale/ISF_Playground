@@ -831,23 +831,25 @@ exports.reorderItems = async (req, res) => {
 const validateCourseForPublish = (course) => {
   const errors = [];
 
-  if (!course.title) errors.push("Missing course title");
-  if (!course.description) errors.push("Missing course description");
-  if (!course.category) errors.push("Missing category");
-  if (!course.difficultyLevel) errors.push("Missing difficulty level");
-  if (!course.thumbnail) errors.push("Missing thumbnail");
+  if (!course.title) errors.push("Course title is required — edit the course to add a title");
+  if (!course.description) errors.push("Course description is required — edit the course to add a description");
+  if (!course.category) errors.push("Category is required — edit the course to select a category");
+  if (!course.difficultyLevel) errors.push("Difficulty level is required — edit the course to set difficulty");
+  if (!course.thumbnail) errors.push("Thumbnail image is required — edit the course and upload a thumbnail");
 
   if (!course.modules || course.modules.length === 0) {
-    errors.push("Course must have at least one module");
+    errors.push("Add at least one module to the course before publishing");
   } else {
     course.modules.forEach((module, mIndex) => {
+      const moduleName = module.title || `Module ${mIndex + 1}`;
       if (!module.chapters || module.chapters.length === 0) {
-        errors.push(`Module ${mIndex + 1} has no chapters`);
+        errors.push(`"${moduleName}" has no chapters — add at least one chapter`);
       } else {
         module.chapters.forEach((chapter, cIndex) => {
+          const chapterName = chapter.title || `Chapter ${cIndex + 1}`;
           if (!chapter.contentItems || chapter.contentItems.length === 0) {
             errors.push(
-              `Module ${mIndex + 1}, Chapter ${cIndex + 1} has no content items`
+              `"${moduleName}" → "${chapterName}" has no content — add at least one content item`
             );
           }
         });

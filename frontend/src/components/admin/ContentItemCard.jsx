@@ -35,6 +35,7 @@ export default function ContentItemCard({
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const navigate = useNavigate();
 
   // Drag-and-drop
@@ -120,27 +121,16 @@ export default function ContentItemCard({
   };
 
   const handlePreview = () => {
-    if (contentItem.fileUrl) {
-      window.open(contentItem.fileUrl, '_blank');
-    } else if (contentItem.externalUrl) {
-      window.open(contentItem.externalUrl, '_blank');
+    const previewUrl = contentItem.fileUrl || contentItem.externalUrl;
+
+    if (previewUrl && ['video', 'pdf', 'image', 'audio'].includes(contentItem.type)) {
+      // Open embedded preview modal for supported media types
+      setIsPreviewOpen(true);
     } else if (contentItem.type === 'quiz' && contentItem.quizRef?._id) {
-      // Redirect to quiz builder or preview page
-      // Since we don't have a standalone preview page easily accessible for admins without builder,
-      // we'll redirect to the builder which has a preview mode.
-      // Actually, user asked for preview. Let's redirect to builder for now?
-      // Or if there is a preview route: /admin/quizzes/:id/preview
-      // Let's assume standard builder edit is best for now as "Preview" for admin usually implies checking content.
-      // Wait, the regular builder has a preview button.
-      // Let's try to find if there is a dedicated preview route.
-      // The user feedback mentioned "Preview not available".
-      // Let's open the quiz builder for now, or if possible a dedicated preview.
-      // Looking at routes file earlier might help, but let's stick to safe builder edit redirect or dedicated preview if I saw one.
-      // I recall `QuizDashboard` and `QuizBuilder`.
-      // Let's just use the builder for now, but maybe with a ?preview=true param if supported, or just let them click preview there.
-      // Actually, for "Preview" let's try to open the builder in a new tab?
-      // Or better, redirect to `/admin/quizzes/${contentItem.quizRef._id}/edit`
       navigate(`/admin/quizzes/${contentItem.quizRef._id}/edit`);
+    } else if (previewUrl) {
+      // Fallback for links and unsupported types — open in new tab
+      window.open(previewUrl, '_blank');
     } else {
       toast('Preview not available for this item');
     }
@@ -274,8 +264,59 @@ export default function ContentItemCard({
           onClose={() => setIsEditModalOpen(false)}
           onUpdated={onContentUpdated}
         />
-      )
-      }
+      )}
+
+      {/* Embedded Preview Modal */}
+      {isPreviewOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between px-6 py-3 border-b">
+              <h3 className="text-lg font-semibold text-gray-900 truncate">{contentItem.title}</h3>
+              <button
+                onClick={() => setIsPreviewOpen(false)}
+                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-auto p-4 flex items-center justify-center min-h-[300px]">
+              {contentItem.type === 'video' && (
+                <video
+                  src={contentItem.fileUrl || contentItem.externalUrl}
+                  controls
+                  className="max-w-full max-h-[70vh] rounded"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              )}
+              {contentItem.type === 'audio' && (
+                <div className="text-center">
+                  <Music size={64} className="mx-auto mb-4 text-gray-400" />
+                  <audio
+                    src={contentItem.fileUrl || contentItem.externalUrl}
+                    controls
+                    className="w-full max-w-md"
+                  />
+                </div>
+              )}
+              {contentItem.type === 'image' && (
+                <img
+                  src={contentItem.fileUrl || contentItem.externalUrl}
+                  alt={contentItem.title}
+                  className="max-w-full max-h-[70vh] rounded object-contain"
+                />
+              )}
+              {contentItem.type === 'pdf' && (
+                <iframe
+                  src={contentItem.fileUrl || contentItem.externalUrl}
+                  title={contentItem.title}
+                  className="w-full h-[70vh] rounded border"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div >
   );
 }

@@ -85,15 +85,19 @@ export default function CourseCreationModal({
 
     setThumbnailFile(file);
 
-    // Show preview
+    // Show preview immediately using base64
     const reader = new FileReader();
     reader.onloadend = () => {
-      setThumbnailPreview(reader.result);
+      const base64 = reader.result;
+      setThumbnailPreview(base64);
+      // Also store base64 as fallback thumbnail in case S3 upload fails later
+      setFormData((prev) => ({ ...prev, thumbnail: base64 }));
     };
     reader.readAsDataURL(file);
 
     // Clear error
     setErrors((prev) => ({ ...prev, thumbnail: '' }));
+    toast.success('Thumbnail selected — it will be uploaded when you save');
   };
 
   const removeThumbnail = () => {
@@ -146,21 +150,21 @@ export default function CourseCreationModal({
           const uploadResult = await uploadFile({
             file: thumbnailFile,
             fileType: 'image',
-            id: 'course-thumbnail'
+            id: `course-thumbnail-${Date.now()}`
           });
 
           if (uploadResult.success) {
             thumbnailUrl = uploadResult.cdnUrl;
           } else {
-            toast.error('Thumbnail upload failed: ' + (uploadResult.error || 'Unknown error'));
-            setLoading(false);
-            return;
+            // S3 upload failed — use base64 thumbnail as fallback so course can still be saved
+            console.warn('Thumbnail S3 upload failed, using base64 fallback:', uploadResult.error);
+            toast('Thumbnail saved locally — S3 upload can be retried later', { icon: '⚠️', duration: 4000 });
+            // thumbnailUrl already has base64 from handleThumbnailChange
           }
         } catch (uploadError) {
           console.error('Thumbnail upload exception:', uploadError);
-          toast.error('Thumbnail upload failed');
-          setLoading(false);
-          return;
+          toast('Thumbnail saved locally — S3 upload can be retried later', { icon: '⚠️', duration: 4000 });
+          // thumbnailUrl already has base64 from handleThumbnailChange
         }
       }
 

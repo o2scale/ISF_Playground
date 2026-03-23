@@ -27,9 +27,26 @@ export default function AddContentItemModal({ isOpen, onClose, onAdd }) {
   const [startNewQuiz, setStartNewQuiz] = useState(false); // Flag to redirect after close
   const [searchTerm, setSearchTerm] = useState('');
 
+  const isValidUrl = (str) => {
+    if (!str || !str.trim()) return true;
+    try {
+      const url = new URL(str);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
+
+    // Validate URL if manually entered
+    if (formData.fileUrl && !formData.fileUrl.startsWith('data:') && !isValidUrl(formData.fileUrl)) {
+      toast.error('Please enter a valid URL (starting with http:// or https://)');
+      return;
+    }
+
     await onAdd(formData);
     setFormData({ type: 'video', title: '', description: '', fileUrl: '' });
   };
@@ -97,18 +114,19 @@ export default function AddContentItemModal({ isOpen, onClose, onAdd }) {
   };
 
   const handleFile = async (file) => {
-    // Basic validation based on selected type
-    const typeMap = {
-      video: 'video',
-      pdf: 'application/pdf',
-      image: 'image',
-      audio: 'audio'
-    };
+    // Validate file type matches the selected content type
+    const isValidType = (() => {
+      switch (formData.type) {
+        case 'pdf': return file.type === 'application/pdf';
+        case 'video': return file.type.startsWith('video/');
+        case 'audio': return file.type.startsWith('audio/');
+        case 'image': return file.type.startsWith('image/');
+        default: return true;
+      }
+    })();
 
-    const expectedType = typeMap[formData.type];
-    if (expectedType && !file.type.includes(expectedType) && !(formData.type === 'pdf' && file.type === 'application/pdf')) {
-      // Allow loose matching for video/image/audio, exact for pdf
-      toast.error(`Invalid file type. Expected ${formData.type}.`);
+    if (!isValidType) {
+      toast.error(`Invalid file type "${file.type}". Expected a ${formData.type} file.`);
       return;
     }
 

@@ -31,9 +31,25 @@ export default function EditContentItemModal({ isOpen, contentItem, chapterId, m
         }
     }, [contentItem]);
 
+    const isValidUrl = (str) => {
+        if (!str || !str.trim()) return true; // empty is ok
+        try {
+            const url = new URL(str);
+            return url.protocol === 'http:' || url.protocol === 'https:';
+        } catch {
+            return false;
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (!formData.title.trim()) return;
+
+        // Validate URL if provided
+        if (formData.fileUrl && !formData.fileUrl.startsWith('data:') && !isValidUrl(formData.fileUrl)) {
+            toast.error('Please enter a valid URL (starting with http:// or https://)');
+            return;
+        }
 
         try {
             setLoading(true);
@@ -43,7 +59,6 @@ export default function EditContentItemModal({ isOpen, contentItem, chapterId, m
                 title: formData.title,
                 description: formData.description,
                 fileUrl: formData.fileUrl,
-                // Only include specific fields based on type if needed, but for now sending what's edited
             };
 
             // Create endpoint specific to content item update
@@ -92,21 +107,20 @@ export default function EditContentItemModal({ isOpen, contentItem, chapterId, m
     };
 
     const handleFile = async (file) => {
-        const typeMap = {
-            video: 'video',
-            pdf: 'application/pdf',
-            image: 'image',
-            audio: 'audio'
-        };
-
-        const expectedType = typeMap[formData.type];
-        // Loose check
-        if (expectedType && !file.type.includes(expectedType) && !(formData.type === 'pdf' && file.type === 'application/pdf')) {
-            // Allow matching based on main type for video/audio/image
-            if (!file.type.startsWith(formData.type) && formData.type !== 'pdf') {
-                toast.error(`Invalid file type. Expected ${formData.type}.`);
-                return;
+        // Validate file type matches the content item type
+        const isValidType = (() => {
+            switch (formData.type) {
+                case 'pdf': return file.type === 'application/pdf';
+                case 'video': return file.type.startsWith('video/');
+                case 'audio': return file.type.startsWith('audio/');
+                case 'image': return file.type.startsWith('image/');
+                default: return true;
             }
+        })();
+
+        if (!isValidType) {
+            toast.error(`Invalid file type "${file.type}". Expected a ${formData.type} file.`);
+            return;
         }
 
         // Max size check (e.g. 500MB for video, 50MB others)
