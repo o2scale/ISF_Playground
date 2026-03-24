@@ -28,7 +28,7 @@ async function computeProgressForAssignments(assignments) {
       const bgIds = a.assignedTo.balagruhaIds?.length
         ? a.assignedTo.balagruhaIds
         : (a.assignedTo.balagruhaId ? [a.assignedTo.balagruhaId] : []);
-      bgIds.forEach(id => balagruhaIds.push(id.toString()));
+      bgIds.forEach(id => balagruhaIds.push((id._id || id).toString()));
     }
   });
 
@@ -41,7 +41,7 @@ async function computeProgressForAssignments(assignments) {
     }).select('_id balagruhaIds');
     balagruhaStudents.forEach(s => {
       s.balagruhaIds.forEach(bgId => {
-        const key = bgId.toString();
+        const key = (bgId._id || bgId).toString();
         if (!balagruhaStudentsMap[key]) balagruhaStudentsMap[key] = [];
         balagruhaStudentsMap[key].push(s._id.toString());
       });
@@ -58,7 +58,7 @@ async function computeProgressForAssignments(assignments) {
         ? a.assignedTo.balagruhaIds
         : (a.assignedTo.balagruhaId ? [a.assignedTo.balagruhaId] : []);
       bgIds.forEach(bgId => {
-        (balagruhaStudentsMap[bgId.toString()] || []).forEach(sid => studentIds.push(sid));
+        (balagruhaStudentsMap[(bgId._id || bgId).toString()] || []).forEach(sid => studentIds.push(sid));
       });
     } else {
       studentIds = (a.assignedTo.studentIds || []).map(id => id.toString());

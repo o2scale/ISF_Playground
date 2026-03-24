@@ -568,7 +568,7 @@ exports.submitQuiz = async (req, res) => {
           status: 'graded',
           grade: {
             score,
-            points: baseCoins
+            points: (passed && !alreadyPassed) ? baseCoins : 0
           },
           metadata: { breakdown },
           submittedAt: new Date()
@@ -576,7 +576,7 @@ exports.submitQuiz = async (req, res) => {
         await submission.save({ session });
 
         // Award Coins
-        if (baseCoins > 0) {
+        if (passed && !alreadyPassed && baseCoins > 0) {
           const Coin = require('../../../models/coin');
           const User = require('../../../models/user');
 
@@ -597,7 +597,7 @@ exports.submitQuiz = async (req, res) => {
         }
 
         // Update Progress
-        if (passed) {
+        if (passed && !alreadyPassed) {
           const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
           await updateProgress(studentId, courseIdToUse, quizId, 'quiz', score);
         }
@@ -614,7 +614,7 @@ exports.submitQuiz = async (req, res) => {
         correctAnswers,
         totalQuestions,
         passed,
-        coinsEarned: baseCoins,
+        coinsEarned: (passed && !alreadyPassed) ? baseCoins : 0,
         breakdown
       }
     });

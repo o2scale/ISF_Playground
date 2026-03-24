@@ -12,7 +12,8 @@ import {
   Eye,
   Edit2,
   Trash2,
-  GripVertical
+  GripVertical,
+  X
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useSortable } from '@dnd-kit/sortable';

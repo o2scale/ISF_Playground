@@ -10,7 +10,7 @@ const { SHOP_CATEGORIES } = require('../../constants/shopCategories');
  */
 const validateProductCreate = [
   body('sku')
-    .notEmpty().withMessage('SKU is required')
+    .optional({ values: 'falsy' })
     .isString().withMessage('SKU must be a string')
     .trim()
     .matches(/^[A-Z0-9-]+$/).withMessage('SKU must contain only uppercase letters, numbers, and hyphens')
