@@ -11,6 +11,58 @@ Single-pass AI fixes fail on large codebases because:
 
 The solution is **recursive verification**: run multiple passes with increasing depth, where each pass feeds its findings into the next, until a pass finds zero new issues.
 
+## Token Efficiency — MCP Tool Strategy
+
+**CRITICAL:** This framework is designed for repeated execution. Token efficiency is paramount. All code review passes MUST use MCP tools instead of reading full files.
+
+### jCodeMunch (code symbols)
+
+Use for ALL code investigation in Passes 2, 3, and 5. Never `Read` a full source file when a symbol lookup will do.
+
+| Task | Tool | Example |
+|------|------|---------|
+| Check if project is indexed | `list_repos` | Call first — if stale, `index_folder` |
+| Re-index after fixes | `index_file { path: "backend/controllers/lms/student/lifeSkillsController.js" }` | After editing a file |
+| Find a function | `search_symbols { repo, query: "handleApprove" }` | Instead of grepping |
+| Read ONE function | `get_symbol { repo, symbol_id: "..." }` | Instead of reading entire 2000-line file |
+| Read multiple functions | `get_symbols { repo, symbol_ids: [...] }` | Batch — one call for N symbols |
+| See file structure | `get_file_outline { repo, file_path: "..." }` | See all functions/exports without reading body |
+| Compare two files | `get_file_outline` on both, then `get_symbol` on specific functions | Instead of reading both full files |
+| Find who calls a function | `find_references { repo, identifier: "addCoins" }` | Find all coin award sites |
+| Find imports of a file | `find_importers { repo, file_path: "models/coin.js" }` | Trace dependencies |
+| Check blast radius of change | `get_blast_radius { repo, file_path: "..." }` | Before fixing, see what else is affected |
+| Full text search | `search_text { repo, query: "pending_approval" }` | Find all status checks across codebase |
+
+**Workflow for code review agents:**
+```
+1. list_repos → get repo ID (or index_folder if stale)
+2. get_file_outline → see all symbols in file (costs ~50 tokens vs ~2000 for full read)
+3. get_symbol → read ONLY the function that matters (~100-300 tokens)
+4. find_references → trace who calls it (~50 tokens per result)
+5. search_text → find patterns across codebase (~20 tokens per match)
+```
+
+### jDocMunch (documentation sections)
+
+Use for looking up Sprint 6 stories, epics, specs, and any doc references. Never read full doc files.
+
+| Task | Tool | Example |
+|------|------|---------|
+| Check if docs indexed | `list_repos` | Call first |
+| Index project docs | `index_local { path: "/data/home/dev/Desktop/dev/ISF_Playground/_bmad-output" }` | One-time |
+| Find a story | `search_sections { repo, query: "coin award" }` | Instead of reading full epic file |
+| Read specific section | `get_section { repo, section_id: "..." }` | Read just what's needed |
+| Browse all stories | `get_toc { repo }` | See all sections at a glance |
+
+### Token Budget per Pass
+
+| Pass | Without MCP | With MCP | Savings |
+|------|------------|----------|---------|
+| Pass 2 (field alignment) | ~80K tokens (reading full files) | ~15K tokens (symbol lookups) | **80%** |
+| Pass 3 (state machines) | ~60K tokens | ~12K tokens | **80%** |
+| Pass 5 (cross-domain) | ~100K tokens | ~20K tokens | **80%** |
+| Pass 1, 4 | No change (runtime, curl/playwright) | No change | — |
+
 ## Domains
 
 Sprint 6 delivered across 5 domains. Each domain is a verification unit.
@@ -111,60 +163,80 @@ For each endpoint, report:
 - GET /api/v2/roles (admin only)
 - Verify 403 on cross-role access for 5+ endpoints
 
-### Pass 2: Frontend-Backend Field Alignment (Code review, no runtime)
+### Pass 2: Frontend-Backend Field Alignment (Code review via jCodeMunch, no runtime)
 
 **Purpose:** Verify that the frontend reads the exact field names the backend sends. This is where most "invisible" bugs hide.
+
+**Token strategy:** Use `get_symbol` to read only the response-building section of backend controllers and only the data-consuming section of frontend components. Never read full files.
 
 **Agent prompt template:**
 ```
 You are verifying field name alignment between frontend and backend for the [DOMAIN] domain.
 
+IMPORTANT: Use jCodeMunch MCP tools for ALL code lookups. Do NOT read full files.
+
+Setup:
+1. Call list_repos to get the repo ID
+2. If the index is stale, call index_folder with /data/home/dev/Desktop/dev/ISF_Playground
+
 For each feature flow:
-1. Read the backend controller that handles the API response
-2. Note the EXACT field names in the response object
-3. Read the frontend component that consumes this API
-4. Note the EXACT field names it reads from the response
-5. Flag any mismatch
+1. Use search_symbols to find the backend controller function (e.g., "getAllCourses")
+2. Use get_symbol to read ONLY that function — note the EXACT field names in res.json()
+3. Use search_symbols to find the frontend component that calls this API
+4. Use get_symbol to read ONLY the fetch/useEffect/data-mapping function
+5. Use search_text to find the exact API URL string to confirm they match
+6. Flag any field name mismatch
 
 Known patterns that cause bugs:
 - Backend sends `courseTitle`, frontend reads `title`
-- Backend sends `data.requests`, frontend reads `data` as array
-- Backend sends populated object `{ _id, name }`, frontend calls `.toString()` expecting a string
+- Backend sends `data.requests`, frontend reads `data` as array directly
+- Backend sends populated object `{ _id, name }`, code calls `.toString()` expecting string
 - Backend sends `status: 'pending'`, frontend checks `status === 'pending_approval'`
-- Backend sends `success: true, data: [...]`, frontend reads `response.data` (gets the axios wrapper)
+- Backend wraps in `{ success, data }`, frontend reads `response.data.data` vs `response.data`
 
 For each mismatch found, report:
-- MISMATCH: [feature] — backend sends [field] at [file:line] — frontend reads [field] at [file:line]
-- IMPACT: [what the user sees — blank screen, missing data, wrong value, silent failure]
+- MISMATCH: [feature] — backend sends [field] via get_symbol [symbol_id] — frontend reads [field] via get_symbol [symbol_id]
+- IMPACT: [what the user sees]
 ```
 
-### Pass 3: State Machine & Workflow Verification (Code review)
+### Pass 3: State Machine & Workflow Verification (Code review via jCodeMunch)
 
 **Purpose:** Verify that status transitions, conditional UI, and workflow gates are consistent across the stack.
+
+**Token strategy:** Use `search_text` to find all status enum definitions and status checks across the codebase in one sweep. Use `get_symbol` only for the specific transition functions.
 
 **Agent prompt template:**
 ```
 You are verifying state machines and workflow logic for the [DOMAIN] domain.
 
+IMPORTANT: Use jCodeMunch MCP tools for ALL code lookups. Do NOT read full files.
+
+Setup:
+1. Call list_repos to get the repo ID
+
 For each entity with status (Course, PurchaseRequest, Order, Submission):
-1. Read the model — what statuses are defined in the enum?
-2. Read the controller — what transitions are allowed? What's the state machine?
-3. Read the frontend — what statuses does it check for conditional rendering?
-4. Verify: does the frontend check for ALL valid statuses? Or does it miss some?
-5. Verify: are status string comparisons using the SAME casing and spelling?
-6. Verify: does the creation flow set the correct initial status?
+1. Use search_text { query: "enum.*status|status.*enum" } to find status definitions in models
+2. Use get_symbol on the model to read the schema status field and its enum values
+3. Use search_text { query: "PENDING_APPROVAL|pending_approval" } to find ALL references across the codebase
+4. Use get_symbol on each controller transition function (approve, reject, publish, etc.)
+5. Use search_text to find frontend conditional checks: "request.status ===|status ===|PurchaseRequestStatuses"
+6. Use get_symbol on frontend handler functions that render conditional buttons
+7. Cross-reference: does frontend handle EVERY status the model defines?
+
+Also use:
+- find_references { identifier: "PurchaseRequestStatuses" } to find all frontend status usage
+- search_text { query: "normalizedRole.*UserTypes" } to find all role-conditional rendering
+- get_blast_radius on model files to see what depends on the status field
 
 Known patterns that cause bugs:
 - Model defines 'pending' and 'pending_approval' but frontend only checks one
-- Backend sets default status 'pending', frontend expects 'draft'
-- Status comparison uses === but one side is uppercase
+- Threshold-based routing creates paths the UI doesn't handle
 - Conditional buttons check status but not role, or vice versa
-- Threshold-based routing creates multiple paths that the UI doesn't handle
 
 Report format:
-- STATUS_GAP: [entity] — [status value] exists in [model] but not handled in [frontend component]
-- TRANSITION_BUG: [entity] — transition [from → to] — backend allows but frontend doesn't trigger
-- ROLE_GAP: [entity] — [action] available to [role] in backend but hidden in frontend
+- STATUS_GAP: [entity] — [status] in model but not handled in [component] (found via search_text)
+- TRANSITION_BUG: [entity] — [from → to] — backend allows but frontend doesn't trigger
+- ROLE_GAP: [entity] — [action] for [role] in backend but hidden in frontend
 ```
 
 ### Pass 4: E2E Test Execution (Runtime)
@@ -190,9 +262,11 @@ For each failure:
 Report: test name — category — fix applied or reason deferred
 ```
 
-### Pass 5: Cross-Domain Integration (Runtime + Code review)
+### Pass 5: Cross-Domain Integration (Runtime + jCodeMunch for root cause tracing)
 
 **Purpose:** Verify flows that cross domain boundaries.
+
+**Token strategy:** Execute flows via curl (runtime). When a step fails, use jCodeMunch to trace the root cause across files WITHOUT reading full files. Use `find_importers` and `find_references` to trace data flow across domains.
 
 **Key cross-domain flows:**
 1. Admin creates course → Coach assigns → Student takes quiz → Coins awarded → Coach grades
@@ -204,14 +278,35 @@ Report: test name — category — fix applied or reason deferred
 **Agent prompt template:**
 ```
 You are testing cross-domain integration flows in ISF_Playground.
+Backend is running on :5001.
+
+IMPORTANT: Use jCodeMunch MCP tools for root cause tracing. Do NOT read full files.
 
 For each flow:
 1. Execute step by step via API calls (curl with role-appropriate tokens)
-2. Verify each step succeeds
+2. Verify each step succeeds and returns expected data
 3. Verify the NEXT step can see the data from the PREVIOUS step
 4. Verify role transitions work (admin action visible to coach, coach action visible to student)
 
-If any step fails, trace the root cause across domains.
+If any step fails:
+1. Use search_symbols to find the controller function for the failing endpoint
+2. Use get_symbol to read ONLY that function
+3. Use find_references on the data field that's missing to trace where it's set
+4. Use find_importers on the model to see who populates it
+5. Use get_blast_radius to understand what else the fix might affect
+
+Test credentials:
+- Admin: {"email":"admin@gmail.com","password":"test123"} — token in response.data.token
+- Coach: {"email":"coach@gmail.com","password":"test123"}
+- Student: {"userId":"1234","password":"test123"}
+- PM: {"email":"purchase@gmail.com","password":"password123"}
+
+Report format per flow:
+FLOW: [name]
+Step 1: [action] — PASS/FAIL — [details]
+Step 2: [action] — PASS/FAIL — [details]
+...
+ROOT CAUSE (if failed): [traced via get_symbol/find_references to file:line]
 ```
 
 ---
