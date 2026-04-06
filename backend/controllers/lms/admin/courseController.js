@@ -835,7 +835,7 @@ const validateCourseForPublish = (course) => {
   if (!course.description) errors.push("Course description is required — edit the course to add a description");
   if (!course.category) errors.push("Category is required — edit the course to select a category");
   if (!course.difficultyLevel) errors.push("Difficulty level is required — edit the course to set difficulty");
-  if (!course.thumbnail) errors.push("Thumbnail image is required — edit the course and upload a thumbnail");
+  if (!course.thumbnail) errors.push("Thumbnail image is required — go back to course list, click ⋮ on this course → \"Edit Metadata\" → upload a thumbnail");
 
   if (!course.modules || course.modules.length === 0) {
     errors.push("Add at least one module to the course before publishing");

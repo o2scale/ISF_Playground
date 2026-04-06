@@ -142,7 +142,8 @@ const TransactionReports = () => {
 
       if (usersRes.success) {
         // Filter only students
-        const studentList = usersRes.data.users.filter(user => user.role === 'student');
+        const usersArray = Array.isArray(usersRes.data) ? usersRes.data : (usersRes.data.users || []);
+        const studentList = usersArray.filter(user => user.role === 'student');
         setStudents(studentList);
       }
 

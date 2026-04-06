@@ -660,7 +660,7 @@ exports.approvePurchaseRequest = async (req, res) => {
       return res.status(400).json({
         success: false,
         errorCode: PR_ERROR.INVALID_TRANSITION,
-        message: `Cannot approve ${request.status} request. Only pending requests can be approved.`
+        message: `Cannot approve a request with status "${request.status}". Only pending_approval requests can be approved.`
       });
     }
 
