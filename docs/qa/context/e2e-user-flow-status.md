@@ -2,16 +2,13 @@
 
 **Last Updated:** 2026-04-08  
 **Branch:** `stable`  
-**Resume Point:** Student — Flow 1 (Login + Dashboard)
+**Resume Point:** ALL USERS DONE
 
 ---
 
 ## Quick Resume
 
-1. Read `e2e-user-flow-workflow.md` for techniques
-2. Next user: Student (User ID: 123)
-3. Login at http://localhost:3000/login (student tab — default)
-4. Check nav items, then test all flows
+All users tested. No pending flows.
 
 ---
 
@@ -23,7 +20,7 @@
 | Coach | ✅ DONE | 11/11 | 4 | 4 | 86fa4f8a |
 | Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | f993e9bd |
 | Medical Incharge | ✅ DONE | 7/7 | 5 | 5 | 8551118f |
-| Student | ⏳ PENDING | 0/? | — | — | — |
+| Student | ✅ DONE | 15/15 | 1 | 1 | 487c8211 |
 
 ---
 
@@ -114,13 +111,43 @@ Tested in a prior session before this workflow was created. All admin flows conf
 
 ## User 5: Student (User ID: 123)
 
-**Status: ⏳ PENDING**  
+**Status: ✅ DONE — Commit: `487c8211`**  
 **Login URL:** `http://localhost:3000/login` (student tab — default)
+
+**Nav items:** Dashboard | My Courses | Shop | WTF  
+**Floating buttons:** Mood (😊😢😡) | Chat with Amma | Homework | Help  
+**Header buttons:** Coin Balance | Notifications 🔔 | Shopping Cart
 
 | # | Flow | URL | Result | Notes |
 |---|------|-----|--------|-------|
-| 1 | Login + Dashboard | /student/dashboard | ⏳ | |
-| 2 | TBD after checking nav | TBD | ⏳ | |
+| 1 | Login + Dashboard | /student/dashboard | ✅ PASS | Welcome banner, 4 courses shown, progress stats (16 tasks, 0 streak) |
+| 2 | My Courses (nav) | /student/dashboard | ✅ PASS | Links to same page as dashboard (courses embedded in dashboard) |
+| 3 | Computer Apps course | /student/computer-apps | ✅ PASS | Shows 3 sub-courses with task counts |
+| 4 | Course detail / tasks | /student/computer-apps/:courseId | ✅ PASS | Chapter sidebar + content cards (video/pdf/audio/quiz) |
+| 5 | Start Quiz (Computer Apps) | /student/computer-apps/quiz/:quizId | ✅ FIXED | Was navigating to `/quiz/[object Object]` — B11 fixed |
+| 6 | Life Skills course | /student/life-skills | ✅ PASS | Course page with video, PDF, quiz content items |
+| 7 | Start Quiz (Life Skills) | /student/life-skills/quiz/:quizId | ✅ PASS | Navigates correctly, "max attempts exceeded" (expected) |
+| 8 | Art course | /student/art | ✅ PASS | Workshops / Free Sketch / Art Stories / Competition tabs |
+| 9 | Spoken English course | /student/spoken-english | ✅ PASS (INFO) | "Failed to load task data" shown — no tasks assigned for student 123 (data not seeded). Webcam access fails in headless. Expected. |
+| 10 | Shop | /shop | ✅ PASS | 16 products, filters, categories, pagination |
+| 11 | Add to Cart | /shop | ✅ PASS | "Product added to cart" toast, badge updates |
+| 12 | Cart Drawer | /shop (cart icon) | ✅ PASS | Radix dialog opens, shows items and total; not captured by ARIA tree but JS confirms `role=dialog` present |
+| 13 | Checkout | /shop/checkout | ✅ PASS | Shows balance, deductions; order placed (ORD-20260408-67723), coins deducted correctly |
+| 14 | My Orders | /shop/orders | ✅ PASS | Order history page renders |
+| 15 | Transactions / Coin History | /coins/history | ✅ PASS | Shows all transactions, balance, Export CSV |
+| 16 | Product Detail | /shop/products/:id | ✅ PASS | Product image, price, description, breadcrumb |
+| 17 | WTF (Wall of Fame) | /wtf | ✅ PASS | Media filter tabs, "No Pins Yet" state |
+| 18 | Profile | /profile | ✅ PASS | Student name, email, age shown |
+| 19 | Coin Balance Modal | (header button) | ✅ PASS | Transaction history modal with filters |
+| 20 | Notifications Bell | (header button) | ✅ PASS (INFO) | Shows badge count but panel not implemented (Sprint 2 backlog) |
+| 21 | Homework | /student/homework | ✅ PASS | "Coming Soon" placeholder page |
+| 22 | Mood Buttons | (toolbar) | ✅ PASS | Posts to emotion API, shows toast |
+
+**Bugs found:**
+
+| ID | Flow | Description | Root Cause | Fix | Status |
+|----|------|-------------|-----------|-----|--------|
+| B11 | Course Quiz | Quiz URL renders as `/quiz/[object Object]` — server error | `getCourseHierarchy` does `.populate('quizRef')` then assigns full Quiz object as `quizId`. Template string serializes to `[object Object]` | `computerAppsController.js`: changed `item.quizRef` to `item.quizRef?._id?.toString() || item.quizRef?.toString() || null` | ✅ Fixed — 487c8211 |
 
 ---
 
@@ -138,6 +165,7 @@ Tested in a prior session before this workflow was created. All admin flows conf
 | B8 | MedIn | Check Ins | `getAnyUserBasedonRoleandBalagruha` wrong URL `/role/role/balagruha/id` → 404 | ✅ Fixed | 8551118f |
 | B9 | MedIn | Tasks | Internal dashboard Tasks menu has `link:"/task"` → bypasses tab, causes ProtectedRoute redirect | ✅ Fixed | 8551118f |
 | B10 | MedIn | Tasks/Machines | Missing Task Management Read + Machine Management Read permissions | ✅ Fixed | 8551118f |
+| B11 | Student | Computer Apps Quiz | Quiz URL `/quiz/[object Object]` — populated quizRef object serialized to string instead of ID | ✅ Fixed | 487c8211 |
 
 ---
 
@@ -153,3 +181,7 @@ Tested in a prior session before this workflow was created. All admin flows conf
 - **Medical-incharge custom dashboard**: Has an internal nav (sportCoachMenu) that overrides Layout nav on /dashboard. The internal menu uses `setActiveTab()` for tabs and `navigate(link)` for external pages. Any item with a `link` property skips the tab — must remove `link` for tabs to work.
 - **Permission gaps on new roles**: Medical-incharge (and likely other specialist roles) were missing common module permissions (User Management, Task Management, Machine Management). Check with `/api/roles` if pages redirect unexpectedly.
 - **getAnyUserBasedonRoleandBalagruha API**: Correct URL is `/api/v1/users/role/${role}?balagruhaId=${id}` (query param), NOT a path segment pattern.
+- **Populated MongoDB refs in API responses**: When using `.populate()` on a ref field, always extract `.toString()` or `._id.toString()` before sending to frontend. Raw ObjectId objects serialize as `[object Object]` in template strings. Affects: `computerAppsController.getCourseHierarchy` quizRef field (fixed B11).
+- **Student cart drawer**: Uses Radix UI Dialog portal — not captured by gstack ARIA snapshot. Use `document.querySelector('[role=dialog]').innerText` to verify content.
+- **Spoken English no tasks**: Student 123 has no spoken-english tasks assigned. Error state is expected behavior, not a bug. Route `/student/spoken-english/task1` returns `Invalid Task ID`.
+- **Notification panel not implemented**: TitleBar bell click is a no-op by design (`// Sprint 2 Epic 5 backlog`). Badge count works; panel does not.
