@@ -21,7 +21,7 @@
 |------|--------|-----------|-----------|-----------|--------|
 | Admin | ✅ DONE | prior session | — | — | — |
 | Coach | ✅ DONE | 11/11 | 4 | 4 | 86fa4f8a |
-| Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | pending commit |
+| Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | f993e9bd |
 | Medical Incharge | ⏳ PENDING | 0/? | — | — | — |
 | Student | ⏳ PENDING | 0/? | — | — | — |
 
@@ -116,7 +116,7 @@ First, check nav items after login to determine which flows to test.
 | B2 | Coach | Machines | ProtectedRoute race: empty permissions → redirect | ✅ Fixed | 86fa4f8a |
 | B3 | Coach | Machines | `MachineManagement.jsx` blocks non-admin with Read permission | ✅ Fixed | 86fa4f8a |
 | B4 | Coach | Attendance | Coach role `scope:'own'` blocks balagruha-level routes | ✅ Fixed | 86fa4f8a |
-| B5 | PM | Repairs | PM role `scope:'own'` → balagruha dropdown empty in forms | ✅ Fixed | pending commit |
+| B5 | PM | Repairs | PM role `scope:'own'` → balagruha dropdown empty in forms | ✅ Fixed | f993e9bd |
 
 ---
 
