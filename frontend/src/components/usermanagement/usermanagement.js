@@ -136,7 +136,7 @@ const UserManagement = () => {
       }
 
       const response = await fetchUsers();
-      setUsers(response);
+      setUsers(Array.isArray(response) ? response : (response.data || []));
     } catch (error) {
       console.error("Error fetching users:", error);
     }
