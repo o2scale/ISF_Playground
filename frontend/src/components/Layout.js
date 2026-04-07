@@ -377,7 +377,7 @@ const Layout = () => {
       { id: 1, name: "Dashboard", link: "/dashboard" },
       { id: 2, name: "Students", link: "/dashboard", state: { activeTab: "students" } },
       { id: 3, name: "Check Ins", link: "/dashboard", state: { activeTab: "checkins" } },
-      { id: 4, name: "Tasks", link: "/task" },
+      { id: 4, name: "Tasks", link: "/dashboard", state: { activeTab: "tasks" } },
       { id: 5, name: "Machines", link: "/machines" },
       { id: 6, name: "Purchases", link: "/purchase" },
       { id: 7, name: "Shop", link: "/shop" },

@@ -59,7 +59,7 @@ export const getBalagruhaListByAssignedID = async (id) => {
 export const getAnyUserBasedonRoleandBalagruha = async (role, balagruhaId) => {
   try {
     const response = await api.get(
-      `/api/v1/users/role/${role}/balagruha/${balagruhaId}`
+      `/api/v1/users/role/${role}?balagruhaId=${balagruhaId}`
     );
     return response.data;
   } catch (error) {
