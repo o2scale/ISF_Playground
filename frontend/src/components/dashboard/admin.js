@@ -76,6 +76,7 @@ function AdminDashboard() {
   };
 
   const getCoachNameBasedonBalagruha = async () => {
+    if (!selectedBalagruha) return;
     const response = await getAnyUserBasedonRoleandBalagruha(
       "coach",
       selectedBalagruha
