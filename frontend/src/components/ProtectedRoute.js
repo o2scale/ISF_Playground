@@ -25,10 +25,13 @@ const getDashboardForRole = (role) => {
  */
 const ProtectedRoute = ({ children, module, action, requiredRoles }) => {
   const { isAuthenticated, isLoading: authLoading, user } = useAuth();
-  const { isLoading: rbacLoading, hasPermission } = useRBAC();
+  const { isLoading: rbacLoading, hasPermission, permissions } = useRBAC();
 
-  // If either auth or RBAC is loading, show loading
-  if (authLoading || rbacLoading) {
+  // Permissions are only ready when rbacLoading is false AND permissions have been populated
+  const permissionsReady = !rbacLoading && Object.keys(permissions || {}).length > 0;
+
+  // If either auth or RBAC is loading (or permissions not yet populated), show loading
+  if (authLoading || rbacLoading || (module && action && !permissionsReady)) {
     return (
       <div className="loading-screen">
         <div className="spinner"></div>

@@ -62,11 +62,14 @@ exports.updateRolePermissions = async (req, res) => {
       );
 
       if (moduleIndex !== -1) {
-        // If the module exists, update its actions
+        // If the module exists, update its actions and scope
         role.permissions[moduleIndex].actions = actions;
+        if (permission.scope !== undefined) {
+          role.permissions[moduleIndex].scope = permission.scope;
+        }
       } else {
         // If the module does not exist, add it to the permissions array
-        role.permissions.push({ module, actions });
+        role.permissions.push({ module, actions, scope: permission.scope });
       }
     });
 

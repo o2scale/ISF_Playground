@@ -58,15 +58,15 @@ export default function MachineManagement() {
   // Logs modal state
   const [viewingLogsMachine, setViewingLogsMachine] = useState(null);
 
-  // SECURITY CHECK: Admin-only access
+  // SECURITY CHECK: Requires Machine Management Read permission
   useEffect(() => {
     if (rbacLoading) return;
     if (!permissionsLoaded) return;
 
-    if (!canReadMachines || !isAdmin) {
+    if (!canReadMachines) {
       navigate('/access-denied', { replace: true });
     }
-  }, [canReadMachines, isAdmin, navigate, permissionsLoaded, rbacLoading]);
+  }, [canReadMachines, navigate, permissionsLoaded, rbacLoading]);
 
   // Fetch balagruha list for filter dropdown
   useEffect(() => {
@@ -81,10 +81,10 @@ export default function MachineManagement() {
       }
     };
 
-    if (canReadMachines && isAdmin) {
+    if (canReadMachines) {
       fetchBalagruhaList();
     }
-  }, [canReadMachines, isAdmin]);
+  }, [canReadMachines]);
 
   // Fetch machines from API
   const fetchMachines = useCallback(async () => {
@@ -126,7 +126,7 @@ export default function MachineManagement() {
 
   // Debounced fetch on filter changes
   useEffect(() => {
-    if (!canReadMachines || !isAdmin) return;
+    if (!canReadMachines) return;
 
     const debounceTimer = setTimeout(
       () => {
@@ -136,7 +136,7 @@ export default function MachineManagement() {
     );
 
     return () => clearTimeout(debounceTimer);
-  }, [canReadMachines, fetchMachines, isAdmin, searchTerm]);
+  }, [canReadMachines, fetchMachines, searchTerm]);
 
   // Registration form handlers
   const openRegister = useCallback(() => {
@@ -253,7 +253,7 @@ export default function MachineManagement() {
     );
   }
 
-  if (!canReadMachines || !isAdmin) {
+  if (!canReadMachines) {
     return null;
   }
 
