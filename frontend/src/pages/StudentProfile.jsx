@@ -22,7 +22,7 @@ export default function StudentProfile() {
   const navigate = useNavigate();
 
   // If no userId in params, viewing own profile
-  const targetUserId = paramUserId || user?._id;
+  const targetUserId = paramUserId || user?._id || user?.id;
   const isOwnProfile = !paramUserId || paramUserId === user?._id;
 
   const [profileData, setProfileData] = useState(null);

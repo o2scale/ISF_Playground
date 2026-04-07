@@ -108,10 +108,10 @@ function AdminDashboard() {
       const response = await fetchUsers();
 
 
-      // Set all users
-      setUsers(response || []);
+      const userList = response?.data || [];
+      setUsers(userList);
 
-      const studentUsers = (response || []).filter(
+      const studentUsers = userList.filter(
         (user) => user.role === "student"
       );
       setStudents(studentUsers);

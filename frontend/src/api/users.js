@@ -1,7 +1,7 @@
 import { api, apiWithoutContentType } from './client';
 
-export const fetchUsers = async () => {
-  const response = await api.get("/api/users");
+export const fetchUsers = async ({ limit = 1000, page = 1 } = {}) => {
+  const response = await api.get(`/api/users?limit=${limit}&page=${page}`);
   return response.data;
 };
 

@@ -490,17 +490,31 @@ class AnalyticsService {
           }
         }
       },
+      // Deduplicate students who have multiple Coin documents
+      {
+        $group: {
+          _id: '$userId',
+          userId: { $first: '$userId' },
+          studentName: { $first: '$user.name' },
+          email: { $first: '$user.email' },
+          totalEarned: { $sum: '$totalEarned' },
+          totalSpent: { $sum: '$totalSpent' },
+          currentBalance: { $sum: '$balance' },
+          purchaseCount: { $sum: '$purchaseCount' },
+          lastActivity: { $max: '$lastActivity' }
+        }
+      },
       { $sort: { [sortField]: -1 } },
       { $limit: limit },
       {
         $project: {
           _id: 0,
-          userId: '$userId',
-          studentName: '$user.name',
-          email: '$user.email',
+          userId: 1,
+          studentName: 1,
+          email: 1,
           totalEarned: 1,
           totalSpent: 1,
-          currentBalance: '$balance',
+          currentBalance: 1,
           purchaseCount: 1,
           avgOrderValue: {
             $cond: [
@@ -509,9 +523,7 @@ class AnalyticsService {
               0
             ]
           },
-          lastActivity: {
-            $ifNull: ['$lastActivity', '$user.createdAt']
-          }
+          lastActivity: 1
         }
       }
     ]);

@@ -31,7 +31,7 @@ exports.getAllUsers = async (req, res) => {
     // Pagination parameters
     const { page = 1, limit = 20 } = req.query;
     const pageNum = parseInt(page);
-    const limitNum = Math.min(parseInt(limit), 100); // Cap at 100
+    const limitNum = Math.min(parseInt(limit), 1000); // Cap at 1000
     const skip = (pageNum - 1) * limitNum;
     
     // Execute paginated query

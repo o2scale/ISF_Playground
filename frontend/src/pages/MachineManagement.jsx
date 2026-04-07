@@ -74,7 +74,7 @@ export default function MachineManagement() {
       try {
         const result = await getBalagruha();
         if (result && result.success && result.data) {
-          setBalagruhaOptions(result.data);
+          setBalagruhaOptions(result.data.balagruhas || []);
         }
       } catch (err) {
         console.error('Error fetching balagruha list:', err);

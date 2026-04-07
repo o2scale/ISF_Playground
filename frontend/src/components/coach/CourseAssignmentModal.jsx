@@ -72,7 +72,7 @@ export default function CourseAssignmentModal({ isOpen, onClose, coachId, onAssi
       const balagruhasResponse = await api.get(
         `/api/v1/balagruha`
       );
-      const allBalagruhas = balagruhasResponse.data.data || [];
+      const allBalagruhas = balagruhasResponse.data.data?.balagruhas || [];
       setBalagruhasInfo(allBalagruhas);
       
       // Select all by default

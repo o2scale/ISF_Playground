@@ -1137,15 +1137,15 @@ const SportCoachDashboard = () => {
             const response = await fetchUsers();
 
 
-            // Set all users
-            setUsers(response || []);
+            const userList = response?.data || [];
+            setUsers(userList);
 
             // Filter coaches
-            const coachUsers = (response || []).filter(user => user.role === "coach");
+            const coachUsers = userList.filter(user => user.role === "coach");
             setCoaches(coachUsers);
 
             // Filter students
-            const studentUsers = (response || []).filter(user => user.role === "student");
+            const studentUsers = userList.filter(user => user.role === "student");
             setStudents(studentUsers);
         } catch (error) {
             console.error('Error fetching users:', error);

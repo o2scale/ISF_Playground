@@ -1134,6 +1134,10 @@ const CreateTaskForm = ({
       errors.deadline = "Deadline cannot be in the past";
     }
 
+    if (!formData.assignedUser || formData.assignedUser.length === 0) {
+      errors.assignedUser = "At least one user must be assigned";
+    }
+
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
@@ -1367,6 +1371,9 @@ const CreateTaskForm = ({
                 </div>
               )}
             </div>
+            {formErrors.assignedUser && (
+              <div className="error-message">{formErrors.assignedUser}</div>
+            )}
           </div>
         )}
 
@@ -3776,7 +3783,7 @@ const TaskManagement = () => {
   const getUsers = async () => {
     try {
       const response = await fetchUsers();
-      setUsers(response || []);
+      setUsers(Array.isArray(response) ? response : (response?.data || []));
     } catch (error) {
       console.error("Error fetching users:", error);
     }

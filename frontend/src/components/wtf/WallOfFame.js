@@ -520,7 +520,7 @@ const WallOfFameContent = ({ onToggleView }) => {
   // Fetch student's interaction history to determine which pins have been viewed
   useEffect(() => {
     const fetchStudentInteractions = async () => {
-      if (!user?.id) return;
+      if (!user?.id || !isStudent) return;
 
       try {
         const response = await getStudentInteractionHistory(user.id, {
@@ -541,7 +541,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     };
 
     fetchStudentInteractions();
-  }, [user?.id]);
+  }, [user?.id, isStudent]);
 
   // Function to check if a pin has been viewed by the current student
   const hasStudentViewedPin = useCallback(
@@ -556,7 +556,7 @@ const WallOfFameContent = ({ onToggleView }) => {
 
   // Function to refresh viewed pins from backend
   const refreshViewedPins = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id || !isStudent) return;
 
     try {
       const response = await getStudentInteractionHistory(user.id, {
@@ -574,7 +574,7 @@ const WallOfFameContent = ({ onToggleView }) => {
     } catch (error) {
       console.error("Error refreshing viewed pins:", error);
     }
-  }, [user?.id]);
+  }, [user?.id, isStudent]);
 
   // Sort so that unseen items appear first and seen items shift to the end (students only)
   const sortedContent = React.useMemo(() => {
@@ -2160,7 +2160,7 @@ Check console for detailed results.`);
                         className="flex-1 text-xs px-2 py-1 border rounded"
                       >
                         <option value="">Select a font</option>
-                        {googleFonts.map((font) => (
+                        {[...new Map(googleFonts.map(f => [f.name, f])).values()].map((font) => (
                           <option key={font.name} value={font.name}>
                             {font.name}
                           </option>

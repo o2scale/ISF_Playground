@@ -13,11 +13,10 @@ const {
   updateCoinReward,
 } = require("../../controllers/wtfSettingsController");
 
-// Get current WTF settings (accessible to all WTF users)
+// Get current WTF settings (accessible to all authenticated users)
 router.get(
   "/current",
   authenticate,
-  authorize("WTF Management", "Read"),
   getCurrentSettings
 );
 

@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 
 // Hook to get user role from local storage (integrating with existing auth system)
 export const useUserRole = () => {
-  const [userRole, setUserRole] = useState("student");
+  const [userRole, setUserRole] = useState(
+    () => localStorage.getItem("role") || "student"
+  );
 
   useEffect(() => {
-    // Get role from localStorage (matches existing frontend implementation)
+    // Keep in sync if role changes after mount (e.g. login/logout)
     const role = localStorage.getItem("role") || "student";
     setUserRole(role);
   }, []);

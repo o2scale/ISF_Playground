@@ -243,10 +243,11 @@ function BalagruhaDashboard() {
         try {
             const response = await fetchUsers();
 
-            setUsers(response || []);
-            const coachUsers = (response || []).filter(user => user.role === "coach");
+            const userList = response?.data || [];
+            setUsers(userList);
+            const coachUsers = userList.filter(user => user.role === "coach");
             setCoaches(coachUsers);
-            const adminUsers = (response || []).filter(user => user.role === "admin");
+            const adminUsers = userList.filter(user => user.role === "admin");
             setAdmins(adminUsers);
         } catch (error) {
             console.error('Error fetching users:', error);

@@ -49,7 +49,7 @@ const MachineManagement = () => {
   const getBalagruhaList = async () => {
     const response = await getBalagruha();
 
-    setBalagruhaOptions(response?.data?.balagruhas);
+    setBalagruhaOptions(response?.data?.balagruhas || []);
   };
 
   const getMachinesData = async () => {
@@ -465,9 +465,7 @@ const MachineManagement = () => {
           <div className="recent-activity">
             <h3>Recent Machine Activity</h3>
             <div className="activity-list">
-              {calculateMetrics()
-                .recentEvents.slice(0, 5)
-                .map((event, index) => (
+              {(calculateMetrics().recentEvents || []).slice(0, 5).map((event, index) => (
                   <div key={index} className="activity-item">
                     <div className="activity-icon">🔄</div>
                     <div className="activity-details">
@@ -486,7 +484,7 @@ const MachineManagement = () => {
                     </div>
                   </div>
                 ))}
-              {calculateMetrics().recentEvents.length === 0 && (
+              {(calculateMetrics().recentEvents || []).length === 0 && (
                 <div className="no-activity">
                   No recent activity in the last 24 hours
                 </div>

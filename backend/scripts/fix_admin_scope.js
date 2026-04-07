@@ -27,16 +27,12 @@ const fixScope = async () => {
         console.log(`Found Admin Role: ${adminRole.roleName}`);
 
         let updated = false;
-        const targets = ['User Management', 'Balagruha Management', 'LMS Management'];
 
         adminRole.permissions.forEach(p => {
-            // Check if module strictly equals target
-            if (targets.includes(p.module)) {
-                if (p.scope !== 'all') {
-                    console.log(`Updating scope for ${p.module} from '${p.scope || 'undefined'}' to 'all'`);
-                    p.scope = 'all';
-                    updated = true;
-                }
+            if (p.scope !== 'all') {
+                console.log(`Updating scope for ${p.module} from '${p.scope || 'undefined'}' to 'all'`);
+                p.scope = 'all';
+                updated = true;
             }
         });
 

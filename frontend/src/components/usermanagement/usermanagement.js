@@ -136,7 +136,8 @@ const UserManagement = () => {
       }
 
       const response = await fetchUsers();
-      setUsers(Array.isArray(response) ? response : (response.data || []));
+      const userList = Array.isArray(response) ? response : (response.data || []);
+      setUsers(userList);
     } catch (error) {
       console.error("Error fetching users:", error);
     }
@@ -180,7 +181,7 @@ const UserManagement = () => {
 
       const response = await getBalagruha();
 
-      setBalagruhaOptions(response?.data?.balagruhas);
+      setBalagruhaOptions(response?.data?.balagruhas || []);
     } catch (error) {
       console.error("Error fetching balagruha list:", error);
     }

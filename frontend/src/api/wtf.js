@@ -388,7 +388,7 @@ export const getStudentSubmissions = async (studentId, params = {}) => {
 
 export const getStudentInteractionHistory = async (studentId, params = {}) => {
   try {
-    const response = await api.get(`/api/v1/wtf/students/${studentId}/interactions`, { params });
+    const response = await api.get(`/api/v1/wtf/interactions/history`, { params });
     return response.data;
   } catch (error) {
     console.error("Error fetching student interaction history:", error);

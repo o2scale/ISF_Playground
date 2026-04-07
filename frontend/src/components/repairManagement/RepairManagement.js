@@ -53,7 +53,7 @@ export default function RepairManagement() {
   const openRepairModal = (repair = null) => {
     if (repair) {
       setRepairForm({
-        balagruhaId: repair.balagruhaId || "",
+        balagruhaId: repair.balagruhaId?._id || repair.balagruhaId || "",
         issueName: repair.issueName || "",
         description: repair.description || "",
         dateReported: repair.dateReported || new Date().toISOString(),
