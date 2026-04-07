@@ -117,7 +117,7 @@ exports.getCourseHierarchy = async (req, res) => {
             description: item.description,
             isCompleted: isCompleted,
             difficulty: item.metadata?.difficulty || 'beginner',
-            quizId: item.quizRef // Add Quiz Reference
+            quizId: item.quizRef?._id?.toString() || item.quizRef?.toString() || null // Add Quiz Reference (extract ID string only)
           };
         })
       }))
