@@ -2,31 +2,75 @@
 
 **Last Updated:** 2026-04-08  
 **Branch:** `stable`  
-**Resume Point:** ALL USERS DONE
+**Round:** 2 (re-test after S3 upload fix + admin purchase actions fix)
+**Resume Point:** Admin — Flow 1 (Dashboard)
 
 ---
 
 ## Quick Resume
 
-All users tested. No pending flows.
+Round 2 started. Test all users fresh. Verify new fixes work (S3 thumbnail upload, admin Mark Ordered button).
 
 ---
 
-## Overall Progress
+## Overall Progress — Round 2
 
 | User | Status | Flows Done | Bugs Found | Bugs Fixed | Commit |
 |------|--------|-----------|-----------|-----------|--------|
-| Admin | ✅ DONE | prior session | — | — | — |
-| Coach | ✅ DONE | 11/11 | 4 | 4 | 86fa4f8a |
-| Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | f993e9bd |
-| Medical Incharge | ✅ DONE | 7/7 | 5 | 5 | 8551118f |
-| Student | ✅ DONE | 15/15 | 1 | 1 | 487c8211 |
+| Admin | ✅ DONE | 11/11 | 1 | 1 | b523237d |
+| Coach | ✅ DONE | 11/11 | 1 | 1 | db5b4043 |
+| Purchase Manager | ⏳ PENDING | 0 | — | — | — |
+| Medical Incharge | ⏳ PENDING | 0 | — | — | — |
+| Student | ⏳ PENDING | 0 | — | — | — |
+
+## Round 1 Results (reference)
+
+| User | Status | Flows Done | Bugs Found | Bugs Fixed | Commit |
+|------|--------|-----------|-----------|-----------|--------|
+| Admin | ✅ DONE R1 | prior session | — | — | — |
+| Coach | ✅ DONE R1 | 11/11 | 4 | 4 | 86fa4f8a |
+| Purchase Manager | ✅ DONE R1 | 5/5 | 1 | 1 | f993e9bd |
+| Medical Incharge | ✅ DONE R1 | 7/7 | 5 | 5 | 8551118f |
+| Student | ✅ DONE R1 | 15/15 | 1 | 1 | 487c8211 |
 
 ---
 
 ## User 1: Admin
 
 Tested in a prior session before this workflow was created. All admin flows confirmed working.
+
+---
+
+## User 1: Admin — Round 2
+
+**Status: ✅ DONE — Commit: `b523237d`**  
+**Login URL:** `http://localhost:3000/admin/login`  
+**Nav items:** Dashboard | Users | Machines | Tasks | Attendance | Balagruhas | Courses | Access | Repairs | Purchases (badge) | Shop | WTF | Translations | Assignments
+
+| # | Flow | URL | Result | Notes |
+|---|------|-----|--------|-------|
+| 1 | Dashboard | /dashboard | ✅ PASS | Welcome banner, balagruha list, nav loads. All 25 balagruhas show |
+| 2 | Users | /users | ✅ PASS | User list loads with filters (balagruha, role, status). Edit opens user form with full detail |
+| 3 | Machines | /machines | ✅ PASS | 9 machines listed, balagruha filter works |
+| 4 | Tasks | /task | ✅ PASS | Kanban board renders (3 columns: Waiting/Working/Done) |
+| 5 | Attendance | /attendance | ✅ PASS | All 25 balagruhas listed; select-to-view prompt shown |
+| 6 | Balagruhas | /balagruha | ✅ PASS | 25 balagruhas listed with stats (9 machines, 9 assigned) |
+| 7 | Courses | /admin/courses | ✅ PASS | 26 courses listed across categories (note: `/courses` 404s, nav goes to `/admin/courses`) |
+| 8 | Repairs | /repair | ✅ PASS | 6 repair requests listed with filters |
+| 9 | Purchases | /purchase | ✅ FIXED | "Mark Ordered" and "Mark Received at Store" buttons visible (prior fix confirmed). Clicking "Mark Ordered" now succeeds — B12 fixed |
+| 10 | Shop | /shop | ✅ PASS | Shop Admin panel loads with Stock Alerts, Quick Stats, Products/Vendors/Inventory tabs, 16 products |
+| 11 | WTF | /wtf | ✅ PASS | Admin Controls panel loads with Create New Pin, Full Management, pending suggestions, font/background settings |
+
+**Bonus flows checked:**
+- Access (RBAC) → `/rbac` — role list loads (Admin: 67/79 permissions)
+- Translations → `/admin/translations` — Translation Management loads (English → Telugu)
+- Assignments → `/coach/assignments` — Course Assignments (Admin view) loads
+
+**Bugs found and fixed:**
+
+| ID | Flow | Description | Root Cause | Fix | Status |
+|----|------|-------------|-----------|-----|--------|
+| B12 | Purchases | Admin "Mark Ordered" button visible but clicking returns 403 "Transition from pending to ordered not allowed for your role" | `purchaseRequestController.js` transition guards only allowed `purchase-manager` role for `pending→ordered`, `ordered→delivered_store`, and `pending→rejected/on_hold` transitions. Admin excluded. | Added `|| userRole === 'admin'` to all three transition guards | ✅ Fixed — b523237d |
 
 ---
 
@@ -53,6 +97,34 @@ Tested in a prior session before this workflow was created. All admin flows conf
 - B2: ProtectedRoute race with empty permissions — fixed `ProtectedRoute.js`
 - B3: MachineManagement blocked non-admin with Read permission — fixed `MachineManagement.jsx`
 - B4: Coach role `scope:'own'` blocked balagruha-level routes — fixed via MongoDB script
+
+---
+
+## User 2: Coach — Round 2
+
+**Status: ✅ DONE — Commit: `db5b4043`**
+**Login URL:** `http://localhost:3000/admin/login`
+**Nav items:** Dashboard | Users | Machines | Tasks | Attendance | Repairs | Purchases | Shop | WTF | Courses | Assignments
+
+| # | Flow | URL | Result | Notes |
+|---|------|-----|--------|-------|
+| 1 | Dashboard | /dashboard | ✅ PASS | "Hi coach" heading, 4 balagruhas with stats, Weekly Calendar loads |
+| 2 | Attendance | /attendance | ✅ PASS | 4 balagruhas listed; clicking Sadashraya shows 27 students with Present/Absent buttons |
+| 3 | Tasks | /task | ✅ PASS | Kanban board renders (Waiting/Working/Done columns) with tasks |
+| 4 | Machines | /machines | ✅ PASS | 9 machines listed; balagruha filter shows coach's 4 balagruhas |
+| 5 | Purchases | /purchase | ✅ PASS | Purchase requests listed; new purchase form opens as modal; created successfully ("Purchase request created successfully") |
+| 6 | Schedule | /schedule | ✅ PASS (INFO) | /schedule 404s — no dedicated route; schedule (Weekly Calendar) is embedded in /dashboard. Content fully functional. |
+| 7 | Daily Schedule | /daily-schedule | ✅ PASS (INFO) | /daily-schedule 404s — no dedicated route; Daily Schedule tab in /dashboard renders Weekly Calendar. Functional. |
+| 8 | WTF | /wtf | ✅ PASS | Filter tabs (All/Images/Videos/Audio/Text), Suggest Pin button visible |
+| 9 | Courses/Grading | /coach/grading | ✅ PASS | "Syllabus Tracker & Grading" loads; Assign Courses button visible; stats show 0 submissions |
+| 10 | Repairs | /repair | ✅ PASS | Repair requests listed; new repair form submitted ("Repair request created successfully") |
+| 11 | Profile | /profile | ✅ FIXED | Was: "You do not have permission to view this profile" (403). B13 fixed. Now: coach name, email, balagruhas, coin wallet all load |
+
+**Bugs found and fixed:**
+
+| ID | Flow | Description | Root Cause | Fix | Status |
+|----|------|-------------|-----------|-----|--------|
+| B13 | Profile | Coach gets 403 "You do not have permission to view this profile" on /profile | `checkProfileAccess` in `profileController.js` allows coaches to view students only (line 37: `if (targetUser.role !== 'student') return false`). No self-access check — coach's own profile (role=coach) fails the student guard. | Added self-access check before the student guard: `if (requestingUser._id.toString() === targetUserId.toString()) return true` | ✅ Fixed — db5b4043 |
 
 ---
 
@@ -166,6 +238,8 @@ Tested in a prior session before this workflow was created. All admin flows conf
 | B9 | MedIn | Tasks | Internal dashboard Tasks menu has `link:"/task"` → bypasses tab, causes ProtectedRoute redirect | ✅ Fixed | 8551118f |
 | B10 | MedIn | Tasks/Machines | Missing Task Management Read + Machine Management Read permissions | ✅ Fixed | 8551118f |
 | B11 | Student | Computer Apps Quiz | Quiz URL `/quiz/[object Object]` — populated quizRef object serialized to string instead of ID | ✅ Fixed | 487c8211 |
+| B12 | Admin | Purchases | Admin "Mark Ordered" button returns 403 "Transition from pending to ordered not allowed for your role" | ✅ Fixed | b523237d |
+| B13 | Coach | Profile | Coach /profile returns 403 "You do not have permission to view this profile" — self-access blocked by student-only guard | ✅ Fixed | db5b4043 |
 
 ---
 
@@ -185,3 +259,5 @@ Tested in a prior session before this workflow was created. All admin flows conf
 - **Student cart drawer**: Uses Radix UI Dialog portal — not captured by gstack ARIA snapshot. Use `document.querySelector('[role=dialog]').innerText` to verify content.
 - **Spoken English no tasks**: Student 123 has no spoken-english tasks assigned. Error state is expected behavior, not a bug. Route `/student/spoken-english/task1` returns `Invalid Task ID`.
 - **Notification panel not implemented**: TitleBar bell click is a no-op by design (`// Sprint 2 Epic 5 backlog`). Badge count works; panel does not.
+- **Profile self-access for non-student roles**: `profileController.checkProfileAccess` gates non-students via a student-role guard. Any non-student, non-admin role viewing their own profile was blocked. Fixed B13 (coach). Other specialist roles (purchase-manager, medical-incharge) should be verified similarly.
+- **Coach schedule/daily-schedule routes**: No separate /schedule or /daily-schedule routes exist. The coach dashboard (/dashboard) embeds the Weekly Calendar and Daily Schedule tab inline. These 404 if navigated directly.
