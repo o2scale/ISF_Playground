@@ -20,8 +20,8 @@ Round 2 started. Test all users fresh. Verify new fixes work (S3 thumbnail uploa
 | Admin | ✅ DONE | 11/11 | 1 | 1 | b523237d |
 | Coach | ✅ DONE | 11/11 | 1 | 1 | db5b4043 |
 | Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | 4eaff798 |
-| Medical Incharge | ⏳ PENDING | 0 | — | — | — |
-| Student | ⏳ PENDING | 0 | — | — | — |
+| Medical Incharge | ✅ DONE | 7/7 | 0 | 0 | — |
+| Student | ✅ DONE | 12/12 | 0 | 0 | — |
 
 ## Round 1 Results (reference)
 
@@ -205,6 +205,27 @@ Tested in a prior session before this workflow was created. All admin flows conf
 
 ---
 
+## User 4: Medical Incharge — Round 2
+
+**Status: ✅ DONE — No bugs found**
+**Login URL:** `http://localhost:3000/admin/login`
+**Nav items (internal dashboard):** Dashboard | Students | Check Ins | Tasks | Purchases | Shop
+**Nav items (outer layout, off-dashboard):** Dashboard | Students | Check Ins | Tasks | Machines | Purchases | Shop
+
+| # | Flow | URL | Result | Notes |
+|---|------|-----|--------|-------|
+| 1 | Dashboard | /dashboard | ✅ PASS | Health Overview loads: 2 Closed cases, Yeshaswani BG shown; Recent Health Check-ins table with 3 entries |
+| 2 | Students tab | /dashboard (activeTab=students) | ✅ PASS | UserManagement renders with 24 students listed; balagruha filter shows Yeshaswani; filters (name search, status) present |
+| 3 | Check Ins tab | /dashboard (activeTab=checkins) | ✅ PASS | 3 check-ins listed; "Record New Check-in" form opens; after selecting Yeshaswani balagruha, student dropdown populates with 24 students |
+| 4 | Tasks tab | /dashboard (activeTab=tasks) | ✅ PASS | Task Management loads inline; kanban board renders (Waiting/Working/Done columns) with tasks |
+| 5 | Machines | /machines | ✅ PASS | 9 machines listed; balagruha filter dropdown populated (shows Yeshaswani); Machine Management page loads correctly |
+| 6 | Purchases | /purchase | ✅ PASS | Purchase Management loads; filters (date range, priority, balagruha, category, status) all present; "+ New Purchase Request" button visible |
+| 7 | Shop | /shop | ✅ PASS | ISF Shop loads with 16 products; category filters and price range slider present |
+
+**Bugs found:** None
+
+---
+
 ## User 5: Student (User ID: 123)
 
 **Status: ✅ DONE — Commit: `487c8211`**  
@@ -244,6 +265,34 @@ Tested in a prior session before this workflow was created. All admin flows conf
 | ID | Flow | Description | Root Cause | Fix | Status |
 |----|------|-------------|-----------|-----|--------|
 | B11 | Course Quiz | Quiz URL renders as `/quiz/[object Object]` — server error | `getCourseHierarchy` does `.populate('quizRef')` then assigns full Quiz object as `quizId`. Template string serializes to `[object Object]` | `computerAppsController.js`: changed `item.quizRef` to `item.quizRef?._id?.toString() || item.quizRef?.toString() || null` | ✅ Fixed — 487c8211 |
+
+---
+
+## User 5: Student — Round 2
+
+**Status: ✅ DONE — No bugs found**
+**Login URL:** `http://localhost:3000/login` (student tab — default)
+**User ID:** 123 (asmi student)
+
+**Nav items:** Dashboard | My Courses | Shop | WTF
+**Header buttons:** Coin Balance (💰 3,891) | Notifications 🔔 | Shopping Cart
+
+| # | Flow | URL | Result | Notes |
+|---|------|-----|--------|-------|
+| 1 | Dashboard | /student/dashboard | ✅ PASS | Welcome banner "Welcome back, asmi student!", 4 courses shown (Computer Apps 81%, Art 0%, Spoken English 0%, Life Skills 50%), progress stats (16 tasks, 0 streak) |
+| 2 | Computer Apps course | /student/computer-apps | ✅ PASS | 4 sub-courses listed: Computer Applications (4/4), E15 Smoke (0/1), Sample Course (2/4), Test Automation Course (7/7) |
+| 3 | Course detail | /student/computer-apps/697e0dc9bef48c56989fcdc7 | ✅ PASS | Chapter sidebar + content cards: image (freesia), PDF (yh yh), audio (miley cyrus), quiz (who is the singer) |
+| 4 | Start Quiz (URL check) | /student/computer-apps/quiz/697e10dfbef48c56989fd0f7 | ✅ PASS | URL correct — no `[object Object]`. Shows "Maximum attempts (3) exceeded" (expected). B11 fix confirmed. |
+| 5 | Life Skills | /student/life-skills | ✅ PASS | Course loads: Chapter 1 with video, PDF, and quiz content items visible |
+| 6 | Art | /student/art | ✅ PASS | ART COURSE page loads with Workshops / Free Sketch / Art Stories / Competition tabs |
+| 7 | Shop | /shop | ✅ PASS | 16 products listed, filters (categories, price range, in-stock), pagination shows Page 1 of 1 |
+| 8 | Add to Cart | /shop | ✅ PASS | Clicked "Add Rubik's Cube to cart" → "Product added to cart" toast, cart badge updated to "1" |
+| 9 | Cart Drawer | /shop (cart icon) | ✅ PASS | Radix dialog opened: shows "Rubik's Cube, 47 coins, 1 item, Subtotal 47 coins, Proceed to Checkout" |
+| 10 | WTF | /wtf | ✅ PASS | Wall of Fame loads with All/Images/Videos/Audio/Text filter tabs, "Suggest a Topic!" button, "No Pins Yet" state |
+| 11 | Profile | /profile | ✅ PASS | Student name "asmi student", email (student@gmail.com), age (10 years), gender (Female), balagruha (Samparc Girls), coin wallet (3891 coins), last login shown |
+| 12 | Coin Balance | (header button) | ✅ PASS | Coin history overlay opens: "Your ISF Coin History", balance 3,891 coins, transaction list with filters (Type, Time Period, Sort By) |
+
+**Bugs found:** None
 
 ---
 
