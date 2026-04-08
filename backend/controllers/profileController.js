@@ -26,8 +26,13 @@ const checkProfileAccess = async (requestingUser, targetUserId) => {
       return true;
     }
 
-    // Coaches can view students from their assigned Balagruhas
+    // Coaches can view students from their assigned Balagruhas, or their own profile
     if (requestingUser.role === 'coach') {
+      // Allow coach to view their own profile
+      if (requestingUser._id.toString() === targetUserId.toString()) {
+        return true;
+      }
+
       const targetUser = await User.findById(targetUserId);
       if (!targetUser) {
         return false;
