@@ -19,7 +19,7 @@ Round 2 started. Test all users fresh. Verify new fixes work (S3 thumbnail uploa
 |------|--------|-----------|-----------|-----------|--------|
 | Admin | ✅ DONE | 11/11 | 1 | 1 | b523237d |
 | Coach | ✅ DONE | 11/11 | 1 | 1 | db5b4043 |
-| Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | pending commit |
+| Purchase Manager | ✅ DONE | 5/5 | 1 | 1 | 4eaff798 |
 | Medical Incharge | ⏳ PENDING | 0 | — | — | — |
 | Student | ⏳ PENDING | 0 | — | — | — |
 
@@ -153,7 +153,7 @@ Tested in a prior session before this workflow was created. All admin flows conf
 
 ## User 3: Purchase Manager — Round 2
 
-**Status: ✅ DONE — Commit: pending**
+**Status: ✅ DONE — Commit: `4eaff798`**
 **Login URL:** `http://localhost:3000/admin/login`
 **Nav items:** Dashboard | Machines | Repairs | Purchases (badge:1) | Low Stock
 
@@ -171,7 +171,7 @@ Tested in a prior session before this workflow was created. All admin flows conf
 
 | ID | Flow | Description | Root Cause | Fix | Status |
 |----|------|-------------|-----------|-----|--------|
-| B14 | Purchases | Stats footer shows "Pending: 0" despite pending items in the list | `ShopInventoryView.jsx` stats footer filtered on `PurchaseRequestStatuses.PENDING_APPROVAL` (`'pending_approval'`) instead of `PurchaseRequestStatuses.PENDING` (`'pending'`) | `frontend/src/components/purchaseManagement/views/ShopInventoryView.jsx` line 1867: changed `PENDING_APPROVAL` to `PENDING` | ✅ Fixed — pending commit |
+| B14 | Purchases | Stats footer shows "Pending: 0" despite pending items in the list | `ShopInventoryView.jsx` stats footer filtered on `PurchaseRequestStatuses.PENDING_APPROVAL` (`'pending_approval'`) instead of `PurchaseRequestStatuses.PENDING` (`'pending'`) | `frontend/src/components/purchaseManagement/views/ShopInventoryView.jsx` line 1867: changed `PENDING_APPROVAL` to `PENDING` | ✅ Fixed — 4eaff798 |
 
 ---
 
@@ -264,7 +264,7 @@ Tested in a prior session before this workflow was created. All admin flows conf
 | B11 | Student | Computer Apps Quiz | Quiz URL `/quiz/[object Object]` — populated quizRef object serialized to string instead of ID | ✅ Fixed | 487c8211 |
 | B12 | Admin | Purchases | Admin "Mark Ordered" button returns 403 "Transition from pending to ordered not allowed for your role" | ✅ Fixed | b523237d |
 | B13 | Coach | Profile | Coach /profile returns 403 "You do not have permission to view this profile" — self-access blocked by student-only guard | ✅ Fixed | db5b4043 |
-| B14 | PM | Purchases | Purchase stats footer shows "Pending: 0" while pending items visible in list | `ShopInventoryView.jsx` stats footer filtered on `PENDING_APPROVAL` (`'pending_approval'`) instead of `PENDING` (`'pending'`) | ✅ Fixed — pending commit |
+| B14 | PM | Purchases | Purchase stats footer shows "Pending: 0" while pending items visible in list | `ShopInventoryView.jsx` stats footer filtered on `PENDING_APPROVAL` (`'pending_approval'`) instead of `PENDING` (`'pending'`) | ✅ Fixed — 4eaff798 |
 
 ---
 
