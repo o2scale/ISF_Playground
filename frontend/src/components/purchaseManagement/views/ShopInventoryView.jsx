@@ -1807,8 +1807,8 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       </button>
                     )}
 
-                    {/* Story 2.3: Purchase Manager Fulfillment Actions */}
-                    {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.PENDING && (
+                    {/* Story 2.3: Purchase Manager + Admin Fulfillment Actions */}
+                    {(normalizedRole === UserTypes.PURCHASE_MANAGER || normalizedRole === UserTypes.ADMIN) && request.status === PurchaseRequestStatuses.PENDING && (
                       <button
                         className="btn btn-primary btn-action"
                         onClick={() =>
@@ -1826,7 +1826,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
                       </button>
                     )}
 
-                    {normalizedRole === UserTypes.PURCHASE_MANAGER && request.status === PurchaseRequestStatuses.ORDERED && (
+                    {(normalizedRole === UserTypes.PURCHASE_MANAGER || normalizedRole === UserTypes.ADMIN) && request.status === PurchaseRequestStatuses.ORDERED && (
                       <button
                         className="btn btn-primary btn-action"
                         onClick={() => handleMarkDeliveredStore(request)}

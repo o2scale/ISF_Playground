@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-import { api, isCancel } from '../api';
+import { apiWithoutContentType as api, isCancel } from '../api';
 import toast from 'react-hot-toast';
 
 /**
