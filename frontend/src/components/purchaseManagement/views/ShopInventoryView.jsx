@@ -1864,7 +1864,7 @@ export default function ShopInventoryView({ userRole, userId, userBalagruhas }) 
           <div className="stats-item">
             <span className="stats-label">Pending:</span>
             <span className="stats-value pending">
-              {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.PENDING_APPROVAL).length}
+              {filteredRequests.filter(r => r.status === PurchaseRequestStatuses.PENDING).length}
             </span>
           </div>
           <div className="stats-item">
