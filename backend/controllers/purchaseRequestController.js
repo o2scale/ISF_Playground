@@ -1156,17 +1156,17 @@ exports.updateStatus = async (req, res) => {
     let allowed = false;
 
     if (currentStatus === 'pending' && status === 'ordered') {
-      // Guard: Purchase Manager only
-      allowed = userRole === 'purchase-manager';
+      // Guard: Purchase Manager or Admin
+      allowed = userRole === 'purchase-manager' || userRole === 'admin';
     } else if (currentStatus === 'ordered' && status === 'delivered_store') {
-      // Guard: Purchase Manager only
-      allowed = userRole === 'purchase-manager';
+      // Guard: Purchase Manager or Admin
+      allowed = userRole === 'purchase-manager' || userRole === 'admin';
     } else if (currentStatus === 'delivered_store' && status === 'delivered_balagruha') {
       // Guard: Requester (Coach) or Admin
       allowed = request.requestedBy.toString() === userId.toString() || userRole === 'admin';
     } else if (currentStatus === 'pending' && (status === 'rejected' || status === 'on_hold')) {
       // Keep existing non-happy-path statuses constrained to pending only
-      allowed = userRole === 'purchase-manager';
+      allowed = userRole === 'purchase-manager' || userRole === 'admin';
     }
 
     if (!allowed) {
