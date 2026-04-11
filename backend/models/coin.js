@@ -260,14 +260,18 @@ coinSchema.methods.getWtfTransactionHistory = function (limit = 50) {
 };
 
 // Static method to find or create coin record for user
-coinSchema.statics.findOrCreateForUser = async function (userId) {
+// Accepts optional { session } to participate in a Mongo transaction so
+// reads/writes inside the txn see a consistent snapshot.
+coinSchema.statics.findOrCreateForUser = async function (userId, options = {}) {
   // Convert userId to ObjectId if it's a string (from req.user.id or req.user._id)
   // This ensures Mongoose can properly match the userId field in the database
   const userObjectId = mongoose.Types.ObjectId.isValid(userId)
     ? (typeof userId === 'string' ? new mongoose.Types.ObjectId(userId) : userId)
     : userId;
 
-  let coinRecord = await this.findOne({ userId: userObjectId });
+  const queryOpts = options.session ? { session: options.session } : {};
+
+  let coinRecord = await this.findOne({ userId: userObjectId }, null, queryOpts);
 
   if (!coinRecord) {
     coinRecord = new this({
@@ -291,7 +295,7 @@ coinSchema.statics.findOrCreateForUser = async function (userId) {
         totalWtfCoinsEarned: 0,
       },
     });
-    await coinRecord.save();
+    await coinRecord.save(queryOpts);
   }
 
   return coinRecord;

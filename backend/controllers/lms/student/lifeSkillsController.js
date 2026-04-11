@@ -444,39 +444,12 @@ exports.submitQuiz = async (req, res) => {
     if (!quiz) return res.status(404).json({ success: false, error: 'Quiz not found' });
 
     let correctAnswers = 0;
-
     let baseCoins = 0;
-
-    // Check if user already passed this quiz (to prevent duplicate coins)
-    // Normalize to quiz._id to avoid duplicate misses when quizId is a content item _id
     const canonicalTaskId = quiz._id.toString();
-    // 1. Check Submissions (Legacy) — match either stored form to handle legacy records
-    const existingSubmission = await Submission.findOne({
-      studentId,
-      $or: [{ taskId: quizId }, { taskId: canonicalTaskId }],
-      submissionType: 'quiz',
-      'grade.score': { $gte: (quiz.minScore || 60) }
-    });
 
-    // 2. Check StudentProgress (Robust) — require passing score to prevent false positives
-    const courseIdToUse = quiz.course || (courseRef && courseRef._id) || courseRef;
-    let existingProgress = false;
-    if (courseIdToUse) {
-      const progress = await StudentProgress.findOne({
-        student: studentId,
-        course: courseIdToUse,
-        completedItems: {
-          $elemMatch: {
-            itemId: quizId,
-            score: { $gte: (quiz.minScore || 60) }
-          }
-        }
-      });
-      if (progress) existingProgress = true;
-    }
-
-    const alreadyPassed = !!existingSubmission || existingProgress;
-
+    // Always compute breakdown + baseCoins. The duplicate-reward check is
+    // performed inside the transaction below using the Coin document's
+    // transactions[] array — race-safe and authoritative.
     const breakdown = quiz.questions.map((question, index) => {
       const userAnswer = answers.find(a => a.questionId === question._id.toString());
       // Find correct option
@@ -485,10 +458,7 @@ exports.submitQuiz = async (req, res) => {
 
       if (isCorrect) {
         correctAnswers++;
-        // Only award coins if not already passed
-        if (!alreadyPassed) {
-          baseCoins += (question.points || 10);
-        }
+        baseCoins += (question.points || 10);
       }
 
       // Find Option Texts
@@ -512,11 +482,28 @@ exports.submitQuiz = async (req, res) => {
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     const passed = score >= (quiz.minScore || 60);
 
-    // Save Submission, award coins, and update progress atomically
+    // Save Submission, award coins, and update progress atomically.
+    // The "already rewarded" check runs INSIDE the transaction against the
+    // Coin document's transactions[] array.
     const session = await mongoose.startSession();
+    let alreadyPassed = false;
+    let coinsAwarded = 0;
 
     try {
       await session.withTransaction(async () => {
+        const Coin = require('../../../models/coin');
+        const User = require('../../../models/user');
+
+        // Fresh read inside the txn — scan for a prior quiz_pass for THIS quiz.
+        const coinRecord = await Coin.findOrCreateForUser(studentId, { session });
+        const quizIdStr = quiz._id.toString();
+        alreadyPassed = coinRecord.transactions.some(t =>
+          t.source === 'quiz_pass' &&
+          t.metadata &&
+          t.metadata.quizId &&
+          t.metadata.quizId.toString() === quizIdStr
+        );
+
         // Save Submission
         const submission = new Submission({
           studentId,
@@ -537,10 +524,6 @@ exports.submitQuiz = async (req, res) => {
 
         // Award Coins
         if (passed && !alreadyPassed && baseCoins > 0) {
-          const Coin = require('../../../models/coin');
-          const User = require('../../../models/user');
-
-          const coinRecord = await Coin.findOrCreateForUser(studentId);
           const cId = quiz.course || courseRef;
 
           await coinRecord.addCoins(
@@ -554,6 +537,7 @@ exports.submitQuiz = async (req, res) => {
 
           // Update User Balance Legacy
           await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } }, { session });
+          coinsAwarded = baseCoins;
         }
 
         // Update Progress
@@ -574,7 +558,7 @@ exports.submitQuiz = async (req, res) => {
         correctAnswers,
         totalQuestions,
         passed,
-        coinsEarned: (passed && !alreadyPassed) ? baseCoins : 0,
+        coinsEarned: coinsAwarded,
         breakdown
       }
     });

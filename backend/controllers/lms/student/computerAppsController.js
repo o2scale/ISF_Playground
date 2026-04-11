@@ -301,26 +301,28 @@ exports.submitQuiz = async (req, res) => {
     const score = Math.round((correctAnswers / totalQuestions) * 100);
     const passed = score >= (quiz.minScore || 60);
 
-    // Check Previous Pass
-    let alreadyPassed = false;
-    if (courseId) {
-      try {
-        const record = await StudentProgress.findOne({
-          student: studentId,
-          course: courseId,
-          'completedItems.itemId': quizId,
-          'completedItems.score': { $gte: (quiz.minScore || 60) }
-        });
-        if (record) alreadyPassed = true;
-      } catch (e) { errorLogger.error({ err: e }, 'Progress Check Error'); }
-    }
-
-    // Save Submission, award coins, and update progress atomically
+    // Save Submission, award coins, and update progress atomically.
+    // The "already rewarded" check is performed INSIDE the transaction
+    // against the Coin document's own transactions[] array — this is the
+    // authoritative anti-duplicate check and is race-safe because concurrent
+    // submissions serialize on the Coin document write.
     const session = await mongoose.startSession();
     let coinsAwarded = 0;
+    let alreadyPassed = false;
 
     try {
       await session.withTransaction(async () => {
+        // Fresh read inside the txn — load the coin record and scan for a
+        // prior quiz_pass reward for THIS quiz.
+        const coinRecord = await Coin.findOrCreateForUser(studentId, { session });
+        const quizIdStr = quiz._id.toString();
+        alreadyPassed = coinRecord.transactions.some(t =>
+          t.source === 'quiz_pass' &&
+          t.metadata &&
+          t.metadata.quizId &&
+          t.metadata.quizId.toString() === quizIdStr
+        );
+
         // Save Submission
         const submission = new Submission({
           studentId,
@@ -338,7 +340,6 @@ exports.submitQuiz = async (req, res) => {
 
         // Award coins
         if (passed && !alreadyPassed && baseCoins > 0) {
-          const coinRecord = await Coin.findOrCreateForUser(studentId);
           const meta = { quizId: quiz._id, courseId: courseId };
           await coinRecord.addCoins(baseCoins, 'earned', `Quiz Completed: ${quiz.title}`, 'quiz_pass', meta, { session });
           await User.findByIdAndUpdate(studentId, { $inc: { coins: baseCoins } }, { session });
