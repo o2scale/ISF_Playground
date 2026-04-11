@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './WeeklyCalendar.css'
 import { createSchedule, deleteSchedule, fetchUsers, getBalagruha, getUserBalagruhas, getSchedules, updateSchedule } from '../../api';
 import showToast from '../../utils/toast';
+import TimePicker12 from '../common/TimePicker12';
 
 const WeeklyCalendar = ({
     currentWeekOffset,
@@ -1043,8 +1044,7 @@ const WeeklyCalendar = ({
                                         </div>
                                         <div className="form-group">
                                             <label htmlFor="startTime">Start Time</label>
-                                            <input
-                                                type="time"
+                                            <TimePicker12
                                                 id="startTime"
                                                 name="startTime"
                                                 value={item.startTime}
@@ -1053,18 +1053,12 @@ const WeeklyCalendar = ({
                                                     updated[index].startTime = e.target.value;
                                                     setCurrentSchedule(updated);
                                                 }}
-                                            // value={formData.deadline}
-                                            // onChange={handleInputChange}
-                                            // className={formErrors.deadline ? 'error' : ''}
-                                            // min={new Date().toISOString().split('T')[0]}
                                             />
-                                            {/* {formErrors.deadline && <div className="error-message">{formErrors.deadline}</div>} */}
                                         </div>
 
                                         <div className="form-group">
                                             <label htmlFor="endTime">End Time</label>
-                                            <input
-                                                type="time"
+                                            <TimePicker12
                                                 id="endTime"
                                                 name="endTime"
                                                 value={item.endTime}
@@ -1073,12 +1067,7 @@ const WeeklyCalendar = ({
                                                     updated[index].endTime = e.target.value;
                                                     setCurrentSchedule(updated);
                                                 }}
-                                            // value={formData.deadline}
-                                            // onChange={handleInputChange}
-                                            // className={formErrors.deadline ? 'error' : ''}
-                                            // min={new Date().toISOString().split('T')[0]}
                                             />
-                                            {/* {formErrors.deadline && <div className="error-message">{formErrors.deadline}</div>} */}
                                         </div>
 
                                         <div className="form-group">
@@ -1234,8 +1223,7 @@ const WeeklyCalendar = ({
                                         {/* <p className='schedule-p'>{new Date(singleSchedule?.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p> */}
                                         {editScheduleInput === 'startTime' ? (
                                             <div>
-                                               <input
-                                                    type='time'
+                                               <TimePicker12
                                                     className='schedule-edit-input'
                                                     value={singleSchedule?.startTime ? getLocalTimeHHMM(singleSchedule.startTime) : ''}
                                                     onChange={(e) => handleEditOnchangeForDate('startTime', e.target.value)}
@@ -1255,8 +1243,7 @@ const WeeklyCalendar = ({
                                         {/* <p className='schedule-p'>{new Date(singleSchedule?.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p> */}
                                          {editScheduleInput === 'endTime' ? (
                                             <div>
-                                               <input
-                                                    type='time'
+                                               <TimePicker12
                                                     className='schedule-edit-input'
                                                     value={singleSchedule?.endTime ? getLocalTimeHHMM(singleSchedule.endTime) : ''}
                                                     onChange={(e) => handleEditOnchangeForDate('endTime', e.target.value)}
