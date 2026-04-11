@@ -228,33 +228,49 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
                       </span>
                     </div>
 
-                    {/* Progress Bar */}
+                    {/* Progress Bar — with friendly empty state when no students have started */}
                     <div className="mb-3">
-                      <div className="flex items-center justify-between text-sm text-gray-700 mb-1">
-                        <span>
-                          Progress: {assignment.progress.studentsStarted}/
-                          {assignment.progress.totalStudents} started (
-                          {Math.round(
-                            (assignment.progress.studentsStarted /
-                              assignment.progress.totalStudents) *
-                            100
-                          ) || 0}
-                          %)
-                        </span>
-                        <span>
-                          Avg Completion:{' '}
-                          {assignment.progress.averageCompletionPercentage || 0}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div
-                          className="bg-blue-600 h-2 rounded-full transition-all"
-                          style={{
-                            width: `${assignment.progress.averageCompletionPercentage || 0
-                              }%`,
-                          }}
-                        ></div>
-                      </div>
+                      {assignment.progress.studentsStarted === 0 ? (
+                        <div className="flex items-start gap-2 text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-3 py-2">
+                          <span className="text-base leading-5">⏳</span>
+                          <span>
+                            No students have started yet — progress will update as students view course content.
+                            {assignment.progress.totalStudents > 0 && (
+                              <span className="text-gray-500">
+                                {' '}({assignment.progress.totalStudents} {assignment.progress.totalStudents === 1 ? 'student' : 'students'} assigned)
+                              </span>
+                            )}
+                          </span>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center justify-between text-sm text-gray-700 mb-1">
+                            <span>
+                              Progress: {assignment.progress.studentsStarted}/
+                              {assignment.progress.totalStudents} started (
+                              {Math.round(
+                                (assignment.progress.studentsStarted /
+                                  assignment.progress.totalStudents) *
+                                100
+                              ) || 0}
+                              %)
+                            </span>
+                            <span>
+                              Avg Completion:{' '}
+                              {assignment.progress.averageCompletionPercentage || 0}%
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div
+                              className="bg-blue-600 h-2 rounded-full transition-all"
+                              style={{
+                                width: `${assignment.progress.averageCompletionPercentage || 0
+                                  }%`,
+                              }}
+                            ></div>
+                          </div>
+                        </>
+                      )}
                     </div>
                   </div>
 
