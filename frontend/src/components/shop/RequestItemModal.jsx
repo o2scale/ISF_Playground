@@ -123,6 +123,10 @@ export default function RequestItemModal({ product, onClose }) {
       if (isPM && formData.assignShortcut && newRequestId) {
         await assignFromStock(newRequestId, "Auto-assigned via Shop Shortcut");
         toast.success("Stock assigned automatically!");
+      } else {
+        // Confirm success for regular request path — previously closed silently,
+        // leaving users unsure whether the submit worked at all.
+        toast.success(`Request submitted for ${product.name} — view under 🧾 My Requests`);
       }
 
       onClose();
