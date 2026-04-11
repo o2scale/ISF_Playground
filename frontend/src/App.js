@@ -68,6 +68,8 @@ import LifeSkillsCoursePage from "./pages/student/LifeSkillsCoursePage";
 import LifeSkillsVoiceTaskPage from "./pages/student/LifeSkillsVoiceTaskPage";
 import CoachAssignmentsPage from "./pages/coach/CoachAssignmentsPage";
 import GradingDashboard from "./pages/coach/GradingDashboard";
+import CoachCoursesPage from "./pages/coach/CoachCoursesPage";
+import CoachCourseDetailPage from "./pages/coach/CoachCourseDetailPage";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { UserTypes, normalizeUserRole } from "./constants/userTypes";
 
@@ -570,6 +572,24 @@ const App = () => {
                     element={
                       <ProtectedRoute requiredRoles={['coach', 'admin']}>
                         <GradingDashboard />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Coach Course Content Browser (read-only) - Sprint 2 Epic 03 Story 05 */}
+                  <Route
+                    path="/coach/courses"
+                    element={
+                      <ProtectedRoute requiredRoles={['coach', 'admin']}>
+                        <CoachCoursesPage />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/coach/courses/:courseId"
+                    element={
+                      <ProtectedRoute requiredRoles={['coach', 'admin']}>
+                        <CoachCourseDetailPage />
                       </ProtectedRoute>
                     }
                   />
