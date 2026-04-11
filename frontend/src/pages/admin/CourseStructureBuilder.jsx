@@ -13,9 +13,15 @@ import AddModuleModal from '../../components/admin/AddModuleModal';
 /**
  * CourseStructureBuilder - Sprint 2 Epic 02 Story 01
  * Page for building course structure: Module → Chapter → Content Item
+ *
+ * Sprint 2 Story 05 — when `readOnly` is true, the builder hides all mutation
+ * controls (Add Module, Manage Quizzes, Publish, drag reorder), disables the
+ * auto-save hook, and swaps the Back button to point at /coach/courses. Used
+ * by CoachCourseDetailPage for read-only browsing. Admin callers omit the
+ * prop and get unchanged behavior.
  */
 
-export default function CourseStructureBuilder() {
+export default function CourseStructureBuilder({ readOnly = false } = {}) {
   const { courseId } = useParams();
   const navigate = useNavigate();
   const { hasPermission } = useRBAC();
@@ -52,23 +58,26 @@ export default function CourseStructureBuilder() {
     });
   };
 
-  // Auto-save with debounce
+  // Auto-save with debounce — disabled in read-only mode so coaches
+  // browsing a course never trigger metadata PUT calls.
   const { status: saveStatus, error: saveError, retrySave } = useAutoSave(
     autoSaveCourse,
     course,
     {
       delay: 1000, // 1 second debounce
       maxRetries: 3,
-      enabled: !!course // Only enable when course is loaded
+      enabled: !!course && !readOnly
     }
   );
 
   // Fetch course data
   useEffect(() => {
-    if (hasPermission('LMS Management', 'Manage')) {
+    // Admin callers require Manage; coach read-only callers only need Read.
+    const required = readOnly ? 'Read' : 'Manage';
+    if (hasPermission('LMS Management', required)) {
       fetchCourse();
     }
-  }, [courseId]);
+  }, [courseId, readOnly]);
 
   const fetchCourse = async () => {
     try {
@@ -82,8 +91,12 @@ export default function CourseStructureBuilder() {
       }
     } catch (error) {
       console.error('Error fetching course:', error);
-      toast.error('Failed to load course');
-      navigate('/admin/courses');
+      if (readOnly && error.response?.status === 403) {
+        toast.error('Course not available');
+      } else {
+        toast.error('Failed to load course');
+      }
+      navigate(readOnly ? '/coach/courses' : '/admin/courses');
     } finally {
       setLoading(false);
     }
@@ -222,7 +235,7 @@ export default function CourseStructureBuilder() {
         <div className="text-center">
           <p className="text-gray-600 mb-4">Course not found</p>
           <button
-            onClick={() => navigate('/admin/courses')}
+            onClick={() => navigate(readOnly ? '/coach/courses' : '/admin/courses')}
             className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
             Back to Courses
@@ -239,11 +252,11 @@ export default function CourseStructureBuilder() {
         <div className="px-6 py-6">
           {/* Back Button */}
           <button
-            onClick={() => navigate('/admin/courses')}
+            onClick={() => navigate(readOnly ? '/coach/courses' : '/admin/courses')}
             className="flex items-center gap-2 text-purple-600 hover:text-purple-800 mb-4"
           >
             <ArrowLeft size={20} />
-            <span>Back to Course List</span>
+            <span>{readOnly ? 'Back to Courses' : 'Back to Course List'}</span>
           </button>
 
           {/* Course Title & Actions */}
@@ -269,20 +282,20 @@ export default function CourseStructureBuilder() {
 
             {/* Action Buttons */}
             <div className="flex items-center gap-3">
-              {/* Auto-save Status Indicator */}
-              {saveStatus === 'saving' && (
+              {/* Auto-save Status Indicator — only admin mode runs auto-save */}
+              {!readOnly && saveStatus === 'saving' && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 text-blue-700 rounded-lg border border-blue-200">
                   <RefreshCw size={16} className="animate-spin" />
                   <span className="text-sm font-medium">Saving...</span>
                 </div>
               )}
-              {saveStatus === 'saved' && (
+              {!readOnly && saveStatus === 'saved' && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 rounded-lg border border-green-200">
                   <Check size={16} />
                   <span className="text-sm font-medium">All changes saved</span>
                 </div>
               )}
-              {saveStatus === 'error' && (
+              {!readOnly && saveStatus === 'error' && (
                 <div className="flex items-center gap-2 px-3 py-2 bg-red-50 text-red-700 rounded-lg border border-red-200">
                   <AlertCircle size={16} />
                   <span className="text-sm font-medium">Save failed</span>
@@ -295,13 +308,15 @@ export default function CourseStructureBuilder() {
                 </div>
               )}
 
-              <button
-                onClick={() => navigate(`/admin/courses/${courseId}/quizzes/create`)}
-                className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50"
-              >
-                <Plus size={18} />
-                Manage Quizzes
-              </button>
+              {!readOnly && (
+                <button
+                  onClick={() => navigate(`/admin/courses/${courseId}/quizzes/create`)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50"
+                >
+                  <Plus size={18} />
+                  Manage Quizzes
+                </button>
+              )}
               <button
                 onClick={() => fetchCourse()}
                 className="flex items-center gap-2 px-4 py-2 bg-white text-purple-600 border border-purple-300 rounded-lg hover:bg-purple-50"
@@ -309,7 +324,7 @@ export default function CourseStructureBuilder() {
                 <Save size={18} />
                 Refresh
               </button>
-              {course.status === 'draft' && (
+              {!readOnly && course.status === 'draft' && (
                 <button
                   onClick={handlePublish}
                   disabled={saving}
@@ -326,24 +341,49 @@ export default function CourseStructureBuilder() {
 
       {/* Structure Builder */}
       <div className="w-full px-6 py-6">
-        {/* Add Module Button */}
-        <div className="mb-6">
-          <button
-            onClick={() => setIsAddModuleModalOpen(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-md hover:shadow-lg transition-all"
-          >
-            <Plus size={20} />
-            Add Module
-          </button>
-        </div>
+        {/* Add Module Button — hidden in read-only mode */}
+        {!readOnly && (
+          <div className="mb-6">
+            <button
+              onClick={() => setIsAddModuleModalOpen(true)}
+              className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-md hover:shadow-lg transition-all"
+            >
+              <Plus size={20} />
+              Add Module
+            </button>
+          </div>
+        )}
 
         {/* Modules List */}
         {(!course.modules || course.modules.length === 0) ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-            <p className="text-gray-500 text-lg mb-2">No modules yet</p>
-            <p className="text-gray-400 text-sm">
-              Click "Add Module" to start building your course structure
+            <p className="text-gray-500 text-lg mb-2">
+              {readOnly ? 'This course has no content yet' : 'No modules yet'}
             </p>
+            {!readOnly && (
+              <p className="text-gray-400 text-sm">
+                Click "Add Module" to start building your course structure
+              </p>
+            )}
+          </div>
+        ) : readOnly ? (
+          <div className="space-y-4">
+            {course.modules
+              .sort((a, b) => a.order - b.order)
+              .map((module, index) => (
+                <ModuleCard
+                  key={module._id}
+                  module={module}
+                  moduleIndex={index}
+                  courseId={courseId}
+                  isExpanded={expandedModules.has(module._id)}
+                  onToggleExpansion={() => toggleModuleExpansion(module._id)}
+                  expandedChapters={expandedChapters}
+                  onToggleChapterExpansion={toggleChapterExpansion}
+                  onModuleUpdated={handleModuleUpdated}
+                  readOnly
+                />
+              ))}
           </div>
         ) : (
           <DndContext
@@ -377,8 +417,8 @@ export default function CourseStructureBuilder() {
         )}
       </div>
 
-      {/* Add Module Modal */}
-      {isAddModuleModalOpen && (
+      {/* Add Module Modal — never mounted in read-only mode */}
+      {!readOnly && isAddModuleModalOpen && (
         <AddModuleModal
           isOpen={isAddModuleModalOpen}
           onClose={() => setIsAddModuleModalOpen(false)}

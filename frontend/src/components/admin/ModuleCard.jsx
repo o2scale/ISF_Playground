@@ -23,7 +23,8 @@ export default function ModuleCard({
   onToggleExpansion,
   expandedChapters,
   onToggleChapterExpansion,
-  onModuleUpdated
+  onModuleUpdated,
+  readOnly = false
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isAddChapterModalOpen, setIsAddChapterModalOpen] = useState(false);
@@ -31,7 +32,9 @@ export default function ModuleCard({
   const [deleting, setDeleting] = useState(false);
   const [localChapters, setLocalChapters] = useState(module.chapters || []);
 
-  // Drag-and-drop for module
+  // Drag-and-drop for module. The hook MUST be called unconditionally to
+  // respect React hook rules — we simply don't apply its `attributes` /
+  // `listeners` / drag handle UI when `readOnly` is true.
   const {
     attributes,
     listeners,
@@ -148,23 +151,25 @@ export default function ModuleCard({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`bg-purple-50 border-2 border-purple-200 rounded-lg ${isDragging ? 'shadow-2xl ring-4 ring-purple-400' : ''}`}
+      ref={readOnly ? undefined : setNodeRef}
+      style={readOnly ? undefined : style}
+      className={`bg-purple-50 border-2 border-purple-200 rounded-lg ${!readOnly && isDragging ? 'shadow-2xl ring-4 ring-purple-400' : ''}`}
     >
       {/* Module Header */}
       <div className="p-4">
         <div className="flex items-start justify-between">
           <div className="flex-1 flex items-start gap-3">
-            {/* Drag Handle */}
-            <button
-              {...attributes}
-              {...listeners}
-              className="p-1 hover:bg-purple-100 rounded transition-colors flex-shrink-0 cursor-grab active:cursor-grabbing"
-              title="Drag to reorder"
-            >
-              <GripVertical size={20} className="text-purple-400" />
-            </button>
+            {/* Drag Handle — hidden in read-only mode */}
+            {!readOnly && (
+              <button
+                {...attributes}
+                {...listeners}
+                className="p-1 hover:bg-purple-100 rounded transition-colors flex-shrink-0 cursor-grab active:cursor-grabbing"
+                title="Drag to reorder"
+              >
+                <GripVertical size={20} className="text-purple-400" />
+              </button>
+            )}
 
             {/* Expand/Collapse Button */}
             <button
@@ -199,46 +204,48 @@ export default function ModuleCard({
             </div>
           </div>
 
-          {/* Module Menu */}
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-2 hover:bg-purple-100 rounded transition-colors"
-              disabled={deleting}
-            >
-              <MoreVertical size={20} className="text-purple-600" />
-            </button>
+          {/* Module Menu — hidden in read-only mode */}
+          {!readOnly && (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-2 hover:bg-purple-100 rounded transition-colors"
+                disabled={deleting}
+              >
+                <MoreVertical size={20} className="text-purple-600" />
+              </button>
 
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-20">
-                  <button
-                    onClick={handleEdit}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <Edit2 size={16} />
-                    Edit Module
-                  </button>
-                  <div className="border-t border-gray-200 my-1" />
-                  <button
-                    onClick={handleDelete}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 size={16} />
-                    Delete Module
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+              {showMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-20">
+                    <button
+                      onClick={handleEdit}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Edit2 size={16} />
+                      Edit Module
+                    </button>
+                    <div className="border-t border-gray-200 my-1" />
+                    <button
+                      onClick={handleDelete}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                      Delete Module
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Add Chapter Button (always visible) */}
-        {isExpanded && (
+        {/* Add Chapter Button — hidden in read-only mode */}
+        {!readOnly && isExpanded && (
           <div className="ml-8 mt-3">
             <button
               onClick={() => setIsAddChapterModalOpen(true)}
@@ -257,10 +264,30 @@ export default function ModuleCard({
           {(!localChapters || localChapters.length === 0) ? (
             <div className="ml-8 bg-white rounded-lg border border-purple-200 p-6 text-center">
               <p className="text-gray-500 text-sm">No chapters yet</p>
-              <p className="text-gray-400 text-xs mt-1">
-                Click "Add Chapter" to add content to this module
-              </p>
+              {!readOnly && (
+                <p className="text-gray-400 text-xs mt-1">
+                  Click "Add Chapter" to add content to this module
+                </p>
+              )}
             </div>
+          ) : readOnly ? (
+            <>
+              {localChapters
+                .sort((a, b) => a.order - b.order)
+                .map((chapter, chapterIndex) => (
+                  <ChapterCard
+                    key={chapter._id}
+                    chapter={chapter}
+                    chapterIndex={chapterIndex}
+                    moduleId={module._id}
+                    courseId={courseId}
+                    isExpanded={expandedChapters.has(chapter._id)}
+                    onToggleExpansion={() => onToggleChapterExpansion(chapter._id)}
+                    onChapterUpdated={onModuleUpdated}
+                    readOnly
+                  />
+                ))}
+            </>
           ) : (
             <DndContext
               sensors={chapterSensors}
@@ -291,8 +318,8 @@ export default function ModuleCard({
         </div>
       )}
 
-      {/* Add Chapter Modal */}
-      {isAddChapterModalOpen && (
+      {/* Add Chapter Modal — never mounted in read-only mode */}
+      {!readOnly && isAddChapterModalOpen && (
         <AddChapterModal
           isOpen={isAddChapterModalOpen}
           onClose={() => setIsAddChapterModalOpen(false)}
@@ -300,8 +327,8 @@ export default function ModuleCard({
         />
       )}
 
-      {/* Edit Module Modal */}
-      {isEditModalOpen && (
+      {/* Edit Module Modal — never mounted in read-only mode */}
+      {!readOnly && isEditModalOpen && (
         <EditModuleModal
           isOpen={isEditModalOpen}
           module={module}

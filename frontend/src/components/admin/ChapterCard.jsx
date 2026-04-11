@@ -22,14 +22,15 @@ export default function ChapterCard({
   courseId,
   isExpanded,
   onToggleExpansion,
-  onChapterUpdated
+  onChapterUpdated,
+  readOnly = false
 }) {
   const [showMenu, setShowMenu] = useState(false);
   const [isAddContentModalOpen, setIsAddContentModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [localContentItems, setLocalContentItems] = useState(chapter.contentItems || []);
 
-  // Drag-and-drop for chapter
+  // Drag-and-drop for chapter. Hook called unconditionally; output gated below.
   const {
     attributes,
     listeners,
@@ -145,23 +146,25 @@ export default function ChapterCard({
 
   return (
     <div
-      ref={setNodeRef}
-      style={style}
-      className={`ml-8 bg-white border border-gray-200 rounded-lg ${isDragging ? 'shadow-xl ring-2 ring-blue-300' : ''}`}
+      ref={readOnly ? undefined : setNodeRef}
+      style={readOnly ? undefined : style}
+      className={`ml-8 bg-white border border-gray-200 rounded-lg ${!readOnly && isDragging ? 'shadow-xl ring-2 ring-blue-300' : ''}`}
     >
       {/* Chapter Header */}
       <div className="p-3">
         <div className="flex items-start justify-between">
           <div className="flex-1 flex items-start gap-2">
-            {/* Drag Handle */}
-            <button
-              {...attributes}
-              {...listeners}
-              className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0 cursor-grab active:cursor-grabbing"
-              title="Drag to reorder"
-            >
-              <GripVertical size={18} className="text-gray-300" />
-            </button>
+            {/* Drag Handle — hidden in read-only mode */}
+            {!readOnly && (
+              <button
+                {...attributes}
+                {...listeners}
+                className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0 cursor-grab active:cursor-grabbing"
+                title="Drag to reorder"
+              >
+                <GripVertical size={18} className="text-gray-300" />
+              </button>
+            )}
 
             {/* Expand/Collapse Button */}
             <button
@@ -196,45 +199,47 @@ export default function ChapterCard({
             </div>
           </div>
 
-          {/* Chapter Menu */}
-          <div className="relative flex-shrink-0">
-            <button
-              onClick={() => setShowMenu(!showMenu)}
-              className="p-1 hover:bg-gray-100 rounded transition-colors"
-            >
-              <MoreVertical size={18} className="text-gray-600" />
-            </button>
+          {/* Chapter Menu — hidden in read-only mode */}
+          {!readOnly && (
+            <div className="relative flex-shrink-0">
+              <button
+                onClick={() => setShowMenu(!showMenu)}
+                className="p-1 hover:bg-gray-100 rounded transition-colors"
+              >
+                <MoreVertical size={18} className="text-gray-600" />
+              </button>
 
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-10"
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-20">
-                  <button
-                    onClick={handleEdit}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
-                  >
-                    <Edit2 size={16} />
-                    Edit Chapter
-                  </button>
-                  <div className="border-t border-gray-200 my-1" />
-                  <button
-                    onClick={handleDelete}
-                    className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 size={16} />
-                    Delete Chapter
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+              {showMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setShowMenu(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-1 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48 z-20">
+                    <button
+                      onClick={handleEdit}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    >
+                      <Edit2 size={16} />
+                      Edit Chapter
+                    </button>
+                    <div className="border-t border-gray-200 my-1" />
+                    <button
+                      onClick={handleDelete}
+                      className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 size={16} />
+                      Delete Chapter
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Add Content Item Button */}
-        {isExpanded && (
+        {/* Add Content Item Button — hidden in read-only mode */}
+        {!readOnly && isExpanded && (
           <div className="ml-7 mt-3">
             <button
               onClick={() => setIsAddContentModalOpen(true)}
@@ -253,10 +258,28 @@ export default function ChapterCard({
           {(!localContentItems || localContentItems.length === 0) ? (
             <div className="ml-7 bg-gray-50 rounded-lg border border-gray-200 p-4 text-center">
               <p className="text-gray-500 text-xs">No content items yet</p>
-              <p className="text-gray-400 text-xs mt-1">
-                Click "Add Content Item" to add videos, PDFs, quizzes, etc.
-              </p>
+              {!readOnly && (
+                <p className="text-gray-400 text-xs mt-1">
+                  Click "Add Content Item" to add videos, PDFs, quizzes, etc.
+                </p>
+              )}
             </div>
+          ) : readOnly ? (
+            <>
+              {localContentItems
+                .sort((a, b) => a.order - b.order)
+                .map((contentItem) => (
+                  <ContentItemCard
+                    key={contentItem._id}
+                    contentItem={contentItem}
+                    chapterId={chapter._id}
+                    moduleId={moduleId}
+                    courseId={courseId}
+                    onContentUpdated={onChapterUpdated}
+                    readOnly
+                  />
+                ))}
+            </>
           ) : (
             <DndContext
               sensors={contentSensors}
@@ -285,8 +308,8 @@ export default function ChapterCard({
         </div>
       )}
 
-      {/* Add Content Item Modal */}
-      {isAddContentModalOpen && (
+      {/* Add Content Item Modal — never mounted in read-only mode */}
+      {!readOnly && isAddContentModalOpen && (
         <AddContentItemModal
           isOpen={isAddContentModalOpen}
           onClose={() => setIsAddContentModalOpen(false)}
@@ -294,8 +317,8 @@ export default function ChapterCard({
         />
       )}
 
-      {/* Edit Chapter Modal */}
-      {isEditModalOpen && (
+      {/* Edit Chapter Modal — never mounted in read-only mode */}
+      {!readOnly && isEditModalOpen && (
         <EditChapterModal
           isOpen={isEditModalOpen}
           chapter={chapter}

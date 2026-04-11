@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { MoreVertical, Calendar, BarChart2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { MoreVertical, Calendar, BarChart2, FolderOpen, Users } from 'lucide-react';
 import { api } from '../../api';
 import toast from 'react-hot-toast';
 import ContextMenu from './ContextMenu';
@@ -15,6 +16,12 @@ import AdminCourseAssignmentModal from './AdminCourseAssignmentModal';
 /**
  * CourseListView - Sprint 2 Epic 02 Story 01
  * Displays list of courses with context menu actions
+ *
+ * Sprint 2 Story 05 — when `readOnly` is true, the view hides all mutation
+ * UI (context menu, bulk actions, select-all, create/edit/publish/archive/
+ * delete modals) and swaps in a "View Content" primary CTA that navigates
+ * to `/coach/courses/:id`. Used by CoachCoursesPage to browse balagruha-
+ * assigned courses. Admin callers omit the prop and get unchanged behavior.
  */
 
 export default function CourseListView({
@@ -22,8 +29,10 @@ export default function CourseListView({
   loading,
   onCourseUpdated,
   onCourseDeleted,
-  onRefresh
+  onRefresh,
+  readOnly = false
 }) {
+  const navigate = useNavigate();
   const [selectedCourseId, setSelectedCourseId] = useState(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -268,9 +277,24 @@ export default function CourseListView({
   if (!courses || courses.length === 0) {
     return (
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
-        <p className="text-gray-500 text-lg mb-2">No courses found</p>
+        <p className="text-gray-500 text-lg mb-2">
+          {readOnly ? 'No courses assigned to your Balagruhas yet' : 'No courses found'}
+        </p>
         <p className="text-gray-400 text-sm">
-          Click "Create New Course" to get started
+          {readOnly ? (
+            <>
+              Use{' '}
+              <button
+                onClick={() => navigate('/coach/assignments')}
+                className="text-purple-600 hover:underline"
+              >
+                Assignments
+              </button>{' '}
+              to assign one.
+            </>
+          ) : (
+            'Click "Create New Course" to get started'
+          )}
         </p>
       </div>
     );
@@ -278,8 +302,8 @@ export default function CourseListView({
 
   return (
     <div className="space-y-4">
-      {/* Select All Checkbox */}
-      {courses.length > 0 && (
+      {/* Select All Checkbox - hidden in read-only mode */}
+      {!readOnly && courses.length > 0 && (
         <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-4 flex items-center gap-3">
           <input
             type="checkbox"
@@ -303,22 +327,24 @@ export default function CourseListView({
       {courses.map((course) => (
         <div
           key={course._id}
-          className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-colors ${selectedCourseIds.includes(course._id)
+          className={`bg-white rounded-xl shadow-sm border-2 p-6 transition-colors ${!readOnly && selectedCourseIds.includes(course._id)
               ? 'border-purple-400 bg-purple-50'
               : 'border-gray-200 hover:border-purple-300'
             }`}
         >
           <div className="flex items-start gap-4">
-            {/* Checkbox */}
-            <div className="flex-shrink-0 mt-1">
-              <input
-                type="checkbox"
-                checked={selectedCourseIds.includes(course._id)}
-                onChange={() => handleSelectCourse(course._id)}
-                className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </div>
+            {/* Checkbox - hidden in read-only mode */}
+            {!readOnly && (
+              <div className="flex-shrink-0 mt-1">
+                <input
+                  type="checkbox"
+                  checked={selectedCourseIds.includes(course._id)}
+                  onChange={() => handleSelectCourse(course._id)}
+                  className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
 
             {/* Thumbnail */}
             <div className="w-24 h-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center">
@@ -351,14 +377,16 @@ export default function CourseListView({
                   </p>
                 </div>
 
-                {/* Context Menu Button */}
-                <button
-                  onClick={(e) => handleMenuClick(e, course._id)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                  disabled={actionLoading}
-                >
-                  <MoreVertical size={20} className="text-gray-600" />
-                </button>
+                {/* Context Menu Button — hidden in read-only mode */}
+                {!readOnly && (
+                  <button
+                    onClick={(e) => handleMenuClick(e, course._id)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                    disabled={actionLoading}
+                  >
+                    <MoreVertical size={20} className="text-gray-600" />
+                  </button>
+                )}
               </div>
 
               {/* Metadata */}
@@ -384,13 +412,42 @@ export default function CourseListView({
                 <span>•</span>
                 <span>Last Updated: {new Date(course.updatedAt).toLocaleDateString()}</span>
               </div>
+
+              {/* Assignment info line — only shown in read-only (coach) mode */}
+              {readOnly && course.assignmentInfo && (
+                <div className="mt-4 pt-3 border-t border-gray-100 flex items-start gap-2 text-sm text-gray-600">
+                  <Users size={16} className="mt-0.5 text-purple-600 flex-shrink-0" />
+                  <span>
+                    Assigned to:{' '}
+                    <span className="font-medium text-gray-800">
+                      {(course.assignmentInfo.balagruhaNames || []).join(', ') || '—'}
+                    </span>
+                    {' '}({course.assignmentInfo.studentCount || 0} students,{' '}
+                    {course.assignmentInfo.startedCount || 0} started,{' '}
+                    {course.assignmentInfo.completedCount || 0} completed)
+                  </span>
+                </div>
+              )}
+
+              {/* Read-only primary CTA: View Content */}
+              {readOnly && (
+                <div className="mt-4 flex justify-end">
+                  <button
+                    onClick={() => navigate(`/coach/courses/${course._id}`)}
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition-colors"
+                  >
+                    <FolderOpen size={18} />
+                    View Content
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
       ))}
 
-      {/* Context Menu */}
-      {selectedCourseId && (
+      {/* Context Menu — never rendered in read-only mode */}
+      {!readOnly && selectedCourseId && (
         <ContextMenu
           courseId={selectedCourseId}
           course={courses.find(c => c._id === selectedCourseId)}
@@ -408,7 +465,7 @@ export default function CourseListView({
       )}
 
       {/* Edit Modal */}
-      {isEditModalOpen && courseToEdit && (
+      {!readOnly && isEditModalOpen && courseToEdit && (
         <CourseCreationModal
           isOpen={isEditModalOpen}
           onClose={() => {
@@ -425,7 +482,7 @@ export default function CourseListView({
       )}
 
       {/* Publish Validation Modal - Epic 02 Story 05 */}
-      {isPublishModalOpen && courseToPublish && (
+      {!readOnly && isPublishModalOpen && courseToPublish && (
         <PublishValidationModal
           isOpen={isPublishModalOpen}
           onClose={() => {
@@ -438,7 +495,7 @@ export default function CourseListView({
       )}
 
       {/* Archive Confirmation Modal - Epic 02 Story 05 */}
-      {isArchiveModalOpen && courseToArchive && (
+      {!readOnly && isArchiveModalOpen && courseToArchive && (
         <ArchiveConfirmationModal
           isOpen={isArchiveModalOpen}
           onClose={() => {
@@ -451,7 +508,7 @@ export default function CourseListView({
       )}
 
       {/* Restore Course Modal - Epic 02 Story 05 */}
-      {isRestoreModalOpen && courseToRestore && (
+      {!readOnly && isRestoreModalOpen && courseToRestore && (
         <RestoreCourseModal
           isOpen={isRestoreModalOpen}
           onClose={() => {
@@ -464,7 +521,7 @@ export default function CourseListView({
       )}
 
       {/* Unpublish Confirmation Modal - Epic 02 Story 05 */}
-      {isUnpublishModalOpen && courseToUnpublish && (
+      {!readOnly && isUnpublishModalOpen && courseToUnpublish && (
         <UnpublishConfirmationModal
           isOpen={isUnpublishModalOpen}
           onClose={() => {
@@ -476,18 +533,20 @@ export default function CourseListView({
         />
       )}
 
-      {/* Bulk Actions Bar - Epic 02 Story 05 */}
-      <BulkActionsBar
-        selectedCourseIds={selectedCourseIds}
-        courses={courses}
-        onClearSelection={handleClearSelection}
-        onBulkPublish={handleBulkPublish}
-        onBulkArchive={handleBulkArchive}
-        onBulkDelete={handleBulkDelete}
-      />
+      {/* Bulk Actions Bar - Epic 02 Story 05 — hidden in read-only */}
+      {!readOnly && (
+        <BulkActionsBar
+          selectedCourseIds={selectedCourseIds}
+          courses={courses}
+          onClearSelection={handleClearSelection}
+          onBulkPublish={handleBulkPublish}
+          onBulkArchive={handleBulkArchive}
+          onBulkDelete={handleBulkDelete}
+        />
+      )}
 
       {/* Bulk Operation Modal - Epic 02 Story 05 */}
-      {isBulkModalOpen && bulkOperation && (
+      {!readOnly && isBulkModalOpen && bulkOperation && (
         <BulkOperationModal
           isOpen={isBulkModalOpen}
           onClose={() => {
@@ -511,7 +570,7 @@ export default function CourseListView({
       )}
 
       {/* Admin Course Assignment Modal */}
-      {isAssignModalOpen && courseToAssign && (
+      {!readOnly && isAssignModalOpen && courseToAssign && (
         <AdminCourseAssignmentModal
           isOpen={isAssignModalOpen}
           onClose={() => {
