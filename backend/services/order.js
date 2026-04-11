@@ -252,8 +252,9 @@ async function getUserOrders(userId, page = 1, limit = 10, status = null) {
  */
 async function getOrderById(orderId, userId, userRole = null) {
   const order = await Order.findById(orderId)
-    .populate('userId', 'name email userId')
-    .populate('items.shopItemId', 'name imageUrl images category price');
+    .populate('userId', 'name email userId balagruhaIds')
+    .populate('items.shopItemId', 'name imageUrl images category price')
+    .populate('deliveredBy', 'name email');
 
   if (!order) {
     throw new Error('Order not found');

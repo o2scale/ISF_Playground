@@ -175,6 +175,50 @@ export default function OrderDetail() {
             </div>
           </div>
 
+          {/* Delivery Section — shows who's handling/handled the order */}
+          {order.status === 'completed' && order.deliveryStatus && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <h3 className="text-base font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                📦 Delivery
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-slate-600 mb-1">Delivery Status</p>
+                  {order.deliveryStatus === 'pending_confirmation' && (
+                    <p className="font-semibold text-amber-700">⏳ Awaiting confirmation (cancellable)</p>
+                  )}
+                  {order.deliveryStatus === 'pending_delivery' && (
+                    <p className="font-semibold text-blue-700">🚚 Pending delivery — your coach has been notified</p>
+                  )}
+                  {order.deliveryStatus === 'delivered' && (
+                    <p className="font-semibold text-green-700">✅ Delivered</p>
+                  )}
+                  {order.deliveryStatus === 'cancelled' && (
+                    <p className="font-semibold text-slate-500">Cancelled</p>
+                  )}
+                </div>
+                {order.deliveryStatus === 'delivered' && order.deliveredBy && (
+                  <div>
+                    <p className="text-xs text-slate-600 mb-1">Delivered By</p>
+                    <p className="font-semibold text-slate-900">
+                      👤 {typeof order.deliveredBy === 'object' ? order.deliveredBy.name : 'Coach'}
+                    </p>
+                    {order.deliveredAt && (
+                      <p className="text-xs text-slate-500 mt-1">
+                        {formatDateTime(order.deliveredAt)}
+                      </p>
+                    )}
+                  </div>
+                )}
+                {(order.deliveryStatus === 'pending_confirmation' || order.deliveryStatus === 'pending_delivery') && (
+                  <div className="sm:col-span-2 text-xs text-slate-600 bg-white rounded p-2 border border-blue-100">
+                    💡 Your order will be handed to you by a coach from your Balagruha.
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Order Items */}
           <div className="mb-6">
             <h3 className="text-lg font-semibold text-slate-900 mb-4">Order Items</h3>

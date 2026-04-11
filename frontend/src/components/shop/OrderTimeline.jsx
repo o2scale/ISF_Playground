@@ -63,7 +63,7 @@ export default function OrderTimeline({ order }) {
             </div>
           )}
 
-          {/* Completed */}
+          {/* Completed (transaction, not delivery) */}
           {order.status === 'completed' && order.completedAt && (
             <div className="relative flex items-start gap-4">
               <div className="w-6 h-6 rounded-full bg-green-500 border-4 border-white z-10 flex items-center justify-center flex-shrink-0">
@@ -76,10 +76,61 @@ export default function OrderTimeline({ order }) {
                 </svg>
               </div>
               <div className="flex-1 pt-0.5">
-                <p className="font-semibold text-slate-900">Completed</p>
+                <p className="font-semibold text-slate-900">Payment Completed</p>
                 <p className="text-sm text-slate-600">
                   {formatDateTime(order.completedAt)}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {/* Confirmed for Delivery */}
+          {order.status === 'completed' && order.confirmedForDeliveryAt && (
+            <div className="relative flex items-start gap-4">
+              <div className="w-6 h-6 rounded-full bg-blue-500 border-4 border-white z-10 flex items-center justify-center flex-shrink-0">
+                <span className="text-xs text-white">🚚</span>
+              </div>
+              <div className="flex-1 pt-0.5">
+                <p className="font-semibold text-slate-900">Confirmed for Delivery</p>
+                <p className="text-sm text-slate-600">
+                  {formatDateTime(order.confirmedForDeliveryAt)}
+                </p>
+                <p className="text-xs text-slate-500 mt-1">
+                  Your Balagruha coaches have been notified
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Delivered */}
+          {order.deliveryStatus === 'delivered' && order.deliveredAt && (
+            <div className="relative flex items-start gap-4">
+              <div className="w-6 h-6 rounded-full bg-green-600 border-4 border-white z-10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path
+                    fillRule="evenodd"
+                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1 pt-0.5">
+                <p className="font-semibold text-slate-900">Delivered</p>
+                <p className="text-sm text-slate-600">
+                  {formatDateTime(order.deliveredAt)}
+                </p>
+                {order.deliveredBy && (
+                  <p className="text-sm text-slate-700 mt-1">
+                    By <span className="font-medium">
+                      {typeof order.deliveredBy === 'object' ? order.deliveredBy.name : 'Coach'}
+                    </span>
+                  </p>
+                )}
+                {order.deliveryNotes && (
+                  <p className="text-xs text-slate-500 mt-1">
+                    Note: {order.deliveryNotes}
+                  </p>
+                )}
               </div>
             </div>
           )}

@@ -221,6 +221,7 @@ orderSchema.statics.getUserOrders = async function(userId, page = 1, limit = 10,
   const [orders, total] = await Promise.all([
     this.find(query)
       .populate('items.shopItemId', 'name imageUrl images category price')
+      .populate('deliveredBy', 'name email')
       .sort({ placedAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -242,8 +243,9 @@ orderSchema.statics.getUserOrders = async function(userId, page = 1, limit = 10,
 // Static method: Get order by order number
 orderSchema.statics.getByOrderNumber = async function(orderNumber) {
   return this.findOne({ orderNumber })
-    .populate('userId', 'name email userId')
-    .populate('items.shopItemId', 'name imageUrl images category price');
+    .populate('userId', 'name email userId balagruhaIds')
+    .populate('items.shopItemId', 'name imageUrl images category price')
+    .populate('deliveredBy', 'name email');
 };
 
 // Sprint5-Story-13: On-Demand Confirmation Logic

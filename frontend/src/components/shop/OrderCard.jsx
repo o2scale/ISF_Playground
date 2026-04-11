@@ -34,11 +34,21 @@ export default function OrderCard({ order }) {
         <div className="flex items-center gap-6 flex-1">
           {/* Order Details */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
               <h3 className="text-xl font-bold text-slate-900">
                 Order #{order.orderNumber}
               </h3>
               <StatusBadge status={order.status} />
+              {/* Delivery status pill — tells the student where their order is in the fulfillment pipeline */}
+              {order.status === 'completed' && order.deliveryStatus === 'pending_confirmation' && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-800">⏳ Awaiting confirmation</span>
+              )}
+              {order.status === 'completed' && order.deliveryStatus === 'pending_delivery' && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-blue-100 text-blue-800">🚚 Pending delivery</span>
+              )}
+              {order.status === 'completed' && order.deliveryStatus === 'delivered' && (
+                <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-800">✅ Delivered</span>
+              )}
             </div>
             <p className="text-sm text-slate-600 mb-1">
               {formatDate(order.placedAt)}
@@ -46,6 +56,13 @@ export default function OrderCard({ order }) {
             <p className="text-sm text-slate-500">
               {order.items?.length || 0} item{(order.items?.length || 0) !== 1 ? 's' : ''}
             </p>
+            {order.deliveryStatus === 'delivered' && order.deliveredBy && (
+              <p className="text-xs text-slate-500 mt-1">
+                Delivered by <span className="font-medium text-slate-700">
+                  {typeof order.deliveredBy === 'object' ? order.deliveredBy.name : 'Coach'}
+                </span>
+              </p>
+            )}
           </div>
 
           {/* Items Preview - After Order Details */}
