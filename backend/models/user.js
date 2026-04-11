@@ -129,29 +129,17 @@ userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
+// Account-level lockout disabled. IP-based rate limiter in routes/auth.js
+// still protects against brute-force. Methods kept as no-ops so existing
+// call sites (authController, services/student.js, unlockUserByEmail script)
+// continue to work without changes.
 userSchema.methods.isLocked = function () {
-  return !!(this.lockUntil && this.lockUntil > Date.now());
+  return false;
 };
 
-// Method to increment login attempts
+// Method to increment login attempts — no-op (lockout disabled)
 userSchema.methods.incrementLoginAttempts = async function () {
-  // If lock has expired, reset attempts and remove lock
-  if (this.lockUntil && this.lockUntil < Date.now()) {
-    await this.updateOne({
-      loginAttempts: 1,
-      $unset: { lockUntil: 1 },
-    });
-  } else {
-    const updates = { $inc: { loginAttempts: 1 } };
-
-    // Allow more attempts before locking to reduce accidental lockouts while
-    // still protecting against brute-force attacks.
-    if (this.loginAttempts + 1 >= 10) {
-      updates.$set = { lockUntil: Date.now() + 1800000 };
-    }
-
-    return await this.updateOne(updates);
-  }
+  return;
 };
 
 userSchema.methods.resetLoginAttempts = async function () {
