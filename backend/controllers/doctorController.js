@@ -75,6 +75,80 @@ exports.createDoctor = async (req, res) => {
   }
 };
 
+// PUT /api/doctors/:id - Update doctor
+exports.updateDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { name, specialty, hospital, contactNumber } = req.body;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        data: { id, name, specialty, hospital },
+      },
+      "Request received for updating doctor"
+    );
+
+    const result = await DoctorService.updateDoctor(id, {
+      name,
+      specialty,
+      hospital,
+      contactNumber,
+    });
+
+    if (result.success) {
+      logger.info(`Doctor updated: ${id}`);
+      return res.status(200).json(result);
+    } else {
+      logger.error("Failed to update doctor:", result.message);
+      return res.status(result.message === "Doctor not found" ? 404 : 400).json(result);
+    }
+  } catch (error) {
+    logger.error("Error in updateDoctor controller:", error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
+// DELETE /api/doctors/:id - Delete doctor
+exports.deleteDoctor = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    logger.info(
+      {
+        clientIP: req.socket.remoteAddress,
+        method: req.method,
+        api: req.originalUrl,
+        data: { id },
+      },
+      "Request received for deleting doctor"
+    );
+
+    const result = await DoctorService.deleteDoctor(id);
+
+    if (result.success) {
+      logger.info(`Doctor deleted: ${id}`);
+      return res.status(200).json(result);
+    } else {
+      logger.error("Failed to delete doctor:", result.message);
+      return res.status(result.message === "Doctor not found" ? 404 : 400).json(result);
+    }
+  } catch (error) {
+    logger.error("Error in deleteDoctor controller:", error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: error.message || "Internal server error",
+    });
+  }
+};
+
 // GET /api/doctors/search?q=searchTerm - Search doctors
 exports.searchDoctors = async (req, res) => {
   try {

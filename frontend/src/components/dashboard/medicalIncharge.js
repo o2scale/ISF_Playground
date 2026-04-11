@@ -428,6 +428,8 @@ const MedicInchargeDashboard = () => {
     { id: 5, name: "Tasks", activeTab: "tasks" },
     { id: 6, name: "Purchases", activeTab: "purchases", link: "/purchase" },
     { id: 7, name: "Shop", activeTab: "shop", link: "/shop" },
+    // Doctors Data Bank — shared doctor directory managed by medical incharge
+    { id: 8, name: "Doctors", activeTab: "doctors", link: "/medical/doctors" },
     //     { id: 5, name: "Performance", activeTab: "" },
         // { id: 6, name: "Reports", activeTab: "reports" },
   ];

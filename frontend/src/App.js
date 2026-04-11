@@ -19,6 +19,7 @@ import { CoinBalanceProvider } from "./contexts/CoinBalanceContext";
 import LoginCard from "./components/login/logincard";
 import StudentLogin from "./components/login/StudentLogin";
 import UserManagement from "./components/usermanagement/usermanagement";
+import DoctorsDataBank from "./pages/medical/DoctorsDataBank";
 import RBACManagement from "./components/RBAC/RBACManagement";
 import MachineManagement from "./pages/MachineManagement";
 import Dashboard from "./components/dashboard/dashboard";
@@ -234,6 +235,16 @@ const App = () => {
                     element={
                       <ProtectedRoute module="User Management" action="Read">
                         <UserManagement />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Medical: Doctors Data Bank — shared directory of doctors */}
+                  <Route
+                    path="/medical/doctors"
+                    element={
+                      <ProtectedRoute module="Medical Check-in" action="Read">
+                        <DoctorsDataBank />
                       </ProtectedRoute>
                     }
                   />

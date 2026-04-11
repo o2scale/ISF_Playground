@@ -51,3 +51,32 @@ exports.searchDoctors = async (searchTerm) => {
     };
   }
 };
+
+exports.updateDoctor = async (id, updates) => {
+  try {
+    if (updates.name !== undefined && String(updates.name).trim() === "") {
+      return { success: false, data: null, message: "Doctor name cannot be empty" };
+    }
+    return await DoctorDataAccess.updateDoctor(id, updates);
+  } catch (error) {
+    console.error("Service error - updateDoctor:", error);
+    return {
+      success: false,
+      data: null,
+      message: error.message || "Failed to update doctor",
+    };
+  }
+};
+
+exports.deleteDoctor = async (id) => {
+  try {
+    return await DoctorDataAccess.deleteDoctor(id);
+  } catch (error) {
+    console.error("Service error - deleteDoctor:", error);
+    return {
+      success: false,
+      data: null,
+      message: error.message || "Failed to delete doctor",
+    };
+  }
+};

@@ -144,6 +144,8 @@ const Layout = () => {
     { id: 16, name: "Courses", link: "/coach/courses", roles: ["coach"] },
     { id: 161, name: "Grading", link: "/coach/grading", roles: ["coach"] },
     { id: 17, name: "Assignments", link: "/coach/assignments", roles: ["coach", "admin"] },
+    // Medical: Doctors Data Bank — shared directory managed by medical incharge + admin
+    { id: 19, name: "Doctors", link: "/medical/doctors", roles: ["medical-incharge", "admin"] },
     {
       id: 18,
       name: "My Courses",

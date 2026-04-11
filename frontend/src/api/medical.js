@@ -93,12 +93,37 @@ export const getAllDoctors = async () => {
   }
 };
 
-export const createDoctor = async (name) => {
+// Accepts either a string (legacy name-only call from the checkin dropdown)
+// or a full doctor object { name, specialty, hospital, contactNumber }.
+export const createDoctor = async (nameOrData) => {
   try {
-    const response = await api.post("/api/doctors", { name });
+    const payload = typeof nameOrData === "string" ? { name: nameOrData } : nameOrData;
+    const response = await api.post("/api/doctors", payload);
     return response.data;
   } catch (error) {
     console.error("Error creating doctor:", error);
+    throw error;
+  }
+};
+
+// Update an existing doctor (Data Bank). Accepts a subset of fields.
+export const updateDoctor = async (id, updates) => {
+  try {
+    const response = await api.put(`/api/doctors/${id}`, updates);
+    return response.data;
+  } catch (error) {
+    console.error("Error updating doctor:", error);
+    throw error;
+  }
+};
+
+// Delete a doctor (Data Bank).
+export const deleteDoctor = async (id) => {
+  try {
+    const response = await api.delete(`/api/doctors/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting doctor:", error);
     throw error;
   }
 };
