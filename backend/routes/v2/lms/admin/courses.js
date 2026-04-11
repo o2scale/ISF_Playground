@@ -52,12 +52,12 @@ router.get(
 /**
  * @route GET /api/v2/lms/admin/courses
  * @desc Get all courses with optional filters (status, category, search)
- * @access Private (Admin only)
+ * @access Private (Admin: all courses; Coach: scope-filtered to balagruha assignments)
  */
 router.get(
   '/',
   authenticate,
-  authorize('LMS Management', 'Manage'),
+  authorize('LMS Management', 'Read'),
   courseController.getAllCourses
 );
 
@@ -76,12 +76,12 @@ router.post(
 /**
  * @route GET /api/v2/lms/admin/courses/:id
  * @desc Get single course by ID with full details
- * @access Private (Admin only)
+ * @access Private (Admin: any; Coach: only if course has an active assignment to their balagruhas)
  */
 router.get(
   '/:id',
   authenticate,
-  authorize('LMS Management', 'Manage'),
+  authorize('LMS Management', 'Read'),
   courseController.getCourseById
 );
 

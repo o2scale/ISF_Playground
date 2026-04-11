@@ -102,6 +102,19 @@ router.get(
 );
 
 /**
+ * @route GET /api/v2/lms/coach/:coachId/balagruha-courses
+ * @desc Get courses currently assigned to the coach's balagruhas, with
+ *       assignment context (balagruha names, student counts, progress).
+ * @access Private (Coach: own ID only; Admin: any)
+ */
+router.get(
+  '/:coachId/balagruha-courses',
+  authenticate,
+  authorize("LMS Management", "Read"),
+  coachAssignmentController.getBalagruhaCourses
+);
+
+/**
  * @route PUT /api/v2/lms/coach/assignments/:assignmentId/progress
  * @desc Update assignment progress
  * @access Private (Coach only)

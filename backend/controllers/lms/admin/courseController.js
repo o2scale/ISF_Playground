@@ -1,8 +1,39 @@
 const Course = require("../../../models/course");
 const Notification = require("../../../models/notification");
 const CourseAssignment = require("../../../models/CourseAssignment");
+const User = require("../../../models/user");
 const mongoose = require("mongoose");
 const { errorLogger } = require('../../../config/pino-config');
+
+/**
+ * Helper: Return the set of course IDs a coach may access via an active
+ * CourseAssignment to one of their balagruhas. Returns an array of string IDs.
+ * Used for scope filtering on the admin read endpoints when role === 'coach'.
+ */
+async function _getCoachAccessibleCourseIds(coachUser) {
+  try {
+    const user = await User.findById(coachUser._id).select('balagruhaIds').lean();
+    const balagruhaIds = (user?.balagruhaIds || []).map(id => id.toString());
+    if (balagruhaIds.length === 0) return [];
+
+    const assignments = await CourseAssignment.find({
+      status: 'active',
+      $or: [
+        { 'assignedTo.balagruhaId': { $in: balagruhaIds } },
+        { 'assignedTo.balagruhaIds': { $in: balagruhaIds } },
+      ],
+    }).select('courseId').lean();
+
+    const ids = assignments
+      .map(a => (a.courseId?._id || a.courseId))
+      .filter(Boolean)
+      .map(id => id.toString());
+    return [...new Set(ids)];
+  } catch (err) {
+    errorLogger.error({ err }, 'Error computing coach accessible course IDs');
+    return [];
+  }
+}
 
 /**
  * Helper: Create audit log entry for course status changes and notify assigned coaches
@@ -73,6 +104,16 @@ exports.getAllCourses = async (req, res) => {
       ];
     }
 
+    // Coach scope filter: restrict to courses assigned to the coach's balagruhas.
+    // Admin receives the unfiltered set.
+    if (req.user?.role === 'coach') {
+      const accessibleIds = await _getCoachAccessibleCourseIds(req.user);
+      if (accessibleIds.length === 0) {
+        return res.status(200).json({ success: true, count: 0, data: [] });
+      }
+      filter._id = { $in: accessibleIds };
+    }
+
     const courses = await Course.find(filter)
       .populate("createdBy", "name email")
       .sort({ createdAt: -1 });
@@ -116,6 +157,18 @@ exports.getCourseById = async (req, res) => {
 
     if (!course) {
       return res.status(404).json({ error: "Course not found" });
+    }
+
+    // Coach scope guard: verify an active CourseAssignment targets one of
+    // the coach's balagruhas. Admin bypasses this check.
+    if (req.user?.role === 'coach') {
+      const accessibleIds = await _getCoachAccessibleCourseIds(req.user);
+      if (!accessibleIds.includes(course._id.toString())) {
+        return res.status(403).json({
+          success: false,
+          message: 'Course not available for your balagruhas',
+        });
+      }
     }
 
     const courseWithCounts = course.toObject({ virtuals: true });

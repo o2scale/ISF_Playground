@@ -630,3 +630,149 @@ exports.updateAssignmentProgress = async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 };
+
+/**
+ * GET /api/v2/lms/coach/:coachId/balagruha-courses
+ * Return all courses currently assigned (active) to at least one of the
+ * coach's balagruhas, with assignment context (balagruha names, student/
+ * started/completed counts).
+ *
+ * Coach can only query their own coachId. Admin can query any coachId.
+ * Supports optional ?category and ?search filters.
+ */
+exports.getBalagruhaCourses = async (req, res) => {
+  try {
+    const { coachId } = req.params;
+    const { category, search } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(coachId)) {
+      return res.status(400).json({ success: false, message: "Invalid coachId" });
+    }
+
+    // RBAC: coach can only query their own ID; admin can query any
+    if (req.user.role === 'coach' && req.user._id.toString() !== coachId) {
+      return res.status(403).json({
+        success: false,
+        message: "Unauthorized: coach can only query their own ID",
+      });
+    }
+
+    const coach = await User.findById(coachId).select('balagruhaIds name').lean();
+    if (!coach) {
+      return res.status(404).json({ success: false, message: "Coach not found" });
+    }
+
+    const balagruhaIds = (coach.balagruhaIds || []).map(id => id.toString());
+    if (balagruhaIds.length === 0) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
+    }
+
+    // Find all active assignments targeting any of the coach's balagruhas.
+    // CourseAssignment supports both singular balagruhaId and plural balagruhaIds
+    // depending on assignment type (students vs entire balagruha).
+    const assignments = await CourseAssignment.find({
+      status: 'active',
+      $or: [
+        { 'assignedTo.balagruhaId': { $in: balagruhaIds } },
+        { 'assignedTo.balagruhaIds': { $in: balagruhaIds } },
+      ],
+    })
+      .populate({ path: 'assignedTo.balagruhaId', select: 'name' })
+      .populate({ path: 'assignedTo.balagruhaIds', select: 'name' })
+      .lean();
+
+    if (assignments.length === 0) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
+    }
+
+    // Build per-course assignment aggregates
+    const assignmentsByCourse = {};
+    const courseIdSet = new Set();
+    for (const a of assignments) {
+      const cid = (a.courseId?._id || a.courseId)?.toString();
+      if (!cid) continue;
+      courseIdSet.add(cid);
+      if (!assignmentsByCourse[cid]) {
+        assignmentsByCourse[cid] = {
+          balagruhaNames: new Set(),
+          activeAssignments: 0,
+          assignmentIds: [],
+        };
+      }
+      const bucket = assignmentsByCourse[cid];
+      bucket.activeAssignments += 1;
+      bucket.assignmentIds.push(a._id);
+
+      // Collect balagruha names from populated refs
+      const bg1 = a.assignedTo?.balagruhaId;
+      if (bg1?.name) bucket.balagruhaNames.add(bg1.name);
+      const bgList = a.assignedTo?.balagruhaIds || [];
+      for (const bg of bgList) {
+        if (bg?.name) bucket.balagruhaNames.add(bg.name);
+      }
+    }
+
+    const courseIds = Array.from(courseIdSet);
+
+    // Fetch course documents with full hierarchy + quiz populate, so the
+    // list page can show counts and (if needed) provide offline structure.
+    const courseFilter = { _id: { $in: courseIds } };
+    if (category) courseFilter.category = category;
+    if (search) {
+      courseFilter.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const courses = await Course.find(courseFilter)
+      .populate('createdBy', 'name')
+      .sort({ createdAt: -1 });
+
+    // Compute student / started / completed counts per course using
+    // StudentProgress records tied to the coach's balagruhas.
+    const data = await Promise.all(courses.map(async (course) => {
+      const courseObj = course.toObject({ virtuals: true });
+      const bucket = assignmentsByCourse[course._id.toString()] || {};
+
+      // Students in the coach's balagruhas
+      const balagruhaStudents = await User.find({
+        role: 'student',
+        balagruhaIds: { $in: balagruhaIds },
+      }).select('_id').lean();
+      const studentIds = balagruhaStudents.map(s => s._id);
+
+      // Progress records for (course, these students)
+      const progressRecords = await StudentProgress.find({
+        courseId: course._id,
+        studentId: { $in: studentIds },
+      }).select('status overallProgress').lean();
+
+      const startedCount = progressRecords.filter(p =>
+        p.status === 'in_progress' || p.status === 'completed' || (p.overallProgress || 0) > 0
+      ).length;
+      const completedCount = progressRecords.filter(p => p.status === 'completed').length;
+
+      courseObj.assignmentInfo = {
+        balagruhaNames: Array.from(bucket.balagruhaNames || []),
+        studentCount: studentIds.length,
+        startedCount,
+        completedCount,
+        activeAssignments: bucket.activeAssignments || 0,
+      };
+      return courseObj;
+    }));
+
+    return res.status(200).json({
+      success: true,
+      count: data.length,
+      data,
+    });
+  } catch (error) {
+    errorLogger.error({ err: error }, 'Error fetching balagruha courses for coach');
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch balagruha courses',
+    });
+  }
+};
