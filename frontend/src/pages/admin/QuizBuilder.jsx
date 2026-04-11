@@ -39,8 +39,8 @@ export default function QuizBuilder() {
       showCorrectness: true,
       showAnswers: true,
       showExplanations: true,
-      maxAttempts: 3,
-      unlimitedAttempts: false,
+      maxAttempts: null,
+      unlimitedAttempts: true,
       waitBetweenAttempts: 0
     },
     tags: []
