@@ -113,7 +113,7 @@ export default function GradingDashboard() {
 
       await api.put(
         `/api/v2/lms/coach/grading/submissions/${currentSubmission.id}/flag`,
-        { reason }
+        { reason, flaggedBy: user.id }
       );
       toast.success('Submission flagged for admin review');
       handleNavigate('next');

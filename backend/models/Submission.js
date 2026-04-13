@@ -239,9 +239,9 @@ SubmissionSchema.statics.findByCoach = async function (coachId, filters = {}) {
   const offset = filters.offset || 0;
 
   const submissions = await this.find(query)
-    .populate("studentId", "name email role balagruhaIds")
     .populate({
       path: "studentId",
+      select: "name email role balagruhaIds",
       populate: {
         path: "balagruhaIds",
         select: "name"
@@ -354,6 +354,7 @@ SubmissionSchema.methods.flagSubmission = function (reason, flaggedBy) {
 
 // Instance method to mark as skipped
 SubmissionSchema.methods.markAsSkipped = function () {
+  this.status = "skipped";
   this.skippedAt = new Date();
   return this.save();
 };

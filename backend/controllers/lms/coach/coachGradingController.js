@@ -10,10 +10,12 @@ const { errorLogger } = require('../../../config/pino-config');
  * Quality-to-coin mapping for auto-calculating coin awards from rubric score.
  * Coaches can override by explicitly providing coinsAwarded in the request body.
  */
+// Must match frontend GradingPanel.jsx auto-coin values (85, 65, 25).
+// These are only used when the coach doesn't explicitly set coinsAwarded.
 const QUALITY_COIN_MAP = {
-  excellent: 10,
-  good: 7,
-  needs_improvement: 2,
+  excellent: 85,
+  good: 65,
+  needs_improvement: 25,
 };
 
 /**
@@ -24,6 +26,12 @@ const QUALITY_COIN_MAP = {
 exports.getSubmissions = async (req, res) => {
   try {
     const { coachId } = req.params;
+
+    // H1 fix: verify coachId matches authenticated user (admin bypass for support)
+    if (req.user.role !== 'admin' && coachId !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Cannot access another coach's submissions" });
+    }
+
     const { courseType, status, balagruhaId, dateRange, sortBy, limit, offset } = req.query;
 
     // Build filters object
@@ -254,6 +262,11 @@ exports.bulkGrade = async (req, res) => {
   try {
     const { submissionIds, quality, coinsAwarded: coinsOverride, feedback, gradedBy } = req.body;
 
+    // H2 fix: verify gradedBy matches authenticated user
+    if (req.user.role !== 'admin' && gradedBy !== req.user._id.toString()) {
+      return res.status(403).json({ success: false, error: "Cannot grade on behalf of another coach" });
+    }
+
     // Validation
     if (!submissionIds || !Array.isArray(submissionIds) || submissionIds.length === 0) {
       return res.status(400).json({
@@ -438,13 +451,14 @@ exports.flagSubmission = async (req, res) => {
     // Send notification to admin
     const admins = await User.find({ role: "admin" });
     const coach = await User.findById(flaggedBy);
+    const coachName = coach?.name || 'Unknown Coach';
 
     for (const admin of admins) {
       try {
         await Notification.createPersonal(
           admin._id,
           'Submission Flagged',
-          `Coach ${coach.name} flagged a submission for review: ${reason}`,
+          `Coach ${coachName} flagged a submission for review: ${reason}`,
           'COACH_MESSAGE',
           { submissionId: submission._id, reason, flaggedBy }
         );
