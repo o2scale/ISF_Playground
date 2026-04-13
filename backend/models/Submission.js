@@ -239,7 +239,7 @@ SubmissionSchema.statics.findByCoach = async function (coachId, filters = {}) {
   const offset = filters.offset || 0;
 
   const submissions = await this.find(query)
-    .populate("studentId", "firstName lastName email role balagruhaIds")
+    .populate("studentId", "name email role balagruhaIds")
     .populate({
       path: "studentId",
       populate: {
@@ -248,7 +248,7 @@ SubmissionSchema.statics.findByCoach = async function (coachId, filters = {}) {
       }
     })
     .populate("courseId", "title category")
-    .populate("grade.gradedBy", "firstName lastName")
+    .populate("grade.gradedBy", "name email")
     .sort(sort)
     .limit(limit)
     .skip(offset);

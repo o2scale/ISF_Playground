@@ -47,10 +47,10 @@ exports.getSubmissions = async (req, res) => {
     const formattedSubmissions = submissions.map((submission) => ({
       id: submission._id,
       studentId: submission.studentId._id,
-      studentName: `${submission.studentId.firstName} ${submission.studentId.lastName}`,
-      studentClass: submission.studentId.class || "N/A",
-      balagruhaId: submission.studentId.balagruha,
-      balagruhaName: submission.studentId.balagruha?.name || "N/A",
+      studentName: submission.studentId.name || "Unknown",
+      studentEmail: submission.studentId.email || "",
+      balagruhaIds: submission.studentId.balagruhaIds || [],
+      balagruhaName: submission.studentId.balagruhaIds?.[0]?.name || "N/A",
       courseId: submission.courseId._id,
       courseTitle: submission.courseId.title,
       courseCategory: submission.courseId.category,
@@ -92,9 +92,9 @@ exports.getSubmissionById = async (req, res) => {
     const { submissionId } = req.params;
 
     const submission = await Submission.findById(submissionId)
-      .populate("studentId", "firstName lastName class balagruha")
+      .populate("studentId", "name email balagruhaIds")
       .populate("courseId", "title category")
-      .populate("grade.gradedBy", "firstName lastName");
+      .populate("grade.gradedBy", "name email");
 
     if (!submission) {
       return res.status(404).json({
@@ -206,7 +206,7 @@ exports.submitGrade = async (req, res) => {
 
     // Send notification to student
     const coach = await User.findById(gradedBy);
-    const notificationMessage = `Coach ${coach.firstName} ${coach.lastName} graded your "${submission.taskTitle}" submission! ${
+    const notificationMessage = `Coach ${coach.name} graded your "${submission.taskTitle}" submission! ${
       coinsAwarded > 0 ? `+${coinsAwarded} coins` : ""
     }`;
 
@@ -229,7 +229,7 @@ exports.submitGrade = async (req, res) => {
       submissionId: submission._id,
       studentId: submission.studentId._id,
       studentCoinBalance: coinBalance,
-      message: `Grade submitted successfully! ${submission.studentId.firstName} ${submission.studentId.lastName} has been notified and earned ${coinsAwarded} ISF Coins.`,
+      message: `Grade submitted successfully! ${submission.studentId.name} has been notified and earned ${coinsAwarded} ISF Coins.`,
     });
   } catch (error) {
     errorLogger.error({ err: error }, "Error submitting grade:");
@@ -322,7 +322,7 @@ exports.bulkGrade = async (req, res) => {
         }
 
         // Send notification
-        const notificationMessage = `Coach ${coach.firstName} ${coach.lastName} graded your "${submission.taskTitle}" submission! ${
+        const notificationMessage = `Coach ${coach.name} graded your "${submission.taskTitle}" submission! ${
           coinsAwarded > 0 ? `+${coinsAwarded} coins` : ""
         }`;
 
@@ -440,7 +440,7 @@ exports.flagSubmission = async (req, res) => {
       const notification = new Notification({
         user: admin._id,
         type: "submission_flagged",
-        message: `Coach ${coach.firstName} ${coach.lastName} flagged a submission for review: ${reason}`,
+        message: `Coach ${coach.name} flagged a submission for review: ${reason}`,
         data: {
           submissionId: submission._id,
           reason,
