@@ -29,6 +29,11 @@ export default function CreatePurchaseRequestModal({
   requestToEdit // Sprint5-Story-EditDelete
 }) {
   const isAdmin = normalizeUserRole(userRole) === UserTypes.ADMIN;
+  const isPurchaseManager = normalizeUserRole(userRole) === UserTypes.PURCHASE_MANAGER;
+  // Admin + PM can add new products inline and select vendors/suppliers.
+  // Previously admin-only, which blocked PMs from adding products they
+  // need to order from suppliers.
+  const canAddProducts = isAdmin || isPurchaseManager;
 
   // ============================================================================
   // STATE MANAGEMENT
@@ -86,10 +91,10 @@ export default function CreatePurchaseRequestModal({
   ]);
 
   useEffect(() => {
-    if (!isAdmin) {
+    if (!canAddProducts) {
       setShowAddProductForm(false);
     }
-  }, [isAdmin]);
+  }, [canAddProducts]);
 
   const resetInlineProductForm = () => {
     setNewProductForm({
@@ -165,10 +170,10 @@ export default function CreatePurchaseRequestModal({
   };
 
   useEffect(() => {
-    if (!isAdmin) return;
+    if (!canAddProducts) return;
     if (!showAddProductForm) return;
     fetchVendors();
-  }, [isAdmin, showAddProductForm]);
+  }, [canAddProducts, showAddProductForm]);
 
   const handleNewProductFieldChange = (field, value) => {
     const nextValue = field === 'sku' ? value.toUpperCase().replace(/\s+/g, '') : value;
@@ -928,14 +933,14 @@ export default function CreatePurchaseRequestModal({
                 Select Products <span className="required">*</span>
               </label>
 
-              {!isAdmin && (
+              {!canAddProducts && (
                 <small className="form-hint">
                   Need a new item? Contact an Admin to add it to the Master Catalog.
                 </small>
               )}
 
-              {/* Sprint5-Story-25: Add New Product Button */}
-              {isAdmin && formData.balagruhaId && !showAddProductForm && (
+              {/* Sprint5-Story-25: Add New Product Button — Admin + PM */}
+              {canAddProducts && formData.balagruhaId && !showAddProductForm && (
                 <button
                   type="button"
                   className="btn-add-product"
@@ -955,8 +960,8 @@ export default function CreatePurchaseRequestModal({
                 </button>
               )}
 
-              {/* Sprint5-Story-25: Inline Product Addition Form */}
-              {isAdmin && showAddProductForm && (
+              {/* Sprint5-Story-25: Inline Product Addition Form — Admin + PM */}
+              {canAddProducts && showAddProductForm && (
                 <div className="inline-product-form" style={{
                   border: '2px solid #007bff',
                   borderRadius: '8px',
