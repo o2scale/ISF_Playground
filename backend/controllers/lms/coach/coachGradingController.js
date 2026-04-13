@@ -210,19 +210,24 @@ exports.submitGrade = async (req, res) => {
       coinsAwarded > 0 ? `+${coinsAwarded} coins` : ""
     }`;
 
-    const notification = new Notification({
-      user: submission.studentId._id,
-      type: "submission_graded",
-      message: notificationMessage,
-      data: {
-        submissionId: submission._id,
-        courseId: submission.courseId._id,
-        coinsAwarded,
-        quality,
-        feedback: feedback || null,
-      },
-    });
-    await notification.save();
+    try {
+      await Notification.createPersonal(
+        submission.studentId._id,
+        'Submission Graded',
+        notificationMessage,
+        'COACH_MESSAGE',
+        {
+          submissionId: submission._id,
+          courseId: submission.courseId._id,
+          coinsAwarded,
+          quality,
+          feedback: feedback || null,
+        }
+      );
+    } catch (notifErr) {
+      // Don't fail the whole grade submission if notification fails
+      errorLogger.error({ err: notifErr }, "Failed to send grading notification (non-fatal)");
+    }
 
     res.status(200).json({
       success: true,
@@ -326,19 +331,17 @@ exports.bulkGrade = async (req, res) => {
           coinsAwarded > 0 ? `+${coinsAwarded} coins` : ""
         }`;
 
-        const notification = new Notification({
-          user: submission.studentId._id,
-          type: "submission_graded",
-          message: notificationMessage,
-          data: {
-            submissionId: submission._id,
-            courseId: submission.courseId._id,
-            coinsAwarded,
-            quality,
-            feedback: feedback || null,
-          },
-        });
-        await notification.save();
+        try {
+          await Notification.createPersonal(
+            submission.studentId._id,
+            'Submission Graded',
+            notificationMessage,
+            'COACH_MESSAGE',
+            { submissionId: submission._id, courseId: submission.courseId._id, coinsAwarded, quality }
+          );
+        } catch (notifErr) {
+          errorLogger.error({ err: notifErr }, "Failed to send bulk grading notification (non-fatal)");
+        }
 
         gradedCount++;
       } catch (error) {
@@ -437,17 +440,17 @@ exports.flagSubmission = async (req, res) => {
     const coach = await User.findById(flaggedBy);
 
     for (const admin of admins) {
-      const notification = new Notification({
-        user: admin._id,
-        type: "submission_flagged",
-        message: `Coach ${coach.name} flagged a submission for review: ${reason}`,
-        data: {
-          submissionId: submission._id,
-          reason,
-          flaggedBy,
-        },
-      });
-      await notification.save();
+      try {
+        await Notification.createPersonal(
+          admin._id,
+          'Submission Flagged',
+          `Coach ${coach.name} flagged a submission for review: ${reason}`,
+          'COACH_MESSAGE',
+          { submissionId: submission._id, reason, flaggedBy }
+        );
+      } catch (notifErr) {
+        errorLogger.error({ err: notifErr }, "Failed to send flag notification (non-fatal)");
+      }
     }
 
     res.status(200).json({
