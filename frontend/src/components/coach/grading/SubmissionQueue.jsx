@@ -1,5 +1,5 @@
 // frontend/src/components/coach/grading/SubmissionQueue.jsx
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function SubmissionQueue({
   submissions,
@@ -7,7 +7,29 @@ export default function SubmissionQueue({
   filters,
   onFilterChange,
   onOpenGrading,
+  onBulkGrade,
 }) {
+  const [selectedIds, setSelectedIds] = useState(new Set());
+
+  const pendingSubmissions = submissions.filter(s => s.status === 'pending');
+  const allPendingSelected = pendingSubmissions.length > 0 && pendingSubmissions.every(s => selectedIds.has(s.id));
+
+  const toggleSelect = (id) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    if (allPendingSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(pendingSubmissions.map(s => s.id)));
+    }
+  };
+
   const getBorderColorClass = (type) => {
     switch (type) {
       case 'art':
@@ -105,9 +127,35 @@ export default function SubmissionQueue({
         </div>
       </div>
 
-      {/* Submission Count */}
-      <div className="text-sm text-gray-600">
-        {submissions.length} submission{submissions.length !== 1 ? 's' : ''} found
+      {/* Submission Count + Bulk Actions */}
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-600">
+          {submissions.length} submission{submissions.length !== 1 ? 's' : ''} found
+        </div>
+        {pendingSubmissions.length > 0 && onBulkGrade && (
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={allPendingSelected}
+                onChange={toggleSelectAll}
+                className="w-4 h-4 text-blue-600 rounded"
+              />
+              Select All Pending ({pendingSubmissions.length})
+            </label>
+            {selectedIds.size > 0 && (
+              <button
+                onClick={() => {
+                  onBulkGrade([...selectedIds]);
+                  setSelectedIds(new Set());
+                }}
+                className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition"
+              >
+                Bulk Grade ({selectedIds.size})
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Submission Cards */}
@@ -126,16 +174,33 @@ export default function SubmissionQueue({
               key={submission.id}
               className={`bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition ${getBorderColorClass(
                 submission.submissionType
-              )}`}
+              )} ${selectedIds.has(submission.id) ? 'ring-2 ring-blue-400 bg-blue-50' : ''}`}
             >
               <div className="flex items-start justify-between">
+                {/* Checkbox for pending items */}
+                {submission.status === 'pending' && onBulkGrade && (
+                  <div className="mr-4 pt-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(submission.id)}
+                      onChange={() => toggleSelect(submission.id)}
+                      className="w-4 h-4 text-blue-600 rounded"
+                      aria-label={`Select ${submission.taskTitle}`}
+                    />
+                  </div>
+                )}
+
                 <div className="flex-1">
                   {/* Task Title */}
                   <div className="flex items-center gap-3 mb-2">
                     <h3 className="text-lg font-bold text-gray-900">
                       {submission.taskTitle}
                     </h3>
-                    <span className="px-3 py-1 text-xs font-medium rounded-full bg-yellow-100 text-yellow-800">
+                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                      submission.status === 'graded' ? 'bg-green-100 text-green-800' :
+                      submission.status === 'flagged' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
                       {submission.status.toUpperCase()}
                     </span>
                   </div>
@@ -167,6 +232,14 @@ export default function SubmissionQueue({
                     {submission.submissionType === 'video' && '🎥 Video Submission'}
                     {submission.submissionType === 'audio' && '🎙️ Audio Submission'}
                   </div>
+
+                  {/* Grade info for graded submissions */}
+                  {submission.grade && (
+                    <div className="mt-2 text-sm text-gray-600 bg-gray-50 rounded p-2">
+                      Quality: <strong>{submission.grade.quality}</strong> • Coins: <strong>{submission.grade.coinsAwarded}</strong>
+                      {submission.grade.feedback && <span> • "{submission.grade.feedback}"</span>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Action Button */}

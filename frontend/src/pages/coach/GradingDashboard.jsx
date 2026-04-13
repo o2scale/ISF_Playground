@@ -127,6 +127,30 @@ export default function GradingDashboard() {
     setFilters((prev) => ({ ...prev, [filterKey]: value }));
   };
 
+  // Bulk grade: apply same quality + coins to multiple submissions at once
+  const handleBulkGrade = async (submissionIds) => {
+    const quality = window.prompt('Enter quality for all selected (excellent / good / needs_improvement):');
+    if (!quality || !['excellent', 'good', 'needs_improvement'].includes(quality)) {
+      toast.error('Invalid quality. Use: excellent, good, or needs_improvement');
+      return;
+    }
+    try {
+      const response = await api.post(
+        `/api/v2/lms/coach/grading/submissions/bulk-grade`,
+        { submissionIds, quality, feedback: `Bulk graded as ${quality}`, gradedBy: user.id }
+      );
+      if (response.data.success) {
+        toast.success(`${response.data.results?.length || submissionIds.length} submissions graded!`);
+        fetchSubmissions();
+      } else {
+        toast.error(response.data.error || 'Bulk grade failed');
+      }
+    } catch (error) {
+      console.error('Bulk grade error:', error);
+      toast.error(error.response?.data?.error || 'Bulk grade failed');
+    }
+  };
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -143,7 +167,7 @@ export default function GradingDashboard() {
           <div>
             <h1 className="text-2xl font-bold">Syllabus Tracker & Grading</h1>
             <div className="text-sm mt-1">
-              Coach: {user.firstName} {user.lastName}
+              Coach: {user.name || user.firstName || ''}
               {user.balagruha?.name && ` • Balagruha: ${user.balagruha.name}`}
             </div>
           </div>
@@ -191,6 +215,7 @@ export default function GradingDashboard() {
           filters={filters}
           onFilterChange={handleFilterChange}
           onOpenGrading={handleOpenGrading}
+          onBulkGrade={handleBulkGrade}
         />
       </div>
 
