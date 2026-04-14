@@ -66,6 +66,18 @@ router.get(
 );
 
 /**
+ * @route GET /api/v2/lms/coach/assignments/:assignmentId/progress-report
+ * @desc Per-student progress breakdown for the View Progress Report button
+ * @access Private (Coach)
+ */
+router.get(
+  '/assignments/:assignmentId/progress-report',
+  authenticate,
+  authorize("LMS Management", "Read"),
+  coachAssignmentController.getAssignmentProgressReport
+);
+
+/**
  * @route PUT /api/v2/lms/coach/assignments/:assignmentId
  * @desc Update assignment (due date, status)
  * @access Private (Coach only)

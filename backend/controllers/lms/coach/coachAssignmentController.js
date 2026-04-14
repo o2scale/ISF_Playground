@@ -464,8 +464,8 @@ exports.getAssignmentById = async (req, res) => {
     const assignment = await CourseAssignment.findById(assignmentId)
       .populate("courseId", "title description category thumbnail difficultyLevel")
       .populate("assignedTo.balagruhaId", "name")
-      .populate("assignedTo.studentIds", "firstName lastName email studentId class")
-      .populate("assignedBy", "firstName lastName email");
+      .populate("assignedTo.studentIds", "name email studentId class")
+      .populate("assignedBy", "name email");
 
     if (!assignment) {
       return res.status(404).json({ error: "Assignment not found" });
@@ -480,6 +480,113 @@ exports.getAssignmentById = async (req, res) => {
   } catch (error) {
     errorLogger.error({ err: error }, "Error fetching assignment:");
     res.status(500).json({ error: "Internal server error" });
+  }
+};
+
+/**
+ * GET /api/v2/lms/coach/assignments/:assignmentId/progress-report
+ * Detailed per-student progress breakdown for the "View Progress Report" button.
+ * Returns assignment metadata + a row per student with completion %, completed items,
+ * last activity, and status.
+ */
+exports.getAssignmentProgressReport = async (req, res) => {
+  try {
+    const { assignmentId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(assignmentId)) {
+      return res.status(400).json({ success: false, error: "Invalid assignment ID" });
+    }
+
+    const assignment = await CourseAssignment.findById(assignmentId)
+      .populate("courseId", "title category")
+      .populate("assignedTo.balagruhaId", "name")
+      .populate("assignedTo.balagruhaIds", "name");
+
+    if (!assignment) {
+      return res.status(404).json({ success: false, error: "Assignment not found" });
+    }
+
+    // Resolve the student list (balagruha expansion or specific student list)
+    const courseId = (assignment.courseId?._id || assignment.courseId).toString();
+    const course = await Course.findById(courseId);
+    const totalItems = course?.contentItemCount || 0;
+
+    let studentIds = [];
+    if (assignment.assignedTo.type === 'balagruha') {
+      const bgIds = assignment.assignedTo.balagruhaIds?.length
+        ? assignment.assignedTo.balagruhaIds.map(b => (b._id || b).toString())
+        : (assignment.assignedTo.balagruhaId ? [(assignment.assignedTo.balagruhaId._id || assignment.assignedTo.balagruhaId).toString()] : []);
+      const students = await User.find({ balagruhaIds: { $in: bgIds }, role: 'student' })
+        .select('_id name email');
+      studentIds = students.map(s => ({ id: s._id.toString(), name: s.name, email: s.email }));
+    } else {
+      const ids = (assignment.assignedTo.studentIds || []).map(id => (id._id || id).toString());
+      const students = await User.find({ _id: { $in: ids } }).select('_id name email');
+      studentIds = students.map(s => ({ id: s._id.toString(), name: s.name, email: s.email }));
+    }
+
+    // Fetch progress records for these students on this course
+    const progressRecords = await StudentProgress.find({
+      student: { $in: studentIds.map(s => s.id) },
+      course: courseId,
+    }).select('student completedItems lastAccessedAt').lean();
+
+    const progressMap = {};
+    progressRecords.forEach(p => {
+      progressMap[p.student.toString()] = {
+        completed: p.completedItems?.length || 0,
+        lastActive: p.lastAccessedAt,
+      };
+    });
+
+    // Build per-student breakdown
+    const studentBreakdown = studentIds.map(s => {
+      const p = progressMap[s.id] || { completed: 0, lastActive: null };
+      const percent = totalItems > 0 ? Math.round(Math.min(p.completed / totalItems * 100, 100)) : 0;
+      let status = 'not_started';
+      if (p.completed >= totalItems && totalItems > 0) status = 'completed';
+      else if (p.completed > 0) status = 'in_progress';
+      return {
+        studentId: s.id,
+        name: s.name,
+        email: s.email,
+        completedItems: p.completed,
+        totalItems,
+        percent,
+        lastActive: p.lastActive,
+        status,
+      };
+    });
+
+    // Sort: completed first, then in progress, then not started; by percent desc
+    studentBreakdown.sort((a, b) => b.percent - a.percent || a.name.localeCompare(b.name));
+
+    const summary = {
+      totalStudents: studentBreakdown.length,
+      studentsStarted: studentBreakdown.filter(s => s.status !== 'not_started').length,
+      studentsCompleted: studentBreakdown.filter(s => s.status === 'completed').length,
+      averageCompletionPercentage: studentBreakdown.length
+        ? Math.round(studentBreakdown.reduce((sum, s) => sum + s.percent, 0) / studentBreakdown.length)
+        : 0,
+      totalItems,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: {
+        assignment: {
+          _id: assignment._id,
+          status: assignment.status,
+          dueDate: assignment.dueDate,
+          assignedAt: assignment.assignedAt || assignment.createdAt,
+          course: assignment.courseId,
+        },
+        summary,
+        students: studentBreakdown,
+      },
+    });
+  } catch (error) {
+    errorLogger.error({ err: error }, "Error building assignment progress report:");
+    res.status(500).json({ success: false, error: "Failed to build progress report" });
   }
 };
 

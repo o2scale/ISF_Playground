@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { api } from '../../api';
 import CourseAssignmentModal from './CourseAssignmentModal';
+import AssignmentProgressModal from './AssignmentProgressModal';
 import { useAuth } from '../../contexts/AuthContext';
 
 export default function CoachAssignmentsView({ coachId, coachName, balagruhaName }) {
   const { user } = useAuth();
   const isAdmin = user?.role === 'admin';
-  
+
   const [assignments, setAssignments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
+  const [progressAssignmentId, setProgressAssignmentId] = useState(null); // null = closed
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'completed', 'expired'
 
@@ -289,7 +291,10 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
 
                 {/* Action Buttons */}
                 <div className="flex gap-3 mt-4 pt-4 border-t">
-                  <button className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium">
+                  <button
+                    onClick={() => setProgressAssignmentId(assignment._id)}
+                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium"
+                  >
                     View Progress Report
                   </button>
                   {assignment.status === 'active' && (
@@ -314,6 +319,14 @@ export default function CoachAssignmentsView({ coachId, coachName, balagruhaName
         coachId={coachId}
         onAssignmentCreated={handleAssignmentCreated}
       />
+
+      {/* Progress Report Modal */}
+      {progressAssignmentId && (
+        <AssignmentProgressModal
+          assignmentId={progressAssignmentId}
+          onClose={() => setProgressAssignmentId(null)}
+        />
+      )}
     </div>
   );
 }
