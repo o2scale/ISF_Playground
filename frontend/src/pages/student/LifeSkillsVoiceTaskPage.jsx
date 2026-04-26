@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { api } from '../../api';
+import { api, apiWithoutContentType } from '../../api';
 import toast from 'react-hot-toast';
 // import StudentLayout from '../../components/student/StudentLayout';
 import AudioQuestionCard from '../../components/student/lifeskills/AudioQuestionCard';
@@ -200,14 +200,9 @@ export default function LifeSkillsVoiceTaskPage() {
       formData.append('voiceRecording', audioBlob, `voice_${taskId}_${Date.now()}.webm`);
 
       // Submit to backend
-      const response = await api.post(
+      const response = await apiWithoutContentType.post(
         `/api/v2/lms/student/${studentId}/courses/life-skills/voice/submit`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data'
-          }
-        }
+        formData
       );
 
       if (response.data.success) {

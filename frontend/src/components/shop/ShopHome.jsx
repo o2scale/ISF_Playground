@@ -15,6 +15,7 @@ import { api } from "../../api";
  */
 const ShopHome = () => {
   const { user } = useAuth();
+  const isStudent = user?.role?.toLowerCase() === "student";
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -50,7 +51,11 @@ const ShopHome = () => {
       };
 
       // FIX-043: Support multi-select categories (comma-separated)
-      if (filters.category) {
+      // Students are restricted to the "ISF Shop" category — no Medicines/
+      // Consumables/Repairs/Infra/Others — regardless of any client-side filter.
+      if (isStudent) {
+        params.category = "ISF Shop";
+      } else if (filters.category) {
         params.category = Array.isArray(filters.category)
           ? filters.category.join(',')
           : filters.category;
@@ -70,7 +75,7 @@ const ShopHome = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters, pagination.page, pagination.limit]);
+  }, [filters, pagination.page, pagination.limit, isStudent]);
 
   // Fetch products on mount and filter change
   useEffect(() => {
@@ -149,6 +154,7 @@ const ShopHome = () => {
             filters={filters}
             onFilterChange={handleFilterChange}
             onClearFilters={handleClearFilters}
+            hideCategoryFilter={isStudent}
           />
 
           {/* Product Grid */}

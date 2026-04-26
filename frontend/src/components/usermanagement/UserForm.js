@@ -1687,14 +1687,23 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Prescriptions</label>
-                      <input
-                        type="file"
-                        multiple
-                        accept={ACCEPTED_PRESCRIPTION_TYPES}
-                        onChange={(e) =>
-                          handleMedicalHistoryFileChange(index, "prescriptions", e)
-                        }
-                      />
+                      <label className="file-upload-btn" style={{ display: "inline-block", marginTop: "0.25rem" }}>
+                        Choose prescription files
+                        <input
+                          type="file"
+                          multiple
+                          accept={ACCEPTED_PRESCRIPTION_TYPES}
+                          onChange={(e) =>
+                            handleMedicalHistoryFileChange(index, "prescriptions", e)
+                          }
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                      <span style={{ marginLeft: "0.75rem", color: "#666", fontSize: "0.85rem" }}>
+                        {history.prescriptions?.length > 0
+                          ? `${history.prescriptions.length} file(s) selected`
+                          : "PDF, JPG, JPEG, PNG"}
+                      </span>
                       {history.prescriptions?.length > 0 && (
                         <div className="file-list">
                           {history.prescriptions.map((file, fileIndex) => (
@@ -1735,18 +1744,27 @@ const UserForm = ({ mode = "add", user = null, onSuccess, onCancel }) => {
 
                     <div className="form-group">
                       <label>Other Attachments</label>
-                      <input
-                        type="file"
-                        multiple
-                        accept={ACCEPTED_ATTACHMENT_TYPES}
-                        onChange={(e) =>
-                          handleMedicalHistoryFileChange(
-                            index,
-                            "otherAttachments",
-                            e
-                          )
-                        }
-                      />
+                      <label className="file-upload-btn" style={{ display: "inline-block", marginTop: "0.25rem" }}>
+                        Choose attachment files
+                        <input
+                          type="file"
+                          multiple
+                          accept={ACCEPTED_ATTACHMENT_TYPES}
+                          onChange={(e) =>
+                            handleMedicalHistoryFileChange(
+                              index,
+                              "otherAttachments",
+                              e
+                            )
+                          }
+                          style={{ display: "none" }}
+                        />
+                      </label>
+                      <span style={{ marginLeft: "0.75rem", color: "#666", fontSize: "0.85rem" }}>
+                        {history.otherAttachments?.length > 0
+                          ? `${history.otherAttachments.length} file(s) selected`
+                          : "PDF, DOC, DOCX, JPG, JPEG, PNG"}
+                      </span>
                       {history.otherAttachments?.length > 0 && (
                         <div className="file-list">
                           {history.otherAttachments.map((file, fileIndex) => (

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '../../api';
+import { api, apiWithoutContentType } from '../../api';
 import toast from 'react-hot-toast';
 // import StudentLayout from '../../components/student/StudentLayout';
 import AudioInstructions from '../../components/student/spoken-english/AudioInstructions';
@@ -212,12 +212,9 @@ export default function SpokenEnglishPage() {
 
       const studentId = localStorage.getItem('userId') || 'student1';
 
-      const response = await api.post(
+      const response = await apiWithoutContentType.post(
         `/api/v2/lms/student/${studentId}/courses/spoken-english/submissions`,
-        formData,
-        {
-          headers: { 'Content-Type': 'multipart/form-data' }
-        }
+        formData
       );
 
       if (response.data.success) {

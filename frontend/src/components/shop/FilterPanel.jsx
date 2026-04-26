@@ -6,7 +6,7 @@ import { X } from 'lucide-react';
  * Sidebar with category, price, and search filters
  * Design System: WTF Module filter pattern
  */
-const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
+const FilterPanel = ({ filters, onFilterChange, onClearFilters, hideCategoryFilter = false }) => {
   const categories = [
     { value: 'ISF Shop', label: 'ISF Shop' },
     { value: 'Medicines', label: 'Medicines' },
@@ -71,7 +71,8 @@ const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
         />
       </div>
 
-      {/* Categories */}
+      {/* Categories — hidden for students; they only see ISF Shop items */}
+      {!hideCategoryFilter && (
       <div className="mb-6">
         <h4 className="text-sm font-medium text-slate-700 mb-2">Categories</h4>
         <div className="space-y-2">
@@ -123,6 +124,7 @@ const FilterPanel = ({ filters, onFilterChange, onClearFilters }) => {
           ) : null;
         })()}
       </div>
+      )}
 
       {/* Price Range */}
       <div className="mb-6">

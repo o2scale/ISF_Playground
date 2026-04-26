@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import CanvasPreview from './CanvasPreview';
 import SubmissionModal from './SubmissionModal';
 import toast from 'react-hot-toast';
-import { api } from '../../../api';
+import { apiWithoutContentType } from '../../../api';
 
 /**
  * WorkshopsMode Component - Story 12.9 (FIX-014)
@@ -44,7 +44,7 @@ export default function WorkshopsMode({ data, studentId, onRefresh }) {
       formData.append('courseId', selectedWorkshop?.id || '');
       formData.append('taskTitle', metadata.title || selectedWorkshop?.title || 'Workshop artwork');
 
-      await api.post(
+      await apiWithoutContentType.post(
         `/api/v2/lms/student/${studentId}/courses/art/submissions`,
         formData
       );

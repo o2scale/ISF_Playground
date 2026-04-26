@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import CanvasPreview from './CanvasPreview';
 import CanvasDrawingTool from './CanvasDrawingTool';
 import toast from 'react-hot-toast';
-import { api } from '../../../api';
+import { api, apiWithoutContentType } from '../../../api';
 
 /**
  * FreeSketchMode Component - Story 12.9 (FIX-014)
@@ -28,7 +28,7 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
       formData.append('artwork', selectedFile);
       formData.append('title', `Sketch - ${new Date().toLocaleDateString()}`);
 
-      await api.post(
+      await apiWithoutContentType.post(
         `/api/v2/lms/student/${studentId}/courses/art/gallery`,
         formData
       );
@@ -55,7 +55,7 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
       formData.append('type', 'art');
       formData.append('mode', 'free_sketch');
 
-      await api.post(
+      await apiWithoutContentType.post(
         `/api/v2/lms/student/${studentId}/courses/art/submissions`,
         formData
       );
@@ -94,7 +94,7 @@ export default function FreeSketchMode({ data, studentId, onRefresh }) {
       formData.append('mode', 'free_sketch');
       formData.append('title', `Sketch - ${new Date().toLocaleDateString()}`);
 
-      await api.post(
+      await apiWithoutContentType.post(
         `/api/v2/lms/student/${studentId}/courses/art/submissions`,
         formData
       );

@@ -1005,13 +1005,32 @@
 
 .student-list {
     padding: 5px 0;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.student-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.student-list::-webkit-scrollbar-track {
+    background: #fff8e6;
+    border-radius: 10px;
+}
+
+.student-list::-webkit-scrollbar-thumb {
+    background: #ffb347;
+    border-radius: 10px;
 }
 
 .student-item {
-    padding: 10px 15px;
+    padding: 12px 15px;
     transition: background-color 0.2s;
     border-bottom: 1px solid #ffe8b3;
     font-size: 0.95rem;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
 }
 
 .student-item:hover {
@@ -1036,6 +1055,12 @@
     user-select: none;
     font-weight: 500;
     color: #6a4c93;
+    min-height: 24px;
+    line-height: 1.5;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
 }
 
 .checkbox-container input {

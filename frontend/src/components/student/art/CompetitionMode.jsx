@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import CanvasPreview from './CanvasPreview';
 import SubmissionModal from './SubmissionModal';
 import toast from 'react-hot-toast';
-import { api } from '../../../api';
+// Use apiWithoutContentType so axios doesn't override multipart/form-data
+// boundary with application/json (which makes multer drop the file).
+import { apiWithoutContentType as api } from '../../../api';
 
 /**
  * CompetitionMode Component - Story 12.9 (FIX-014)
