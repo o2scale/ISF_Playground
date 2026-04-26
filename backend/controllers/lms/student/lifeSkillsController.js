@@ -452,27 +452,47 @@ exports.submitQuiz = async (req, res) => {
     // transactions[] array — race-safe and authoritative.
     const breakdown = quiz.questions.map((question, index) => {
       const userAnswer = answers.find(a => a.questionId === question._id.toString());
-      // Find correct option
-      const correctOpt = question.options.find(o => o.isCorrect);
-      const isCorrect = userAnswer && userAnswer.selectedOptionId === correctOpt._id.toString();
+      let isCorrect = false;
+      let studentAnswerText = 'No Answer';
+      let correctAnswerText = 'Unknown';
+      let correctAnswerId = null;
+
+      // True/False questions have empty options[] and store correctAnswer as a boolean
+      if (question.type === 'true_false') {
+        const userValStr = userAnswer?.selectedOptionId;
+        const dbValBool = question.correctAnswer;
+        let userBool = null;
+        if (typeof userValStr === 'string') {
+          if (userValStr.toLowerCase() === 'true') userBool = true;
+          if (userValStr.toLowerCase() === 'false') userBool = false;
+        }
+        isCorrect = (userBool !== null) && (userBool === dbValBool);
+        studentAnswerText = userValStr || 'No Answer';
+        correctAnswerText = (dbValBool === true) ? 'True' : 'False';
+      } else {
+        // MCQ — defensive lookups so a malformed question can't crash submitQuiz
+        const correctOpt = question.options?.find(o => o.isCorrect);
+        const selectedOption = question.options?.find(o => o._id.toString() === userAnswer?.selectedOptionId);
+        isCorrect = !!(userAnswer && correctOpt && userAnswer.selectedOptionId === correctOpt._id.toString());
+        studentAnswerText = selectedOption ? selectedOption.text : 'No Answer';
+        correctAnswerText = correctOpt ? correctOpt.text : 'Unknown';
+        correctAnswerId = correctOpt?._id || null;
+      }
 
       if (isCorrect) {
         correctAnswers++;
         baseCoins += (question.points || 10);
       }
 
-      // Find Option Texts
-      const selectedOption = question.options.find(o => o._id.toString() === userAnswer?.selectedOptionId);
-
       return {
         questionId: question._id,
-        question: question.text, // Return Question Text
+        question: question.text || question.questionText, // Return Question Text
         correct: isCorrect,
         isCorrect: isCorrect, // MATCH FRONTEND PROPERTY
         points: question.points || 10, // Pass points
-        studentAnswer: selectedOption ? selectedOption.text : 'No Answer', // Return Text
-        correctAnswer: correctOpt.text, // Return Text
-        correctAnswerId: correctOpt._id, // Keep ID just in case
+        studentAnswer: studentAnswerText,
+        correctAnswer: correctAnswerText,
+        correctAnswerId,
         explanation: question.explanation
       };
     });
