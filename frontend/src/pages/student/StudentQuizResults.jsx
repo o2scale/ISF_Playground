@@ -29,6 +29,8 @@ export default function LifeSkillsQuizResults() {
     correctAnswers,
     totalQuestions,
     coinsEarned, // This is the total coins earned
+    alreadyEarned, // True when student previously passed this quiz (dedup)
+    baseCoinsAvailable, // What they would have earned if it were a fresh attempt
     breakdown
   } = results;
 
@@ -82,24 +84,43 @@ export default function LifeSkillsQuizResults() {
               💰 {totalCoinsEarned} Coins Earned!
             </div>
             <div className="text-sm text-gray-600 space-y-1">
-              <div>Base coins: {coinsEarned}</div>
-              {bonusCoins > 0 && (
-                <div className="text-green-600 font-medium">
-                  🎁 Bonus coins: +{bonusCoins} (scored 80% or above!)
+              {alreadyEarned ? (
+                <div className="text-blue-700 font-medium">
+                  ℹ️ Coins for this quiz were already earned on a previous attempt — practice doesn't pay twice, but keep practicing! 🌟
                 </div>
+              ) : (
+                <>
+                  <div>Base coins: {coinsEarned}</div>
+                  {bonusCoins > 0 && (
+                    <div className="text-green-600 font-medium">
+                      🎁 Bonus coins: +{bonusCoins} (scored 80% or above!)
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>
         </div>
 
         {/* Performance Message */}
-        {isPassing && (
+        {isPassing && !alreadyEarned && (
           <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6 mb-6 text-center">
             <div className="text-2xl font-bold text-green-800 mb-2" style={{ fontFamily: 'Patrick Hand, cursive' }}>
               🎊 Congratulations! 🎊
             </div>
             <p className="text-green-700">
               You scored 80% or above and earned the bonus coins! Amazing work!
+            </p>
+          </div>
+        )}
+
+        {isPassing && alreadyEarned && (
+          <div className="bg-blue-50 border-2 border-blue-300 rounded-xl p-6 mb-6 text-center">
+            <div className="text-2xl font-bold text-blue-800 mb-2" style={{ fontFamily: 'Patrick Hand, cursive' }}>
+              🌟 Great Practice! 🌟
+            </div>
+            <p className="text-blue-700">
+              You aced this quiz again! Coins were earned the first time you passed — this round was just for fun.
             </p>
           </div>
         )}

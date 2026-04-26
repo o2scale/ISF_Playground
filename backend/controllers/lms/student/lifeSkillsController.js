@@ -579,6 +579,10 @@ exports.submitQuiz = async (req, res) => {
         totalQuestions,
         passed,
         coinsEarned: coinsAwarded,
+        // Honest signal so the UI can avoid lying with "you earned bonus coins!"
+        // when alreadyPassed dedup withheld the reward on a repeat attempt.
+        alreadyEarned: alreadyPassed,
+        baseCoinsAvailable: baseCoins,
         breakdown
       }
     });

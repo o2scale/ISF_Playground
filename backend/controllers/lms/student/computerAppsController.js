@@ -378,6 +378,8 @@ exports.submitQuiz = async (req, res) => {
         totalQuestions,
         passed,
         coinsEarned: coinsAwarded,
+        alreadyEarned: alreadyPassed,
+        baseCoinsAvailable: baseCoins,
         breakdown
       }
     });
