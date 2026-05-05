@@ -17,10 +17,17 @@ const fs = require('fs');
  * - Offline sync support (queued submissions)
  */
 
-// Helper to find life skills course
+// Helper to find life skills course (legacy — returns first published)
 const getLifeSkillsCourse = async () => {
   return await Course.findOne({ category: 'Life Skills', status: 'published' })
-    .populate('modules.chapters.contentItems.quizRef') // Populate quizRef inside embedded contentItems
+    .populate('modules.chapters.contentItems.quizRef')
+    .lean();
+};
+
+// Returns ALL published Life Skills courses
+const getLifeSkillsCourses = async () => {
+  return await Course.find({ category: 'Life Skills', status: 'published' })
+    .populate('modules.chapters.contentItems.quizRef')
     .lean();
 };
 
@@ -75,66 +82,86 @@ exports.getLifeSkillsTasks = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    const course = await getLifeSkillsCourse();
-    if (!course) {
-      return res.json({ success: true, tasks: [], completedTasks: 0, totalTasks: 0 });
+    const courses = await getLifeSkillsCourses();
+    if (!courses || courses.length === 0) {
+      return res.json({ success: true, courses: [], modules: [], completedTasks: 0, totalTasks: 0 });
     }
 
-    // Fetch progress
-    const progress = await StudentProgress.findOne({ student: studentId, course: course._id }).lean();
-    const completedItems = new Set(progress?.completedItems?.map(i => i.itemId.toString()) || []);
+    // Fetch progress for all courses in one query
+    const progressRecords = await StudentProgress.find({
+      student: studentId,
+      course: { $in: courses.map(c => c._id) }
+    }).lean();
+    const progressByCourse = new Map(progressRecords.map(p => [p.course.toString(), p]));
 
-    // Map modules with completion status
-    const modules = course.modules.map(m => ({
-      id: m._id,
-      title: m.title,
-      chapters: m.chapters.map(c => ({
-        id: c._id,
-        title: c.title,
-        contentItems: c.contentItems.map(item => {
-          // Determine type
-          let type = item.type;
-          // Fallback logic if type is missing or generic 'task'
-          if (!type || type === 'task') {
-            if (item.metadata && item.metadata.taskType) {
-              type = item.metadata.taskType;
-            } else {
-              type = 'voice'; // Default fallback
-            }
-          }
+    const mapItem = (item, completedItems) => {
+      let type = item.type;
+      if (!type || type === 'task') {
+        if (item.metadata && item.metadata.taskType) {
+          type = item.metadata.taskType;
+        } else {
+          type = 'voice';
+        }
+      }
+      return {
+        id: item._id,
+        type,
+        title: item.title,
+        description: item.description,
+        fileUrl: item.fileUrl,
+        totalQuestions: item.quizRef?.questions?.length || item.metadata?.questions?.length || 0,
+        totalCoins: (item.quizRef?.questions?.length || item.metadata?.questions?.length || 0) * 12,
+        bonusCoins: item.metadata?.bonusCoins || 24,
+        difficulty: item.metadata?.difficulty || 'medium',
+        coinsForSubmission: item.metadata?.coins || 20,
+        instructions: item.description,
+        category: item.metadata?.category || 'general',
+        duration: item.metadata?.duration,
+        isCompleted: completedItems.has(item._id.toString())
+      };
+    };
 
+    let totalCompleted = 0;
+    let totalItems = 0;
+
+    const coursePayloads = courses.map(course => {
+      const progress = progressByCourse.get(course._id.toString());
+      const completedItems = new Set(progress?.completedItems?.map(i => i.itemId.toString()) || []);
+      totalCompleted += completedItems.size;
+
+      const modules = course.modules.map(m => ({
+        id: m._id,
+        title: m.title,
+        chapters: m.chapters.map(c => {
+          totalItems += c.contentItems.length;
           return {
-            id: item._id,
-            type: type,
-            title: item.title,
-            description: item.description,
-            fileUrl: item.fileUrl,
-            // For Quizzes: Check quizRef first, then metadata
-            totalQuestions: item.quizRef?.questions?.length || item.metadata?.questions?.length || 0,
-            totalCoins: (item.quizRef?.questions?.length || item.metadata?.questions?.length || 0) * 12,
-            bonusCoins: item.metadata?.bonusCoins || 24,
-            // For Voice
-            difficulty: item.metadata?.difficulty || 'medium',
-            coinsForSubmission: item.metadata?.coins || 20,
-            instructions: item.description,
-            category: item.metadata?.category || 'general',
-            // For Video
-            duration: item.metadata?.duration,
-            isCompleted: completedItems.has(item._id.toString())
+            id: c._id,
+            title: c.title,
+            contentItems: c.contentItems.map(item => mapItem(item, completedItems))
           };
         })
-      }))
-    }));
+      }));
+
+      return {
+        courseId: course._id,
+        courseName: course.title,
+        modules
+      };
+    });
+
+    // Legacy fields point at first course so older clients keep working
+    const first = coursePayloads[0];
 
     res.json({
       success: true,
       studentId,
-      courseId: course._id,
-      courseName: course.title,
-      modules: modules,
-      // Keep legacy counts for dashboard if needed
-      completedTasks: completedItems.size,
-      totalTasks: course.modules.reduce((acc, m) => acc + m.chapters.reduce((cAcc, c) => cAcc + c.contentItems.length, 0), 0)
+      courses: coursePayloads,
+      // Legacy fields (single-course shape)
+      courseId: first?.courseId,
+      courseName: first?.courseName,
+      modules: first?.modules || [],
+      completedTasks: totalCompleted,
+      totalTasks: totalItems
     });
   } catch (error) {
     errorLogger.error({ err: error }, 'Error fetching Life Skills tasks');

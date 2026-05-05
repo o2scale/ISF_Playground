@@ -13,11 +13,13 @@ import RedoModal from '../../components/student/spoken-english/RedoModal';
  * Main page for video recording of poetry recitation and speeches
  */
 export default function SpokenEnglishPage() {
-  const { taskId = 'task1' } = useParams();
+  const { taskId } = useParams();
   const navigate = useNavigate();
+  const isListMode = !taskId;
 
   // State Management
   const [task, setTask] = useState(null);
+  const [taskList, setTaskList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -33,10 +35,14 @@ export default function SpokenEnglishPage() {
   const recordedChunksRef = useRef([]);
   const recordingTimerRef = useRef(null);
 
-  // Load task data on mount
+  // Load data on mount — list when no taskId, single task otherwise
   useEffect(() => {
-    fetchTaskData();
-    requestWebcamAccess();
+    if (isListMode) {
+      fetchTaskList();
+    } else {
+      fetchTaskData();
+      requestWebcamAccess();
+    }
 
     // Cleanup on unmount
     return () => {
@@ -46,6 +52,30 @@ export default function SpokenEnglishPage() {
       }
     };
   }, [taskId]);
+
+  /**
+   * Fetch all available Spoken English tasks (list mode)
+   */
+  const fetchTaskList = async () => {
+    try {
+      setLoading(true);
+      const studentId = localStorage.getItem('userId') || 'student1';
+      const response = await api.get(`/api/v2/lms/student/${studentId}/courses/spoken-english`);
+
+      if (response.data.success) {
+        setTaskList(response.data.tasks || []);
+      } else {
+        setError('Failed to load tasks');
+        toast.error('Failed to load tasks');
+      }
+    } catch (err) {
+      console.error('Error fetching task list:', err);
+      setError('Failed to load tasks');
+      toast.error('Failed to load tasks');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   /**
    * Fetch task data from API
@@ -239,12 +269,85 @@ export default function SpokenEnglishPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <p className="text-xl text-gray-600">Loading task...</p>
+        <p className="text-xl text-gray-600">{isListMode ? 'Loading tasks...' : 'Loading task...'}</p>
       </div>
     );
   }
 
-  // Error State
+  // List mode — render task picker when no taskId in URL
+  if (isListMode) {
+    if (error) {
+      return (
+        <div className="flex items-center justify-center min-h-screen">
+          <div className="text-center">
+            <p className="text-xl text-red-600 mb-4">{error}</p>
+            <button
+              onClick={() => navigate('/student/dashboard')}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Return to Dashboard
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="max-w-6xl mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-blue-900 mb-2">SPOKEN ENGLISH</h1>
+          <p className="text-lg text-gray-600">Pick a task to record your video.</p>
+        </div>
+
+        {taskList.length === 0 ? (
+          <div className="text-center py-12 bg-white border-2 border-dashed border-gray-300 rounded-xl">
+            <p className="text-lg text-gray-600">No Spoken English tasks available yet.</p>
+            <button
+              onClick={() => navigate('/student/dashboard')}
+              className="mt-4 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Return to Dashboard
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {taskList.map((t) => {
+              const locked = t.status === 'locked';
+              const graded = t.status === 'graded';
+              const underReview = t.status === 'under_review';
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  disabled={locked}
+                  onClick={() => !locked && navigate(`/student/spoken-english/${t.id}`)}
+                  className={`text-left bg-white border-2 rounded-xl p-5 transition-shadow ${
+                    locked
+                      ? 'border-gray-200 opacity-60 cursor-not-allowed'
+                      : 'border-blue-200 hover:shadow-lg cursor-pointer'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="px-3 py-1 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
+                      {t.difficulty || 'Beginner'}
+                    </span>
+                    <span className="text-2xl">{locked ? '🔒' : graded ? '✅' : underReview ? '⏳' : '🎤'}</span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-800 mb-2">{t.title}</h3>
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <span>{t.estimatedTime || 10} min</span>
+                    <span className="capitalize">{(t.status || 'available').replace('_', ' ')}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // Error State (single task mode)
   if (error || !task) {
     return (
       <div className="flex items-center justify-center min-h-screen">

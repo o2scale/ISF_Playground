@@ -672,14 +672,19 @@ class MedicalCheckIns {
     }
   }
 
-  static async getMedicalCheckInsByBalagruhaIds(balagruhaIds) {
+  static async getMedicalCheckInsByBalagruhaIds(balagruhaIds, options = {}) {
     try {
-      if (
-        !balagruhaIds ||
-        !Array.isArray(balagruhaIds) ||
-        balagruhaIds?.length === 0
-      ) {
-        // get all balagruha ids from the database if not provided
+      const isEmpty = !balagruhaIds || !Array.isArray(balagruhaIds) || balagruhaIds.length === 0;
+      if (isEmpty) {
+        if (options.scopeApplied) {
+          // RBAC narrowed the caller to zero balagruhas — honor that, do not widen.
+          return {
+            success: true,
+            data: { medicalCheckIns: [] },
+            message: "No balagruhas in scope for this user",
+          };
+        }
+        // No scope and no IDs supplied (admin path): default to all balagruhas.
         const Balagruha = require("../models/balagruha");
         balagruhaIds = await Balagruha.find({}).select("_id").lean();
         balagruhaIds = balagruhaIds.map((item) => item._id.toString());

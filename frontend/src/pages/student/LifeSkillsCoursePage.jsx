@@ -11,9 +11,7 @@ import toast from 'react-hot-toast';
 export default function LifeSkillsCoursePage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
-  const [courseName, setCourseName] = useState('Life Skills 🌱'); // Default fallback
-  const [courseId, setCourseId] = useState(null); // Store courseId
-  const [modules, setModules] = useState([]);
+  const [courses, setCourses] = useState([]); // [{ courseId, courseName, modules }]
   const [error, setError] = useState(null);
   const [activeVideo, setActiveVideo] = useState(null); // For playing video modal
   const [activePdf, setActivePdf] = useState(null); // For viewing PDF modal
@@ -29,9 +27,13 @@ export default function LifeSkillsCoursePage() {
       const response = await api.get(`/api/v2/lms/student/${studentId}/courses/life-skills`);
 
       if (response.data.success) {
-        setModules(response.data.modules || []);
-        if (response.data.courseName) setCourseName(response.data.courseName);
-        if (response.data.courseId) setCourseId(response.data.courseId);
+        // Multi-course shape; fall back to legacy single-course shape
+        const list = Array.isArray(response.data.courses) && response.data.courses.length > 0
+          ? response.data.courses
+          : (response.data.modules
+            ? [{ courseId: response.data.courseId, courseName: response.data.courseName, modules: response.data.modules }]
+            : []);
+        setCourses(list);
       } else {
         setError('Failed to load Life Skills tasks');
         toast.error('Failed to load tasks');
@@ -54,18 +56,16 @@ export default function LifeSkillsCoursePage() {
     navigate(`/student/life-skills/quiz/${quizId}`);
   };
 
-  const markContentComplete = async (item) => {
+  const markContentComplete = async (item, parentCourseId) => {
     try {
       const studentId = localStorage.getItem('userId') || 'student1';
-      if (!courseId) return;
+      if (!parentCourseId) return;
 
       await api.post(`/api/v2/lms/student/${studentId}/courses/life-skills/mark-complete`, {
         itemId: item.id,
         itemType: item.type,
-        courseId: courseId
+        courseId: parentCourseId
       });
-      // Optionally refresh tasks to show updated progress? 
-      // For now, fire and forget to avoid UI jitter, or could update local state.
     } catch (e) {
       console.error("Failed to mark complete", e);
     }
@@ -101,14 +101,20 @@ export default function LifeSkillsCoursePage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-blue-900 mb-2" style={{ fontFamily: 'Patrick Hand, cursive' }}>
-            {courseName}
+            Life Skills 🌱
           </h1>
           <p className="text-lg text-gray-600">Learn about hygiene, emotions, and social skills!</p>
         </div>
 
-        {/* Modules Hierarchy */}
-        <div className="space-y-12">
-          {modules.map((module) => (
+        {/* Courses */}
+        <div className="space-y-16">
+          {courses.map((course) => (
+          <section key={course.courseId} className="course-section">
+            <h2 className="text-3xl font-extrabold text-blue-800 mb-2" style={{ fontFamily: 'Patrick Hand, cursive' }}>
+              📚 {course.courseName}
+            </h2>
+            <div className="space-y-12">
+              {(course.modules || []).map((module) => (
             <div key={module.id} className="module-section">
               <h2 className="text-3xl font-bold text-gray-800 mb-6 border-b-2 border-green-200 pb-2">
                 {module.title}
@@ -138,7 +144,7 @@ export default function LifeSkillsCoursePage() {
                                 <button
                                   onClick={() => {
                                     setActiveVideo(item);
-                                    markContentComplete(item);
+                                    markContentComplete(item, course.courseId);
                                   }}
                                   className="w-full mt-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2"
                                 >
@@ -161,7 +167,7 @@ export default function LifeSkillsCoursePage() {
                                 <button
                                   onClick={() => {
                                     setActivePdf(item);
-                                    markContentComplete(item);
+                                    markContentComplete(item, course.courseId);
                                   }}
                                   className="w-full mt-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center justify-center gap-2 block text-center"
                                 >
@@ -225,6 +231,9 @@ export default function LifeSkillsCoursePage() {
                 ))}
               </div>
             </div>
+              ))}
+            </div>
+          </section>
           ))}
         </div>
 
