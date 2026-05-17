@@ -318,7 +318,7 @@ exports.getMyPurchaseRequests = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
       .populate('deliveredByCoachId', 'name email')  // Story 2.6: Delivery tracking
-      .populate('items.productId', 'name sku stock lowStockThreshold images')
+      .populate({path:'items.productId',select:'name sku stock lowStockThreshold images approvedVendors',populate:{path:'approvedVendors.vendorId',select:'name'}})
       .sort({ createdAt: -1 });
 
     // Sprint5-Story-21: Manually populate balagruhaId (skip if STOCK)
@@ -466,7 +466,7 @@ exports.getAllPurchaseRequests = async (req, res) => {
         .populate('requestedBy', 'name email role')
         .populate('reviewedBy', 'name email')
         .populate('deliveredByCoachId', 'name email')
-        .populate('items.productId', 'name sku stock lowStockThreshold images')
+        .populate({path:'items.productId',select:'name sku stock lowStockThreshold images approvedVendors',populate:{path:'approvedVendors.vendorId',select:'name'}})
         .populate('balagruhaId', 'name')
         .sort({ createdAt: -1 })
         .skip(skip)
@@ -581,7 +581,11 @@ exports.getPurchaseRequestById = async (req, res) => {
       .populate('requestedBy', 'name email role')
       .populate('reviewedBy', 'name email')
       .populate('completedBy', 'name email')
-      .populate('items.productId', 'name sku stock lowStockThreshold images')
+      .populate({
+        path: 'items.productId',
+        select: 'name sku stock lowStockThreshold images approvedVendors',
+        populate: { path: 'approvedVendors.vendorId', select: 'name contactPerson phone' }
+      })
       .populate('inventoryTransactionIds');
 
     if (!request) {

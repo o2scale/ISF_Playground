@@ -6,11 +6,19 @@ import toast from 'react-hot-toast';
 /**
  * Toolbar Component - Epic 01 Story 01
  * Student toolbar with:
- * - Emotion tracking buttons (Happy, Sad, Angry)
+ * - 5-mood emotion tracking (aligned with StudentMoodTracker schema)
  * - Voice Chat with Amma button
  * - Homework button with count badge
  * - Help button
  */
+const EMOTIONS = [
+  { value: 'happy', emoji: '😊', label: "I'm feeling happy" },
+  { value: 'excited', emoji: '🤩', label: "I'm feeling excited" },
+  { value: 'neutral', emoji: '😐', label: "I'm feeling okay" },
+  { value: 'sad', emoji: '😢', label: "I'm feeling sad" },
+  { value: 'very_sad', emoji: '😭', label: "I'm feeling very sad" },
+];
+
 export default function Toolbar() {
   const navigate = useNavigate();
 
@@ -36,11 +44,7 @@ export default function Toolbar() {
   const handleEmotionClick = async (emotion) => {
     setSelectedEmotion(emotion);
 
-    const emojiMap = {
-      happy: '😊',
-      sad: '😢',
-      angry: '😡'
-    };
+    const emojiMap = EMOTIONS.reduce((acc, e) => ({ ...acc, [e.value]: e.emoji }), {});
 
     // Check if offline using state (tracks offline event, not just navigator.onLine)
     if (isOffline) {
@@ -147,44 +151,23 @@ export default function Toolbar() {
   return (
     <div className="bg-gray-50 border-b border-gray-200 px-6 py-3">
       <div className="flex items-center justify-center gap-4 max-w-7xl mx-auto flex-wrap">
-        {/* Emotion Tracking Buttons */}
+        {/* Emotion Tracking Buttons — 5-mood scale */}
         <div className="flex items-center gap-2 bg-white px-4 py-2 rounded-lg border border-gray-200">
-          <button
-            onClick={() => handleEmotionClick('happy')}
-            className={`text-3xl p-2 rounded-lg transition-colors ${
-              selectedEmotion === 'happy'
-                ? 'bg-blue-100 ring-2 ring-blue-500'
-                : 'hover:bg-gray-100'
-            }`}
-            aria-label="I'm feeling happy"
-            title="I'm feeling happy"
-          >
-            😊
-          </button>
-          <button
-            onClick={() => handleEmotionClick('sad')}
-            className={`text-3xl p-2 rounded-lg transition-colors ${
-              selectedEmotion === 'sad'
-                ? 'bg-blue-100 ring-2 ring-blue-500'
-                : 'hover:bg-gray-100'
-            }`}
-            aria-label="I'm feeling sad"
-            title="I'm feeling sad"
-          >
-            😢
-          </button>
-          <button
-            onClick={() => handleEmotionClick('angry')}
-            className={`text-3xl p-2 rounded-lg transition-colors ${
-              selectedEmotion === 'angry'
-                ? 'bg-blue-100 ring-2 ring-blue-500'
-                : 'hover:bg-gray-100'
-            }`}
-            aria-label="I'm feeling angry"
-            title="I'm feeling angry"
-          >
-            😡
-          </button>
+          {EMOTIONS.map(({ value, emoji, label }) => (
+            <button
+              key={value}
+              onClick={() => handleEmotionClick(value)}
+              className={`text-3xl p-2 rounded-lg transition-colors ${
+                selectedEmotion === value
+                  ? 'bg-blue-100 ring-2 ring-blue-500'
+                  : 'hover:bg-gray-100'
+              }`}
+              aria-label={label}
+              title={label}
+            >
+              {emoji}
+            </button>
+          ))}
         </div>
 
         {/* Voice Chat Button */}

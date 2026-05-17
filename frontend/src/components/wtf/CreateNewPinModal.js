@@ -80,8 +80,14 @@ const CreateNewPinModal = ({
             getUserBalagruhas(),
           ]);
 
-          // Filter only students
-          const users = Array.isArray(usersResponse) ? usersResponse : [];
+          // Filter only students.
+          // fetchUsers() resolves to the API envelope { success, data: [...], count, pagination }
+          // so the array lives at .data — not at the top level.
+          const users = Array.isArray(usersResponse)
+            ? usersResponse
+            : Array.isArray(usersResponse?.data)
+              ? usersResponse.data
+              : [];
           const studentUsers = users.filter(
             (user) => user.role === "student" || user.userType === "student"
           );

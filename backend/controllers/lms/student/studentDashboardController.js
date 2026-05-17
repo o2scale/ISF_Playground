@@ -284,11 +284,12 @@ exports.saveEmotion = async (req, res) => {
     const { studentId } = req.params;
     const { emotion, timestamp, context } = req.body;
 
-    // Validate emotion
-    if (!emotion || !['happy', 'sad', 'angry'].includes(emotion)) {
+    // Validate emotion — canonical 5-mood schema (legacy 'angry' kept for back-compat).
+    const VALID_EMOTIONS = ['happy', 'excited', 'neutral', 'sad', 'very_sad', 'angry'];
+    if (!emotion || !VALID_EMOTIONS.includes(emotion)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid emotion. Must be happy, sad, or angry'
+        message: `Invalid emotion. Must be one of: ${VALID_EMOTIONS.join(', ')}`
       });
     }
 
@@ -358,8 +359,8 @@ exports.batchSaveEmotions = async (req, res) => {
       });
     }
 
-    // Validate each emotion entry
-    const validEmotions = ['happy', 'sad', 'angry'];
+    // Validate each emotion entry — canonical 5-mood schema.
+    const validEmotions = ['happy', 'excited', 'neutral', 'sad', 'very_sad', 'angry'];
     const emotionEntries = emotions
       .filter(e => e.emotion && validEmotions.includes(e.emotion))
       .map(e => ({

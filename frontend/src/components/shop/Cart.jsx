@@ -48,6 +48,7 @@ const Cart = () => {
 
   const handleContinueShopping = () => {
     setCartOpen(false);
+    navigate('/shop');
   };
 
   const handleCheckout = () => {

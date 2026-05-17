@@ -260,13 +260,29 @@ class MedicalCheckIns {
       let doctorVisitsData = [];
 
       if (doctorVisits && Array.isArray(doctorVisits) && doctorVisits.length > 0) {
-        // New format: multiple visits
-        // BugFix: Don't add ALL files to ALL visits - files should be added per-visit during edit
+        // New format: multiple visits.
+        // Uploaded prescription/test files have no per-visit association in the
+        // current form payload, so we attach them all to the most recent visit
+        // (last entry). Otherwise the files upload to S3 but never make it into
+        // any visit subdocument and become unviewable.
         doctorVisitsData = doctorVisits.map(visit => ({
           ...visit,
           prescriptionFiles: visit.prescriptionFiles || [],
           testResultFiles: visit.testResultFiles || [],
         }));
+        const lastVisit = doctorVisitsData[doctorVisitsData.length - 1];
+        if (processedPrescriptions.length > 0) {
+          lastVisit.prescriptionFiles = [
+            ...(lastVisit.prescriptionFiles || []),
+            ...processedPrescriptions,
+          ];
+        }
+        if (processedTestResults.length > 0) {
+          lastVisit.testResultFiles = [
+            ...(lastVisit.testResultFiles || []),
+            ...processedTestResults,
+          ];
+        }
       } else if (doctorVisit) {
         // Old format: single visit (backward compatibility)
         doctorVisitData = {
@@ -281,13 +297,26 @@ class MedicalCheckIns {
       let followUpsData = [];
 
       if (followUps && Array.isArray(followUps) && followUps.length > 0) {
-        // New format: multiple follow-ups with file uploads
-        // BugFix: Don't add ALL files to ALL follow-ups - files should be added per-follow-up during edit
+        // New format: multiple follow-ups. Same handling as doctorVisits — attach
+        // uploaded files to the most recent entry so they don't vanish.
         followUpsData = followUps.map(followUp => ({
           ...followUp,
           descriptionFiles: followUp.descriptionFiles || [],
           testResultFiles: followUp.testResultFiles || [],
         }));
+        const lastFollowUp = followUpsData[followUpsData.length - 1];
+        if (processedFollowUpDescriptions.length > 0) {
+          lastFollowUp.descriptionFiles = [
+            ...(lastFollowUp.descriptionFiles || []),
+            ...processedFollowUpDescriptions,
+          ];
+        }
+        if (processedFollowUpTestResults.length > 0) {
+          lastFollowUp.testResultFiles = [
+            ...(lastFollowUp.testResultFiles || []),
+            ...processedFollowUpTestResults,
+          ];
+        }
       } else if (followUp) {
         // Old format: single follow-up (backward compatibility)
         followUpData = followUp;
@@ -548,8 +577,8 @@ class MedicalCheckIns {
         }
       }
 
-      // Process prescription files
-      let processedPrescriptions = checkInExists.data.doctorVisit?.prescriptionFiles || [];
+      // Upload prescription files to S3 (we'll attach them to the right place below)
+      let newPrescriptions = [];
       if (fileGroups.prescriptions && fileGroups.prescriptions.length > 0) {
         for (let i = 0; i < fileGroups.prescriptions.length; i++) {
           let file = fileGroups.prescriptions[i];
@@ -560,20 +589,19 @@ class MedicalCheckIns {
             fileName
           );
           if (result.success) {
-            let prescriptionObj = {
-              fileName: fileName,
+            newPrescriptions.push({
+              fileName,
               fileUrl: result.url,
               fileType: result.contentType,
               fileSize: result.size,
               uploadedBy: createdById,
-            };
-            processedPrescriptions.push(prescriptionObj);
+            });
           }
         }
       }
 
-      // Process test result files
-      let processedTestResults = checkInExists.data.doctorVisit?.testResultFiles || [];
+      // Upload test result files to S3
+      let newTestResults = [];
       if (fileGroups.testResults && fileGroups.testResults.length > 0) {
         for (let i = 0; i < fileGroups.testResults.length; i++) {
           let file = fileGroups.testResults[i];
@@ -584,24 +612,44 @@ class MedicalCheckIns {
             fileName
           );
           if (result.success) {
-            let testResultObj = {
-              fileName: fileName,
+            newTestResults.push({
+              fileName,
               fileUrl: result.url,
               fileType: result.contentType,
               fileSize: result.size,
               uploadedBy: createdById,
-            };
-            processedTestResults.push(testResultObj);
+            });
           }
         }
       }
 
-      // Update check-in with all processed files
-      const updateData = {
-        attachments: processedAttachments,
-        "doctorVisit.prescriptionFiles": processedPrescriptions,
-        "doctorVisit.testResultFiles": processedTestResults,
-      };
+      // Decide where to write files: new-format doctorVisits[] if present,
+      // otherwise legacy doctorVisit (back-compat). When using new format,
+      // append uploads to the most recent visit — matches the create flow.
+      const existingDoctorVisits = Array.isArray(checkInExists.data.doctorVisits)
+        ? checkInExists.data.doctorVisits
+        : [];
+      const useNewFormat = existingDoctorVisits.length > 0;
+
+      const updateData = { attachments: processedAttachments };
+
+      if (useNewFormat) {
+        const updatedVisits = existingDoctorVisits.map((v, idx) => {
+          if (idx !== existingDoctorVisits.length - 1) return v;
+          return {
+            ...v,
+            prescriptionFiles: [...(v.prescriptionFiles || []), ...newPrescriptions],
+            testResultFiles: [...(v.testResultFiles || []), ...newTestResults],
+          };
+        });
+        updateData.doctorVisits = updatedVisits;
+      } else {
+        // Legacy single-visit fallback
+        const legacyPrescriptions = checkInExists.data.doctorVisit?.prescriptionFiles || [];
+        const legacyTestResults = checkInExists.data.doctorVisit?.testResultFiles || [];
+        updateData["doctorVisit.prescriptionFiles"] = [...legacyPrescriptions, ...newPrescriptions];
+        updateData["doctorVisit.testResultFiles"] = [...legacyTestResults, ...newTestResults];
+      }
 
       const result = await updateMedicalCheckInAttachments(
         checkInId,

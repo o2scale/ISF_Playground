@@ -206,18 +206,29 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                   <tr style={{ backgroundColor: '#f5f5f5', borderBottom: '2px solid #ddd' }}>
                     <th style={{ padding: '10px', textAlign: 'left' }}>Product</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>SKU</th>
+                    <th style={{ padding: '10px', textAlign: 'left' }}>Vendor(s)</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Requested Qty</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Current Stock</th>
-                    <th style={{ padding: '10px', textAlign: 'center' }}>Threshold</th>
                     <th style={{ padding: '10px', textAlign: 'center' }}>Threshold</th>
                   </tr>
                 </thead>
                 <tbody>
                   {request.items && request.items.length > 0 ? (
-                    request.items.map((item, idx) => (
+                    request.items.map((item, idx) => {
+                      const vendors = Array.isArray(item.productId?.approvedVendors)
+                        ? item.productId.approvedVendors
+                            .slice()
+                            .sort((a, b) => (a.rank || 99) - (b.rank || 99))
+                            .map((v) => v.vendorId?.name)
+                            .filter(Boolean)
+                        : [];
+                      return (
                       <tr key={idx} style={{ borderBottom: '1px solid #eee' }}>
                         <td style={{ padding: '10px' }}>{item.productName}</td>
                         <td style={{ padding: '10px', textAlign: 'center', color: '#666' }}>{item.productSKU}</td>
+                        <td style={{ padding: '10px', color: vendors.length ? '#333' : '#999' }}>
+                          {vendors.length ? vendors.join(', ') : '—'}
+                        </td>
                         <td style={{ padding: '10px', textAlign: 'center', fontWeight: 'bold' }}>{item.requestedQuantity}</td>
                         <td style={{ padding: '10px', textAlign: 'center' }}>
                           <span className={item.currentStock === 0 ? 'text-danger' : item.currentStock <= item.lowStockThreshold ? 'text-warning' : ''}>
@@ -232,7 +243,8 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                         </td>
                         <td style={{ padding: '10px', textAlign: 'center', color: '#999' }}>{item.lowStockThreshold}</td>
                       </tr>
-                    ))
+                      );
+                    })
                   ) : (
                     <tr>
                       <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No items found</td>
@@ -241,11 +253,11 @@ export default function ViewRequestModal({ request, onClose, userRole, onRefresh
                 </tbody>
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #ddd', fontWeight: 'bold', backgroundColor: '#f9f9f9' }}>
-                    <td colSpan="2" style={{ padding: '10px' }}>Total Units Requested</td>
+                    <td colSpan="3" style={{ padding: '10px' }}>Total Units Requested</td>
                     <td style={{ padding: '10px', textAlign: 'center', color: '#0066cc' }}>
                       {request.items ? request.items.reduce((sum, item) => sum + item.requestedQuantity, 0) : 0} units
                     </td>
-                    <td colSpan="3"></td>
+                    <td colSpan="2"></td>
                   </tr>
                 </tfoot>
               </table>

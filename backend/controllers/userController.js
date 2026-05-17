@@ -902,6 +902,27 @@ exports.updateUserDetails = async (req, res) => {
       });
     }
 
+    // RBAC scope enforcement: when authorize() has injected a balagruha scope,
+    // verify the target user belongs to one of the caller's allowed balagruhas.
+    // Admins (scope:'all') have no scopeFilter.balagruhaId, so this is a no-op.
+    if (req.scopeFilter && req.scopeFilter.balagruhaId) {
+      const allowedIds = req.scopeFilter.balagruhaId.$in
+        ? req.scopeFilter.balagruhaId.$in.map((id) => id.toString())
+        : [req.scopeFilter.balagruhaId.toString()];
+      const target = await User.findById(userId).select("balagruhaIds role").lean();
+      if (!target) {
+        return res.status(404).json({ success: false, message: "User not found" });
+      }
+      const targetBalagruhas = (target.balagruhaIds || []).map((id) => id.toString());
+      const inScope = targetBalagruhas.some((id) => allowedIds.includes(id));
+      if (!inScope) {
+        return res.status(403).json({
+          success: false,
+          message: "User is outside your assigned balagruha scope.",
+        });
+      }
+    }
+
     req.body.updatedBy = req.user._id;
     // check the request if from localhost/ offline case
     let isOfflineReq = isRequestFromLocalhost(req);

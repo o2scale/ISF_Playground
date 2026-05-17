@@ -15,7 +15,9 @@ const emotionTrackingSchema = new mongoose.Schema(
     },
     emotion: {
       type: String,
-      enum: ['happy', 'sad', 'angry'],
+      // Aligned with StudentMoodTracker canonical 5-mood schema.
+      // Legacy 'angry' kept so existing records don't fail validation on save.
+      enum: ['happy', 'excited', 'neutral', 'sad', 'very_sad', 'angry'],
       required: true
     },
     timestamp: {
