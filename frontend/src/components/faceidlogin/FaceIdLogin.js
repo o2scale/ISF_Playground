@@ -5,6 +5,11 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import * as Human from "@vladmandic/human";
 
+// Minimum capture quality before the user is allowed to submit. Real-world
+// indoor lighting often scores 45–55%; backend re-validates anyway, so a
+// permissive gate here improves UX without weakening security.
+const CAPTURE_QUALITY_MIN = 45;
+
 /**
  * FaceIdLogin Component - Enhanced with Real-Time Face Detection
  * Sprint 1.1 Epic 02 Story 01 Task 8: Frontend Face Capture UI
@@ -286,8 +291,9 @@ const FaceIdLogin = ({ onToggle }) => {
       return;
     }
 
-    // Check quality threshold
-    if (captureQuality < 60) {
+    // Check quality threshold. 45% is a balance between rejecting truly bad
+    // captures and letting indoor lighting through; backend still re-validates.
+    if (captureQuality < CAPTURE_QUALITY_MIN) {
       setError(`Image quality too low (${captureQuality}%). Please improve lighting and positioning.`);
       return;
     }
@@ -479,12 +485,24 @@ const FaceIdLogin = ({ onToggle }) => {
       {/* Controls */}
       <div className="controls">
         <button
-          className={`capture-button ${faceDetected && captureQuality >= 60 ? "ready" : ""}`}
+          className={`capture-button ${faceDetected && captureQuality >= CAPTURE_QUALITY_MIN ? "ready" : ""}`}
           onClick={capturePhoto}
-          disabled={!videoReady || isProcessing || !faceDetected || captureQuality < 60}
+          disabled={!videoReady || isProcessing || !faceDetected || captureQuality < CAPTURE_QUALITY_MIN}
         >
           {isProcessing ? "Processing..." : "Capture & Login"}
         </button>
+
+        {/* Tell the user WHY the button is disabled, so they aren't stuck
+            staring at a grey button with no feedback. */}
+        {!isProcessing && (!videoReady || !faceDetected || captureQuality < CAPTURE_QUALITY_MIN) && (
+          <p className="capture-hint" style={{ marginTop: 8, fontSize: 13, color: "#6b7280", textAlign: "center" }}>
+            {!videoReady
+              ? "Initializing camera and face models…"
+              : !faceDetected
+                ? "Position your face in the frame so the camera can see it."
+                : `Quality ${captureQuality}% — improve lighting or move slightly closer (need ${CAPTURE_QUALITY_MIN}%).`}
+          </p>
+        )}
 
         <button
           className="help-button"
