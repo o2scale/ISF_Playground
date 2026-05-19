@@ -356,9 +356,45 @@ exports.updateUserDetailsById = async (userId, payload) => {
       delete updateData.balagruhaIds;
     }
 
-    // Process facial data if uploaded
-    // REMOVED - Task 1: FR Rebuild
-    // Face detection during update temporarily disabled
+    // Process facial data if uploaded.
+    // Sprint 1.1 FR rebuild: face descriptor extraction now happens in the
+    // controller via frService.registerFace (which uses @vladmandic/human).
+    // We still need to upload the photo to S3 and persist facialDataUrl on
+    // the user so the Edit form can display the saved photo on next open.
+    if (updateData.facialData && updateData.facialData.path) {
+      const facialFile = updateData.facialData;
+      const isOfflineReq = updateData.isOfflineReq || false;
+      let facialDataUrl = null;
+
+      if (!isOfflineReq) {
+        try {
+          const s3Result = await uploadFileToS3(
+            facialFile.path,
+            process.env.AWS_S3_BUCKET_NAME_USER_PHOTOS || process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+            facialFile.filename
+          );
+          if (s3Result && s3Result.success) {
+            facialDataUrl = s3Result.url;
+          }
+        } catch (s3Error) {
+          errorLogger.error({ err: s3Error }, "Error uploading facial photo to S3 (update path) — falling back to local URL");
+        }
+      }
+
+      // Fallback: if S3 didn't return a URL (offline mode or upload failed),
+      // serve the photo from the backend's /uploads static mount so the
+      // frontend can still display it. Prefers a configured PUBLIC_BACKEND_URL.
+      if (!facialDataUrl) {
+        const base = process.env.PUBLIC_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
+        facialDataUrl = `${base}/uploads/${facialFile.filename}`;
+      }
+
+      updateData.facialDataUrl = facialDataUrl;
+      // The raw file object isn't a valid Mongoose field — remove before saving.
+      // The controller has already captured a reference to it for FR registration.
+      delete updateData.facialData;
+    }
+
     /* COMMENTED OUT - Old face-api.js detection in updateUser
     if (updateData.facialData) {
       let descriptorArray = null;

@@ -241,10 +241,42 @@ class Student {
         }
       }
 
+      // Sprint 1.1 FR rebuild: face descriptor extraction now happens in the
+      // controller via frService.registerFace. We still need to upload the
+      // photo to S3 and persist facialDataUrl so the Edit form can show it.
+      if (payload.facialData && payload.facialData.path) {
+        const facialFile = payload.facialData;
+        const isOfflineReq = payload.isOfflineReq || false;
+        let facialDataUrl = null;
+
+        if (!isOfflineReq) {
+          try {
+            const s3Result = await uploadFileToS3(
+              facialFile.path,
+              process.env.AWS_S3_BUCKET_NAME_USER_PHOTOS || process.env.AWS_S3_BUCKET_NAME_MEDICAL_RECORDS,
+              facialFile.filename
+            );
+            if (s3Result && s3Result.success) {
+              facialDataUrl = s3Result.url;
+            }
+          } catch (s3Error) {
+            errorLogger.error({ err: s3Error }, "Error uploading facial photo to S3 (create path) — falling back to local URL");
+          }
+        }
+
+        // Fallback to a backend-served URL when S3 isn't available.
+        if (!facialDataUrl) {
+          const base = process.env.PUBLIC_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
+          facialDataUrl = `${base}/uploads/${facialFile.filename}`;
+        }
+
+        payload.facialDataUrl = facialDataUrl;
+        // The raw file object isn't a valid Mongoose field for the new schema.
+        // Strip it before save (controller already holds a reference for FR).
+        delete payload.facialData;
+      }
+
       let descriptorArray = null;
-      // REMOVED - Task 1: FR Rebuild
-      // Face detection during registration temporarily disabled
-      // Will be reimplemented with @vladmandic/human in Task 2-8
       /* COMMENTED OUT - Old face-api.js detection in registerStudentNew
       if (payload.facialData) {
         let imagePath = payload.facialData.path;

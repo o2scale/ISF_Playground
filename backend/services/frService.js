@@ -374,9 +374,13 @@ async function registerFace(studentId, imageBuffer, registeredBy, registrationMe
       };
     }
 
-    // Check liveness (Enhanced - Task 5 Complete)
-    // Uses Human library anti-spoofing + multi-factor heuristics
-    const livenessResult = await checkBasicLiveness(extraction.face, extraction.quality);
+    // Check liveness — but skip it for admin uploads. Admins enrolling a
+    // student from a saved photo are a trusted source; requiring liveness here
+    // would make admin enrollment impossible (a saved photo never blinks).
+    // Login-time liveness is still enforced in recognizeFace.
+    const livenessResult = registrationMethod === 'admin_upload'
+      ? { passed: true, score: null, threshold: null, details: { skipped: true, reason: 'admin_upload' } }
+      : await checkBasicLiveness(extraction.face, extraction.quality);
 
     if (!livenessResult.passed) {
       // Log failed registration session
@@ -523,8 +527,10 @@ async function registerFace(studentId, imageBuffer, registeredBy, registrationMe
  * @returns {Object} Liveness result { passed, score, threshold, details }
  */
 async function checkLiveness(face, quality) {
-  // Configurable threshold (can be adjusted based on security requirements)
-  const threshold = parseFloat(process.env.FR_LIVENESS_THRESHOLD) || 0.6;
+  // Configurable threshold. Default lowered from 0.6 → 0.4 because real-world
+  // 720p webcams in indoor light score ~0.5–0.7 — 0.6 produced false rejects
+  // on genuinely live captures. Tighten in prod via FR_LIVENESS_THRESHOLD env.
+  const threshold = parseFloat(process.env.FR_LIVENESS_THRESHOLD) || 0.4;
 
   let livenessScore = 0;
   const details = {

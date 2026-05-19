@@ -160,6 +160,9 @@ venv/
 # Frontend build output (regenerated)
 frontend/build/
 
+# Backend multer upload directory — runtime files only, never committed
+backend/uploads/
+
 # Environment backups
 *.backup.*
 

@@ -209,13 +209,11 @@ FaceEmbeddingSchema.statics.getAllActiveEmbeddings = async function () {
  * @returns {Promise<FaceEmbedding>} New face embedding document
  */
 FaceEmbeddingSchema.statics.replaceEmbedding = async function (studentId, embeddingArray, metadata, registeredBy) {
-  // Deactivate old embedding
-  await this.updateMany(
-    { studentId, isActive: true },
-    { $set: { isActive: false, updatedAt: new Date() } }
-  );
+  // The studentId field has a unique index, so the legacy "deactivate then
+  // insert" pattern hit dup-key errors on re-enrollment. Delete-then-insert
+  // gives us exactly one active record per student (the desired invariant).
+  await this.deleteOne({ studentId });
 
-  // Create new embedding
   const newEmbedding = new this({
     studentId,
     metadata,

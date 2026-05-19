@@ -1,5 +1,7 @@
+const fs = require("fs");
 const { logger, errorLogger } = require("../config/pino-config");
 const User = require("../models/user");
+const frService = require("../services/frService");
 const {
   createUser,
   findUsersByRoleAndBalagruhaId,
@@ -204,8 +206,17 @@ exports.createUserV1 = async (req, res) => {
     // check the request if from localhost/ offline case
     let isOfflineReq = isRequestFromLocalhost(req);
     req.body.isOfflineReq = isOfflineReq;
+    // Capture the facial file reference NOW — service mutation removes it
+    // from req.body before save.
+    const facialFileForEmbedding = req.body.facialData;
     let result = await createUser(req.body);
     if (result.success) {
+      // If an admin attached a facial photo, register the embedding so the
+      // student can log in via Face ID. Best-effort; doesn't block the response.
+      const createdUserId = result?.data?.user?._id || result?.data?._id;
+      if (createdUserId && facialFileForEmbedding) {
+        registerFacialEmbeddingIfPresent(createdUserId, facialFileForEmbedding, req.user._id);
+      }
       logger.info(
         {
           clientIP: req.socket.remoteAddress,
@@ -723,6 +734,27 @@ exports.getUserInfo = async (req, res) => {
     });
   }
 };
+/**
+ * If an admin uploaded a `facialData` photo while creating or updating a user,
+ * extract a face embedding from it and save it to the FaceEmbedding collection
+ * so that Face-ID login can match against it. Best-effort: never throws —
+ * failures here don't fail the user save.
+ */
+async function registerFacialEmbeddingIfPresent(userId, facialFile, adminId) {
+  if (!facialFile || !facialFile.path) return;
+  try {
+    const buffer = await fs.promises.readFile(facialFile.path);
+    const result = await frService.registerFace(userId, buffer, adminId, "admin_upload");
+    if (result && result.success) {
+      logger.info({ userId: String(userId) }, "Face embedding registered for user");
+    } else {
+      logger.warn({ userId: String(userId), reason: result?.failureReason, error: result?.error }, "Face embedding registration skipped");
+    }
+  } catch (err) {
+    errorLogger.error({ err, userId: String(userId) }, "Failed to register face embedding from admin upload");
+  }
+}
+
 const extractMedicalHistory = (req) => {
   const medicalHistory = [];
 
@@ -1014,11 +1046,17 @@ exports.updateUserDetails = async (req, res) => {
       `Request received for updating user details for ID: ${userId}`
     );
 
+    // Capture facial file before the service strips it from req.body.
+    const facialFileForEmbedding = req.body.facialData;
     const result = await updateUserDetailsById(userId, req.body);
 
     if (result.success) {
       if (req.body.nextActionDate) {
         result.data.user.nextActionDate = req.body.nextActionDate;
+      }
+      // If admin attached a new facial photo, also register the FR embedding.
+      if (facialFileForEmbedding) {
+        registerFacialEmbeddingIfPresent(userId, facialFileForEmbedding, req.user._id);
       }
       logger.info(
         {

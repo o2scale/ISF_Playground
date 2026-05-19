@@ -317,13 +317,13 @@ const FaceIdLogin = ({ onToggle }) => {
       formData.append("facialData", imageBlob, "capture.jpg");
 
       const response = await faceIdlogin(formData);
-      const apiRes = response?.data || response;
-
-      if (!apiRes?.success) {
-        throw new Error(apiRes?.message || "Login failed");
+      // Backend returns the envelope { success, message, data: { token, user, confidence } }.
+      // faceIdlogin already unwrapped axios's response.data, so `response` IS the envelope.
+      if (!response?.success) {
+        throw new Error(response?.message || "Login failed");
       }
 
-      const { token, user, confidence } = apiRes.data;
+      const { token, user, confidence } = response.data || {};
 
       // Set confidence score from backend
       if (confidence !== undefined) {

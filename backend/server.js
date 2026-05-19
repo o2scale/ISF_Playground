@@ -132,6 +132,10 @@ app.use(cors(corsOptions));
 app.use(express.json({ limit: "5mb" }));
 app.use(express.urlencoded({ limit: "5mb", extended: true }));
 
+// Serve uploaded files locally so dev environments without working S3 creds
+// (or any case where S3 upload fails) can still render images via fallback URL.
+app.use("/uploads", express.static(require("path").join(process.cwd(), "uploads")));
+
 app.use("/api/users", userRoutes);
 app.use("/api/v1/users", userV1Routes);
 app.use("/api/v1/balagruha", balagruhaV1);
