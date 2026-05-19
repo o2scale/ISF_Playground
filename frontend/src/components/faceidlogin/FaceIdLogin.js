@@ -57,9 +57,11 @@ const FaceIdLogin = ({ onToggle }) => {
    */
   const initializeHuman = async () => {
     try {
-      // Configure Human for browser use - lightweight config for real-time preview
+      // Configure Human for browser use - lightweight config for real-time preview.
+      // Models are self-hosted under /models (copied from node_modules at install time
+      // — see frontend/package.json `postinstall`). Avoids CDN dependency at runtime.
       const config = {
-        modelBasePath: "https://cdn.jsdelivr.net/npm/@vladmandic/human/models",
+        modelBasePath: "/models",
         face: {
           enabled: true,
           detector: { enabled: true, rotation: false },

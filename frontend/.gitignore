@@ -14,6 +14,9 @@ e2e/.auth/
 # production
 /build
 
+# @vladmandic/human models — copied from node_modules by `npm run copy-human-models`
+/public/models/
+
 # misc
 .DS_Store
 .env.local

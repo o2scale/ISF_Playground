@@ -8,6 +8,7 @@
  */
 
 const { Canvas, Image } = require('canvas');
+const tf = require('@tensorflow/tfjs-node');
 const FaceEmbedding = require('../models/FaceEmbedding');
 const FRSession = require('../models/FRSession');
 const frCacheService = require('./frCacheService');
@@ -43,21 +44,30 @@ function getHuman() {
 }
 
 /**
- * Convert buffer to image tensor for Human library
+ * Decode an image buffer into a TF tensor that Human's Node API accepts.
+ * Human v3 on Node only recognizes Tensors / specific DOM types as input;
+ * passing a node-canvas Image throws "input error: type not recognized".
  *
  * @param {Buffer} imageBuffer - Image data (JPEG, PNG, etc.)
- * @returns {Promise<Object>} Canvas image object
- * @throws {Error} If image cannot be loaded
+ * @returns {Promise<Object>} Object with { tensor, width, height }.
+ *   Caller MUST dispose the tensor after use (`tensor.dispose()`).
+ * @throws {Error} If image cannot be decoded
  */
 async function bufferToImage(imageBuffer) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-
-    img.onload = () => resolve(img);
-    img.onerror = (err) => reject(new Error(`Failed to load image: ${err.message}`));
-
-    img.src = imageBuffer;
-  });
+  if (!Buffer.isBuffer(imageBuffer)) {
+    throw new Error('bufferToImage expects a Buffer');
+  }
+  // decodeImage returns shape [h, w, channels]; channels=3 forces RGB so
+  // Human's BlazeFace input pipeline gets a consistent tensor.
+  const tensor = tf.node.decodeImage(imageBuffer, 3);
+  const [height, width] = tensor.shape;
+  // Human expects a 4D batch tensor [1, h, w, 3].
+  const batched = tf.expandDims(tensor, 0);
+  tensor.dispose();
+  // Decorate so callers that read .width/.height (validateQuality) still work.
+  batched.width = width;
+  batched.height = height;
+  return batched;
 }
 
 /**
@@ -139,10 +149,11 @@ function validateQuality(face, image) {
 async function detectFace(imageBuffer) {
   const startTime = Date.now();
   const human = getHuman();
+  let image = null;
 
   try {
-    // Convert buffer to image
-    const image = await bufferToImage(imageBuffer);
+    // Convert buffer to tensor (Human v3 Node requires a tf tensor as input)
+    image = await bufferToImage(imageBuffer);
 
     // Detect faces
     const result = await human.detect(image);
@@ -208,6 +219,11 @@ async function detectFace(imageBuffer) {
       failureReason: 'server_error',
       detectionTimeMs: Date.now() - startTime,
     };
+  } finally {
+    // Always free the GPU/CPU tensor backing the decoded image, even on failure.
+    if (image && typeof image.dispose === 'function') {
+      try { image.dispose(); } catch (_) { /* noop */ }
+    }
   }
 }
 

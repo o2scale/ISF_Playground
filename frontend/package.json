@@ -71,7 +71,9 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "copy-human-models": "node -e \"const fs=require('fs');const path=require('path');const src=path.join('node_modules','@vladmandic','human','models');const dst=path.join('public','models');if(!fs.existsSync(src)){console.log('[copy-human-models] source missing, skipping');process.exit(0);}fs.mkdirSync(dst,{recursive:true});for(const f of fs.readdirSync(src)){fs.copyFileSync(path.join(src,f),path.join(dst,f));}console.log('[copy-human-models] copied',fs.readdirSync(src).length,'files to',dst);\"",
+    "postinstall": "npm run copy-human-models"
   },
   "jest": {
     "moduleNameMapper": {

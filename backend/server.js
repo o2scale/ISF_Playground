@@ -263,30 +263,7 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 5001;
-const server = app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Backend URL: http://localhost:${PORT}`);
-  console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
-  console.log(`🔗 Health Check: http://localhost:${PORT}/`);
-
-  // Run initial cleanup of orphaned files
-  try {
-    cleanupOrphanedFiles();
-    console.log("🧹 Initial file cleanup completed");
-  } catch (error) {
-    console.error("❌ Initial file cleanup failed:", error.message);
-  }
-});
-
-// Initialize WTF WebSocket server
-try {
-  wtfWebSocketService.initialize(server);
-  console.log("✅ WTF WebSocket server initialized successfully");
-} catch (error) {
-  console.error("❌ Error initializing WTF WebSocket server:", error);
-}
-
-// ADDED - Task 2: FR Rebuild - Initialize Human library
+let server;
 let humanInstance = null;
 
 async function initializeHuman() {
@@ -327,8 +304,38 @@ async function initializeHuman() {
   }
 }
 
-// Initialize Human on server startup
-initializeHuman().catch(console.error);
+// Boot sequence: load FR models BEFORE accepting traffic so the first login
+// attempt doesn't 500 with "Human library not initialized". If FR init fails,
+// we log and start anyway — login by password still works, FR routes will 503
+// via the getHuman() guard below.
+(async () => {
+  try {
+    await initializeHuman();
+  } catch (err) {
+    console.error("⚠️  FR init failed — server will start without face recognition:", err.message);
+  }
+
+  server = app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`🌐 Backend URL: http://localhost:${PORT}`);
+    console.log(`📚 API Documentation: http://localhost:${PORT}/api-docs`);
+    console.log(`🔗 Health Check: http://localhost:${PORT}/`);
+
+    try {
+      cleanupOrphanedFiles();
+      console.log("🧹 Initial file cleanup completed");
+    } catch (error) {
+      console.error("❌ Initial file cleanup failed:", error.message);
+    }
+  });
+
+  try {
+    wtfWebSocketService.initialize(server);
+    console.log("✅ WTF WebSocket server initialized successfully");
+  } catch (error) {
+    console.error("❌ Error initializing WTF WebSocket server:", error);
+  }
+})();
 
 // Export Human instance for use in services
 module.exports.getHuman = () => {

@@ -18,9 +18,12 @@ const { cleanupLocalFile } = require("../utils/fileCleanup");
 // const canvas = require("canvas"); // REMOVED - Task 1: FR Rebuild
 // const faceapi = require("face-api.js"); // REMOVED - Task 1: FR Rebuild
 const path = require("path");
+const fs = require("fs");
 const jwt = require("jsonwebtoken");
 const { fetchMachinesByIds } = require("../data-access/machines");
 const { default: mongoose } = require("mongoose");
+const frService = require("./frService");
+const User = require("../models/user");
 
 // REMOVED - Task 1: FR Rebuild
 // const { Canvas, Image, ImageData } = canvas;
@@ -612,15 +615,134 @@ class Student {
     }
   }
 
-  // REMOVED - Task 1: FR Rebuild
-  // Old face-api.js implementation removed
-  // Will be replaced with @vladmandic/human in Task 2-8
+  // Sprint 1.1 FR rebuild: bridges the legacy /api/auth/student/facial/login
+  // endpoint to the rebuilt @vladmandic/human pipeline in frService. The old
+  // face-api.js implementation lives in the comment block below for reference.
   static async faceLogin(payload) {
-    return {
-      success: false,
-      code: 503,
-      message: "Facial recognition system is being rebuilt. Please use manual login temporarily.",
-    };
+    try {
+      const macAddress = payload.macAddress;
+
+      // facialData arrives from multer disk storage as an array of file objects;
+      // pick the first uploaded frame.
+      const facialFile = Array.isArray(payload.facialData) ? payload.facialData[0] : payload.facialData;
+      if (!facialFile || !facialFile.path) {
+        return {
+          success: false,
+          data: {},
+          code: 400,
+          message: "Face image data is required",
+        };
+      }
+
+      let imageBuffer;
+      try {
+        imageBuffer = await fs.promises.readFile(facialFile.path);
+      } catch (readErr) {
+        errorLogger.error({ err: readErr, path: facialFile.path }, "Failed to read uploaded face image");
+        return {
+          success: false,
+          data: {},
+          code: 400,
+          message: "Failed to read uploaded face image",
+        };
+      }
+
+      const threshold = parseFloat(process.env.FR_LOGIN_THRESHOLD || "0.5");
+      const recognition = await frService.recognizeFace(imageBuffer, threshold);
+
+      // Best-effort cleanup of the uploaded temp file; do not block on failure.
+      try { cleanupLocalFile(facialFile.path); } catch (_) { /* noop */ }
+
+      if (!recognition.success) {
+        const code = recognition.failureReason === "liveness_failed" ? 401
+          : recognition.failureReason === "no_matching_embedding" ? 404
+          : recognition.failureReason === "low_confidence" ? 401
+          : 400;
+        return {
+          success: false,
+          data: {},
+          code,
+          message: recognition.error || "Face not recognized",
+          failureReason: recognition.failureReason,
+        };
+      }
+
+      // Recognition succeeded — finalize login the same way password auth does.
+      const userInfo = await User.findById(recognition.studentId);
+      if (!userInfo) {
+        return {
+          success: false,
+          data: {},
+          code: 404,
+          message: "Matched student record was not found",
+        };
+      }
+
+      if (typeof userInfo.isLocked === "function" && userInfo.isLocked()) {
+        return {
+          success: false,
+          data: {},
+          code: 423,
+          message: "Account is locked. Please try again later",
+        };
+      }
+
+      if (userInfo.status === "inactive") {
+        return {
+          success: false,
+          data: {},
+          code: 401,
+          message: "Account is inactive. Please contact administrator",
+        };
+      }
+
+      // Machine binding check (kiosk model): only enforce when student has
+      // assigned machines AND the request provided a macAddress.
+      if (macAddress && Array.isArray(userInfo.assignedMachines) && userInfo.assignedMachines.length > 0) {
+        const machines = await fetchMachinesByIds(userInfo.assignedMachines.map((id) => id));
+        if (machines && machines.success) {
+          const allowed = machines.data.map((m) => m.macAddress);
+          if (!allowed.includes(macAddress)) {
+            return {
+              success: false,
+              data: {},
+              code: 403,
+              message: "This machine is not assigned for this student. Contact Admin",
+            };
+          }
+        }
+      }
+
+      if (typeof userInfo.resetLoginAttempts === "function") {
+        await userInfo.resetLoginAttempts();
+      }
+      userInfo.lastLogin = new Date();
+      await userInfo.save();
+
+      const token = jwt.sign({ id: userInfo._id }, process.env.JWT_SECRET, {
+        expiresIn: "1d",
+      });
+
+      return {
+        success: true,
+        message: "Login successful",
+        data: {
+          confidence: recognition.confidence,
+          livenessScore: recognition.livenessScore,
+          token,
+          user: {
+            id: userInfo._id,
+            name: userInfo.name,
+            email: userInfo.email,
+            role: userInfo.role,
+            status: userInfo.status,
+          },
+        },
+      };
+    } catch (error) {
+      errorLogger.error({ err: error }, `Error during facial login: ${error.message}`);
+      throw error;
+    }
   }
 
   /* COMMENTED OUT - Old face-api.js faceLogin implementation
