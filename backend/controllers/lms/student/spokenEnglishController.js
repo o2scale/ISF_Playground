@@ -298,7 +298,12 @@ exports.submitVideoRecording = async (req, res) => {
       });
     }
 
-    // 3. Create Submission Record
+    // 3. Replace-on-resubmit: a student gets ONE active submission per task.
+    // Re-recording supersedes the previous attempt (matches the "re-record if
+    // not satisfied" intent) and resets it to pending for fresh grading.
+    await Submission.deleteMany({ studentId, taskId, submissionType: 'video' });
+
+    // 4. Create Submission Record
     // Field names/enums must match models/Submission.js:
     //   submissionType ∈ [art, video, audio, quiz]; status ∈ [pending, graded, flagged, skipped]
     const submission = new Submission({
@@ -347,7 +352,8 @@ exports.getStudentSubmissions = async (req, res) => {
   try {
     const { studentId } = req.params;
 
-    const submissions = await Submission.find({ studentId, type: 'video' }) // Video type specific to Spoken English here
+    // Schema field is `submissionType` (not `type`); 'video' is the Spoken English kind.
+    const submissions = await Submission.find({ studentId, submissionType: 'video' })
       .sort({ submittedAt: -1 })
       .populate('courseId', 'title')
       .lean();
@@ -373,7 +379,7 @@ exports.getStudentSubmissions = async (req, res) => {
       submissions: formattedSubmissions,
       totalSubmissions: formattedSubmissions.length,
       gradedSubmissions: formattedSubmissions.filter(s => s.status === 'graded').length,
-      pendingSubmissions: formattedSubmissions.filter(s => s.status === 'submitted' || s.status === 'under_review').length
+      pendingSubmissions: formattedSubmissions.filter(s => s.status === 'pending').length
     });
 
   } catch (error) {

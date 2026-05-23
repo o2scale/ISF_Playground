@@ -20,6 +20,7 @@ export default function SpokenEnglishPage() {
   // State Management
   const [task, setTask] = useState(null);
   const [taskList, setTaskList] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,6 +40,7 @@ export default function SpokenEnglishPage() {
   useEffect(() => {
     if (isListMode) {
       fetchTaskList();
+      fetchSubmissions();
     } else {
       fetchTaskData();
       requestWebcamAccess();
@@ -74,6 +76,24 @@ export default function SpokenEnglishPage() {
       toast.error('Failed to load tasks');
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Fetch the student's submission history (list mode)
+   */
+  const fetchSubmissions = async () => {
+    try {
+      const studentId = localStorage.getItem('userId') || 'student1';
+      const response = await api.get(
+        `/api/v2/lms/student/${studentId}/courses/spoken-english/submissions/history`
+      );
+      if (response.data.success) {
+        setSubmissions(response.data.submissions || []);
+      }
+    } catch (err) {
+      // Non-fatal: the picker still works without history.
+      console.error('Error fetching submissions:', err);
     }
   };
 
@@ -343,6 +363,59 @@ export default function SpokenEnglishPage() {
             })}
           </div>
         )}
+
+        {/* My Submissions — history of recordings with status + coach feedback */}
+        <div className="mt-12">
+          <h2 className="text-2xl font-bold text-blue-900 mb-4">📼 My Submissions</h2>
+          {submissions.length === 0 ? (
+            <p className="text-gray-500 bg-white border border-gray-200 rounded-lg p-4">
+              You haven't submitted any recordings yet. Pick a task above to get started.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {submissions.map((s) => {
+                const statusStyle = s.status === 'graded'
+                  ? 'bg-green-100 text-green-700'
+                  : s.status === 'flagged'
+                    ? 'bg-red-100 text-red-700'
+                    : 'bg-amber-100 text-amber-700';
+                const statusLabel = s.status === 'graded'
+                  ? 'Graded'
+                  : s.status === 'flagged'
+                    ? 'Needs Re-do'
+                    : 'Under Review';
+                return (
+                  <div key={s.submissionId} className="bg-white border border-gray-200 rounded-lg p-4">
+                    <div className="flex items-start justify-between gap-3 flex-wrap">
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-gray-800">{s.taskTitle || 'Spoken English Task'}</h3>
+                        <p className="text-sm text-gray-500">
+                          Submitted {s.submittedAt ? new Date(s.submittedAt).toLocaleString() : '—'}
+                          {s.duration ? ` · ${Math.floor(s.duration / 60)}:${String(s.duration % 60).padStart(2, '0')}` : ''}
+                        </p>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${statusStyle}`}>
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    {s.fileUrl && (
+                      <video src={s.fileUrl} controls className="mt-3 w-full max-w-md rounded-lg border border-gray-200" />
+                    )}
+
+                    {s.status === 'graded' && (
+                      <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md text-sm">
+                        {s.score != null && <p className="font-semibold text-green-800">Score: {s.score}</p>}
+                        {s.grade && <p className="text-green-800 capitalize">Rating: {String(s.grade).replace('_', ' ')}</p>}
+                        {s.feedback && <p className="text-gray-700 mt-1">Coach feedback: {s.feedback}</p>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
     );
   }
