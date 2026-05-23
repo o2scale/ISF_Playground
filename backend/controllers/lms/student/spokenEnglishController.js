@@ -4,6 +4,7 @@ const Submission = require('../../../models/Submission');
 const mongoose = require('mongoose');
 const s3Service = require('../../../services/aws/s3');
 const fs = require('fs');
+const path = require('path');
 const { errorLogger } = require('../../../config/pino-config');
 
 // backend/controllers/lms/student/spokenEnglishController.js
@@ -180,7 +181,9 @@ exports.getSpokenEnglishTasks = async (req, res) => {
     allTasks = allTasks.map(t => {
       const sub = submissionMap.get(t.id.toString());
       if (sub) {
-        if (sub.status === 'under_review' || sub.status === 'submitted') {
+        // Submission.status enum is [pending, graded, flagged, skipped].
+        // A pending submission means it's awaiting coach grading.
+        if (sub.status === 'pending') {
           t.status = 'under_review'; // Override 'available'
         } else if (sub.status === 'graded') {
           t.status = 'graded';
@@ -265,12 +268,29 @@ exports.submitVideoRecording = async (req, res) => {
       videoFile.mimetype
     );
 
-    // Clean up temp file
-    if (fs.existsSync(videoFile.path)) {
-      fs.unlinkSync(videoFile.path);
-    }
-
-    if (!uploadResult.success) {
+    let s3Url;
+    if (uploadResult.success) {
+      s3Url = uploadResult.url;
+      // Clean up temp file only after a successful S3 upload.
+      if (fs.existsSync(videoFile.path)) {
+        fs.unlinkSync(videoFile.path);
+      }
+    } else if (process.env.NODE_ENV !== 'production') {
+      // DEV-ONLY fallback: when S3 isn't configured locally, keep the file on
+      // disk and serve it from the backend's /uploads mount so the full
+      // submit→grade flow is testable. NEVER used in production — graded work
+      // must not silently land on ephemeral local disk.
+      const base = process.env.PUBLIC_BACKEND_URL || `http://localhost:${process.env.PORT || 5001}`;
+      s3Url = `${base}/uploads/${path.basename(videoFile.path)}`;
+      errorLogger.error(
+        { err: uploadResult.error },
+        'Spoken English: S3 upload failed — using local /uploads fallback (dev only)'
+      );
+    } else {
+      // Production: fail loudly rather than risk losing a student's submission.
+      if (fs.existsSync(videoFile.path)) {
+        fs.unlinkSync(videoFile.path);
+      }
       return res.status(500).json({
         success: false,
         message: 'Failed to upload video to storage',
@@ -278,22 +298,22 @@ exports.submitVideoRecording = async (req, res) => {
       });
     }
 
-    const s3Url = uploadResult.url;
-
     // 3. Create Submission Record
+    // Field names/enums must match models/Submission.js:
+    //   submissionType ∈ [art, video, audio, quiz]; status ∈ [pending, graded, flagged, skipped]
     const submission = new Submission({
       studentId,
       courseId: course._id,
       taskId,
       taskTitle,
-      type: "video",
+      submissionType: "video",
       fileUrl: s3Url,
       thumbnailUrl: null,
       metadata: {
         duration: duration || 0,
         fileSize: fileSize || 0
       },
-      status: "submitted",
+      status: "pending",
       submittedAt: new Date()
     });
 
